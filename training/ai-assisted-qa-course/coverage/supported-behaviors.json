@@ -4031,19 +4031,19 @@
       "source_text": "商品名、商品コード、検索サジェスト、フィルターを用いて公開商品を検索する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,many-products,empty-catalog。操作: 検索ファセット。正常・不許可・変化前後の入力を区別する",
+      "scenario": "default guest、regular/gold/platinum会員比較、many-productsのページング、empty-catalogの0件、sale-active/expired-saleの期間条件（別Seedで直列に確認）。",
+      "data": "default Seedは公開/未公開/draft/販売終了とrank制限商品、カテゴリー4件・ブランド3件・在庫0/低在庫・レビュー集計を持ち、初期Sessionはguest。Web /searchのURL queryからcategory/brand CSV複数指定、minPrice/maxPrice、inStock、onSale、minRating、sort、page(20件)を生成。Nativeはstateから同一ProductSearchRequestを生成。CatalogUseCases.search(viewer,clock)→Web DexieProductQueryRepositoryまたはAndroid SQLite検索。候補はpublished/ランク許可/active SKUに限定する。",
       "action": "検索ファセット",
-      "expected": "検索語とファセットの両方が結果へ適用され、絞り込み後も公開条件とページングが維持される",
+      "expected": "公開・閲覧者ランク条件を先に適用し、同一カテゴリー内・ブランド内の複数値はOR、カテゴリー/ブランド/価格/Stock/Sale/Rating/Keyword間はANDで絞り込み、total・page・20件ページングとfacet countsが一致すること。Web/Nativeとも各Facetが自身の選択条件を除外して件数を計算し、商品codeによる決定的な同値sortを行うこと。WebはURL、Nativeは状態変更でpage=1に戻す。",
       "rule_refs": [],
       "route": "`/search`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "検索ファセットに対して、検索語とファセットの両方が結果へ適用され、絞り込み後も公開条件とページングが維持されることをUI/業務状態で照合する",
-      "test_responsibility": "検索ファセットのユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "検索ファセットの誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "上位rank/非公開商品とその件数の漏洩、同Facet条件を誤ってAND評価、価格帯で別々のSKUを両端一致としてしまう誤抽出、Facet自身選択除外漏れ、Web/Native差、在庫0/期間外Sale/公開レビュー0の誤評価、無効URL値の扱い。",
+      "test_condition": "C1 default guestでcategory-apparel/category-home各単独・両方を選択し同Facet OR、別Facet brandとのANDを確認。C2 default guestとgold/platinumの公開/rank別商品集合・facet件数、unpublished/draft/discontinued除外を確認。C3 同一SKUのviewerUnitPriceがmin/max両境界に入ることを確認（product-variation-13の複数SKUを用い、異なるSKUが下限/上限を満たすだけの誤抽出を拒否）。C4 inStock、SaleのBASE_CLOCK/expired-sale、Rating 1〜5と公開レビュー0/星4の既存Seedを照合。C5 Web URL CSV/category/brand選択・Sort変更でpage=1、Native state選択もpage=1、sort同点productCode、20/21件ページをmany-productsで確認。C6 各Facetのcountが同種フィルター自身を除いて他条件を反映することをWeb/SQLiteのDTOと実UIで検証。C7 未確認の実Web/Native操作・視覚/a11y・DB不変を別受入。",
+      "test_responsibility": "C1〜C7でWeb/Android UI→CatalogUseCases.search→Dexie/SQLiteの公開/rank、同種OR・異種AND、個別SKU価格範囲、facet集計・Sort/Page、Seed値と差分を検証する。",
+      "case_policy": "C1〜C7を採用。固定Seed/default・many-products・expired-sale等の代表条件で独立したCaseを設定。商品詳細のCart追加、検索結果0件からの復帰、実端末・視覚の合否は別Case。",
+      "case_selection_reason": "正式BR-STOREFRONT-002が同Facet OR/異種ANDを要求し、Web/Nativeは同じRequest型だがUI状態管理が異なる。既存repository-contractがFacet自身除外・価格/Ratingを部分検証するため、残るRole/URL/Page/Native UIは個別に確認する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。storefront.md:9-23,141-155/206-216とCatalogUseCases.search:86-93、Web CatalogListContent:134-162/323-429、NativeSearchWithInitial:300-368/520-566、Dexie matchesSearch:56-95/createFacets:332-382、Native SQLite matchesSearch:144-181/createFacets:723-781、Seed default/many-products/expired-sale、既存repository-contract:106-153を照合。同一Facet ORと異Facet AND、UIのpageReset、viewer/Clockを分離して記録。直接実Run・a11y・DB/Session不変・製品適合未確認。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -4052,12 +4052,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 PR #199と定期実行を変更せず独立静的分析。正式仕様・Web/Android画面→Use Case→Web Dexie/Native SQLite（該当する経路のみ）・Role・default Seed・Risk/Condition/Caseを個別照合した。基本分析のみanalyzed。直接の実Web/Native Run、視覚/a11y、状態不変、製品適合、最新#199への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -4080,7 +4082,129 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "閲覧者可視範囲・AND/ORファセット・価格/時刻のBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 141,
+          "end_line": 173,
+          "reason": "検索画面2操作・0件表示の正式契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/customer、管理者の購入制限・ランク"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 107,
+          "reason": "default/empty-catalog/many-productsの登録シナリオと初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 65,
+          "reason": "固定シナリオ生成分岐"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 37,
+          "end_line": 245,
+          "reason": "公開/非公開・rank・価格・在庫・レビュー・カテゴリーのdefault固定データ"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 111,
+          "end_line": 162,
+          "reason": "Web /search requestのURL解釈とCatalogUseCases.search呼出し"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 323,
+          "end_line": 429,
+          "reason": "Web全ファセット表示とURLフィルター条件/ページリセット"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 300,
+          "end_line": 368,
+          "reason": "Native検索のKeyword/Price/Category/Brand/Stock/Sale/Rating/Sort request"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 520,
+          "end_line": 566,
+          "reason": "Native各ファセット選択とPage=1リセット"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 1054,
+          "end_line": 1139,
+          "reason": "Nativeファセットの表示/選択"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 107,
+          "reason": "viewer/Clockと入力値検証/検索委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 56,
+          "end_line": 127,
+          "reason": "Dexie AND/ORフィルタ、決定的sort/Page、facets算出"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 249,
+          "end_line": 382,
+          "reason": "公開/rank条件とfacetの選択中自身除外集計"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 144,
+          "end_line": 205,
+          "reason": "Native SQLiteのAND/OR・sort順"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 273,
+          "reason": "Native検索結果DTOとfacets"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 723,
+          "end_line": 781,
+          "reason": "Native facet countsと異種条件の照合"
+        },
+        {
+          "path": "tests/repository-contract/storefront-catalog.test.ts",
+          "start_line": 106,
+          "end_line": 153,
+          "reason": "価格・Facet自身除外・ratingの既存repository contract"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-A02-01",
@@ -4233,19 +4357,19 @@
       "source_text": "該当する検索結果がない場合、検索条件を見直すための導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,many-products,empty-catalog。操作: 条件見直し導線。正常・不許可・変化前後の入力を区別する",
+      "scenario": "default guestに存在しない検索語を指定して0件を作る。gold/platinum Sessionやempty-catalogでも対照する。正式仕様のsearch-emptyは画面状態の名称であり、SCENARIO_METADATAには同名のReset Seedがない。",
+      "data": "default Seedはguest初期Session、商品・カテゴリーが固定。Web /search?q=（一致しない文字列）など0件時、CatalogUseCases.searchがtotal=0/items=[]を返し、CatalogListContentはStatePanel(filter-empty)と『条件をすべて解除』を描画、router.replace('/search')でQuery/ページを解除する。Android NativeSearchWithInitialはtotal=0なら『該当する商品がありません』のテキストだけを表示し、検索入力を編集し直せるが0件状態専用の解除ボタンはない。Native Searchはkeyword/Facets stateを別保持する。",
       "action": "条件見直し導線",
-      "expected": "結果0件から検索語・ファセットを変更して再検索でき、前の絞り込みによる誤った残留がない",
+      "expected": "検索結果0件を閲覧者へ明示し、ユーザーが検索語・絞り込み条件を見直して結果へ復帰できること。Webは『条件をすべて解除』で/searchへ移動し条件/ページを初期化すること。Androidは検索入力・Facetを再操作できるが、現実装では専用一括解除ボタンがないため正式な復帰導線として十分か製品受入で判断すること。",
       "rule_refs": [],
       "route": "`/search`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "条件見直し導線に対して、結果0件から検索語・ファセットを変更して再検索でき、前の絞り込みによる誤った残留がないことをUI/業務状態で照合する",
-      "test_responsibility": "条件見直し導線のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "条件見直し導線の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "No-resultsと全商品0件の混同、検索条件が残り再検索しても0件のまま、Nativeで明示的な解除導線がなく戻り方を理解できない、Role制限商品を0件誤認させること、解除時の既存Cart/Session副作用。",
+      "test_condition": "C1 default guestで不一致のキーワードを検索し、Web /searchのfilter-empty文言・『条件をすべて解除』を検証。C2 WebでCategory/Brand/Stock/Sale/RatingとQueryを組み合わせて0件にし、解除で/searchへ戻りpage=1・全条件初期化/通常候補復帰を確認。C3 検索前のdefault/空Seed/role変更で0件の理由を区別し、未公開/rank対象を含めない。C4 Androidで検索入力+Facetを0件にしたとき『該当する商品がありません』が表示され、検索語/条件を手動で見直す経路を確認（専用解除Actionなしを記録）。C5 Web/Nativeのスクリーンリーダー、Keyboard、フォーカス、Session/Cart/DB不変を実検証。",
+      "test_responsibility": "C1〜C5で0件の検索結果と状態表示、Web解除・Android手動修正導線、Role制限/Seedと操作前後状態を検証する。",
+      "case_policy": "C1〜C5を採用。Webの一括解除は既存実装で直接追跡し、Nativeの一括解除ボタン不在を既存仕様との適合候補として別管理。search-empty Seedが存在すると仮定しない。",
+      "case_selection_reason": "Webは0件専用のrouter.replace('/search')があるが、Androidは表示文言のみで明示的な解除ボタンがない。正式仕様は見直し導線を要求し、同名の固定Seedがないため実際の検索語で再現する。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。storefront.md:141-173とWeb CatalogListContent:502-525（検索結果0件はfilter-empty、buttonから/searchへreplace）、NativeSearchWithInitial:567-581（『該当する商品がありません』・一括解除なし）、CatalogUseCases.search、Dexie/SQLiteがtotal/itemsを返す経路、default Seed/metadataを照合。正式のsearch-empty状態は登録済みReset Scenarioではない。Android UIの戻り導線は操作欄を使う方式で専用Action不在。実検索Run/画面/a11y/Session不変/製品適合は未受入。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -4254,12 +4378,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.search"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 PR #199と定期実行を変更せず独立静的分析。正式仕様・Web/Android画面→Use Case→Web Dexie/Native SQLite（該当する経路のみ）・Role・default Seed・Risk/Condition/Caseを個別照合した。基本分析のみanalyzed。直接の実Web/Native Run、視覚/a11y、状態不変、製品適合、最新#199への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -4282,7 +4408,99 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.search",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 86,
+          "signature": "async search(request: ProductSearchRequest): Promise<ProductSearchResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "閲覧者可視範囲・AND/ORファセット・価格/時刻のBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 141,
+          "end_line": 173,
+          "reason": "検索画面2操作・0件表示の正式契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/customer、管理者の購入制限・ランク"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 107,
+          "reason": "default/empty-catalog/many-productsの登録シナリオと初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 65,
+          "reason": "固定シナリオ生成分岐"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 299,
+          "end_line": 323,
+          "reason": "Web検索入力フォームとURL Query更新"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 437,
+          "end_line": 525,
+          "reason": "Web検索結果0件と一括解除の実装"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 455,
+          "end_line": 566,
+          "reason": "Android入力・Facet変更と再検索導線"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 566,
+          "end_line": 583,
+          "reason": "Native0件メッセージ（明示的解除Actionなし）"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 86,
+          "end_line": 93,
+          "reason": "同一の検索UseCase"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/storefront-repositories.ts",
+          "start_line": 101,
+          "end_line": 127,
+          "reason": "Web zero items DTOとFacets"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "start_line": 259,
+          "end_line": 273,
+          "reason": "Native zero items DTOとFacets"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 37,
+          "end_line": 245,
+          "reason": "公開/非公開・rank・価格・在庫・レビュー・カテゴリーのdefault固定データ"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-SEARCH-S-no-results",
@@ -5165,31 +5383,33 @@
       "source_line": 28,
       "source_text": "ログインの拒否理由は利用者向け文言で表示し、安全な内部リダイレクト先のみを採用して遷移する。",
       "platform": "web,android",
-      "role": "Guest",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,suspended-user,withdrawn-user。操作: ログイン拒否理由の表示。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest（default初期Sessionなし）。比較: active customer/operator/admin、suspended/withdrawn顧客、存在しないID、誤パスワード、Web/Nativeの入力不正",
+      "scenario": "default(guest/active顧客3+active staff2/停止・退会各1)、suspended-user、withdrawn-user、guest-cart-merge-overflow（失敗時Cart不変比較）を使用する。固定Test Passwordは出力資料に記載しない。",
+      "data": "default Seedはactive regular/gold/platinum、active operator/admin、suspended/withdrawnの7 users、sessions=[]。AuthUseCases.loginはnormalize email、長さ上限、user照合/PasswordHash verify、suspended/withdrawn拒否をSession pointer/transaction以前に実行。active成功時のみ新Sessionを生成し顧客のGuest Cartをtransactionで統合、失敗時にPointer clear/transaction rollback。Web useAuthErrorはAUTHENTICATION_FAILED/ACCOUNT_SUSPENDED/ACCOUNT_WITHDRAWN/STORAGE...等を日本語へマップしrole=status form alertを表示。NativeはApplicationError.messageKeyをError.messageのまま表示するため内部キー露出の仕様差候補。",
       "action": "ログイン拒否理由の表示",
-      "expected": "不正な認証情報・停止状態・必須入力不足では安全なエラー表示になり、本人以外の情報を開示しない",
+      "expected": "存在しないメール/誤Passwordは共通で資格情報不一致、停止は利用停止、退会は退会済みとして処理しSessionを作成しないこと。Webは日本語の非技術的な拒否理由を表示して内部ID/Hashを露出しないこと。Nativeも正式契約上は分かりやすい拒否理由が必要だが現在のmessageKey出力は製品適合の確認候補。active role別Redirectは自サービスの許可された内部Pathだけを採用すること。",
       "rule_refs": [],
       "route": "`/login`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "ログイン拒否理由の表示に対して、不正な認証情報・停止状態・必須入力不足では安全なエラー表示になり、本人以外の情報を開示しないことをUI/業務状態で照合する",
-      "test_responsibility": "ログイン拒否理由の表示のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "ログイン拒否理由の表示の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "停止/退会でSessionを発行すること、ユーザー存在の情報漏洩、Hashや内部messageKey表示、Guest Cart/DBの失敗時部分書込、Redirectの外部URL受理、Web/Nativeエラー説明差。",
+      "test_condition": "C1 defaultで存在しないメール・正規化大小文字・誤Password・過長email/passwordを入力しAUTHENTICATION_FAILED、Web日本語警告、Session/Cart不変を確認。C2 suspended/withdrawnの正しい資格情報でACCOUNT_SUSPENDED/WITHDRAWN、Session作成0とPointer未設定、Role別Web/Native表示を確認。C3 active regular/gold/platinum/operator/adminの正しいログインと内部Redirect先/購入権限を比較（ログイン成功そのものはA01の別責務）。C4 WebのLOGIN_TRANSACTION_FAILEDとSTORAGE_WRITE_FAILEDを失敗注入し既存integration testのCart rollback/Session不変と画面警告を照合。C5 NativeでApplicationError.messageKeyが表示される現行仕様差を直接観測し、正本の利用者向け文言/内部情報露出禁止との適合を確認。C6 許可済み/不正なreturnToや外部URLの拒否、ブラウザ/Androidの可視表示・a11y・実DB snapshotを確認。",
+      "test_responsibility": "C1〜C6でログイン拒否の可視理由、状態別Session非作成・取引/Cartの不変、Role/Redirect、Nativeの生messageKey・情報露出を検証する。",
+      "case_policy": "C1〜C6採用。存在しない/誤Password、停止/退会、active roles、保存/Transaction失敗、戻り先不正、Native表示差と認証情報非露出を独立Case化。既存integration Testを静的根拠とし実Run PASSは別判定。",
+      "case_selection_reason": "AuthUseCasesの拒否はSession作成以前に起きるケースとSession pointer/transaction後に起きるケースがある。AC-AUTH-001はSession非作成、AC-AUTH-002は安全な内部遷移を要求し、Nativeエラー表示のコードパスもWebとは異なるため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。authentication.md:9-28/116-126、AuthUseCases.login:52-119/assertLoginAllowed:208-223、Web auth-pages.tsx:74-98/101-180、日本語表示、NativeLoginScreen:150-232→asPurchaseError:1457-1459、ApplicationError.messageKey→Error.messageの流れを照合。default Seed:730-775とsuspended/withdrawn Scenario、既存integration auth-account.test.ts:100-147/178-220にSession非作成/Transaction rollback/保存失敗Caseがある。Nativeは内部messageKey表示の仕様差候補。実Web/Android・認証情報露出・DB全表/実CIは未受入。",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AuthUseCases.login"
+      ],
       "state_refs": [
         "SCREEN-AUTH-LOGIN-S-validation-error"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 PR #199と定期実行を変更せず独立静的分析。正式仕様・Web/Android画面→Use Case→Web Dexie/Native SQLite（該当する経路のみ）・Role・default Seed・Risk/Condition/Caseを個別照合した。基本分析のみanalyzed。直接の実Web/Native Run、視覚/a11y、状態不変、製品適合、最新#199への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 101,
@@ -5212,7 +5432,123 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.login",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 52,
+          "signature": "async login(request: LoginRequest): Promise<LoginResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 35,
+          "reason": "ログイン/登録/拒否文言の正式仕様とUI画面"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 112,
+          "end_line": 126,
+          "reason": "拒否時Session不作成とRole/遷移先のAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/customer、管理者の購入制限・ランク"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "default 7固定ユーザーと初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 107,
+          "reason": "default/empty-catalog/many-productsの登録シナリオと初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 65,
+          "reason": "固定シナリオ生成分岐"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 52,
+          "end_line": 119,
+          "reason": "認証前ガード/Transaction/Session pointer失敗時の処理"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 208,
+          "end_line": 223,
+          "reason": "停止/退会時のSession発行前拒否"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 250,
+          "end_line": 269,
+          "reason": "認証失敗とPointer保存失敗"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 21,
+          "end_line": 32,
+          "reason": "Web入力制限"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 74,
+          "end_line": 98,
+          "reason": "Webエラーコードの日本語表示"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 101,
+          "end_line": 180,
+          "reason": "Web login/内部returnTo/Role別遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 150,
+          "end_line": 232,
+          "reason": "Native login/エラー表示/returnTo"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1457,
+          "end_line": 1459,
+          "reason": "NativeがApplicationError.messageKeyをError.messageで表示"
+        },
+        {
+          "path": "src/application/errors.ts",
+          "start_line": 1,
+          "end_line": 28,
+          "reason": "ApplicationError.messageはmessageKeyを設定"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 100,
+          "end_line": 147,
+          "reason": "active/停止/退会/長過ぎる入力の既存integration Case"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 178,
+          "end_line": 220,
+          "reason": "Session作成失敗/Cart rollback/Storage失敗"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-LOGIN-A02-02",
@@ -5510,20 +5846,20 @@
       "source_line": 61,
       "source_text": "新規顧客の表示名、メールアドレス、パスワードを受け付ける。",
       "platform": "web,android",
-      "role": "Guest",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,既存メールの重複入力,バリデーション不正入力。操作: 新規顧客登録。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest（登録前Sessionなし）。作成後はactive customer/regular。Web・Androidとも登録Route自体は公開だがstaff購入用の登録は許可しない",
+      "scenario": "default guest（sessions=[]、既存メールとの重複なし）、guest-cart-merge-overflow（Guest Cart統合）、新規入力値を用いる。登録後は生成済みSessionで顧客として閲覧。",
+      "data": "default Seedは7既存ユーザーを持ち、初期Sessionなし。Web SignupPageはemail/displayName/password/confirmationと学習注意事項checkboxを検証してAuthUseCases.registerへemail/password/displayNameを渡す。NativeSignupScreenは同じ3入力（確認Password/学習注意checkboxなし）を渡す。UseCaseは正規化メールと入力長を検証し、User重複を事前・transaction内で照合、PBKDF2ハッシュ化・active/regular customer作成、Guest Cart統合、Session作成を同一transactionで実行。Web成功はrefreshIdentityして/へ、Androidは/account/profileへ遷移。",
       "action": "新規顧客登録",
-      "expected": "有効な表示名・未登録メール・契約に適合するパスワードでcustomerアカウントを生成する",
+      "expected": "未登録で有効な3入力値ならemail正規化、passwordはHashのみ保存、active regular顧客を1件登録し、Guest Cartを許可上限内で統合、Sessionを発行すること。Webはホーム、Androidは本人プロフィールへ内部遷移し、管理ロール・他ユーザー情報を作らないこと。入力/重複/Storage失敗では半端なユーザー・Cart・Sessionを作らないこと。",
       "rule_refs": [],
       "route": "`/signup`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "新規顧客登録に対して、有効な表示名・未登録メール・契約に適合するパスワードでcustomerアカウントを生成することをUI/業務状態で照合する",
-      "test_responsibility": "新規顧客登録のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "新規顧客登録の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "新規User/SessionとGuest Cart統合の部分書込、同一メール重複競合、平文Password保存、誤Role/rank、既存Cart超過、Web/Nativeの確認Password/学習注意UI差、登録後の未認可遷移。",
+      "test_condition": "C1 default guestで未知メール＋有効な表示名/Passwordを登録し、trimされたdisplayName、lowercaseメール、active/regular customer、Hash非平文、Session、Cart合流、Web / とNative /account/profileへの遷移を検証。C2 Guest Cartの既存複数数量と上限をguest-cart-merge-overflowで確認し、Cart混合・他ユーザーCart非変更を実証。C3 invalid email/Password/空DisplayNameを拒否しUser/Session/Cart不変（A02-01と共通）。C4 登録途中で同一email重複発生・Session保存失敗・Transaction失敗時のrollbackとPointer clearを確認。C5 Webのconfirmation/学習注意チェックとNativeのUI差を正本に照合、画面実Run・視覚/a11y・安全な内部遷移を検証。",
+      "test_responsibility": "C1〜C5でWeb/Native UI→AuthUseCases.register→Transaction/RepositoryとGuest Cart/Session、固定Seed、Role/rank/データ秘匿と安全な遷移を確認する。",
+      "case_policy": "C1〜C5採用。正常登録・大小文字/空白・Hash・Session/Cart、重複競合とrollback、WebとNativeの入力UI差を分離して選定。実Run未完で直接製品適合をPASSにしない。",
+      "case_selection_reason": "AuthUseCases.registerはUser/Cart/Sessionをまとめて更新し、同一メールをTransaction内でも再検査する。Webは確認Password/注意事項の追加条件がありNativeは直接3入力なので、共通UseCaseと画面別入力を分けて検証する。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。authentication.md:9-19/55-68/116-126、Web SignupPage:220-333とNativeSignupScreen:235-287→AuthUseCases.register:121-193/validateRegistration:225-248、default7 users/Session空、Guest Cart scenario、integration auth-account.test.ts:223-249/251-297を照合。正常登録はactive/regular customer、Hash、Cart統合、Session、Web / /Native profileへ進む。Nativeの確認Password/注意チェック不在は必須条件の一致を別判定。実Web/Native、Transaction失敗の全経路・DB不変、視覚/a11yは未受入。",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
@@ -5533,7 +5869,7 @@
       "related_use_cases": [
         "AuthUseCases.register"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 PR #199と定期実行を変更せず独立静的分析。正式仕様・Web/Android画面→Use Case→Web Dexie/Native SQLite（該当する経路のみ）・Role・default Seed・Risk/Condition/Caseを個別照合した。基本分析のみanalyzed。直接の実Web/Native Run、視覚/a11y、状態不変、製品適合、最新#199への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 220,
@@ -5560,6 +5896,91 @@
           "line": 121,
           "signature": "async register(request: RegisterUserRequest): Promise<LoginResult> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 35,
+          "reason": "ログイン/登録/拒否文言の正式仕様とUI画面"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 112,
+          "end_line": 126,
+          "reason": "拒否時Session不作成とRole/遷移先のAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/customer、管理者の購入制限・ランク"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "default 7固定ユーザーと初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 107,
+          "reason": "default/empty-catalog/many-productsの登録シナリオと初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 65,
+          "reason": "固定シナリオ生成分岐"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 121,
+          "end_line": 193,
+          "reason": "登録メール重複再検査/Transaction/新顧客作成/Cart Merge"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 225,
+          "end_line": 248,
+          "reason": "Application入力検証境界"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 34,
+          "end_line": 63,
+          "reason": "Web Signup入力チェック/同意/確認Password"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 220,
+          "end_line": 333,
+          "reason": "Web登録画面/Session反映/home遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 235,
+          "end_line": 287,
+          "reason": "Native登録の入力欄・送信・プロフィール遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1457,
+          "end_line": 1459,
+          "reason": "Nativeエラーの生messageKey"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 223,
+          "end_line": 297,
+          "reason": "登録成功・パスワードハッシュ/境界値の既存integration Case"
+        }
       ]
     },
     {
@@ -5570,31 +5991,33 @@
       "source_line": 62,
       "source_text": "入力バリデーション結果やアカウントの重複状況を明示し、登録成功時は安全な購入導線の入口へ遷移する。",
       "platform": "web,android",
-      "role": "Guest",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,既存メールの重複入力,バリデーション不正入力。操作: 入力バリデーション。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest（default Sessionなし）。Web事前ZodとAuthUseCases境界、Android UseCase境界の両経路を対象",
+      "scenario": "default guest・空入力/不正メール/Passwordのmin/max±1・空白だけの表示名・最大文字数境界を送信する。Web confirmation不一致・学習注意checkbox未確認も対照。",
+      "data": "default SeedはSessionなし、既存メール7件。Web SignupPageはZod email形式/最大長、password最小/最大、displayName trim/必須/最大、confirmation一致、noticeAcceptedを事前検証し、FormErrorSummaryに集約する。Android NativeSignupScreenは各入力maxlengthとbusy制御を持つが同等の事前表示検証・確認Password・注意checkboxを実装しない。AuthUseCases.validateRegistrationがemail正規化後の形式・上限、Password min/max、displayName空白trim/上限を検査しVALIDATION.fieldErrorsを返す。",
       "action": "入力バリデーション",
-      "expected": "必須項目・メール形式・パスワード条件に違反する入力は拒否し、登録前のDB/セッションを維持する",
+      "expected": "不正値を保存せず、Webは項目別エラーを入力欄とサマリーへ表示し適切に修正できること。AndroidもUseCase境界で不正登録を拒否すること。Nativeの表示は現在 `validation.form` などの内部messageKeyが出るため正式な利用者向けエラー説明との整合を製品側で確認する。拒否時はUser/Cart/Sessionを変更しないこと。",
       "rule_refs": [],
       "route": "`/signup`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "入力バリデーションに対して、必須項目・メール形式・パスワード条件に違反する入力は拒否し、登録前のDB/セッションを維持することをUI/業務状態で照合する",
-      "test_responsibility": "入力バリデーションのユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "入力バリデーションの誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Webだけの事前検証に依存してNative/直接UseCaseで不正Userを登録、空白表示名・過長入力、確認Password・学習注意未実装、Nativeの内部validation key露出、拒否時のSession/DB不変未保証。",
+      "test_condition": "C1 Webのemail不正/空、password最小-1/最大+1、displayName空/空白/最大+1、confirmation不一致、noticeAccepted=falseを送信しFormErrorSummaryとfield aria-invalidを確認。C2 有効境界値（Password最小/最大、displayName最大、メール長上限）を用いて受理を確認。C3 Nativeでinvalid email/Password/displayNameを送信しApplication VALIDATION.fieldErrorsが発生しUser/Session/Cart不変であること、表示が内部キーになるか実画面で確認。C4 Web/Nativeの確認Password/注意事項UI差と正式必須範囲を判断。C5 拒否→修正→正常登録の画面遷移/フォーカス/a11yと失敗時データ不変を実Runで確認。",
+      "test_responsibility": "C1〜C5でUI入力制限とUseCaseの信頼境界の独立性、Web/Native表示・修正導線、Session/DB不変を検証する。",
+      "case_policy": "C1〜C5を採用。UI ZodとUseCase側の境界を別Caseで確保し、Webの事前検証PASSをNative/UseCaseのPASSへ流用しない。",
+      "case_selection_reason": "WebとNativeは共通AuthUseCases.registerを利用するが、Webだけがconfirmation・学習用注意を扱う。共通UseCaseの入力検証を通る異常系と画面の説明を分けないとNative欠落を見逃す。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。authentication.md:55-69とWeb Zod schema:34-63/SignupPage:220-333、NativeSignupScreen:235-287、AuthUseCases.validateRegistration:225-248、default guest Seed、integration auth-account.test.ts:251-297を照合。Webはconfirmation/noticeAccepted/field summaryを持ち、Nativeは3入力のみ・生messageKey表示。DBへの不正値登録はApplicationで拒否するが実Native表示/状態不変は未受入。",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AuthUseCases.register"
+      ],
       "state_refs": [
         "SCREEN-AUTH-SIGNUP-S-validation-error"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 PR #199と定期実行を変更せず独立静的分析。正式仕様・Web/Android画面→Use Case→Web Dexie/Native SQLite（該当する経路のみ）・Role・default Seed・Risk/Condition/Caseを個別照合した。基本分析のみanalyzed。直接の実Web/Native Run、視覚/a11y、状態不変、製品適合、最新#199への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 220,
@@ -5614,7 +6037,99 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.register",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 121,
+          "signature": "async register(request: RegisterUserRequest): Promise<LoginResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 35,
+          "reason": "ログイン/登録/拒否文言の正式仕様とUI画面"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 112,
+          "end_line": 126,
+          "reason": "拒否時Session不作成とRole/遷移先のAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/customer、管理者の購入制限・ランク"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "default 7固定ユーザーと初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 107,
+          "reason": "default/empty-catalog/many-productsの登録シナリオと初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 65,
+          "reason": "固定シナリオ生成分岐"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 121,
+          "end_line": 193,
+          "reason": "登録メール重複再検査/Transaction/新顧客作成/Cart Merge"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 225,
+          "end_line": 248,
+          "reason": "Application入力検証境界"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 34,
+          "end_line": 63,
+          "reason": "Web Signup入力チェック/同意/確認Password"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 220,
+          "end_line": 333,
+          "reason": "Web登録画面/Session反映/home遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 235,
+          "end_line": 287,
+          "reason": "Native登録の入力欄・送信・プロフィール遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1457,
+          "end_line": 1459,
+          "reason": "Nativeエラーの生messageKey"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 223,
+          "end_line": 297,
+          "reason": "登録成功・パスワードハッシュ/境界値の既存integration Case"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-SIGNUP-A02-02",
@@ -5624,28 +6139,30 @@
       "source_line": 62,
       "source_text": "入力バリデーション結果やアカウントの重複状況を明示し、登録成功時は安全な購入導線の入口へ遷移する。",
       "platform": "web,android",
-      "role": "Guest",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,既存メールの重複入力,バリデーション不正入力。操作: 重複アカウント拒否。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest（default Sessionなし）。同一emailの既存active/suspended/withdrawn/staffと同時登録競合を比較",
+      "scenario": "default Seedの固定7ユーザーを登録先メールとした重複、メール大小文字・空白正規化、2つの同一email登録が近接するTransaction競合を比較。正常登録は未知メールを使う。",
+      "data": "default Seedは7ユーザー（active顧客3、suspended/withdrawn顧客各1、active operator/admin各1）とSessionなし。AuthUseCases.registerはnormalize email→findByEmailで重複拒否し、Transaction内でもfindByEmailを再検査して`EMAIL_ALREADY_EXISTS`を送出、既存User/Session/Cartを更新しないことが期待される。WebはuseAuthErrorがEMAIL_ALREADY_EXISTSを日本語に変換するがNativeはApplicationError.messageKey『auth.email.exists』を直接表示する。DBのEmail一意制約と同時競合の実証は未確認。",
       "action": "重複アカウント拒否",
-      "expected": "既存メールアドレスを指定した登録は重複として拒否され、既存アカウントが更新されない",
+      "expected": "既存のどのRole/AccountStatusのメールにも新規登録できず、大小文字/前後空白による重複も拒否し、既存ユーザーやCart/Sessionは変更しないこと。Webは『このメールアドレスはすでに登録されています。』、Nativeは現状internal keyを表示するため利用者向け表示が仕様に適合するか検証すること。",
       "rule_refs": [],
       "route": "`/signup`",
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "重複アカウント拒否に対して、既存メールアドレスを指定した登録は重複として拒否され、既存アカウントが更新されないことをUI/業務状態で照合する",
-      "test_responsibility": "重複アカウント拒否のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "重複アカウント拒否の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Case違いメールによる重複User、退会/停止アカウントの権限逸脱・上書き、並行登録で同一email複数発行、既存Cart/Sessionの部分変更、Native内部エラーキー露出。",
+      "test_condition": "C1 defaultのactive regular、suspended、withdrawn、operator/adminの各メールを新規登録してEMAIL_ALREADY_EXISTS、7 User数/Session数/Cart・PasswordHash不変。C2 大文字・前後空白の同じemailを正規化して重複拒否。C3 同じ未知emailの並行登録（事前findByEmail後の競合）で1件のみ成功し、片方のTransaction内再検査が拒否、unique制約とrollbackを確認。C4 Web重複警告の日本語、Native `auth.email.exists` の現行表示、エラー修正から正常登録への復帰/視覚/a11y。C5 Storage pointer失敗とTransaction失敗時に既存User/Cart/Sessionを保全し、本人以外のデータは露出しないことを検証。",
+      "test_responsibility": "C1〜C5で正規化後のEmail重複、Role/状態別Seed、同時競合の一意性と副作用不変、Web/Nativeの拒否説明・復帰を確認する。",
+      "case_policy": "C1〜C5を採用。既存Role/状態・大文字/空白・並行競合・DB不変・Web/Nativeエラー表示を別Caseにし、同時登録の実Runは未受入に残す。",
+      "case_selection_reason": "重複拒否はTransaction開始前と内部の2箇所で検査され、エラー文言はWebとNativeで異なる。正常登録のみの既存integraton testでは競合・重複防止の全条件を証明できない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。authentication.md:55-69/116-126、AuthUseCases.register:121-150（メールの事前+Transaction内再照合）、setSessionPointer:250-259、default-dataset.ts:730-775（7ユーザー）とWeb useAuthError:74-98、NativeSignupScreen:235-287→asPurchaseErrorを照合。既存integration tests:223-297は正常登録/入力制限を確認するが、重複メール同時競合とNative画面表示の直接証拠は不足。仕様適合・実DB不変・実Runは未受入。",
       "requirement_refs": [
         "BR-AUTH-001",
         "BR-AUTH-002",
         "AC-AUTH-001",
         "AC-AUTH-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "AuthUseCases.register"
+      ],
+      "analysis_progress": "2026-11-03 PR #199と定期実行を変更せず独立静的分析。正式仕様・Web/Android画面→Use Case→Web Dexie/Native SQLite（該当する経路のみ）・Role・default Seed・Risk/Condition/Caseを個別照合した。基本分析のみanalyzed。直接の実Web/Native Run、視覚/a11y、状態不変、製品適合、最新#199への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/auth-pages.tsx",
         "line": 220,
@@ -5665,7 +6182,117 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AuthUseCases.register",
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "line": 121,
+          "signature": "async register(request: RegisterUserRequest): Promise<LoginResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 9,
+          "end_line": 35,
+          "reason": "ログイン/登録/拒否文言の正式仕様とUI画面"
+        },
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 112,
+          "end_line": 126,
+          "reason": "拒否時Session不作成とRole/遷移先のAC"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/customer、管理者の購入制限・ランク"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "default 7固定ユーザーと初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 107,
+          "reason": "default/empty-catalog/many-productsの登録シナリオと初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 65,
+          "reason": "固定シナリオ生成分岐"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 121,
+          "end_line": 193,
+          "reason": "登録メール重複再検査/Transaction/新顧客作成/Cart Merge"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 225,
+          "end_line": 248,
+          "reason": "Application入力検証境界"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 34,
+          "end_line": 63,
+          "reason": "Web Signup入力チェック/同意/確認Password"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 220,
+          "end_line": 333,
+          "reason": "Web登録画面/Session反映/home遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 235,
+          "end_line": 287,
+          "reason": "Native登録の入力欄・送信・プロフィール遷移"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 1457,
+          "end_line": 1459,
+          "reason": "Nativeエラーの生messageKey"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 223,
+          "end_line": 297,
+          "reason": "登録成功・パスワードハッシュ/境界値の既存integration Case"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 74,
+          "end_line": 98,
+          "reason": "Web重複エラーの日本語マップ"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 250,
+          "end_line": 259,
+          "reason": "Session pointer保存エラーと副作用条件"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 178,
+          "end_line": 220,
+          "reason": "Transaction/Session pointer失敗の既存integration Case"
+        }
+      ]
     },
     {
       "id": "SCREEN-AUTH-SIGNUP-A02-03",
