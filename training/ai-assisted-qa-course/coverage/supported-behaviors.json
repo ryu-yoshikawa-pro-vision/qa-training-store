@@ -22619,10 +22619,10 @@
       "risk": "権限外の状態変更と顧客情報露出",
       "test_condition": "C1=guest保護Route→Login/本文非露出、C2=customer→admin・operator→admin/users拒否、C3=admin許可とproduction automation-admin拒否、C4=Web拒否文言・戻り先/視覚、C5=Android拒否文言・戻り先/視覚、C6=停止staff導線/Session・DB不変。C1〜C6の実Runは未実施。",
       "test_responsibility": "アクセス権限不足を示すの認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "アクセス権限不足を示すが未許可操作や誤認につながらないことを検査する",
+      "case_policy": "C1〜C6を採用。静的ルートガード照合は済んだが、ロール/状態/Session別の実RunとDB不変が不足し、基本分析完了や製品適合を宣言しない。",
+      "case_selection_reason": "未ログイン・customer・operator・adminとactive/suspended/withdrawnの組合せでルート拒否が分かれ、Web /forbiddenのstaff復帰先はRoleのみで決まる。境界の認可/SessionとNative文言を直接検証する必要がある。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "正式roles-and-permissions.mdとscreen-catalog.mdはWeb/Androidの権限拒否説明を要求。Web Guard/StatePanelは静的照合済み、Androidは「Native前半の対象外」と表示する仕様差候補。停止staffのWeb管理リンクはroleのみ判定するためループ可能性あり（到達未確認）。個別Case/実Web/Android/視覚/DB不変の証拠待ち。review_required維持、製品不具合/PASS未確定。",
+      "basic_analysis_review": "正式roles-and-permissions.md:35-57、screen-catalog.md、RouteGuard:16-55、Web StatePanel/forbidden route、NativeUnsupportedScreen/NativeShellとdefault guest Seedを静的照合。主要RiskとC1〜C6は既存台帳にある。Web非active staffの/admin循環可能性、Androidの『Native前半の対象外』という汎用表示、Session/DB非変更を実Web/Android/対象ロール別に実証していない。認可境界は直接Runと状態差の根拠が必要なため基本分析はreview_requiredを維持。製品不具合/PASSは未判定。",
       "requirement_refs": [
         "ROLE-ACCESS",
         "UI-ERROR"
@@ -22632,7 +22632,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "2026-11-02静的監査：Web RouteGuardは未ログイン→Login、Role/State不一致→forbidden、拒否時children非表示。Web StatePanelは権限拒否と戻り先を表示。Android forbiddenはNativeUnsupportedScreenで正式な権限拒否文言と差。実Web/Android・前後snapshot未実証。",
+      "analysis_progress": "2026-11-03 独立ブランチで追加確認。RouteGuard:16-55は未ログイン→Login、非active/Role不一致→/forbidden、children非露出。Web forbidden.tsx:5-13はstaff roleだけで/adminを表示し、suspended staffの循環は未検証。Native forbidden.native.tsx→NativeUnsupportedScreenは『Native前半の対象外』を表示し正式な権限不足との意味差あり。認可拒否の実行証拠・状態不変・Web/Nativeの文言/視覚が不足するためreview_required維持。",
       "implementation_evidence": {
         "path": "app/forbidden.tsx",
         "line": 1,
@@ -22652,7 +22652,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 57,
+          "reason": "Role/状態/禁止画面の正式契約"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 16,
+          "end_line": 57,
+          "reason": "Webの権限判定"
+        },
+        {
+          "path": "app/forbidden.tsx",
+          "start_line": 5,
+          "end_line": 14,
+          "reason": "Web staff復帰先"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 26,
+          "end_line": 77,
+          "reason": "Webの禁止画面/復帰"
+        },
+        {
+          "path": "app/forbidden.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native拒否ルート"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 995,
+          "end_line": 1010,
+          "reason": "Native対象外の文言"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 78,
+          "end_line": 180,
+          "reason": "Native Roleセッション遮断"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web/Androidの境界画面カタログ"
+        },
+        {
+          "path": "src/presentation/root-layout.web.tsx",
+          "start_line": 10,
+          "end_line": 19,
+          "reason": "Web AppFrame/Slot"
+        },
+        {
+          "path": "src/presentation/root-layout.native.tsx",
+          "start_line": 9,
+          "end_line": 24,
+          "reason": "NativeShell/Slot"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 87,
+          "reason": "default guestシナリオ、初期Session、safeResetPath=/"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 38,
+          "reason": "default Seed生成とシナリオ分岐"
+        }
+      ]
     },
     {
       "id": "SCREEN-BOUNDARY-FORBIDDEN-A02-01",
@@ -22664,18 +22743,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "data": "default Seedはguest初期Session/DBの権限変更なし。WebはStatePanel(forbidden)を表示し、guest/customerにはhref=/、operator/adminにはroleを見た/adminをactionとして渡す。AndroidはNativeUnsupportedScreenのrouter.replace('/')でホーム復帰するがNativeShellはstaff Sessionを別に遮断する。業務Use Case/Repository書込みなし。",
       "action": "安全な画面へ戻る",
-      "expected": "権限不足画面から安全なホームへ戻るリンクを表示する",
+      "expected": "権限不足のWeb guest/customerが/へ復帰できること。active operator/adminは権限内の/adminへ戻れること。Android guest/customerはホームへ復帰できること。停止staffがWeb /adminへ誘導された際の再拒否は実地で評価する。",
       "rule_refs": [],
       "route": "`/forbidden`",
-      "risk": "権限外の状態変更と顧客情報露出",
-      "test_condition": "安全な画面へ戻るで初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "安全な画面へ戻るの認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "安全な画面へ戻るが未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Webで停止staffにもroleのみで/adminを提示し、その後RouteGuardがactive=falseとして/forbiddenへ戻す循環の可能性。Androidで禁止理由がNative対象外と表示される意味差。復帰先の誤案内と状態不変未検証。",
+      "test_condition": "C1 Web guest/customerでforbiddenのStatePanelがデフォルトhref=/を表示し復帰。C2 Web active operator/adminでアクションが『管理画面へ』/adminとなり、許可された画面のみ到達。C3 Web suspended/withdrawn staff等のSessionを作ってロールのみの/admin表示とRouteGuard active拒否による循環/回避を検証。C4 Android guest/customerで『ホームへ戻る』→router.replace('/')、staff SessionはNativeShellが遮断。C5 復帰前後のSession/Repository不変、keyboard/touch/a11y・視覚を直接検証。",
+      "test_responsibility": "C1〜C5でWebのrole別復帰先と状態別再拒否、Nativeの復帰とShellによる禁止、データ不変とa11yを確認する。",
+      "case_policy": "C1〜C5を採用。adminへの誘導はactiveなstaffに限って安全性を判断し、停止staffの循環候補は製品側の実地確認待ちに残す。",
+      "case_selection_reason": "Webではaction指定時にStatePanelのデフォルトhref=/が置換され、operator/adminのroleだけで/adminを表示する一方、RouteGuardはaccountStatus=activeを要求するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。roles-and-permissions.md:39/screen-catalog.mdの安全な戻り先要求とWeb forbidden.tsx:5-13→StatePanel:53-77（action未指定は/、staffは/admin）を照合。Native forbidden.native.tsx→NativeUnsupportedScreen:995-1007はrouter.replace('/')、NativeShellはstaff遮断。Seed defaultはguest、業務Use Case/Repository書込みなし。Webの停止staffにroleのみで/adminを表示しRouteGuard:39-55で再拒否する可能性は#210の仕様/実走確認候補であり確定不具合ではない。実Web/Android/状態不変/a11yは未受入。",
       "requirement_refs": [
         "ROLE-ACCESS",
         "UI-ERROR"
@@ -22685,7 +22764,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチ：正式仕様、Web/Nativeルート、StatePanel/NativeShell、default guest Seed、Role、主要Risk、C1以降とCase採否を静的照合。基本分析のみanalyzed。実Web/Android、ロール別遷移・DB/Session不変、視覚/a11y、製品適合、#199本体への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "app/forbidden.tsx",
         "line": 1,
@@ -22696,7 +22775,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [],
         "transform": {
           "path": "src/seeds/scenarios.ts",
@@ -22705,7 +22784,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 35,
+          "end_line": 57,
+          "reason": "Web/Androidの拒否画面と安全な導線の正式契約"
+        },
+        {
+          "path": "app/forbidden.tsx",
+          "start_line": 5,
+          "end_line": 14,
+          "reason": "Web role別/admin action"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 53,
+          "end_line": 77,
+          "reason": "Web action指定によるdefaultホームLinkの置換"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 16,
+          "end_line": 57,
+          "reason": "active staff権限と禁止Routeへのリダイレクト"
+        },
+        {
+          "path": "app/forbidden.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native forbiddenエントリ"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 995,
+          "end_line": 1010,
+          "reason": "Nativeのホーム復帰"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 78,
+          "end_line": 180,
+          "reason": "Nativeのstaff遮断"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web/Androidの境界画面カタログ"
+        },
+        {
+          "path": "src/presentation/root-layout.web.tsx",
+          "start_line": 10,
+          "end_line": 19,
+          "reason": "Web AppFrame/Slot"
+        },
+        {
+          "path": "src/presentation/root-layout.native.tsx",
+          "start_line": 9,
+          "end_line": 24,
+          "reason": "NativeShell/Slot"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 87,
+          "reason": "default guestシナリオ、初期Session、safeResetPath=/"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 38,
+          "reason": "default Seed生成とシナリオ分岐"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-01",
@@ -22967,24 +23125,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "data": "defaultはguest初期Session（sessions空）。Webの未知パスはapp/+not-found.tsx→StatePanel(not-found)、Androidはapp/+not-found.native.tsx→NativeUnsupportedScreen。いずれも画面表示だけで業務Use Case/Repositoryの読書きを呼ばない。RoleはAll、別の認可拒否・読込失敗とは区別する。",
       "action": "未検出画面を表示",
-      "expected": "存在しないルートにはNot Foundを表示する",
+      "expected": "Webの未登録パスは『ページが見つかりません』相当のNot Found表示と案内文を示すこと。Androidは同タイトルを持つ専用routeがあるが共通Unsupported本文を用いるため、正式UI-UXの区別が十分か製品受入で確認する。",
       "rule_refs": [],
       "route": "`+not-found`",
-      "risk": "操作不能、重要状態の見落とし、内部情報露出",
-      "test_condition": "未検出画面を表示で初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "未検出画面を表示の認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "未検出画面を表示が未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "未登録パスを認可拒否/初期化失敗と混同すること、Androidが汎用『Native Customer対象外』本文を表示して原因を誤認させること、内部URL・状態の露出、実際の戻り先の欠落。",
+      "test_condition": "C1 Webで実在しないパスに遷移しnot-found見出し・理由・ホーム導線を確認。C2 Androidで実在しないパスに遷移し専用タイトル、汎用Unsupported本文との意味差を記録。C3 guest/customer、許可されたWeb staffで未知パスと権限拒否・ロード失敗・既知パスを混同しない。C4 未検出画面の視覚/読み上げ・表示前後のSession/DB不変を実Runで検証。",
+      "test_responsibility": "C1〜C4で両プラットフォームの未検出理由、他のエラー状態との分離、Role、表示/状態不変、視覚とアクセシビリティを確認する。",
+      "case_policy": "C1〜C4を採用。未知パスの通常表示・Web/Native差・Role・視覚をCase化し、実Runと製品適合は基本分析の完了とは別に判定する。",
+      "case_selection_reason": "Web StatePanel(not-found)には固有の説明がありNativeは固有タイトル+汎用Unsupported本文を使う。仕様は未検出と権限拒否を区別するため、プラットフォーム別Caseを省略できない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。ui-ux-contract.md:24-43とscreen-catalog.mdの未検出契約を、app/+not-found.tsx:1-5→StatePanel(not-found)→states.tsx:26-77、app/+not-found.native.tsx:1-5→NativeUnsupportedScreen(native-screens.tsx:995-1007)、root-layout.web/nativeのSlotへ照合。defaultはSeed metadataのguest/Sessionなし。Not Found表示自体に業務Use Case/Repository書込みなし。Android本文は汎用Unsupportedで、未検出と対象外を混同し得る仕様適合候補。実Web/Androidルート到達、視覚/a11y、状態不変、製品適合は未受入。",
       "requirement_refs": [
         "UI-ERROR",
         "UI-A11Y"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチ：正式仕様、Web/Nativeルート、StatePanel/NativeShell、default guest Seed、Role、主要Risk、C1以降とCase採否を静的照合。基本分析のみanalyzed。実Web/Android、ロール別遷移・DB/Session不変、視覚/a11y、製品適合、#199本体への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "app/+not-found.tsx",
         "line": 1,
@@ -22995,7 +23153,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [],
         "transform": {
           "path": "src/seeds/scenarios.ts",
@@ -23004,7 +23162,74 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/ui-ux-contract.md",
+          "start_line": 12,
+          "end_line": 44,
+          "reason": "未検出と他状態の分離および正式Not Found画面契約"
+        },
+        {
+          "path": "app/+not-found.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Web未検出ルートとStatePanel"
+        },
+        {
+          "path": "app/+not-found.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native未検出ルート"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 26,
+          "end_line": 77,
+          "reason": "Web not-foundとデフォルトのホーム導線"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 995,
+          "end_line": 1010,
+          "reason": "汎用Unsupported本文とNative復帰ボタン"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web/Androidの境界画面カタログ"
+        },
+        {
+          "path": "src/presentation/root-layout.web.tsx",
+          "start_line": 10,
+          "end_line": 19,
+          "reason": "Web AppFrame/Slot"
+        },
+        {
+          "path": "src/presentation/root-layout.native.tsx",
+          "start_line": 9,
+          "end_line": 24,
+          "reason": "NativeShell/Slot"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 87,
+          "reason": "default guestシナリオ、初期Session、safeResetPath=/"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 38,
+          "reason": "default Seed生成とシナリオ分岐"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-BOUNDARY-NOT-FOUND-A01-02",
@@ -23016,24 +23241,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "data": "defaultはguest初期Session、safeResetPath=/。WebはStatePanelのhref=/、NativeはNativeUnsupportedScreenのrouter.replace('/')。業務Use Case/Repository呼出しなし。RoleはAllだがNativeShellはstaffのアプリ利用を遮断するため、その条件を別検証する。",
       "action": "安全な画面に戻る",
-      "expected": "Not Foundから安全なホームへ戻れる",
+      "expected": "Webの未検出画面からhref=/でストアフロントへ戻れること。Androidは『ホームへ戻る』ボタンでrouter.replace('/')を呼び、staff Session時はNativeShellの範囲外表示を維持すること。",
       "rule_refs": [],
       "route": "`+not-found`",
-      "risk": "操作不能、重要状態の見落とし、内部情報露出",
-      "test_condition": "安全な画面に戻るで初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "安全な画面に戻るの認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "安全な画面に戻るが未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "戻り先が未知/非許可ルートを再訪すること、Android staff Sessionでホーム操作が利用可能なように誤案内すること、遷移後の認証/DB状態変化。",
+      "test_condition": "C1 Webで未知パス→Not Found→『ホームへ戻る』href=/をたどり正常なホームを確認。C2 Androidで未知パス→NativeUnsupportedScreenの『ホームへ戻る』→router.replace('/')を確認。C3 default guestとactive customerで戻り前後のSession・Cart・注文・DB状態不変を確認。C4 Nativeに残る非customer SessionではShellのRole拒否が優先すること、Webの許可staffはホーム閲覧のみに制限されることを確認。C5 キーボード/タッチ/読み上げと履歴遷移を実検証。",
+      "test_responsibility": "C1〜C5でWeb/Androidのホーム復帰経路、Role制御、データ不変、アクセシビリティを検証する。",
+      "case_policy": "C1〜C5採用。Nativeのホーム復帰は画面内ボタンに加え、NativeShellのRoleによる上書きを分けて確認する。",
+      "case_selection_reason": "WebはLinkによるpush相当、Androidはrouter.replace('/')の明示的な経路で、NativeShellがSessionにより画面を置換するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。ui-ux-contract.md:31/screen-catalog.mdとStatePanel:53-77のdefault Link href=/を確認。Native +not-found.native.tsxはNativeUnsupportedScreenを使用し、native-screens.tsx:995-1007のボタンがrouter.replace('/')を呼ぶ。NativeShellはstaff Sessionを先に拒否し、guest/customerには共通ナビも提供。default Seedはguest/初期Sessionなしでページ遷移に業務Use Case/Repository更新なし。実ルート遷移・履歴・状態不変・a11y未確認。",
       "requirement_refs": [
         "UI-ERROR",
         "UI-A11Y"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチ：正式仕様、Web/Nativeルート、StatePanel/NativeShell、default guest Seed、Role、主要Risk、C1以降とCase採否を静的照合。基本分析のみanalyzed。実Web/Android、ロール別遷移・DB/Session不変、視覚/a11y、製品適合、#199本体への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "app/+not-found.tsx",
         "line": 1,
@@ -23044,7 +23269,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [],
         "transform": {
           "path": "src/seeds/scenarios.ts",
@@ -23053,7 +23278,80 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/ui-ux-contract.md",
+          "start_line": 29,
+          "end_line": 43,
+          "reason": "未検出からホームへ戻る正式要件"
+        },
+        {
+          "path": "app/+not-found.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Web not-foundエントリ"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 53,
+          "end_line": 77,
+          "reason": "Webホームへのdefault Link"
+        },
+        {
+          "path": "app/+not-found.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native not-foundエントリ"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 995,
+          "end_line": 1010,
+          "reason": "Nativeホームへ戻るreplace"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 78,
+          "end_line": 182,
+          "reason": "Native Role境界と共通ホーム"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web/Androidの境界画面カタログ"
+        },
+        {
+          "path": "src/presentation/root-layout.web.tsx",
+          "start_line": 10,
+          "end_line": 19,
+          "reason": "Web AppFrame/Slot"
+        },
+        {
+          "path": "src/presentation/root-layout.native.tsx",
+          "start_line": 9,
+          "end_line": 24,
+          "reason": "NativeShell/Slot"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 87,
+          "reason": "default guestシナリオ、初期Session、safeResetPath=/"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 38,
+          "reason": "default Seed生成とシナリオ分岐"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-BOUNDARY-NOT-FOUND-A02-01",
@@ -23065,24 +23363,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "data": "default/guestの初期Sessionなし。Expo RouterのWeb/Native別+not-foundファイルをroot-layoutのSlot経由で公開。WebはStatePanel(not-found)、AndroidはNativeUnsupportedScreenで観測可能な画面を構成する。専用業務Use Case/Repository操作はない。",
       "action": "アプリ境界として未検出を表示",
-      "expected": "Not Foundをアプリ境界の専用画面として扱う",
+      "expected": "未知のパスでWeb/Androidの+not-foundルートをユーザーが観測でき、権限拒否・初期化エラー・データなしとは区別されること。Androidは汎用Unsupported本文との仕様差を製品側で判定すること。",
       "rule_refs": [],
       "route": "`+not-found`",
-      "risk": "操作不能、重要状態の見落とし、内部情報露出",
-      "test_condition": "アプリ境界として未検出を表示で初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "アプリ境界として未検出を表示の認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "アプリ境界として未検出を表示が未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "フレームワーク内部の404処理だけを検査して実画面を見落とすこと、Androidの汎用対象外文言が未検出を別原因と誤解させること、Web/Nativeのルート解決差と意図しない内部情報露出。",
+      "test_condition": "C1 Webで未登録パスを直接指定し+not-found.tsx→StatePanel(not-found)を観測。C2 Androidで未登録パスを直接指定し+not-found.native.tsx→NativeUnsupportedScreenを観測。C3 既知だが権限不足のパスはforbidden/Loginで処理し、未登録パスと混同しない。C4 画面タイトル・本文・復帰・a11y・内部情報非露出をWeb/Nativeで実検証する。",
+      "test_responsibility": "C1〜C4でフレームワークのエントリ存在だけでなく両Platformのユーザー観測画面と状態分類の整合を確認する。",
+      "case_policy": "C1〜C4を採用。既存ファイルの存在だけで実際のRouter fallback/画面表示をPASSにせず、実地受入を分離する。",
+      "case_selection_reason": "Web/Nativeに個別+not-foundエントリがありNativeは別の汎用表示を使用する。正式仕様は単なる内部ルーティングではなくユーザーの可視画面を要求するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。ui-ux-contract.md:32とscreen-catalog.mdのBoundary定義に対して、app/+not-found.tsx、app/+not-found.native.tsx、root-layout.web/nativeのSlotとWeb StatePanel/NativeUnsupportedScreenを照合。default Seed guest、業務Use Case/Repository更新なし。Native本文は汎用Unsupportedであり未検出としての明確さが製品適合の確認候補。実404のルート解決、表示・状態不変・アクセシビリティは未受入。",
       "requirement_refs": [
         "UI-ERROR",
         "UI-A11Y"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチ：正式仕様、Web/Nativeルート、StatePanel/NativeShell、default guest Seed、Role、主要Risk、C1以降とCase採否を静的照合。基本分析のみanalyzed。実Web/Android、ロール別遷移・DB/Session不変、視覚/a11y、製品適合、#199本体への取込と最終CIは未受入。",
       "implementation_evidence": {
         "path": "app/+not-found.tsx",
         "line": 1,
@@ -23093,7 +23391,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [],
         "transform": {
           "path": "src/seeds/scenarios.ts",
@@ -23102,7 +23400,74 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/ui-ux-contract.md",
+          "start_line": 29,
+          "end_line": 43,
+          "reason": "Not Foundをアプリの直接観測可能な境界画面とする正式契約"
+        },
+        {
+          "path": "app/+not-found.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Web専用エントリ"
+        },
+        {
+          "path": "app/+not-found.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native専用エントリ"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 26,
+          "end_line": 77,
+          "reason": "Web Not Found表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 995,
+          "end_line": 1010,
+          "reason": "Nativeユーザー観測表示"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 45,
+          "end_line": 55,
+          "reason": "Web/Androidの境界画面カタログ"
+        },
+        {
+          "path": "src/presentation/root-layout.web.tsx",
+          "start_line": 10,
+          "end_line": 19,
+          "reason": "Web AppFrame/Slot"
+        },
+        {
+          "path": "src/presentation/root-layout.native.tsx",
+          "start_line": 9,
+          "end_line": 24,
+          "reason": "NativeShell/Slot"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 87,
+          "reason": "default guestシナリオ、初期Session、safeResetPath=/"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 38,
+          "reason": "default Seed生成とシナリオ分岐"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "UC-ACCOUNT-UPDATE-PROFILE",
