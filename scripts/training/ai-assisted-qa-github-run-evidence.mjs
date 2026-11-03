@@ -90,18 +90,27 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   ]);
   if (steps.some((step) => step.uses && !allowedActions.has(step.uses)))
     fail("M10 workflow contains an unapproved action");
+  const requiredTestCommand = target
+    ? `pnpm run training:ai-assisted-qa:test -- ${target.test_file}`
+    : null;
   const allowedCommands = new Set([
     "pnpm install --frozen-lockfile",
     "pnpm exec playwright install --with-deps chromium",
     "mkdir -p output/training/ai-assisted-qa",
     'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
     "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
+    ...(requiredTestCommand ? [requiredTestCommand] : []),
   ]);
   for (const step of steps) {
     if (typeof step.run !== "string") continue;
-    if (step.run.includes("pnpm run training:ai-assisted-qa:test")) continue;
     if (!allowedCommands.has(step.run)) fail("M10 workflow contains an unapproved shell command");
   }
+  if (
+    steps.length !== 10 ||
+    [...allowedActions].some((action) => steps.filter((step) => step.uses === action).length !== 1) ||
+    [...allowedCommands].some((command) => steps.filter((step) => step.run === command).length !== 1)
+  )
+    fail("M10 workflow must contain exactly the reviewed actions and shell commands");
   const checkout = steps.find(
     (step) => typeof step.uses === "string" && step.uses.startsWith("actions/checkout@"),
   );
@@ -259,6 +268,39 @@ async function readJsonResponse(response, description) {
   }
 }
 
+function verifyPlaywrightJsonTests(report, target) {
+  const allowedPaths = new Set([
+    target.test_file,
+    target.test_file.slice(target.test_root.length + 1),
+  ]);
+  let observed = 0;
+  const visit = (suite) => {
+    if (!suite || typeof suite !== "object" || Array.isArray(suite))
+      fail("ungradable: Playwright JSON suite is malformed");
+    for (const spec of suite.specs ?? []) {
+      if (!allowedPaths.has(spec?.file) || !Array.isArray(spec.tests) || !spec.tests.length)
+        fail("ungradable: Playwright JSON results do not contain only the selected spec");
+      for (const test of spec.tests) {
+        if (
+          test?.expectedStatus !== "passed" ||
+          test.status !== "expected" ||
+          !Array.isArray(test.results) ||
+          test.results.length === 0 ||
+          test.results.some((result) => result?.status !== "passed")
+        )
+          fail("ungradable: selected Playwright spec contains unverified or unsuccessful tests");
+        observed += 1;
+      }
+    }
+    for (const child of suite.suites ?? []) visit(child);
+  };
+  if (!Array.isArray(report.suites) || report.suites.length === 0)
+    fail("ungradable: Playwright JSON is missing the selected spec results");
+  for (const suite of report.suites) visit(suite);
+  if (observed === 0 || observed !== report.stats.expected)
+    fail("ungradable: Playwright JSON summary does not match the selected spec tests");
+}
+
 export async function verifyGitHubRunEvidence({
   evidence,
   currentHeadSha,
@@ -409,6 +451,7 @@ export async function verifyGitHubRunEvidence({
     fail(
       "ungradable: Playwright JSON results contain no tests, failures, retries, skips, or malformed totals",
     );
+  verifyPlaywrightJsonTests(playwright, source);
   return {
     status: "passed",
     checks: [
