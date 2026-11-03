@@ -52,6 +52,32 @@ afterAll(() => {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 });
 
+it("reports formatting differences for the new interrupted-publication tests", async () => {
+  const prettier = await import("prettier");
+  const filePath = path.resolve("tests/contracts/ai-assisted-qa-assessment.test.mjs");
+  const raw = fs.readFileSync(filePath, "utf8");
+  const options = (await prettier.resolveConfig(filePath)) ?? {};
+  const formatted = await prettier.format(raw, { ...options, filepath: filePath, endOfLine: "auto" });
+  const sections = [
+    [
+      "CALIBRATION",
+      'for (const mismatch of ["identity", "case-count"]) {',
+      'it("rebuilds a missing successful shared calibration from a verified saved attempt", () => {',
+    ],
+    [
+      "RESULT",
+      'for (const point of ["before", "after"]) {',
+      'it("lists immutable assessment history and rejects forged results or current pointers", () => {',
+    ],
+  ];
+  for (const [label, start, end] of sections) {
+    const a = formatted.indexOf(start);
+    const b = formatted.indexOf(end, a);
+    if (a < 0 || b < 0) throw new Error("formatter section missing: " + label);
+    console.log("FORMATTED_SECTION_" + label, JSON.stringify(formatted.slice(a, b)));
+  }
+});
+
 it("never permits a failed or inconsistent calibration to be reused", () => {
   const passed = {
     status: "passed",
