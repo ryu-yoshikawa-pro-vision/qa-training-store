@@ -2314,6 +2314,59 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readFileSync(failingDestination, "utf8")).toContain("# M01");
   });
 
+  it("resumes an interrupted module load without overwriting learner edits", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "4".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const submissionPath = path.join(fixture.target, "workspace/M05/submission.md");
+    const testPath = path.join(fixture.target, "workspace/M05/product-link.spec.ts");
+    const originalCopy = fs.copyFileSync.bind(fs);
+    let interrupted = false;
+    const copySpy = vi.spyOn(fs, "copyFileSync").mockImplementation((source, destination, ...args) => {
+      if (!interrupted && destination === testPath) {
+        interrupted = true;
+        throw new Error("simulated load interruption");
+      }
+      return originalCopy(source, destination, ...args);
+    });
+    try {
+      expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
+        /module load stopped after 1 new file\(s\).*simulated load interruption/,
+      );
+    } finally {
+      copySpy.mockRestore();
+    }
+    expect(interrupted).toBe(true);
+    expect(fs.existsSync(submissionPath)).toBe(true);
+    expect(fs.existsSync(testPath)).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+
+    const starter = fs.readFileSync(submissionPath);
+    fs.writeFileSync(submissionPath, "learner-edited submission\n");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
+      /existing learner files differ; nothing was overwritten/,
+    );
+    expect(fs.readFileSync(submissionPath, "utf8")).toBe("learner-edited submission\n");
+    expect(fs.existsSync(testPath)).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+
+    fs.writeFileSync(submissionPath, starter);
+    const retried = loadModule({ root: fixture.target, moduleId: "M05" });
+    expect(retried.copied).toEqual(["workspace/M05/product-link.spec.ts"]);
+    expect(retried.unchanged).toBeGreaterThan(0);
+    expect(fs.readFileSync(submissionPath)).toEqual(starter);
+    expect(fs.existsSync(testPath)).toBe(true);
+    expect(fs.existsSync(path.join(fixture.target, retried.receipt))).toBe(true);
+  });
+
   it("rejects missing inputs, revision drift, and bad references without changing learner files", async () => {
     const missingInput = courseFixture();
     await syncCourse({
