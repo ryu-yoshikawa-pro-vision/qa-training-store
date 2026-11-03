@@ -10,3 +10,16 @@
 学習用Template、同期、module load、Web build/public artifactからは配布許可リストで除外します。この除外は秘密保持・アクセス制御ではありません。学習用CLIは配布元SHAへ固定した公開評価資料を必要なPhaseの分だけHTTPS取得し、パス・content SHA-256・schema・revisionを検証します。開発者は既存の`training:ai-assisted-qa:test`と専用Configで完成specをローカル実行できます。M07の意図的失敗と修正版は別々のtest rootで実行し、前者の期待失敗を通常のPASSと混同しません。M04/M07/M10の本人判断課題では評価時に出典と期待結果を検証できる条件変化を作り、条件・本人回答・証拠ハッシュは個人の非公開評価記録だけに保存します。人間の最終承認や評価担当者による採点は要求しません。実受講者の学習効果試行は後工程です。
 
 各moduleのSkill一覧はqa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324の固定revisionに照合しています。受講者の提出物・氏名・評価結果・Secretはここへ保存しません。本人の評価記録は`workspace/.course-assessments/`でGit外に保管し、`workspace/.gitignore`で除外します。評価者や中央成績DBを必要としません。
+
+### 同一試行の再開と排他ロック
+
+`pnpm course:assess <module> --model <id> --resume <assessment-id>` は、
+`workspace/.course-assessments/<phase>/attempts/<assessment-id>/.resume.lock/` を排他的に作成し、
+同じ試行IDの並列再開を拒否します。評価モデルへの重複送信や結果保存の競合を防ぐため、
+同じ試行を複数のターミナルで同時に再開しないでください。
+
+強制終了でロックが残ったときは、自動削除しません。該当する評価CLIが
+**実行中でないことをプロセス一覧で確認**し、対象試行の`.resume.lock`だけを手動で削除してから
+同じ`--resume`コマンドを再実行してください。
+`result.json`、`calibration-result.json`、`ai-candidate.json`などの評価記録は削除しないでください。
+別試行のロックは削除しないでください。

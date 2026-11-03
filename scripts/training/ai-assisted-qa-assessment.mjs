@@ -1353,7 +1353,39 @@ export function persistValidatedCandidate(attemptDirectory, candidate) {
   atomicWriteJson(candidatePath, candidate);
 }
 
+export async function withAttemptResumeLock(attemptDirectory, action) {
+  if (
+    !fs.existsSync(attemptDirectory) ||
+    !fs.lstatSync(attemptDirectory).isDirectory() ||
+    fs.lstatSync(attemptDirectory).isSymbolicLink()
+  )
+    fail("resume attempt directory is missing or unsafe");
+  const lockPath = path.join(attemptDirectory, ".resume.lock");
+  try {
+    // mkdir is exclusive across processes, including on Windows.
+    fs.mkdirSync(lockPath, { mode: 0o700 });
+  } catch (error) {
+    if (error?.code === "EEXIST")
+      fail("assessment resume is already active or left a lock after interruption");
+    throw error;
+  }
+  try {
+    return await action();
+  } finally {
+    // Never remove another process's lock automatically after an interrupted run.
+    fs.rmdirSync(lockPath);
+  }
+}
+
 async function resumeAttempt(request) {
+  if (!ASSESSMENT_ID_PATTERN.test(request.resumeId))
+    fail("resume attempt is missing or unsafe");
+  const relative = `.course-assessments/${request.phase}/attempts/${request.resumeId}`;
+  const attemptDirectory = assertAssessmentPath(WORKSPACE, relative);
+  return withAttemptResumeLock(attemptDirectory, () => resumeAttemptUnlocked(request));
+}
+
+async function resumeAttemptUnlocked(request) {
   const phaseRoot = path.join(WORKSPACE, ".course-assessments", request.phase);
   const attemptsRoot = path.join(phaseRoot, "attempts");
   const attemptDirectory = path.join(attemptsRoot, request.resumeId);

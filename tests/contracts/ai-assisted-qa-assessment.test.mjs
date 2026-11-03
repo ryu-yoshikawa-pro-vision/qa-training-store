@@ -32,6 +32,7 @@ import {
   readChallengeAnswer,
   reconcileFinalizedAssessment,
   writeImmutableOpenCodePrompt,
+  withAttemptResumeLock,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
 import {
   runAiAssistedQaSpecCli,
@@ -139,6 +140,56 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     }),
   ).toThrow(/concurrent model calibration differs/);
   expect(read(cache)).toEqual(concurrent);
+});
+
+it("serializes concurrent resumes and releases the lock on success or failure", async () => {
+  const attemptDirectory = path.join(tempRoot, "resume-concurrency");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  let release;
+  let entered;
+  const entry = new Promise((resolve) => {
+    entered = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let calls = 0;
+  const first = withAttemptResumeLock(attemptDirectory, async () => {
+    calls += 1;
+    entered();
+    await gate;
+    return "finished";
+  });
+  await entry;
+  const lockPath = path.join(attemptDirectory, ".resume.lock");
+  expect(fs.statSync(lockPath).isDirectory()).toBe(true);
+  await expect(
+    withAttemptResumeLock(attemptDirectory, async () => {
+      calls += 1;
+    }),
+  ).rejects.toThrow(/resume is already active/);
+  expect(calls).toBe(1);
+  release();
+  await expect(first).resolves.toBe("finished");
+  expect(fs.existsSync(lockPath)).toBe(false);
+
+  await expect(
+    withAttemptResumeLock(attemptDirectory, async () => {
+      throw new Error("evaluator crashed");
+    }),
+  ).rejects.toThrow(/evaluator crashed/);
+  expect(fs.existsSync(lockPath)).toBe(false);
+
+  // A process killed without running finally leaves a lock for manual inspection.
+  fs.mkdirSync(lockPath);
+  await expect(withAttemptResumeLock(attemptDirectory, async () => "unsafe")).rejects.toThrow(
+    /left a lock after interruption/,
+  );
+  expect(fs.existsSync(lockPath)).toBe(true);
+  fs.rmdirSync(lockPath);
+  await expect(withAttemptResumeLock(attemptDirectory, async () => "restarted")).resolves.toBe(
+    "restarted",
+  );
 });
 
 it("reuses a pinned model candidate after interruption without another model call", async () => {
