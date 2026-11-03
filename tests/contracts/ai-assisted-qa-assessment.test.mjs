@@ -1073,8 +1073,7 @@ for (const point of ["before", "after"]) {
     if (process.platform === "win32") expect(child.status).toBe(87);
     else expect(child.signal).toBe("SIGKILL");
     expect(fs.existsSync(candidatePath)).toBe(point === "after");
-    const publishedBeforeRecovery =
-      point === "after" ? fs.readFileSync(candidatePath) : null;
+    const publishedBeforeRecovery = point === "after" ? fs.readFileSync(candidatePath) : null;
     expect(() => persistValidatedCandidate(attemptDirectory, candidate)).not.toThrow();
     const finalBytes = fs.readFileSync(candidatePath);
     expect(JSON.parse(finalBytes.toString("utf8"))).toEqual(candidate);
