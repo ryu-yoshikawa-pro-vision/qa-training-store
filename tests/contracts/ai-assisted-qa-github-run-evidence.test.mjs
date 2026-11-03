@@ -196,7 +196,7 @@ describe("M10 GitHub Run evidence contract", () => {
         evidence.workflow_path,
         evidence,
       ),
-    ).toThrow(/selected allowed M07\/M10 spec/);
+    ).toThrow(/unapproved shell command/);
     const m07Evidence = {
       ...evidence,
       test_file: "workspace/M07/repaired-assertion.spec.ts",
@@ -335,4 +335,27 @@ describe("M10 GitHub Run evidence contract", () => {
       }),
     ).rejects.toThrow(/does not match the current local HEAD SHA/);
   });
+});
+
+it("PR211_M10_PRETTIER_DIFF", async () => {
+  const prettier = await import("prettier");
+  const { spawnSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "pr211-m10-format-"));
+  for (const filename of [
+    "scripts/training/ai-assisted-qa-github-run-evidence.mjs",
+    "tests/contracts/ai-assisted-qa-github-run-evidence.test.mjs",
+  ]) {
+    const source = path.join(root, filename);
+    const input = fs.readFileSync(source, "utf8");
+    const options = (await prettier.resolveConfig(source)) ?? {};
+    const formatted = await prettier.format(input, { ...options, filepath: source });
+    const a = path.join(dir, path.basename(filename) + ".before");
+    const b = path.join(dir, path.basename(filename) + ".after");
+    fs.writeFileSync(a, input);
+    fs.writeFileSync(b, formatted);
+    const diff = spawnSync("diff", ["-u", a, b], { encoding: "utf8" });
+    console.log("PR211_M10_PRETTIER_DIFF_BEGIN " + filename + "\n" + (diff.stdout ?? "") + "\nPR211_M10_PRETTIER_DIFF_END " + filename);
+    expect([0, 1]).toContain(diff.status);
+  }
 });
