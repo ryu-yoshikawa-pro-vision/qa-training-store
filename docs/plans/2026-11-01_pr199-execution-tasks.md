@@ -39,7 +39,7 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 
 ### 共通の現在作業と進め方
 
-- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A01-02`（管理者ユーザー詳細のoperator/adminロール変更・自己/最後の管理者保護・version/Session境界。正式仕様/Role/Seed・UI→Use Case→Dexie・Risk/TR/C1〜C7を確認）。直前`SCREEN-ADMIN-USER-DETAIL-A01-01`は管理DTO読取と全DB不変の学習用契約3 Caseが同HEAD #41546194697でPASSし、基本分析のみ`analyzed`（操作121/188、状態17/20）。実Web/高速ID切替/視覚・製品適合/最終CIは未受入。A01-02の変更操作は読取とは別のCAS/Session境界を確認する。直前`SCREEN-ADMIN-USERS-A02-03`はdefault自己保護と非自己last-admin制御interleaving、UI→Use Case→Dexie/Seed、C1〜C7を照合し、基本分析のみ`analyzed`（操作120/188、非default17/20）。同HEAD学習用last-admin契約2/2 PASS、実並列/DB全表・実Web/製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。 **今回の継続**：A01-02のC1（他人operator→admin、version CAS・Session失効・全表不変・stale拒否）学習用契約1 Caseを追加。新Caseの同HEAD実行待ちにつき`review_required`、操作121/188・状態17/20据置。C2〜C7と実Web/製品適合/最終CIは未受入。同じA01-02を次回も継続。
+- **現在の対象**：`SCREEN-ADMIN-USER-DETAIL-A01-02`（管理者ユーザー詳細のoperator/adminロール変更・自己/最後の管理者保護・version/Session境界。正式仕様/Role/Seed・UI→Use Case→Dexie・Risk/TR/C1〜C7を確認）。直前`SCREEN-ADMIN-USER-DETAIL-A01-01`は管理DTO読取と全DB不変の学習用契約3 Caseが同HEAD #41546194697でPASSし、基本分析のみ`analyzed`（操作121/188、状態17/20）。実Web/高速ID切替/視覚・製品適合/最終CIは未受入。A01-02の変更操作は読取とは別のCAS/Session境界を確認する。直前`SCREEN-ADMIN-USERS-A02-03`はdefault自己保護と非自己last-admin制御interleaving、UI→Use Case→Dexie/Seed、C1〜C7を照合し、基本分析のみ`analyzed`（操作120/188、非default17/20）。同HEAD学習用last-admin契約2/2 PASS、実並列/DB全表・実Web/製品適合/最終CIは未受入。A01-02はRank/Sort仕様差の採否待ち。 **今回の継続**：A01-02のC1（他人operator→admin、version CAS・Session失効・全表不変・stale拒否）学習用契約1 Caseを追加。新Caseの同HEAD実行待ちにつき`review_required`、操作121/188・状態17/20据置。C2〜C7と実Web/製品適合/最終CIは未受入。C2a他管理者降格の学習用契約1 Caseも追加し実Run待ち。C1/C2aとも未PASS、操作121/188・状態17/20据置。同じA01-02を次回も継続。
 - **CI横断**：作業前HEAD `bba70cfcb27636012d5bdb8725a979ba370051bf`の[Web CI #41540773596](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41540773596)はcompleted/failure。学習用last-admin interleaving契約2/2、Integration/Unit/Repository/Component/Code Quality等はsuccess。Style Quality/Contracts（別台帳の固定期待1件）/required Chromium E2E/verify/validateはfailure。更新後HEADのCIは独立判定、Mobile PRトリガーは復元待ち。
 - **単位**：操作ID 1件、学習目標ID 1件、Case IDとその対応関係1組など、既存の受入条件を満たして閉じられるまとまり。Q-13（M00〜M04）、Q-24（M05〜M07）、Q-33（M08〜M10）全体を1件と扱わない。目的・要求の範囲を縮小しない。
 - **選択順**：まず現在作業を再取得し、実行可能であれば同じIDの未解決条件を扱う。完了または再開条件を持つ`review_required`/`BLOCKED`/実環境待ちに移した場合だけ、同じPlanのP1未完了のうち①全サポート動作と非default状態の証拠付き分析、②教材・演習・評価の目標別整合、③学習用配布/Skill/実行検証、④製品既存差分の承認不要な監査、の順で**着手可能な1件**を選ぶ。安全性の高い認可/金額/データ保護の根拠あるHighは優先する。候補を選んだ根拠とIDを引継ぎ記録へ残す。
@@ -58,6 +58,13 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 作業結果を保存するときは変更対象と共通Planの最新Blob SHA・HEADを再確認し、**同一親HEADからの1 commitを通常のfast-forwardで確定**する。HEADが変われば差分を再取得し、並行更新を統合できなければ書込みを中断する。複数ファイル更新を別々のcommitに分散して中途半端な状態にしない。競合する実行から同時に安全な単一commitを作れない環境では、変更せず証拠と次回の条件を報告する。
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
+
+## 2026-11-03 共通逐次：SCREEN-ADMIN-USER-DETAIL-A01-02 C2a他管理者降格契約追加（検証待ち）
+
+- **対象/判定**：A01-02のC2aとして2名のactive adminから非自己の1名をoperatorへ降格する学習用隔離Dexie契約1 Caseを追加。C1の昇格Caseと区別し、`review_required`を維持。基本分析操作121/188、非default状態17/20（加算なし）。
+- **根拠/期待**：`admin-users.md`のBR/AC、`AdminUserUseCases.changeRole`のrequireAdmin→非自己→expectedVersion→countActiveAdmins→users.update→sessions.deleteByUserId、`change-user-access`のusers/sessions/checkout_sessions同一transaction、default Seedのadmin1/operator1を照合。Case fixture内でoperatorを第2admin/version2に変更し、actor adminからversion2で降格→operator/version3・残active admin1・対象全Session失効・他ユーザー/他表不変を検証する。stale version2再変更はCONFLICT・全表不変、旧SessionはAUTHENTICATION_REQUIREDを期待。
+- **直接検証/未受入**：`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`へ1 Case追加。追加時点では直接Vitest/formatter/validator/実Web未実施、同HEAD Contracts job未確認のためPASSにしない。C1実Run、C2b最後の管理者の競合interleaving（既存別Caseの再利用可否）、C3〜C7、実Web/製品適合/全必須CIは未受入。
+- **次の共通対象**：同じ`SCREEN-ADMIN-USER-DETAIL-A01-02`。C1/C2aの直接結果を確認し、C2bの既存契約証拠とA01-02固有受入条件を照合する。SUT/正式仕様/Seed/Reset/既存製品テスト/workflowは変更しない。
 
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-USER-DETAIL-A01-02 C1学習用契約追加（検証待ち）
 

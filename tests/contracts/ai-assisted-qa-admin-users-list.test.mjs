@@ -191,4 +191,63 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     expect(await fullDatabaseSnapshot()).toEqual(staleBefore);
   });
 
+  it("demotes a second active admin and invalidates its sessions without touching other tables", async () => {
+    await database.users.update("user-operator", {
+      role: "admin",
+      membershipRank: null,
+      version: 2,
+    });
+    await database.sessions.add({
+      id: "training-user-operator-second",
+      userId: "user-operator",
+      createdAt: "2026-07-01T03:00:00.000Z",
+    });
+    const before = await fullDatabaseSnapshot();
+    expect(before.users.filter((user) => user.role === "admin" && user.accountStatus === "active"))
+      .toHaveLength(2);
+
+    const demoted = await forSession("training-user-admin").useCases.changeRole({
+      userId: "user-operator",
+      role: "operator",
+      expectedVersion: 2,
+    });
+    expect(demoted).toMatchObject({
+      userId: "user-operator",
+      role: "operator",
+      membershipRank: null,
+      accountStatus: "active",
+      version: 3,
+    });
+    const after = await fullDatabaseSnapshot();
+    expect(after.users.filter((user) => user.role === "admin" && user.accountStatus === "active"))
+      .toHaveLength(1);
+    expect(after.users.filter((user) => user.id !== "user-operator")).toEqual(
+      before.users.filter((user) => user.id !== "user-operator"),
+    );
+    expect(after.sessions).toEqual(
+      before.sessions.filter((session) => session.userId !== "user-operator"),
+    );
+    for (const [table, rows] of Object.entries(before)) {
+      if (table !== "users" && table !== "sessions") {
+        expect(after[table]).toEqual(rows);
+      }
+    }
+
+    const staleBefore = await fullDatabaseSnapshot();
+    await expect(
+      forSession("training-user-admin").useCases.changeRole({
+        userId: "user-operator",
+        role: "admin",
+        expectedVersion: 2,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await fullDatabaseSnapshot()).toEqual(staleBefore);
+    const revoked = forSession("training-user-operator");
+    await expect(revoked.useCases.getDetail("user-admin")).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
+    expect(await revoked.store.getSessionId()).toBeNull();
+    expect(await fullDatabaseSnapshot()).toEqual(staleBefore);
+  });
+
 });
