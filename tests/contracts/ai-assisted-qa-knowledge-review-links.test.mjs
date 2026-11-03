@@ -1,0 +1,130 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { slugHeading } from "../../scripts/spec/slug-heading";
+
+const repositoryRoot = process.cwd();
+const curriculumRoot = "docs/curriculum/ai-assisted-qa";
+const graph = JSON.parse(
+  fs.readFileSync(path.join(repositoryRoot, curriculumRoot, "knowledge-graph.json"), "utf8"),
+);
+const modules = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
+
+function headingAnchors(moduleId) {
+  const readme = fs.readFileSync(
+    path.join(repositoryRoot, curriculumRoot, "modules", moduleId, "README.md"),
+    "utf8",
+  );
+  const duplicateCounts = new Map();
+  return new Set(
+    readme
+      .split(/\r?\n/)
+      .filter((line) => /^#{1,6}\s+/.test(line))
+      .map((line) => {
+        const slug = slugHeading(line.replace(/^#{1,6}\s+/, ""));
+        const duplicate = duplicateCounts.get(slug) ?? 0;
+        duplicateCounts.set(slug, duplicate + 1);
+        return duplicate === 0 ? slug : `${slug}-${duplicate}`;
+      }),
+  );
+}
+
+describe("AI-assisted QA knowledge and assessment references", () => {
+  it("links every knowledge node to an existing heading in its own lesson", () => {
+    const anchorsByModule = new Map(modules.map((moduleId) => [moduleId, headingAnchors(moduleId)]));
+    const nodes = graph.nodes.filter((node) => node.type === "knowledge");
+    expect(nodes).toHaveLength(82);
+
+    for (const node of nodes) {
+      const expectedPath = `${curriculumRoot}/modules/${node.module}/README.md`;
+      const parts = node.review_path?.split("#");
+      expect(parts, `${node.id}: review_path must include one fragment`).toHaveLength(2);
+      expect(parts[0], `${node.id}: review_path must stay in its lesson`).toBe(expectedPath);
+      const anchor = decodeURIComponent(parts[1]);
+      expect(anchorsByModule.get(node.module)?.has(anchor), `${node.id}: missing #${anchor}`).toBe(
+        true,
+      );
+    }
+  });
+
+  it("covers all learning objectives and knowledge nodes in the module scoring criteria", () => {
+    const objectives = graph.nodes.filter((node) => node.type === "learning_objective");
+    const knowledge = graph.nodes.filter((node) => node.type === "knowledge");
+    expect(objectives).toHaveLength(51);
+    expect(knowledge).toHaveLength(82);
+
+    for (const moduleId of modules) {
+      const scoring = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            repositoryRoot,
+            "training/ai-assisted-qa-course/assessment/scoring-tests",
+            `${moduleId}.json`,
+          ),
+          "utf8",
+        ),
+      );
+      expect(scoring.module_id).toBe(moduleId);
+      const actualObjectives = new Set(scoring.criteria.flatMap((item) => item.objective_ids));
+      const actualKnowledge = new Set(scoring.criteria.flatMap((item) => item.knowledge_ids));
+      const expectedObjectives = objectives
+        .filter((node) => node.module === moduleId)
+        .map((node) => node.id);
+      const expectedKnowledge = knowledge
+        .filter((node) => node.module === moduleId)
+        .map((node) => node.id);
+
+      expect([...actualObjectives].sort(), `${moduleId}: objective coverage`).toEqual(
+        expectedObjectives.sort(),
+      );
+      expect([...actualKnowledge].sort(), `${moduleId}: knowledge coverage`).toEqual(
+        expectedKnowledge.sort(),
+      );
+      expect([...new Set(scoring.objective_ids)].sort(), `${moduleId}: objective header`).toEqual(
+        expectedObjectives,
+      );
+      expect([...new Set(scoring.knowledge_ids)].sort(), `${moduleId}: knowledge header`).toEqual(
+        expectedKnowledge,
+      );
+    }
+  });
+
+  it("keeps the 78 quiz evaluation links consistent with the knowledge graph", () => {
+    const quizNodes = graph.nodes.filter((node) => node.type === "quiz");
+    const quizEdges = graph.edges.filter(
+      (edge) => edge.relation === "evaluates" && edge.from.startsWith("QUIZ-"),
+    );
+    expect(quizNodes).toHaveLength(78);
+    const graphIds = new Set(quizNodes.map((node) => node.id));
+    const foundIds = [];
+
+    for (const moduleId of modules) {
+      const quiz = JSON.parse(
+        fs.readFileSync(
+          path.join(repositoryRoot, curriculumRoot, "quizzes", `${moduleId}.json`),
+          "utf8",
+        ),
+      );
+      expect(quiz.module_id).toBe(moduleId);
+
+      for (const question of quiz.questions) {
+        const id = `QUIZ-${question.id}`;
+        foundIds.push(id);
+        expect(graphIds.has(id), `${id}: missing graph node`).toBe(true);
+        const expected = [...question.objective_ids, ...question.knowledge_ids].sort();
+        const actual = quizEdges.filter((edge) => edge.from === id).map((edge) => edge.to);
+        expect(actual.sort(), `${id}: graph evaluates edge differs from quiz JSON`).toEqual(
+          expected,
+        );
+        const optionValues = question.options.map((option) => option.value);
+        expect(optionValues, `${id}: requires four distinct options`).toHaveLength(4);
+        expect(new Set(optionValues).size, `${id}: option values must be unique`).toBe(4);
+        expect(optionValues, `${id}: correct answer must exist`).toContain(
+          question.correct_value,
+        );
+      }
+    }
+    expect([...new Set(foundIds)].sort()).toEqual([...graphIds].sort());
+    expect(foundIds).toHaveLength(78);
+  });
+});
