@@ -2365,7 +2365,8 @@ it("restores a completed result only with the matching candidate and passing cal
   expect(recover).toThrow(/lacks consistent verified mastery evidence/);
   fs.writeFileSync(candidatePath, JSON.stringify(candidate));
   fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, status: "failed" }));
-  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+  // A failed shared cache must be rejected before restoration can claim verified mastery.
+  expect(recover).toThrow(/saved model calibration cache metadata is invalid/);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
