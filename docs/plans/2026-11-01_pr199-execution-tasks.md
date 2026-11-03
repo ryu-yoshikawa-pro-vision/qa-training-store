@@ -59,6 +59,12 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-04 共通逐次：A01-02 C3失効actor直接契約（実行待ち）
+
+- 対象：`SCREEN-ADMIN-USER-DETAIL-A01-02` C3。既存`forSession`/`fullDatabaseSnapshot`を再利用し、失効Sessionからの`changeRole`が`AUTHENTICATION_REQUIRED`、ローカルSessionクリア、全Dexieテーブル前後不変となる学習用Caseを追加。製品SUT/正式仕様/Seed/既存製品テストは無変更。
+- 判定：追加のみでPASSにしない。`review_required`継続、操作121/188・非default17/20は直前Plan記録値（今回独立再集計なし）、加算0。直接Vitest/formatter/validatorと追加後HEADのCIは未実施・未判定。C3全条件、C4〜C7、実Web、製品適合、最終CIは未受入。
+- 再開条件：新Caseの直接実行証拠とC3残条件を照合する。次の共通対象もA01-02。更新前HEAD `b671561a834998a58ef59c3047b7d47e76569c9c` のWeb CI #41628332183はfailure（新HEADの結果ではない）。
+
 ## 2026-11-03 共通逐次：SCREEN-ADMIN-USER-DETAIL-A01-02 C2a他管理者降格契約追加（検証待ち）
 
 - **対象/判定**：A01-02のC2aとして2名のactive adminから非自己の1名をoperatorへ降格する学習用隔離Dexie契約1 Caseを追加。C1の昇格Caseと区別し、`review_required`を維持。基本分析操作121/188、非default状態17/20（加算なし）。
