@@ -538,6 +538,75 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
+  it("rejects course loads from missing sources or into another module before writing files", async () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const m05 = manifest.load_files.find(
+      (entry) =>
+        entry.module_id === "M05" && entry.target_path === "workspace/M05/product-link.spec.ts",
+    );
+    const m05Submission = manifest.load_files.find(
+      (entry) =>
+        entry.module_id === "M05" && entry.target_path === "workspace/M05/submission.md",
+    );
+    expect(m05).toBeDefined();
+    expect(m05Submission).toBeDefined();
+    const invalidBindings = [
+      {
+        entry: { ...m05, source_path: "course/exercises/M05/unmanifested.spec.ts" },
+        reason: /load source_path is not included in the pinned distribution/,
+      },
+      {
+        entry: { ...m05, target_path: "workspace/M06/unexpected.spec.ts" },
+        reason: /load target_path must stay within its module workspace/,
+      },
+      {
+        entry: { ...m05, target_path: "course/modules/M09/README.md" },
+        reason: /load target_path must stay within its module workspace/,
+      },
+      {
+        entry: { ...m05, target_path: m05Submission.target_path },
+        reason: /duplicate module load target/,
+      },
+    ];
+    for (const { entry, reason } of invalidBindings) {
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          load_files: manifest.load_files.map((item) => (item === m05 ? entry : item)),
+        }),
+      ).toThrow(reason);
+    }
+
+    const fixture = courseFixture();
+    const sourceSha = "a".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const distributionPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(distributionPath, "utf8"));
+    const m00 = distribution.load_files.find((entry) => entry.module_id === "M00");
+    expect(m00).toBeDefined();
+    distribution.load_files = distribution.load_files.map((entry) =>
+      entry === m00 ? { ...entry, target_path: "workspace/M01/unexpected.md" } : entry,
+    );
+    fs.writeFileSync(distributionPath, JSON.stringify(distribution));
+    expect(() =>
+      loadModule({
+        root: fixture.target,
+        moduleId: "M00",
+        now: new Date("2026-10-22T01:05:00.000Z"),
+      }),
+    ).toThrow(/load target_path must stay within its module workspace/);
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M01/unexpected.md"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(false);
+  });
+
   it("rejects invalid Skill sizes and oversized downloads", async () => {
     const fixture = courseFixture();
     const first = fixture.manifest.external_skill_files[0];
