@@ -34,6 +34,7 @@ import {
   readChallengeAnswer,
   reconcileFinalizedAssessment,
   recordModelInvocation,
+  verifySavedModelInvocation,
   showHistory,
   writeImmutableOpenCodePrompt,
   withAttemptResumeLock,
@@ -607,6 +608,154 @@ it("never repeats a calibration invocation with a recorded but unverified respon
   expect(() =>
     recordModelInvocation({ ...invocation, promptSha256: sha256("modified prompt") }),
   ).toThrow(/differs from the pinned evaluator input/);
+});
+
+it("checks a saved AI candidate against its invocation before reuse", async () => {
+  const attemptDirectory = path.join(tempRoot, "candidate-invocation-consistency");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  const prompt = "Evidence for this attempt";
+  const result = { schema_version: 1, objectives: [] };
+  const evaluate = () =>
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt,
+      modelId,
+      version,
+      run: async () => ({ value: result, sessionId: "session-one" }),
+    });
+  expect(await evaluate()).toEqual({ value: result, sessionId: "session-one" });
+  const invocationPath = path.join(attemptDirectory, "assessment-invocation.json");
+  const original = JSON.parse(fs.readFileSync(invocationPath, "utf8"));
+  fs.writeFileSync(invocationPath, JSON.stringify({ ...original, model_id: "other/model" }));
+  await expect(evaluate()).rejects.toThrow(/invocation differs from the pinned evaluator input/);
+  fs.writeFileSync(invocationPath, JSON.stringify({ ...original, started_at: "invalid-date" }));
+  await expect(evaluate()).rejects.toThrow(/invocation differs from the pinned evaluator input/);
+  fs.writeFileSync(invocationPath, JSON.stringify(original));
+  expect(await evaluate()).toEqual({ value: result, sessionId: "session-one" });
+  fs.unlinkSync(invocationPath);
+  // Compatible with an old, independently validated candidate lacking this newer record.
+  expect(await evaluate()).toEqual({ value: result, sessionId: "session-one" });
+  if (process.platform !== "win32") {
+    fs.symlinkSync("nonexistent-invocation.json", invocationPath);
+    await expect(evaluate()).rejects.toThrow(/invocation is not a regular file/);
+    fs.unlinkSync(invocationPath);
+  }
+});
+
+it("checks recovered calibration against the matching invocation", () => {
+  const root = path.join(tempRoot, "calibration-invocation-consistency");
+  const attemptDirectory = path.join(root, "attempt");
+  const calibrationPath = path.join(root, "shared.json");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "pinned" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const expected = new Map([["positive", ["pass"]]]);
+  const caseResults = [{ case_id: "positive", decision: "pass", rationale: "supported" }];
+  const calibration = {
+    schema_version: 1,
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 1,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: "session-calibration",
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  const invocation = {
+    kind: "calibration",
+    modelId: identity.model_id,
+    version: "2.0.22",
+    promptSha256: sha256("pinned calibration cases"),
+    systemPromptSha256: sha256("pinned calibration instructions"),
+  };
+  recordModelInvocation({ attemptDirectory, ...invocation });
+  persistCalibration({ attemptDirectory, calibrationPath, calibration, caseResults });
+  const read = () =>
+    readAttemptCalibration({
+      attemptDirectory,
+      calibrationId,
+      identity,
+      expected,
+      calibrationPath,
+      invocation,
+    });
+  expect(read()).toEqual(calibration);
+  const invocationPath = path.join(attemptDirectory, "calibration-invocation.json");
+  const original = JSON.parse(fs.readFileSync(invocationPath, "utf8"));
+  fs.writeFileSync(
+    invocationPath,
+    JSON.stringify({ ...original, prompt_sha256: sha256("different input") }),
+  );
+  expect(read).toThrow(/invocation differs from the pinned evaluator input/);
+  fs.writeFileSync(invocationPath, JSON.stringify(original));
+  expect(read()).toEqual(calibration);
+  fs.unlinkSync(invocationPath);
+  expect(read()).toEqual(calibration);
+});
+
+it("refuses to resend after an actual process crash between response and candidate publication", async () => {
+  const attemptDirectory = path.join(tempRoot, "response-unpublished-sigkill");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  const prompt = "Pinned evidence and answer";
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import path from "node:path";
+import { obtainAssessmentCandidate } from ${JSON.stringify(moduleUrl.href)};
+const [dir, prompt, modelId, version] = process.argv.slice(1);
+const marker = path.join(dir, "response-received.txt");
+const originalLink = fs.linkSync.bind(fs);
+fs.linkSync = (source, destination) => {
+  if (destination === path.join(dir, "ai-candidate.json")) {
+    if (process.platform === "win32") process.exit(87);
+    process.kill(process.pid, "SIGKILL");
+  }
+  return originalLink(source, destination);
+};
+await obtainAssessmentCandidate({
+  attemptDirectory: dir,
+  prompt,
+  modelId,
+  version,
+  run: async () => {
+    fs.writeFileSync(marker, "model response received");
+    return { value: { schema_version: 1, objectives: [] }, sessionId: "session-unpublished" };
+  },
+});
+process.exit(18);`;
+  const child = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script, attemptDirectory, prompt, modelId, version],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  expect(fs.readFileSync(path.join(attemptDirectory, "response-received.txt"), "utf8")).toBe(
+    "model response received",
+  );
+  expect(fs.statSync(path.join(attemptDirectory, "assessment-invocation.json")).isFile()).toBe(
+    true,
+  );
+  expect(fs.existsSync(path.join(attemptDirectory, "ai-candidate.json"))).toBe(false);
+  let repeatedCalls = 0;
+  await expect(
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt,
+      modelId,
+      version,
+      run: async () => {
+        repeatedCalls += 1;
+        throw new Error("should not repeat the model call");
+      },
+    }),
+  ).rejects.toThrow(/automatic resend is unsafe/);
+  expect(repeatedCalls).toBe(0);
 });
 
 it("reuses identical validated candidates but never silently replaces changed results", () => {

@@ -509,7 +509,7 @@ export function writeImmutableOpenCodePrompt(promptPath, prompt) {
   }
 }
 
-export function recordModelInvocation({
+export function verifySavedModelInvocation({
   attemptDirectory,
   kind,
   modelId,
@@ -519,31 +519,39 @@ export function recordModelInvocation({
 }) {
   if (kind !== "calibration" && kind !== "assessment") fail("unsupported OpenCode invocation kind");
   const invocationPath = path.join(attemptDirectory, `${kind}-invocation.json`);
-  if (fs.existsSync(invocationPath)) {
-    if (!fs.lstatSync(invocationPath).isFile())
-      fail("saved OpenCode invocation is not a regular file");
-    const prior = readJson(invocationPath, "saved OpenCode invocation");
-    if (
-      prior.schema_version !== 1 ||
-      prior.model_id !== modelId ||
-      prior.opencode_version !== version ||
-      prior.prompt_sha256 !== promptSha256 ||
-      prior.system_prompt_sha256 !== systemPromptSha256
-    )
-      fail("saved OpenCode invocation differs from the pinned evaluator input");
+  const entry = fs.lstatSync(invocationPath, { throwIfNoEntry: false });
+  if (!entry) return false; // Prior attempts may predate the invocation record.
+  if (!entry.isFile() || entry.isSymbolicLink())
+    fail("saved OpenCode invocation is not a regular file");
+  const prior = readJson(invocationPath, "saved OpenCode invocation");
+  if (
+    prior.schema_version !== 1 ||
+    prior.model_id !== modelId ||
+    prior.opencode_version !== version ||
+    prior.prompt_sha256 !== promptSha256 ||
+    prior.system_prompt_sha256 !== systemPromptSha256 ||
+    typeof prior.started_at !== "string" ||
+    !Number.isFinite(Date.parse(prior.started_at))
+  )
+    fail("saved OpenCode invocation differs from the pinned evaluator input");
+  return true;
+}
+
+export function recordModelInvocation(input) {
+  if (verifySavedModelInvocation(input))
     fail(
       "OpenCode invocation may already have reached the model without a saved response; automatic resend is unsafe. Check the provider's usage and create a new assessment for an explicitly authorized retry",
     );
-  }
+  const invocationPath = path.join(input.attemptDirectory, `${input.kind}-invocation.json`);
   // Persist before any external model call. Even if the process dies after the
   // provider responds but before its JSON is published, the same attempt must
   // never silently send a duplicate request.
   atomicWriteJson(invocationPath, {
     schema_version: 1,
-    model_id: modelId,
-    opencode_version: version,
-    prompt_sha256: promptSha256,
-    system_prompt_sha256: systemPromptSha256,
+    model_id: input.modelId,
+    opencode_version: input.version,
+    prompt_sha256: input.promptSha256,
+    system_prompt_sha256: input.systemPromptSha256,
     started_at: new Date().toISOString(),
   });
 }
@@ -708,6 +716,7 @@ export function readAttemptCalibration({
   identity,
   expected,
   calibrationPath = null,
+  invocation = null,
 }) {
   const recordPath = path.join(attemptDirectory, "calibration-result.json");
   const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
@@ -732,6 +741,7 @@ export function readAttemptCalibration({
   )
     fail("assessment has an incomplete or unsafe saved calibration; start a new assessment");
   const candidate = readJson(candidatePath, "saved attempt calibration candidate");
+  if (invocation) verifySavedModelInvocation({ attemptDirectory, ...invocation });
   const verified = validateCalibrationOutput(candidate, expected);
   if (!hasRecord) {
     // Legacy candidate-only files lack a pinned identity: never infer that an
@@ -806,6 +816,13 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     identity,
     expected: calibrationPrompt.expected,
     calibrationPath,
+    invocation: {
+      kind: "calibration",
+      modelId,
+      version,
+      promptSha256: sha256(calibrationPrompt.text),
+      systemPromptSha256: calibrationPromptSha,
+    },
   });
   if (savedAttempt) return savedAttempt;
   if (fs.existsSync(calibrationPath) && !fs.lstatSync(calibrationPath).isFile())
@@ -1470,6 +1487,14 @@ export async function obtainAssessmentCandidate({
       Array.isArray(saved.candidate)
     )
       fail("saved assessment candidate differs from the pinned evaluator input");
+    verifySavedModelInvocation({
+      attemptDirectory,
+      kind: "assessment",
+      modelId,
+      version,
+      promptSha256,
+      systemPromptSha256: evaluatorPromptSha256,
+    });
     return { value: saved.candidate, sessionId: saved.session_id ?? null };
   }
   writeImmutableOpenCodePrompt(promptPath, prompt);
