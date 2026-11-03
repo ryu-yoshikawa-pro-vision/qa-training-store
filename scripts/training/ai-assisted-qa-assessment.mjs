@@ -1805,21 +1805,42 @@ async function resumeAttemptUnlocked(request) {
   );
 }
 
-function showHistory(phaseId) {
-  const attemptsRoot = path.join(WORKSPACE, ".course-assessments", phaseId, "attempts");
+export function showHistory(phaseId, workspaceRoot = WORKSPACE) {
+  if (!Object.hasOwn(ASSESSMENT_PHASES, phaseId)) fail("assessment history Phase is invalid");
+  const attemptsRoot = assertAssessmentPath(
+    workspaceRoot,
+    `.course-assessments/${phaseId}/attempts`,
+  );
   if (!fs.existsSync(attemptsRoot)) {
     console.log(JSON.stringify({ phase_id: phaseId, attempts: [] }, null, 2));
     return;
   }
+  if (!fs.lstatSync(attemptsRoot).isDirectory()) fail("assessment history root is not a directory");
   const attempts = fs
     .readdirSync(attemptsRoot)
     .filter((id) => ASSESSMENT_ID_PATTERN.test(id))
     .flatMap((id) => {
-      const dir = path.join(attemptsRoot, id);
-      if (fs.lstatSync(dir).isSymbolicLink()) fail(`assessment history contains a symlink: ${id}`);
-      const resultPath = path.join(dir, "result.json");
-      if (!fs.existsSync(resultPath)) return [{ assessment_id: id, status: "in_progress" }];
+      const relative = `.course-assessments/${phaseId}/attempts/${id}`;
+      const dir = assertAssessmentPath(workspaceRoot, relative);
+      if (!fs.lstatSync(dir).isDirectory())
+        fail(`assessment history attempt is not a directory: ${id}`);
+      if (!fs.readdirSync(dir).includes("result.json"))
+        return [{ assessment_id: id, status: "in_progress" }];
+      const resultPath = assertAssessmentPath(workspaceRoot, `${relative}/result.json`);
+      if (!fs.lstatSync(resultPath).isFile())
+        fail(`assessment history result is not a regular file: ${id}`);
       const result = readJson(resultPath, `assessment result ${id}`);
+      if (
+        result.schema_version !== 1 ||
+        result.assessment_id !== id ||
+        result.phase_id !== phaseId ||
+        !["complete", "incomplete", "blocked", "ungradable"].includes(result.status) ||
+        typeof result.completed !== "boolean" ||
+        result.completed !== (result.status === "complete") ||
+        typeof result.created_at !== "string" ||
+        !Number.isFinite(Date.parse(result.created_at))
+      )
+        fail(`assessment history result is inconsistent: ${id}`);
       return [
         {
           assessment_id: id,
@@ -1831,20 +1852,34 @@ function showHistory(phaseId) {
       ];
     })
     .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
-  const currentPath = currentPointerPath(phaseId);
-  console.log(
-    JSON.stringify(
-      {
-        phase_id: phaseId,
-        current: fs.existsSync(currentPath)
-          ? readJson(currentPath, "current assessment pointer").assessment_id
-          : null,
-        attempts,
-      },
-      null,
-      2,
-    ),
+  const currentPath = assertAssessmentPath(
+    workspaceRoot,
+    `.course-assessments/${phaseId}/current.json`,
   );
+  let current = null;
+  if (fs.readdirSync(path.dirname(currentPath)).includes("current.json")) {
+    if (!fs.lstatSync(currentPath).isFile())
+      fail("assessment history current pointer is not a regular file");
+    const pointer = readJson(currentPath, "current assessment pointer");
+    const currentAttempt = attempts.find((item) => item.assessment_id === pointer.assessment_id);
+    if (
+      pointer.schema_version !== 1 ||
+      pointer.phase_id !== phaseId ||
+      !ASSESSMENT_ID_PATTERN.test(pointer.assessment_id ?? "") ||
+      !currentAttempt ||
+      currentAttempt.created_at !== pointer.updated_at ||
+      !/^[a-f0-9]{64}$/.test(pointer.result_sha256 ?? "")
+    )
+      fail("assessment history current pointer is inconsistent");
+    const currentResultPath = assertAssessmentPath(
+      workspaceRoot,
+      `.course-assessments/${phaseId}/attempts/${pointer.assessment_id}/result.json`,
+    );
+    if (sha256(fs.readFileSync(currentResultPath)) !== pointer.result_sha256)
+      fail("assessment history current pointer does not match immutable result bytes");
+    current = pointer.assessment_id;
+  }
+  console.log(JSON.stringify({ phase_id: phaseId, current, attempts }, null, 2));
 }
 
 export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPACE) {

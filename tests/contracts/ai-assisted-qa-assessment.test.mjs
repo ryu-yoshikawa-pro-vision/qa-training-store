@@ -33,6 +33,7 @@ import {
   readAttemptCalibration,
   readChallengeAnswer,
   reconcileFinalizedAssessment,
+  showHistory,
   writeImmutableOpenCodePrompt,
   withAttemptResumeLock,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
@@ -578,6 +579,72 @@ it("recovers an immutable result after summary and pointer publication were inte
       sourceSha,
     }),
   ).toThrow(/differs from the prepared attempt/);
+});
+
+it("lists immutable assessment history and rejects forged results or current pointers", () => {
+  const root = path.join(tempRoot, "validated-history");
+  const phaseId = "P1";
+  const firstId = "123e4567-e89b-42d3-a456-426614174030";
+  const secondId = "123e4567-e89b-42d3-a456-426614174031";
+  const phaseRoot = path.join(root, ".course-assessments", phaseId);
+  const first = path.join(phaseRoot, "attempts", firstId);
+  const second = path.join(phaseRoot, "attempts", secondId);
+  fs.mkdirSync(first, { recursive: true });
+  fs.mkdirSync(second, { recursive: true });
+  const result = {
+    schema_version: 1,
+    phase_id: phaseId,
+    assessment_id: firstId,
+    status: "incomplete",
+    completed: false,
+    source_sha: "pinned-source",
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  const resultPath = path.join(first, "result.json");
+  const pointerPath = path.join(phaseRoot, "current.json");
+  fs.writeFileSync(resultPath, JSON.stringify(result));
+  const pointer = {
+    schema_version: 1,
+    phase_id: phaseId,
+    assessment_id: firstId,
+    result_sha256: sha256(fs.readFileSync(resultPath)),
+    updated_at: result.created_at,
+  };
+  fs.writeFileSync(pointerPath, JSON.stringify(pointer));
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    showHistory(phaseId, root);
+    expect(JSON.parse(log.mock.lastCall[0])).toMatchObject({
+      phase_id: phaseId,
+      current: firstId,
+      attempts: [
+        { assessment_id: secondId, status: "in_progress" },
+        { assessment_id: firstId, status: "incomplete", completed: false },
+      ],
+    });
+
+    fs.writeFileSync(resultPath, JSON.stringify({ ...result, completed: true }));
+    expect(() => showHistory(phaseId, root)).toThrow(/history result is inconsistent/);
+    fs.writeFileSync(resultPath, JSON.stringify(result));
+
+    fs.writeFileSync(pointerPath, JSON.stringify({ ...pointer, result_sha256: "a".repeat(64) }));
+    expect(() => showHistory(phaseId, root)).toThrow(/does not match immutable result bytes/);
+    fs.writeFileSync(pointerPath, JSON.stringify(pointer));
+    fs.writeFileSync(pointerPath, JSON.stringify({ ...pointer, assessment_id: secondId }));
+    expect(() => showHistory(phaseId, root)).toThrow(/current pointer is inconsistent/);
+    fs.writeFileSync(pointerPath, JSON.stringify(pointer));
+
+    if (process.platform !== "win32") {
+      fs.unlinkSync(resultPath);
+      fs.symlinkSync(path.join(root, "not-an-assessment.json"), resultPath);
+      expect(() => showHistory(phaseId, root)).toThrow(/not a regular file/);
+      fs.unlinkSync(resultPath);
+      fs.writeFileSync(resultPath, JSON.stringify(result));
+    }
+    expect(() => showHistory(phaseId, root)).not.toThrow();
+  } finally {
+    log.mockRestore();
+  }
 });
 
 it("does not restore a fabricated completed result without verified evidence", () => {
