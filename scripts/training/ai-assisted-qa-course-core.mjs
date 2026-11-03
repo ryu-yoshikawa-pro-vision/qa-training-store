@@ -103,6 +103,24 @@ function validateAssessmentAssetSet(assets, sourceSha, label = "assessment asset
     fail(`${label} does not match the complete fixed-path allowlist`);
 }
 
+function validateLoadFileBindings(loadFiles, distributionTargets) {
+  const loadTargets = new Set();
+  for (const entry of loadFiles) {
+    if (!distributionTargets.has(entry.source_path))
+      fail(`load source_path is not included in the pinned distribution: ${entry.source_path}`);
+    if (
+      entry.target_path !== entry.source_path &&
+      !entry.target_path.startsWith(`workspace/${entry.module_id}/`)
+    )
+      fail(`load target_path must stay within its module workspace: ${entry.target_path}`);
+    if (entry.target_path === entry.source_path && !entry.target_path.startsWith("course/"))
+      fail(`load target_path may preserve only course content: ${entry.target_path}`);
+    if (loadTargets.has(entry.target_path))
+      fail(`duplicate module load target: ${entry.target_path}`);
+    loadTargets.add(entry.target_path);
+  }
+}
+
 function fail(message) {
   throw new Error(message);
 }
@@ -272,6 +290,7 @@ export function validateCourseManifest(manifest) {
       "load target_path",
     );
   }
+  validateLoadFileBindings(manifest.load_files, destinations);
   for (const asset of manifest.assessment_asset_allowlist) {
     if (asset.asset_type === "rubric") continue;
     if (
@@ -705,6 +724,10 @@ function readDistribution(root) {
       "load target_path",
     );
   }
+  validateLoadFileBindings(
+    distribution.load_files,
+    new Set(distribution.files.map((file) => file.target_path)),
+  );
   for (const asset of distribution.assessment_assets) {
     if (
       Object.hasOwn(asset, "content") ||
