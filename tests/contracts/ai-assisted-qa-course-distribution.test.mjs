@@ -1727,7 +1727,7 @@ describe("AI-assisted QA distribution contract", () => {
       writeFixtureFile(
         fixture.source,
         "training/ai-assisted-qa-course/exercises/M00/exercise.md",
-        `# M00\\n${payload}\\n`,
+        `# M00\n${payload}\n`,
       );
       await expect(
         syncCourse({
@@ -1757,7 +1757,7 @@ describe("AI-assisted QA distribution contract", () => {
         shopBuildRoot: fixture.source,
         allowUncommittedFixture: true,
       }),
-    ).rejects.toThrow(/potential GitHub token: course\\/shop\\/index\\.html/);
+    ).rejects.toThrow("public course content contains a potential GitHub token: course/shop/index.html");
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
@@ -1774,7 +1774,7 @@ describe("AI-assisted QA distribution contract", () => {
       allowUncommittedFixture: true,
     });
     const targetPath = "course/exercises/M00/exercise.md";
-    const contents = Buffer.from(`ghp_${"c".repeat(36)}\\n`);
+    const contents = Buffer.from(`ghp_${"c".repeat(36)}\n`);
     writeFixtureFile(fixture.target, targetPath, contents);
     const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
     const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
@@ -1784,7 +1784,7 @@ describe("AI-assisted QA distribution contract", () => {
     file.bytes = contents.length;
     fs.writeFileSync(manifestPath, JSON.stringify(distribution));
     expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
-      /potential GitHub token: course\\/exercises\\/M00\\/exercise\\.md/,
+      "public course content contains a potential GitHub token: course/exercises/M00/exercise.md",
     );
   });
 
