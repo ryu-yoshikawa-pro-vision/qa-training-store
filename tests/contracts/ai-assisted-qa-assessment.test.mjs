@@ -1591,6 +1591,90 @@ it("exports a finalized assessment once without copying unexpected files", () =>
   expect(() => exportAssessment("P1", id, root)).toThrow(/already exists/);
 });
 
+it("does not publish a partial export after a failed copy", () => {
+  const root = path.join(tempRoot, "export-copy-failure");
+  const id = "123e4567-e89b-42d3-a456-426614174010";
+  const attempt = path.join(root, ".course-assessments", "P1", "attempts", id);
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.writeFileSync(path.join(attempt, "answers.md"), "learner answer");
+  fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
+  const originalCopy = fs.copyFileSync.bind(fs);
+  const copy = vi.spyOn(fs, "copyFileSync").mockImplementation((source, destination, flags) => {
+    originalCopy(source, destination, flags);
+    throw new Error("injected copy failure");
+  });
+  try {
+    expect(() => exportAssessment("P1", id, root)).toThrow(/injected copy failure/);
+  } finally {
+    copy.mockRestore();
+  }
+  const exportRoot = path.join(root, "course-assessment-exports");
+  expect(fs.readdirSync(exportRoot)).toEqual([]);
+  exportAssessment("P1", id, root);
+  expect(fs.readdirSync(path.join(exportRoot, id)).sort()).toEqual(["answers.md", "result.json"]);
+});
+
+it("preserves a destination created during export preparation", () => {
+  const root = path.join(tempRoot, "export-concurrent-destination");
+  const id = "123e4567-e89b-42d3-a456-426614174011";
+  const attempt = path.join(root, ".course-assessments", "P1", "attempts", id);
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
+  const target = path.join(root, "course-assessment-exports", id);
+  const originalCopy = fs.copyFileSync.bind(fs);
+  const copy = vi.spyOn(fs, "copyFileSync").mockImplementationOnce((source, destination, flags) => {
+    originalCopy(source, destination, flags);
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, "keep.txt"), "existing");
+  });
+  try {
+    expect(() => exportAssessment("P1", id, root)).toThrow(/destination already exists/);
+  } finally {
+    copy.mockRestore();
+  }
+  expect(fs.readdirSync(target)).toEqual(["keep.txt"]);
+  expect(fs.readFileSync(path.join(target, "keep.txt"), "utf8")).toBe("existing");
+  expect(fs.readdirSync(path.dirname(target))).toEqual([id]);
+});
+
+it("leaves no published export after abrupt process termination during copy", () => {
+  const root = path.join(tempRoot, "export-abrupt-exit");
+  const id = "123e4567-e89b-42d3-a456-426614174012";
+  const attempt = path.join(root, ".course-assessments", "P1", "attempts", id);
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.writeFileSync(path.join(attempt, "answers.md"), "learner answer");
+  fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import { exportAssessment } from ${JSON.stringify(moduleUrl.href)};
+const copy = fs.copyFileSync.bind(fs);
+fs.copyFileSync = (...args) => {
+  copy(...args);
+  if (process.platform === "win32") process.exit(87);
+  process.kill(process.pid, "SIGKILL");
+};
+exportAssessment("P1", process.argv[1], process.argv[2]);`;
+  const child = spawnSync(process.execPath, ["--input-type=module", "-e", script, id, root], {
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  const exportRoot = path.join(root, "course-assessment-exports");
+  expect(fs.existsSync(path.join(exportRoot, id))).toBe(false);
+  const entries = fs.readdirSync(exportRoot);
+  const partial = entries.filter((name) => name.endsWith(".partial"));
+  expect(partial).toHaveLength(1);
+  const lockPath = path.join(exportRoot, `.${id}.export.lock`);
+  expect(fs.statSync(lockPath).isDirectory()).toBe(true);
+  expect(() => exportAssessment("P1", id, root)).toThrow(/left a lock after interruption/);
+  fs.rmSync(path.join(exportRoot, partial[0]), { recursive: true });
+  fs.rmdirSync(lockPath);
+  exportAssessment("P1", id, root);
+  expect(fs.readdirSync(path.join(exportRoot, id)).sort()).toEqual(["answers.md", "result.json"]);
+});
+
 it.skipIf(process.platform === "win32")("rejects unsafe export symlinks", () => {
   const root = path.join(tempRoot, "assessment-export-symlinks");
   const outside = path.join(tempRoot, "export-outside");

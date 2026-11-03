@@ -1802,15 +1802,23 @@ export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPAC
   fs.mkdirSync(exportRoot, { recursive: true, mode: 0o700 });
   assertAssessmentPath(workspaceRoot, "course-assessment-exports");
   const target = path.join(exportRoot, assessmentId);
+  if (fs.existsSync(target))
+    fail("export destination already exists; no files were overwritten");
+  const lockPath = path.join(exportRoot, `.${assessmentId}.export.lock`);
   try {
-    // mkdir is exclusive: concurrent exports must not replace even an empty destination.
-    fs.mkdirSync(target, { recursive: false, mode: 0o700 });
+    fs.mkdirSync(lockPath, { mode: 0o700 });
   } catch (error) {
     if (error?.code === "EEXIST")
-      fail("export destination already exists; no files were overwritten");
+      fail("assessment export is already active or left a lock after interruption");
     throw error;
   }
+  // Keep interrupted copies out of the final export destination. A killed process
+  // leaves its private staging directory and lock for explicit inspection.
+  const staging = path.join(exportRoot, `.${assessmentId}.${randomUUID()}.partial`);
   try {
+    if (fs.existsSync(target))
+      fail("export destination already exists; no files were overwritten");
+    fs.mkdirSync(staging, { mode: 0o700 });
     for (const name of [
       "input-manifest.json",
       "challenge.json",
@@ -1823,15 +1831,26 @@ export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPAC
       "summary.md",
     ]) {
       const sourceFile = assertAssessmentPath(workspaceRoot, `${sourceRelative}/${name}`);
-      if (!fs.existsSync(sourceFile)) continue;
+      if (!fs.existsSync(sourceFile)) {
+        if (name === "result.json")
+          fail("only a finalized assessment record can be exported");
+        continue;
+      }
       if (!fs.lstatSync(sourceFile).isFile()) fail(`unsafe export file: ${name}`);
-      fs.copyFileSync(sourceFile, path.join(target, name), fs.constants.COPYFILE_EXCL);
+      fs.copyFileSync(sourceFile, path.join(staging, name), fs.constants.COPYFILE_EXCL);
     }
+    // The lock serializes our exports; recheck to protect a destination created
+    // by an unrelated process while the staging copy was being prepared.
+    if (fs.existsSync(target))
+      fail("export destination already exists; no files were overwritten");
+    fs.renameSync(staging, target);
   } catch (error) {
-    fs.rmSync(target, { recursive: true, force: true });
     throw new Error(
       `assessment export stopped without replacing existing files: ${error instanceof Error ? error.message : String(error)}`,
     );
+  } finally {
+    if (fs.existsSync(staging)) fs.rmSync(staging, { recursive: true, force: true });
+    fs.rmdirSync(lockPath);
   }
   console.log(
     JSON.stringify(
