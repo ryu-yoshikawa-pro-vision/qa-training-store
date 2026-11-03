@@ -24,6 +24,20 @@
 `result.json`、`calibration-result.json`、`ai-candidate.json`などの評価記録は削除しないでください。
 別試行のロックは削除しないでください。
 
+### 最新結果ポインタの公開中断
+
+正式結果の保存後に `current.json` を公開する処理も、
+Phase単位の `.current-publish.lock/` で排他制御しています。
+このロックが残っている場合、`result.json` が保存済みでも
+最新結果ポインタの更新は拒否されます。中断時に残ったロックを自動削除しません。
+
+復旧時は、そのPhaseの評価・再開プロセスが**すべて停止していること**を確認してください。
+`.current-publish.lock/` だけを手動で削除した後、
+保存済みの試行IDと同じ `--resume` コマンドで再開します。
+CLIは保存済みの正式結果を照合し、`summary.md` と `current.json` を再生成します。
+`current.json` や `result.json` を手動編集・削除せず、
+他Phaseのロックや別試行の履歴も削除しないでください。
+
 ### OpenCode呼び出し中断時の扱い
 
 評価モデルへ送信する前に、非公開の試行フォルダへ
