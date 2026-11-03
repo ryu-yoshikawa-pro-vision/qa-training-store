@@ -197,9 +197,7 @@ it("serializes concurrent resumes and releases the lock on success or failure", 
 it("rejects a second Node process while the same assessment attempt is locked", async () => {
   const attemptDirectory = path.join(tempRoot, "resume-cross-process");
   fs.mkdirSync(attemptDirectory, { recursive: true });
-  const moduleUrl = pathToFileURL(
-    path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"),
-  );
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
   const script = `import { withAttemptResumeLock } from ${JSON.stringify(moduleUrl.href)};
 await withAttemptResumeLock(process.argv[1], async () => "completed");`;
   const runChild = () =>
