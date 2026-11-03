@@ -3182,8 +3182,18 @@ describe("AI-assisted QA formal assessment contracts", () => {
           schema_version: 1,
           kind: "playwright-run-record",
           required_runs: [
-            { spec: "new-case.spec.ts", label: "initial", minimum_tests: 2, expected_outcome: "passed" },
-            { spec: "new-case.spec.ts", label: "repeat", minimum_tests: 2, expected_outcome: "passed" },
+            {
+              spec: "new-case.spec.ts",
+              label: "initial",
+              minimum_tests: 2,
+              expected_outcome: "passed",
+            },
+            {
+              spec: "new-case.spec.ts",
+              label: "repeat",
+              minimum_tests: 2,
+              expected_outcome: "passed",
+            },
           ],
         },
       },
