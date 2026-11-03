@@ -428,7 +428,6 @@ test.describe("Phase 1 required E2E", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-
   test("15 未知URLから安全なホームへ戻り、Guest/Session pointerを維持する", async ({ page }) => {
     await page.goto("/");
     await expect(
