@@ -17622,13 +17622,13 @@
       "expected": "商品検索・状態フィルターの結果が入力条件と一致し、対象外商品が選択操作に混入しない",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "High候補: フィルター/ページ変更後もselectedが残り、表示外IDを選択件数に含む一方、bulkは現在表示itemsとの積集合だけを送る。積集合0件で一括操作するとUse CaseがVALIDATIONを投げ、UI側にcatchがない。フィルター/価格/在庫/権限境界と、別staff更新後のversion競合も検証待ち。",
-      "test_condition": "C1 default operator/adminの検索語・status・rank・stock(0/1/5/6)・価格上下限・sortがRepository返却集合と一致すること。C2 many-products 1000件/20件ページと最終50ページ、条件変更時のpage。C3 page1で選択→page2/絞込→表示外IDがbulk targetIdsに入らず、選択件数/ボタン状態/0件拒否のUIが正式期待と一致すること。C4 stale version・別staff更新時のDB/Session/History不変と部分失敗。C5 guest/customer/停止staff/失効Sessionの検索・一括操作拒否と非露出。C6 published在庫0、inactive SKU0、価格上下限逆転/負値/空値を隔離fixtureで確認。C7 desktop/tablet、a11y、画面とDB/Session前後を確認すること。",
-      "test_responsibility": "Web filter state→AdminProductUseCases.search→Dexie query→current-page items→selected集合→bulkChangeStatusのtargetIds/versionを、固定Seedと前後Snapshotで対応付ける。選択件数のUI表示と実際の更新対象を別に判定する。",
+      "risk": "High:画面の選択件数は選択済Set全件、bulk送信は現在ページのitemsとの積集合。ページ/絞り込み変更後に表示外IDだけ残ると選択件数>0でもtargetIds=[]になり、UseCaseのVALIDATIONをWeb bulk側がcatchせず未処理Promiseになる静的経路。正式UI仕様にはSKU検索・カテゴリー/ブランド絞り込みがあるが、現UIには条件がなくRepositoryのkeywordも名称/商品コードだけ。Medium:keyword以外のフィルター変更でpageが維持され結果0件/ページ外、inactive SKUのみの商品はMath.min(...[]) / Math.max(...[])でInfinity/-Infinity、価格フィルターの境界が曖昧。これらは静的懸念で実Run未確認。",
+      "test_condition": "C1 Webの検索語=商品名/コード/SKU、状態、会員Rank、stock(0,1,5,6)、最小/最大価格、sortとRepository結果を対比（SKUは現Repository検索対象外）。C2 UI仕様が要求するカテゴリー/ブランド絞り込みの有無・複数選択ORを仕様優先順位と画面正本から判断。C3 many-productsの最終ページ→status/rank/stock/price/sort変更でpageが範囲外に残らないこと、keywordのみpage1リセットの現状を記録。C4 page1で選択→別ページ/絞込→selected.size>0・現在itemsの対象0→bulkChangeStatusに空配列→VALIDATION/未捕捉Promiseの実ブラウザ挙動と選択復帰を検証。C5 targetIdsは表示ページだけ/最大50、部分成功・失敗・stale Version・実在SKU未有効商品・価格上下限矛盾を隔離DBで検査。C6 operator/admin可、guest/customer/停止staff不可、操作前後のDB/Session/履歴不変。C7 Web desktop/tablet/a11y/Trace/Seedと画面正本比較。",
+      "test_responsibility": "AdminProductsContent:56-84の入力条件はkeyword/status/rank/stock/price/sortのみ（category/brandなし）、keywordだけsetPage(1):129-132、他条件はsetPageなし:136-197、selected:Setは条件変更時も残る:67-69。bulk:86-104は現在itemsとの積集合→UseCase.bulkChangeStatus:223-250が空配列をVALIDATIONで拒否、UI catchなし。DexieProductQueryRepository.search:420-508はkeywordにname/productCodeだけ、SKUは検索しない。productVariants activeだけ集めmin/maxをMath.min/Math.maxで生成:432-449。",
       "case_policy": "C1〜C7を採用（C1通常複合条件、C2 1000件ページ、C3 表示外選択/空target、C4競合、C5認可、C6価格/在庫境界、C7視覚/DB）。商品公開状態の適格性自体はA01-01、bulk成功/失敗件数はA01-03に分離。",
       "case_selection_reason": "一覧の選択状態が検索条件/ページをまたいで保持される実装のため、UI上の選択件数と送信対象の乖離・0件例外・対象外更新の防止をHigh候補として優先する。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "正式BR-ADMINCAT-001/002・AC-ADMINCAT-001/002、Web filter/selection→search/bulkChangeStatus→Dexie、default11商品/many-products1000件とRoleを静的照合。UIはkeyword変更時のみpage=1へ戻し、status/rank/stock/価格/sort変更ではpageを維持する。selectedは条件/ページ変更でクリアされず、bulkは表示中itemsとの積集合のみを送る。表示外のみ選択された場合、選択件数>0でbulkのtargetIds=0となりUse CaseのVALIDATIONに至る静的経路がある。正式な選択件数・フィルター変更時のpage/空対象エラー期待、C1〜C7の直接実行・DB/Session前後・Role別UI/視覚証拠が未確定。基本分析の正式オラクルが不足するためreview_required維持。",
+      "basic_analysis_review": "2026-11-03 PR #212独立監査：正式admin-catalog.md:59-74、補助UI仕様docs/05_ui/ui_specifications.md:174-186、Web AdminProductsContent:56-270、AdminProductUseCases.search:80-101/bulkChangeStatus:223-250、DexieProductQueryRepository.search:420-508、既存Component/Integrationテストを照合。前の選択残留・空bulkに加え、仕様のSKU検索とカテゴリー/ブランドフィルターがWebとRepositoryの検索経路に揃わない、active SKU 0件ではmin/max Infinity/-Infinityになり得る静的問題を確認。補助仕様と正式製品仕様の優先/受入、C1-C7の直接Web実行、DB/Version/Role証拠が未確定のためreview_requiredを維持。既存テストを今回実行していない。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -17642,7 +17642,7 @@
       "state_refs": [
         "SCREEN-ADMIN-PRODUCTS-S-many-products"
       ],
-      "analysis_progress": "2026-11-02: 現HEADで仕様/Role/State/Data、UI→Use Case→Dexie、default/many-products Seed、High候補とC1-C7採否を個別調査。表示外IDのbulk混入は現在表示itemsへのfilterで防ぐ一方、selected件数残留・0件VALIDATION/未捕捉・非keyword条件変更時のpage残留を静的発見。実Run未実施、正式期待/直接Case/DB/Session前後待ち。",
+      "analysis_progress": "PR #212: Web→UseCase→Dexie・UI補助仕様・既存テストの追加監査。選択Set残留/空targetIds未捕捉、非keyword変更のpage残留、SKU/カテゴリー/ブランドフィルター未提供、active SKU 0の価格境界を実行Case化。製品修正は#210分離、基本分析の正式採否/実ブラウザ受入は未完了。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 48,
@@ -17677,6 +17677,68 @@
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 223,
           "signature": "async bulkChangeStatus("
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 59,
+          "end_line": 74,
+          "reason": "管理商品一覧の正式UI契約"
+        },
+        {
+          "path": "docs/05_ui/ui_specifications.md",
+          "start_line": 174,
+          "end_line": 186,
+          "reason": "商品名/商品コード/SKU検索、カテゴリ/ブランド/Rank等、page内bulk"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 56,
+          "end_line": 104,
+          "reason": "画面フィルター/選択Set/現在itemsとbulk未捕捉エラー"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 122,
+          "end_line": 215,
+          "reason": "keywordのみpageリセット、他のfilterと選択件数"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 223,
+          "end_line": 269,
+          "reason": "表表示/選択/ページング"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 80,
+          "end_line": 101,
+          "reason": "検索引数category/brand対応"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 223,
+          "end_line": 250,
+          "reason": "空件数VALIDATIONと一括部分成功"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 420,
+          "end_line": 508,
+          "reason": "keywordのSKU欠落、activeSKU0価格・filters/sort/page"
+        },
+        {
+          "path": "tests/component/admin-product-pages.test.tsx",
+          "start_line": 184,
+          "end_line": 195,
+          "reason": "既存フィルター・部分成功のWeb component部分試験コード"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 397,
+          "end_line": 449,
+          "reason": "既存bulk部分成功のintegration試験コード"
         }
       ]
     },
@@ -23354,13 +23416,13 @@
       "expected": "ロール・ランク・状態でユーザーを絞り込み、条件外の利用者を表示しない",
       "rule_refs": [],
       "route": "`/admin/users`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "ユーザーの絞り込み実施前後で、ロール・ランク・状態でユーザーを絞り込み、条件外の利用者を表示しないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、ユーザーの絞り込みの入力妥当性、状態遷移と保存結果を検証する",
+      "risk": "High:ユーザー情報の他Role露出・停止/退会アカウントでの検索許可。Medium:補助UI仕様で要求されたRank絞込・登録日/更新日sortがWebにない、検索の非keyword条件変更でpageが前のページに残り一覧が空に見える、別Role/Status条件とのANDの取り違え。",
+      "test_condition": "C1 adminがkeyword(email/displayName)、role(customer/operator/admin)、status(active/suspended/withdrawn)の組合せで、RepositoryのAND結果と一致。C2 固定Seedのregular/gold/platinum、operator/admin、停止/退会を用い、補助UI仕様のRank絞込と作成日/更新日sortがUI未提供である差を画面正本と照合して採否判断。C3 Application直接searchではmembershipRanks と sort(created_desc/updated_desc)をサポートすることを隔離DBで検証。C4 page>1からrole/status/keyword変更したときのpage正規化、表示総数/empty/再選択と20件境界。C5 operator/customer/guest/suspended/withdrawnでPERMISSION_DENIED/認証要求、DB/Session不変・本人情報非露出。C6 Web desktop/tablet/keyboard/焦点/Traceの受入。C7 無害な検索でも一覧取得時の個人データ表示とログの漏出を確認。",
+      "test_responsibility": "AdminUsersContent:516-616のUIはkeyword/role/statusのみ、rankは表示列にあるが入力がない、sort UIもない。keyword onChange:545-549だけsetPage(1)、Role/Status:553-569はpageをリセットしない。AdminUserUseCases.search:520-535はroles/membershipRanks/accountStatuses/sortを受け付けrequireAdmin:642-651。DexieUserRepository.search:65-105はAND filterとcreated_desc/updated_descのsort。補助UI仕様:169-170,174-183。",
       "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
       "case_selection_reason": "ユーザーの絞り込みが権限逸脱や不正データ更新を引き起こさないことを示すため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "review_required：主仕様admin-users.mdは絞り込み条件の内訳を固定しないが、補助UI仕様docs/05_ui/ui_specifications.md:169-170,174-183はRole/Rank/Statusと登録日/更新日ソートを要求。Web一覧にはRankとsort選択UIがない。Use Case/RepositoryはmembershipRanksとsortを受け付ける。差分の正式な採否・実Web/認可拒否/DB不変が未証明。静的分析をPASSとしない。",
+      "basic_analysis_review": "2026-11-03 PR #212独立監査：admin-users.md:17-30、補助UI仕様docs/05_ui/ui_specifications.md:169-170,174-183、Web AdminUsersContent:516-616、AdminUserUseCases.search:520-535/requireAdmin:642-651、DexieUserRepository.search:65-105、既存componentおよびadmin-users-list contractテストを読解。UIはkeyword/role/statusのみ・Rank/filterとsort欠落、非keyword filter変更はpageが残る。UseCaseはRank/sortを実装済み。正式なUI仕様の優先順位・Rank/sort必須性の決定、直接Web表示/Role/境界・DB不変の実証前のためreview_required。既存テストは今回未実行。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -23368,7 +23430,7 @@
       "related_use_cases": [
         "AdminUserUseCases.search"
       ],
-      "analysis_progress": "2026-11-01 静的照合：UIはkeyword/Role/Statusで検索し、変更時page=1。Use Caseのadmin再認可とDexieのAND条件・rankフィルター・created_desc/updated_descを確認。補助UI仕様のRank絞り込みと登録日/更新日ソートはUI未提供。実Web/Role拒否/DB不変/視覚・正式優先順位判断待ち。",
+      "analysis_progress": "PR #212: UIとUseCase/Repository・補助仕様との差を特定し、Rank・sort欠落、Role/Status変更後page残留、認可・セキュリティをC1-C7に分離。基本分析の正式適合と実Web/DB/CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 508,
@@ -23397,6 +23459,62 @@
           "path": "src/application/use-cases/review-user-use-cases.ts",
           "line": 520,
           "signature": "async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {"
+        }
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 17,
+          "end_line": 30,
+          "reason": "ユーザー一覧の正式UI契約"
+        },
+        {
+          "path": "docs/05_ui/ui_specifications.md",
+          "start_line": 169,
+          "end_line": 170,
+          "reason": "Role/Rank/StatusのUI絞込要件"
+        },
+        {
+          "path": "docs/05_ui/ui_specifications.md",
+          "start_line": 174,
+          "end_line": 183,
+          "reason": "ユーザーsortの登録/更新日要求"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 516,
+          "end_line": 616,
+          "reason": "UI keyword/Role/Statusのみ、page残留、Rank表示のみ"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 520,
+          "end_line": 535,
+          "reason": "UseCaseのRank/sort入力"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 651,
+          "reason": "adminのみ認可"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 65,
+          "end_line": 105,
+          "reason": "Rank/Role/Status AND・登録日/更新日並替"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 296,
+          "end_line": 324,
+          "reason": "一覧→詳細リンクの既存Web component部分試験"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
+          "start_line": 47,
+          "end_line": 94,
+          "reason": "7固定ユーザー/認可拒否の既存contractテスト（フィルタ未網羅）"
         }
       ]
     },
@@ -25865,13 +25983,13 @@
       "expected": "権限不足の場合には禁止された操作内容を表示せず、拒否画面を表示する",
       "rule_refs": [],
       "route": "`/forbidden`",
-      "risk": "権限外の状態変更と顧客情報露出",
-      "test_condition": "C1=guest保護Route→Login/本文非露出、C2=customer→admin・operator→admin/users拒否、C3=admin許可とproduction automation-admin拒否、C4=Web拒否文言・戻り先/視覚、C5=Android拒否文言・戻り先/視覚、C6=停止staff導線/Session・DB不変。C1〜C6の実Runは未実施。",
-      "test_responsibility": "アクセス権限不足を示すの認可と境界条件を確認する",
+      "risk": "High:Role/失効/停止状態の情報漏出、誤った戻り先からの遷移ループ。Web ForbiddenRouteはoperator/adminならstatusを見ず/adminリンクを表示するので、非active staffから/admin→RouteGuard→/forbiddenの往復経路が静的に成立。Android forbidden.native.tsxは権限不足ではなく『Native前半の対象外』と表示し、利用者への拒否理由と一致しない。Medium:ログイン経由と権限拒否を混同したナビ/支援技術、公開/テストビルドの境界差。",
+      "test_condition": "C1 guestがcustomer/staff/adminへアクセス→Loginへの適切なreturnToまたは拒否、機密childrenを描画しない。C2 customer→staff、operator→admin/users、admin→customer checkout、suspended staff→admin の拒否（文言・戻り先・循環防止）。C3 Web ForbiddenRouteはcurrentUser.roleのみでadminリンク表示するので、status非activeでループするか実ブラウザで検証。C4 test API productionのautomation-admin routeはbuild制御でchildren非露出、local/automationの許可との差を確認。C5 Androidは正式『権限不足』説明/安全な戻り先とのズレを実機・正本画像で確認。C6 直接URL/back/forward/Session失効/Resetでログインループや権限外データ露出なし、DB/Session不変（認証セッションの合法的なクリアと区別）。C7 Web desktop/Androidのa11y/focus/戻り先操作確認。",
+      "test_responsibility": "RouteGuard:16-55はready/errorとRole/statusを検査しguestはLogin、権限不足は/forbidden Redirect、childrenは許可時のみ表示。Web forbidden.tsx:5-14はRoleだけで/admin戻りリンク。Native forbidden.native.tsx:1-4はNativeUnsupportedScreenの汎用表示。official roles-and-permissions.md:29-57は拒否説明と安全な導線を要求。route-guard.test.tsx:38-89はproduction automation-admin拒否とguest Loginを部分検査。",
       "case_policy": "C1〜C6を採用。静的ルートガード照合は済んだが、ロール/状態/Session別の実RunとDB不変が不足し、基本分析完了や製品適合を宣言しない。",
       "case_selection_reason": "未ログイン・customer・operator・adminとactive/suspended/withdrawnの組合せでルート拒否が分かれ、Web /forbiddenのstaff復帰先はRoleのみで決まる。境界の認可/SessionとNative文言を直接検証する必要がある。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "正式roles-and-permissions.md:35-57、screen-catalog.md、RouteGuard:16-55、Web StatePanel/forbidden route、NativeUnsupportedScreen/NativeShellとdefault guest Seedを静的照合。主要RiskとC1〜C6は既存台帳にある。Web非active staffの/admin循環可能性、Androidの『Native前半の対象外』という汎用表示、Session/DB非変更を実Web/Android/対象ロール別に実証していない。認可境界は直接Runと状態差の根拠が必要なため基本分析はreview_requiredを維持。製品不具合/PASSは未判定。",
+      "basic_analysis_review": "2026-11-03 PR #212独立監査：roles-and-permissions.md:5-23,29-57、RouteGuard:16-55、Web forbidden.tsx:5-14、Android forbidden.native.tsx:1-4、route-guard.test.tsx:38-89を再照合。WebはRoleのみでstaff戻りリンクを出しstatus停止を除外しないため、停止staffがadminに行くと再びforbiddenへ戻る可能性がある。Nativeは『Native前半の対象外』という機能非対応メッセージで拒否理由を表現しない。既存テストは停止staffループとNative画面の受入を証明しない。C1-C7の実ブラウザ・Android・DB/Session非変更、公式画像比較前なのでreview_requiredを維持。",
       "requirement_refs": [
         "ROLE-ACCESS",
         "UI-ERROR"
@@ -25881,7 +25999,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "2026-11-03 独立ブランチで追加確認。RouteGuard:16-55は未ログイン→Login、非active/Role不一致→/forbidden、children非露出。Web forbidden.tsx:5-13はstaff roleだけで/adminを表示し、suspended staffの循環は未検証。Native forbidden.native.tsx→NativeUnsupportedScreenは『Native前半の対象外』を表示し正式な権限不足との意味差あり。認可拒否の実行証拠・状態不変・Web/Nativeの文言/視覚が不足するためreview_required維持。",
+      "analysis_progress": "PR #212: Webのstaff status非考慮リンクとNative拒否文言差を公式Role仕様/RouteGuard/既存テストに照合。ナビ循環・漏出防止を具体的Case化。実Run・正本画面/a11y・Role変更後のSessionは未受入。",
       "implementation_evidence": {
         "path": "app/forbidden.tsx",
         "line": 1,
@@ -25910,75 +26028,39 @@
       "audit_branch_refs": [
         {
           "path": "docs/spec/roles-and-permissions.md",
-          "start_line": 1,
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role matrixと停止/退会不可"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 29,
           "end_line": 57,
-          "reason": "Role/状態/禁止画面の正式契約"
+          "reason": "拒否理由と安全な戻り先の画面契約"
         },
         {
           "path": "src/presentation/guards/route-guard.tsx",
           "start_line": 16,
-          "end_line": 57,
-          "reason": "Webの権限判定"
+          "end_line": 55,
+          "reason": "children非露出・Login/forbidden redirect・Role/status判定"
         },
         {
           "path": "app/forbidden.tsx",
           "start_line": 5,
           "end_line": 14,
-          "reason": "Web staff復帰先"
-        },
-        {
-          "path": "src/presentation/components/states.tsx",
-          "start_line": 26,
-          "end_line": 77,
-          "reason": "Webの禁止画面/復帰"
+          "reason": "staff Roleのみで/adminリンク"
         },
         {
           "path": "app/forbidden.native.tsx",
           "start_line": 1,
-          "end_line": 5,
-          "reason": "Native拒否ルート"
+          "end_line": 4,
+          "reason": "Native Unsupportedの説明文"
         },
         {
-          "path": "src/presentation/native/native-screens.tsx",
-          "start_line": 995,
-          "end_line": 1010,
-          "reason": "Native対象外の文言"
-        },
-        {
-          "path": "src/presentation/native/native-shell.tsx",
-          "start_line": 78,
-          "end_line": 180,
-          "reason": "Native Roleセッション遮断"
-        },
-        {
-          "path": "docs/spec/screen-catalog.md",
-          "start_line": 45,
-          "end_line": 55,
-          "reason": "Web/Androidの境界画面カタログ"
-        },
-        {
-          "path": "src/presentation/root-layout.web.tsx",
-          "start_line": 10,
-          "end_line": 19,
-          "reason": "Web AppFrame/Slot"
-        },
-        {
-          "path": "src/presentation/root-layout.native.tsx",
-          "start_line": 9,
-          "end_line": 24,
-          "reason": "NativeShell/Slot"
-        },
-        {
-          "path": "src/seeds/metadata.ts",
-          "start_line": 72,
-          "end_line": 87,
-          "reason": "default guestシナリオ、初期Session、safeResetPath=/"
-        },
-        {
-          "path": "src/seeds/scenarios.ts",
-          "start_line": 20,
-          "end_line": 38,
-          "reason": "default Seed生成とシナリオ分岐"
+          "path": "tests/component/route-guard.test.tsx",
+          "start_line": 38,
+          "end_line": 89,
+          "reason": "production automation-admin/guest拒否の既存部分試験"
         }
       ]
     },
