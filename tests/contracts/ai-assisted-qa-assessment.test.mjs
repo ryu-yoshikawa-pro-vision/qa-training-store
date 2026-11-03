@@ -146,6 +146,127 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   expect(read(cache)).toEqual(concurrent);
 });
 
+it("rebuilds a missing successful shared calibration from a verified saved attempt", () => {
+  const root = path.join(tempRoot, "interrupted-calibration-cache");
+  const attemptDirectory = path.join(root, "attempt");
+  const calibrationPath = path.join(root, "shared.json");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "pinned" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const expected = new Map([
+    ["positive", ["pass"]],
+    ["negative", ["fail"]],
+  ]);
+  const caseResults = [
+    { case_id: "positive", decision: "pass", rationale: "supported" },
+    { case_id: "negative", decision: "fail", rationale: "insufficient" },
+  ];
+  const calibration = {
+    schema_version: 1,
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 2,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: "session-pinned",
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  const originalLink = fs.linkSync.bind(fs);
+  const intercept = vi.spyOn(fs, "linkSync").mockImplementation((source, destination) => {
+    if (destination === calibrationPath) throw new Error("injected cache publication failure");
+    return originalLink(source, destination);
+  });
+  try {
+    expect(() =>
+      persistCalibration({ calibration, calibrationPath, attemptDirectory, caseResults }),
+    ).toThrow(/cache publication failure/);
+  } finally {
+    intercept.mockRestore();
+  }
+  expect(fs.existsSync(calibrationPath)).toBe(false);
+  expect(fs.existsSync(path.join(attemptDirectory, "calibration-result.json"))).toBe(true);
+  const resume = () =>
+    readAttemptCalibration({
+      attemptDirectory,
+      calibrationId,
+      identity,
+      expected,
+      calibrationPath,
+    });
+  expect(resume()).toEqual(calibration);
+  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(calibration);
+  expect(resume()).toEqual(calibration);
+  // A different successful record under this cache key is not silently trusted.
+  fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, identity: { changed: true } }));
+  expect(resume).toThrow(/concurrent model calibration differs/);
+  fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
+  expect(resume()).toEqual(calibration);
+});
+
+it("preserves a legacy failed cache and never publishes an unverified attempt", () => {
+  const root = path.join(tempRoot, "recovered-calibration-safety");
+  const attemptDirectory = path.join(root, "attempt");
+  const calibrationPath = path.join(root, "shared.json");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "pinned" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const expected = new Map([["positive", ["pass"]]]);
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  const recordPath = path.join(attemptDirectory, "calibration-result.json");
+  const saved = {
+    schema_version: 1,
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 1,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: "session-pinned",
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  fs.writeFileSync(
+    candidatePath,
+    JSON.stringify({
+      calibration_id: calibrationId,
+      identity,
+      candidate_session_id: saved.candidate_session_id,
+      created_at: saved.created_at,
+      case_results: [{ case_id: "positive", decision: "pass", rationale: "supported" }],
+    }),
+  );
+  fs.writeFileSync(recordPath, JSON.stringify(saved));
+  const resume = () =>
+    readAttemptCalibration({
+      attemptDirectory,
+      calibrationId,
+      identity,
+      expected,
+      calibrationPath,
+    });
+  fs.writeFileSync(candidatePath, JSON.stringify({ case_results: [] }));
+  expect(resume).toThrow(/omitted one or more cases/);
+  expect(fs.existsSync(calibrationPath)).toBe(false);
+  fs.writeFileSync(
+    candidatePath,
+    JSON.stringify({
+      calibration_id: calibrationId,
+      identity,
+      candidate_session_id: saved.candidate_session_id,
+      created_at: saved.created_at,
+      case_results: [{ case_id: "positive", decision: "pass", rationale: "supported" }],
+    }),
+  );
+  const legacyFailed = { ...saved, status: "failed", critical_false_passes: 1 };
+  fs.writeFileSync(calibrationPath, JSON.stringify(legacyFailed));
+  expect(resume()).toEqual(saved);
+  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(legacyFailed);
+  fs.unlinkSync(calibrationPath);
+  fs.writeFileSync(recordPath, JSON.stringify({ ...saved, status: "failed" }));
+  expect(resume).toThrow(/does not match its candidate/);
+  expect(fs.existsSync(calibrationPath)).toBe(false);
+});
+
 it("serializes concurrent resumes and releases the lock on success or failure", async () => {
   const attemptDirectory = path.join(tempRoot, "resume-concurrency");
   fs.mkdirSync(attemptDirectory, { recursive: true });

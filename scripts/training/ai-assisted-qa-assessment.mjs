@@ -606,6 +606,40 @@ function validateCalibrationOutput(output, expected) {
   };
 }
 
+function publishPassingCalibrationCache(calibration, calibrationPath, existingCalibration = null) {
+  if (!isPassingCalibration(calibration)) return;
+  if (existingCalibration) {
+    // A legacy failed cache is immutable. Another attempt may still use its
+    // separately verified successful calibration without replacing the cache.
+    if (!isPassingCalibration(existingCalibration)) return;
+  }
+  const verifyWinner = (published) => {
+    if (
+      !isPassingCalibration(published) ||
+      published.id !== calibration.id ||
+      published.case_count !== calibration.case_count ||
+      !isDeepStrictEqual(published.identity, calibration.identity)
+    )
+      fail("concurrent model calibration differs from the verified attempt");
+  };
+  if (existingCalibration) {
+    verifyWinner(existingCalibration);
+    return;
+  }
+  try {
+    atomicWriteJson(calibrationPath, calibration);
+  } catch (error) {
+    // Another process may have saved the same immutable successful cache.
+    if (
+      !/assessment result already exists and is immutable/.test(String(error?.message)) ||
+      !fs.existsSync(calibrationPath) ||
+      !fs.lstatSync(calibrationPath).isFile()
+    )
+      throw error;
+    verifyWinner(readJson(calibrationPath, "concurrent model calibration"));
+  }
+}
+
 export function persistCalibration({
   calibration,
   calibrationPath,
@@ -624,33 +658,29 @@ export function persistCalibration({
   });
   atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
   // Failed calibrations remain in their attempt only and do not block future attempts.
-  if (isPassingCalibration(calibration) && !existingCalibration) {
-    try {
-      atomicWriteJson(calibrationPath, calibration);
-    } catch (error) {
-      // Another assessment may have published the same successful calibration.
-      // Preserve the winner's immutable record only when the pinned identity matches.
-      if (
-        !/assessment result already exists and is immutable/.test(String(error?.message)) ||
-        !fs.existsSync(calibrationPath) ||
-        !fs.lstatSync(calibrationPath).isFile()
-      )
-        throw error;
-      const published = readJson(calibrationPath, "concurrent model calibration");
-      if (
-        !isPassingCalibration(published) ||
-        published.id !== calibration.id ||
-        published.case_count !== calibration.case_count ||
-        !isDeepStrictEqual(published.identity, calibration.identity)
-      )
-        fail("concurrent model calibration differs from the verified attempt");
-    }
-  }
+  publishPassingCalibrationCache(calibration, calibrationPath, existingCalibration);
 }
 
-export function readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected }) {
+export function readAttemptCalibration({
+  attemptDirectory,
+  calibrationId,
+  identity,
+  expected,
+  calibrationPath = null,
+}) {
   const recordPath = path.join(attemptDirectory, "calibration-result.json");
   const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  const cacheVerifiedAttempt = (saved) => {
+    if (calibrationPath && isPassingCalibration(saved)) {
+      if (fs.existsSync(calibrationPath) && !fs.lstatSync(calibrationPath).isFile())
+        fail("saved model calibration cache is not a regular file");
+      const existing = fs.existsSync(calibrationPath)
+        ? readJson(calibrationPath, "saved model calibration")
+        : null;
+      publishPassingCalibrationCache(saved, calibrationPath, existing);
+    }
+    return saved;
+  };
   const hasRecord = fs.existsSync(recordPath);
   const hasCandidate = fs.existsSync(candidatePath);
   if (!hasRecord && !hasCandidate) return null;
@@ -686,7 +716,7 @@ export function readAttemptCalibration({ attemptDirectory, calibrationId, identi
       created_at: candidate.created_at,
     };
     atomicWriteJson(recordPath, restored);
-    return restored;
+    return cacheVerifiedAttempt(restored);
   }
   const saved = readJson(recordPath, "saved attempt calibration");
   if (
@@ -709,7 +739,7 @@ export function readAttemptCalibration({ attemptDirectory, calibrationId, identi
     !isDeepStrictEqual(saved.mismatches, verified.mismatches)
   )
     fail("saved attempt calibration result does not match its candidate");
-  return saved;
+  return cacheVerifiedAttempt(saved);
 }
 
 async function obtainCalibration({ inputs, modelId, version, attemptDirectory }) {
@@ -734,8 +764,11 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     calibrationId,
     identity,
     expected: calibrationPrompt.expected,
+    calibrationPath,
   });
   if (savedAttempt) return savedAttempt;
+  if (fs.existsSync(calibrationPath) && !fs.lstatSync(calibrationPath).isFile())
+    fail("saved model calibration cache is not a regular file");
   const existingCalibration = fs.existsSync(calibrationPath)
     ? readJson(calibrationPath, "saved model calibration")
     : null;
