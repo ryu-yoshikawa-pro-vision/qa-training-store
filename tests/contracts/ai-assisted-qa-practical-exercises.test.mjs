@@ -42,6 +42,73 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
     });
   }
 
+  it("M05のP01〜P06の参照判断を課題・実行証拠の要件と対応付ける", () => {
+    const exercise = read("training/ai-assisted-qa-course/exercises/M05/exercise.md");
+    const reference = read("training/ai-assisted-qa-course/assessment/reference-solutions/M05.md");
+    for (let number = 1; number <= 6; number++) {
+      const id = `P0${number}`;
+      expect(exercise).toContain(`**${id}`);
+      expect(reference).toMatch(new RegExp(`^#{2,3} ${id}[^\\n]*import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const root = process.cwd();
+const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
+const manifest = JSON.parse(read("training/course-sync/manifest.json"));
+const modules = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
+const distributedFiles = new Set(manifest.local_files.map((entry) => entry.source_path));
+
+describe("AI協働QAの反復実践と正式評価の契約", () => {
+  for (const moduleId of modules) {
+    it(`${moduleId}の別条件演習・提出欄・採点根拠が揃っている`, () => {
+      const directory = `training/ai-assisted-qa-course/exercises/${moduleId}`;
+      const exercisePath = `${directory}/exercise.md`;
+      const templatePath = `${directory}/submission-template.md`;
+      const exercise = read(exercisePath);
+      const template = read(templatePath);
+      const scoring = JSON.parse(
+        read(`training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`),
+      );
+      const state = JSON.parse(read(`training/ai-assisted-qa-course/states/${moduleId}/end.json`));
+
+      expect(distributedFiles.has(exercisePath)).toBe(true);
+      expect(distributedFiles.has(templatePath)).toBe(true);
+      for (let number = 1; number <= 6; number++) {
+        const id = `P0${number}`;
+        expect(exercise).toContain(`**${id}`);
+        expect(template).toContain(`| ${id} |`);
+      }
+      expect(template).toMatch(/未実行|未確認|未決/);
+      expect(state.expected.required_paths.length).toBeGreaterThan(0);
+      expect(
+        state.expected.required_paths.some((file) => file.startsWith(`workspace/${moduleId}/`)),
+      ).toBe(true);
+
+      for (const criterion of scoring.criteria) {
+        const evidence = [...criterion.required_evidence, ...criterion.pass_conditions].join(" ");
+        expect(evidence).toMatch(/P0[1-6]/);
+        expect(evidence).toContain("未実行");
+      }
+    });
+  }
+
+, "m"));
+    }
+    for (const expected of [
+      "items[0].qty = 4",
+      "items[1].qty = 2",
+      "copy.qty = 5",
+      "(2, 0, 3, 5)",
+      "0点追加",
+      "p03-type-error.ts",
+      "tsx",
+      'Promise.resolve("ready")',
+      "waitForTimeout(5000)",
+      "未実行をPASSとしません",
+    ])
+      expect(reference).toContain(expected);
+  });
+
   it("M06の削除・数量更新Caseは両Runで2件以上実行する", () => {
     const exercise = read("training/ai-assisted-qa-course/exercises/M06/exercise.md");
     const scoring = JSON.parse(
