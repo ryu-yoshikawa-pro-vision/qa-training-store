@@ -21339,18 +21339,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 固定テストアカウントと会員特典はdictionary/pricingとSeedを照合。",
       "action": "利用方法・固定アカウント情報",
-      "expected": "利用方法と固定アカウント情報を提示する",
+      "expected": "Web/Androidの対応Roleから/guideを閲覧し、学習の利用方法と固定テストアカウントを確認できること。製品仕様上のWeb/Android必須表示と、各プラットフォームで提供する内容を区別する。",
       "rule_refs": [],
       "route": "`/guide`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "利用方法・固定アカウント情報で期待する表示と内部遷移を確認する",
-      "test_responsibility": "利用方法・固定アカウント情報の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "利用方法・固定アカウント情報がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Androidで固定アカウントの案内がないことによる教材手順の誤認、Webでdefaultユーザー7件に対しガイド表示6アカウントとなる範囲差、公開テスト資格情報の運用環境への誤用。",
+      "test_condition": "C1 Web default/guestで/guideを表示し固定6アカウントのemail・目的と公開注意を確認。C2 Web active customer/operator/adminのガイド表示（staffの購入操作は禁止）とDB/Session不変。C3 Android guest/customerでNativeGuideScreenの案内と正式な固定アカウント表示要件を照合。C4 default Seed7ユーザーとの関係（withdrawnはガイドに非掲載）を確認し、実Web/Androidの表示・読み上げを別受入する。",
+      "test_responsibility": "C1〜C4でRole別公開ガイド、アカウント案内、Web/Androidの差とデータ非更新を検証する。",
+      "case_policy": "C1〜C4を採用。固定テストパスワードの一般公開正当性は学習環境の正本契約に限定し、製品の認証強度検証とは分ける。",
+      "case_selection_reason": "Webガイドはdictionaryの6件を描画するがdefault Seedは7件であり、Androidは固定アカウント一覧を描画しないため、両Platformと表示対象を直接区別する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:38-62/screen-catalog.md:40、GuidePage→RouteGuard(public)→GuideContent:97-281→dictionary.guide.accountsの6件とfixedPassword→default-dataset.ts:730-773の7ユーザーを照合。NativeGuideScreen:972-982は一般的な学習Flowのみ表示し固定アカウント案内はない。NativeShellはstaffを対象外とし、Android画面のRole条件はWebと異なる。Read-only画面でUse Case/Repository書込なし。実Web/Android、default/Role別画面、視覚・a11y、正式製品適合は未受入。Android情報欠落とWeb6/Seed7差は#210の仕様適合確認候補。",
       "requirement_refs": [
         "SCOPE-SUPPORTED-5",
         "ROLE-ACCESS"
@@ -21360,7 +21360,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/guide-page.tsx",
         "line": 97,
@@ -21380,7 +21380,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/guide-page.tsx",
+          "start_line": 97,
+          "end_line": 149,
+          "reason": "公開ガイド/固定アカウントと注意"
+        },
+        {
+          "path": "src/presentation/content/dictionary.ts",
+          "start_line": 14,
+          "end_line": 36,
+          "reason": "ガイドの6固定テストアカウント"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 972,
+          "end_line": 982,
+          "reason": "Nativeガイドの本文範囲"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 17,
+          "end_line": 44,
+          "reason": "Web公開ガード"
+        },
+        {
+          "path": "app/guide.native.tsx",
+          "start_line": 1,
+          "end_line": 3,
+          "reason": "Androidガイドroute"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A01-02",
@@ -21392,18 +21471,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 固定テストアカウントと会員特典はdictionary/pricingとSeedを照合。",
       "action": "ロールとランク特典を案内",
-      "expected": "ロール別の案内とランク特典を提示する",
+      "expected": "Roleの閲覧範囲とregular/gold/platinumの会員特典をWeb/Androidのガイドで確認できること。通常送料閾値と割引率はpricingの定数・計算規則と一致すること。",
       "rule_refs": [],
       "route": "`/guide`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "ロールとランク特典を案内で期待する表示と内部遷移を確認する",
-      "test_responsibility": "ロールとランク特典を案内の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "ロールとランク特典を案内がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "AndroidでRoleと会員ランク説明がないこと、Web案内と実Checkoutの割引・送料の混同、staffに購入権限があると誤認させる説明。",
+      "test_condition": "C1 WebでGuest/Customer/Operator/Adminとregular 5000円以上送料無料・gold 5%・platinum 10%/いつでも送料無料の案内がpricingの定数に一致。C2 defaultのrank（regular/gold/platinum）とstaffのrank nullを照合。C3 Android guest/customerで特典説明の存在・欠落を確認。C4 閲覧用の案内と実Checkoutの金額計算を別検証し、Web/Android・画面/DB不変を比較する。",
+      "test_responsibility": "C1〜C4でRole/Rank案内、pricing定数、Native差、静的表示による非更新を確認する。",
+      "case_policy": "C1〜C4採用。実Checkoutの割引計算・送料条件の製品適合は別のCart/Checkout操作の受入に委ねる。",
+      "case_selection_reason": "WebのRole/Rank表示は直接pricing関数を参照するが、NativeGuideScreenには当該一覧がなく、実割引計算の証明ではないため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。GuideContent:140-192は4 Role（Guest/Customer/Operator/Admin）と会員ランクを表示し、pricing.ts:3-13の閾値5000、gold 0.05、platinum 0.1を使用。roles-and-permissions.md:5-27とdefault Seed customer3 rank・staff rank nullを照合。NativeGuideScreen:972-982はRole/Rank特典を列挙せず、Android必須のガイド契約との差を#210で要確認。実Web/Android/視覚/a11y・実Checkout価格の製品適合は未受入。",
       "requirement_refs": [
         "SCOPE-SUPPORTED-5",
         "ROLE-ACCESS"
@@ -21413,7 +21492,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/guide-page.tsx",
         "line": 97,
@@ -21433,7 +21512,80 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/guide-page.tsx",
+          "start_line": 140,
+          "end_line": 194,
+          "reason": "WebのRole・会員特典表示"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 1,
+          "end_line": 14,
+          "reason": "送料閾値とrank割引率"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 972,
+          "end_line": 982,
+          "reason": "Nativeに特典パネルなし"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 773,
+          "reason": "固定Role・rank・accountStatus"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A02-01",
@@ -21445,18 +21597,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 固定テストアカウントと会員特典はdictionary/pricingとSeedを照合。",
       "action": "仕様の確認方法",
-      "expected": "仕様資料への導線を提示する",
+      "expected": "学習の仕様・シナリオの確認方法が、Web/Androidのガイドから理解できること。案内の導線は実在する安全なルートを指すこと。",
       "rule_refs": [],
       "route": "`/guide`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "仕様の確認方法で期待する表示と内部遷移を確認する",
-      "test_responsibility": "仕様の確認方法の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "仕様の確認方法がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "「仕様の確認方法」という正式期待に対して実画面が検証FlowとScenario一覧の説明だけとなり、仕様正本への参照方法が判別できない可能性。",
+      "test_condition": "C1 Webで主要確認Flow、シナリオの目的・初期状態・推奨アカウント・表示ルートを照合。C2 renderRouteがguide-routesの明示許可listだけをLinkにして未対応routeを文字列表示することを確認。C3 正式「仕様の確認方法」に相当する説明/リンクの有無をWeb/Androidで判定。C4 default/empty-catalog/many-productsの表示メタデータと画面ルートを照合し、無効URLや実端末の導線を別受入する。",
+      "test_responsibility": "C1〜C4で仕様の読み方とScenarioの案内、安全な内部ルートの選別、Platform差を検証する。",
+      "case_policy": "C1〜C4採用。ガイド内のシナリオ参照と仕様書の閲覧方法を同一視せず、正式な説明範囲を#210で確認する。",
+      "case_selection_reason": "Webはmetadataを使ってシナリオ一覧を生成し、Androidは簡易説明のみ。ソース仕様の読み方への明確な導線は静的に確認できないため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。GuideContent:194-280の主要確認Flow・シナリオ一覧はSCENARIO_METADATA/PHASE_ONE_SCENARIOSを列挙し、guide-routes.ts:1-27の許可されたrouteのみLinkにする。product-scope.md:43の「仕様の読み方」に対応する正本URLや仕様閲覧の操作説明はこの画面実装から確認できず、NativeGuideScreenは更に簡易な説明のみ。仕様解釈・実画面・視覚/a11yは未受入。#210で「仕様の確認方法」の期待を要照合。",
       "requirement_refs": [
         "SCOPE-SUPPORTED-5",
         "ROLE-ACCESS"
@@ -21466,7 +21618,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/guide-page.tsx",
         "line": 97,
@@ -21486,7 +21638,80 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/guide-page.tsx",
+          "start_line": 190,
+          "end_line": 281,
+          "reason": "主要確認Flowとシナリオ一覧"
+        },
+        {
+          "path": "src/presentation/routing/guide-routes.ts",
+          "start_line": 1,
+          "end_line": 27,
+          "reason": "許可ルートLink化"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 70,
+          "end_line": 105,
+          "reason": "Scenario表示データ"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 972,
+          "end_line": 982,
+          "reason": "Nativeガイドの対象内容"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A02-02",
@@ -21498,18 +21723,18 @@
       "platform": "web,android",
       "role": "platform_rolesを参照",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 固定テストアカウントと会員特典はdictionary/pricingとSeedを照合。",
       "action": "リセットへの導線",
-      "expected": "シードのリセット画面への導線を提示する",
+      "expected": "リセットへの安全な導線を示し、許可された環境・RoleのみTest Controlへ到達すること。不許可の閲覧者には利用条件を案内すること。",
       "rule_refs": [],
       "route": "`/guide`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "リセットへの導線で期待する表示と内部遷移を確認する",
-      "test_responsibility": "リセットへの導線の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "リセットへの導線がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "全閲覧者に直接Resetを示すとの仕様解釈とTest API有効admin限定の実装がずれる可能性、NativeにReset案内がないこと、Test APIを本番に露出する誤り。",
+      "test_condition": "C1 Web automation/localかつactive adminで/guideにTest Controlリンクを表示し/admin/test-controlへ移動。C2 Web guest/customer/operator又はproductionで同リンク非表示・ホーム復帰表示。C3 isTestApiBuildのlocal/automation限定とRouteGuard(automation-admin)の再認可を確認。C4 Android guest/customerのガイドにはTest Controlがないことと、Native Test Control対象外契約を照合。C5 Reset時のDB/Session変化と安全な戻り先は別のTest Control専用Caseで確認。",
+      "test_responsibility": "C1〜C5でTest API環境とadmin認可、ガイド導線、Native対象範囲を分離して確認する。",
+      "case_policy": "C1〜C4採用、C5はTest Controlの既存検証へ委譲。許可のないRoleに直接Reset機能を足さない。",
+      "case_selection_reason": "ガイドは閲覧者がadminかつTest API buildの場合だけリンクを提示し、それ以外は説明文/ホームリンクであるため、導線と実リセットの権限を区別する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。GuideContent:102-123/190-215でshowTestControl=isTestApiBuild()&&currentUser?.role==='admin'を適用。test-api.web.ts:23-27はlocal/automationを許可、productionを禁止。ガイドは非adminにホーム/説明文を提示し、Test Controlは/ admin/test-controlの別認可境界。NativeGuideScreenにはReset導線なし（Nativeの管理機能は対象外）。default Seedは初期guest、画面閲覧だけではDB変更なし。Androidの「Resetへの導線」という正式契約との整合は#210で判断。実Web/Android/本番ビルド/認可・データ前後は未受入。",
       "requirement_refs": [
         "SCOPE-SUPPORTED-5",
         "ROLE-ACCESS"
@@ -21519,7 +21744,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/guide-page.tsx",
         "line": 97,
@@ -21539,7 +21764,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/guide-page.tsx",
+          "start_line": 100,
+          "end_line": 126,
+          "reason": "showTestControlと主導線"
+        },
+        {
+          "path": "src/presentation/pages/guide-page.tsx",
+          "start_line": 190,
+          "end_line": 215,
+          "reason": "条件付きResetガイド"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 23,
+          "end_line": 36,
+          "reason": "Test API build境界"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 972,
+          "end_line": 982,
+          "reason": "NativeにReset導線なし"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 37,
+          "end_line": 55,
+          "reason": "認可境界の条件"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-TERMS-A01-01",
@@ -21551,24 +21855,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 3つのLegal routeは固定の表示内容で、Seed内のカート/注文に依存しない。",
       "action": "利用規約を表示",
-      "expected": "利用規約を表示する",
+      "expected": "Web/Androidの公開/guest/customerで利用規約の本文を確認できること。学習用模擬サービス・禁止事項・データ取扱いの明示と両Platformでの表示内容を照合する。",
       "rule_refs": [],
       "route": "`/legal/terms`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "利用規約を表示で期待する表示と内部遷移を確認する",
-      "test_responsibility": "利用規約を表示の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "利用規約を表示がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Nativeの利用規約画面が共通の短文だけで、禁止事項やデータの章を表示しないこと。Role別で規約の閲覧が拒否される可能性。",
+      "test_condition": "C1 Web /legal/termsにタイトル・学習目的・禁止事項・データの章を表示。C2 Web RouteGuard(public)でguest/customer/staffの閲覧を許可。C3 Android /legal/termsはNativeLegalScreen(title='利用規約')で一般説明のみであり、規約本文の項目を照合。C4 スクロール・読み上げ・静的表示のDB/Session不変を実画面で確認する。",
+      "test_responsibility": "C1〜C4で規約本文の表示契約、Role別公開、Native固有の情報欠落を確認する。",
+      "case_policy": "C1〜C4採用。Webの規約同意version管理は範囲外として新要件を追加しない。",
+      "case_selection_reason": "Webは三章を表示しNativeは共通案内の短文だけのため、タイトルが出ることと規約本文を読めることを分離する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:66-81、legal_and_policy.md:1-26とWeb app/legal/terms.tsx:1-20→LegalPage(RouteGuard public)、Native app/legal/terms.native.tsx→NativeLegalScreen:984-993を照合。Webは学習目的・禁止事項・データの3章、Nativeは模擬ストアの説明のみ。default Seedはページ本文に影響せず、読取Use Caseなし。Androidの本文充足は#210で確認。実Web/Android、スクリーンリーダー・視覚、製品適合は未受入。",
       "requirement_refs": [
         "UI-A11Y",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/legal-page.tsx",
         "line": 5,
@@ -21588,7 +21892,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "app/legal/terms.tsx",
+          "start_line": 1,
+          "end_line": 20,
+          "reason": "Web利用規約3章"
+        },
+        {
+          "path": "app/legal/terms.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native利用規約ルート"
+        },
+        {
+          "path": "src/presentation/pages/legal-page.tsx",
+          "start_line": 1,
+          "end_line": 19,
+          "reason": "Web公開ガードと見出し"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 984,
+          "end_line": 993,
+          "reason": "Native共通Legal本文"
+        },
+        {
+          "path": "docs/03_domain/legal_and_policy.md",
+          "start_line": 1,
+          "end_line": 26,
+          "reason": "規約と静的学習内容"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-TERMS-A02-01",
@@ -21600,24 +21983,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 3つのLegal routeは固定の表示内容で、Seed内のカート/注文に依存しない。",
       "action": "ストアフロントに戻る",
-      "expected": "ストアフロントに戻るリンクを提示する",
+      "expected": "Web/Androidの利用規約ページからストアフロントのホームへ戻る安全なナビゲーションが利用できること。",
       "rule_refs": [],
       "route": "`/legal/terms`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "ストアフロントに戻るで期待する表示と内部遷移を確認する",
-      "test_responsibility": "ストアフロントに戻るの表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "ストアフロントに戻るがガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Androidで画面内専用の戻るリンクがないため、NativeShellの共通ホームリンクの発見性を検証しないと復帰導線を見落とすこと。",
+      "test_condition": "C1 Web /legal/termsからLegalPageのパンくず「ホーム」href=/で復帰。C2 AndroidではNativeLegalScreen内に専用LinkはないがNativeShellヘッダーのブランドリンクhref=/で復帰。C3 guest/customerの復帰後Identity/Session/Cartが変わらず、staffはNative範囲外を守る。C4 keyboard/タッチ/スクリーンリーダーでホーム導線を実検証する。",
+      "test_responsibility": "C1〜C4で両Platformの共通ホーム導線、Roleと状態不変、発見性を検証する。",
+      "case_policy": "C1〜C4採用。Native画面内に専用Linkがないことだけでは欠陥と断定せず、Shell全体の導線を評価する。",
+      "case_selection_reason": "Webはページ内にホームLinkがありAndroidはShell内に共通の/home相当リンクがあるため、階層をまたいだ導線検証が必要。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:69、LegalPage:5-18はホーム/へのLinkをページ本文に表示。NativeLegalScreen:984-993には専用LinkなしだがNativeShell:83-95のScenario Shopブランドリンクが/へ遷移し、共通bottomNavにもホームを持つ。両Platformの戻り先は静的に一致し、Seed/DB書込なし。実端末/keyboard/a11y/状態不変は未受入。",
       "requirement_refs": [
         "UI-A11Y",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/legal-page.tsx",
         "line": 5,
@@ -21637,7 +22020,80 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/legal-page.tsx",
+          "start_line": 5,
+          "end_line": 18,
+          "reason": "WebパンくずホームLink"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 82,
+          "end_line": 94,
+          "reason": "NativeブランドホームLink"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 159,
+          "end_line": 175,
+          "reason": "Native bottomNavホーム"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 984,
+          "end_line": 993,
+          "reason": "NativeLegalScreen本文"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-PRIVACY-A01-01",
@@ -21649,24 +22105,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 3つのLegal routeは固定の表示内容で、Seed内のカート/注文に依存しない。",
       "action": "プライバシーポリシーを表示",
-      "expected": "プライバシーポリシーを表示する",
+      "expected": "Web/Androidに対して利用者の情報取扱いを明示するプライバシーポリシー本文を表示し、Web IndexedDBとNative SQLiteの保存先の違いを誤って説明しないこと。",
       "rule_refs": [],
       "route": "`/legal/privacy`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "プライバシーポリシーを表示で期待する表示と内部遷移を確認する",
-      "test_responsibility": "プライバシーポリシーを表示の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "プライバシーポリシーを表示がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Androidのタイトルが「データの取扱い」で、共通短文しかなく保存対象・注意・削除が案内されないこと。WebのIndexedDB限定文言をNativeと混同すること。",
+      "test_condition": "C1 Web /legal/privacyの保存する情報・入力時の注意・削除とIndexedDB説明を表示。C2 Android /legal/privacyがNativeLegalScreen(title='データの取扱い')かつ共通模擬説明のみとなることを確認し正式仕様と照合。C3 WebはIndexedDB/ローカルストレージ、NativeはSQLiteと端末ストアの保存経路であることを仕様と照合。C4 guest/customerとWeb staffで閲覧・DB/Session非更新・読み上げを確認する。",
+      "test_responsibility": "C1〜C4でプライバシー本文、プラットフォーム別保存先・データ保護注意、公開閲覧と静的表示の不変条件を確認する。",
+      "case_policy": "C1〜C4採用。NativeでWebのIndexedDB限定文言をそのまま流用しない。実際の外部送信有無は当該UI静的照合とは別に検証する。",
+      "case_selection_reason": "Web専用の保存先説明とNative SQLiteという正式プラットフォーム差があり、Nativeのプライバシー表示が一般的な模擬環境説明のみであるため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:84-100、legal_and_policy.md:20-27とWeb app/legal/privacy.tsx:1-17→LegalPage(public)、Native app/legal/privacy.native.tsx:1-5→NativeLegalScreen:984-993、native-customer.md:3-15（Native SQLite）を照合。WebはIndexedDB・架空情報・Resetを案内、Nativeは「データの取扱い」見出しのみ変え共通短文を表示。Seed/DBは表示から変更されない。Android正式表示の不足候補は#210で確認。実Android/視覚/a11y、外部送信監査は未受入。",
       "requirement_refs": [
         "UI-A11Y",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/legal-page.tsx",
         "line": 5,
@@ -21686,7 +22142,92 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "app/legal/privacy.tsx",
+          "start_line": 1,
+          "end_line": 17,
+          "reason": "Webプライバシー内容"
+        },
+        {
+          "path": "app/legal/privacy.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Nativeの見出し"
+        },
+        {
+          "path": "src/presentation/pages/legal-page.tsx",
+          "start_line": 5,
+          "end_line": 18,
+          "reason": "Web公開画面"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 984,
+          "end_line": 993,
+          "reason": "Native共通本文"
+        },
+        {
+          "path": "docs/spec/features/native-customer.md",
+          "start_line": 1,
+          "end_line": 17,
+          "reason": "Native端末内保存境界"
+        },
+        {
+          "path": "docs/03_domain/legal_and_policy.md",
+          "start_line": 20,
+          "end_line": 27,
+          "reason": "プライバシー表示契約"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-PRIVACY-A02-01",
@@ -21698,24 +22239,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 3つのLegal routeは固定の表示内容で、Seed内のカート/注文に依存しない。",
       "action": "ストアフロントに戻る",
-      "expected": "ストアフロントに戻るリンクを提示する",
+      "expected": "Web/Androidのプライバシー画面からストアフロントのホームへ戻れること。公開閲覧と状態不変を維持すること。",
       "rule_refs": [],
       "route": "`/legal/privacy`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "ストアフロントに戻るで期待する表示と内部遷移を確認する",
-      "test_responsibility": "ストアフロントに戻るの表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "ストアフロントに戻るがガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Nativeのページ本文だけを検査して共通Shellのホーム導線を見落とすこと、規約内のリンククリックでSessionが失われること。",
+      "test_condition": "C1 Web /legal/privacyのLegalPageパンくずLink /。C2 AndroidのNativeShellヘッダーとbottomNavの/へ戻る導線。C3 guest/active customer/各Web RoleとNative guest/customerの経路を区別。C4往復前後のGuest ID/Session/Cart/DB不変とアクセシビリティを検証する。",
+      "test_responsibility": "C1〜C4で戻り先、公開Role境界、Web/Native共通Shellと状態不変を検証する。",
+      "case_policy": "C1〜C4採用。NativeShellに既存のホームLinkがあるため画面内の専用Linkを一律必須にしない。",
+      "case_selection_reason": "LegalPageのリンクとNativeShellのリンクは配置が異なるが、どちらもストアフロントへのナビゲーションを提供するため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:87、Web LegalPage:5-18のホーム/LinkとNativeShell:82-94/159-175のブランド・bottomNavホーム/を照合。NativeLegalScreen:984-993の本文に専用Linkなし。Role制限はNativeShellでstaff除外、Webはpublic。default Seed表示でデータ更新なし。実Web/Android実操作・画面読み上げ・DB/Session前後は未受入。",
       "requirement_refs": [
         "UI-A11Y",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/legal-page.tsx",
         "line": 5,
@@ -21735,7 +22276,80 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/legal-page.tsx",
+          "start_line": 5,
+          "end_line": 18,
+          "reason": "Web公開パンくず"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 82,
+          "end_line": 94,
+          "reason": "NativeブランドLink"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 159,
+          "end_line": 175,
+          "reason": "Native下部ナビ"
+        },
+        {
+          "path": "app/legal/privacy.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Nativeの該当ルート"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-COMMERCE-A01-01",
@@ -21747,24 +22361,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 3つのLegal routeは固定の表示内容で、Seed内のカート/注文に依存しない。",
       "action": "模擬取引・外部決済配送の対象外を案内",
-      "expected": "模擬取引および外部処理が対象外であることを表示する",
+      "expected": "模擬取引の目的、架空の事業者・価格、実際の課金や配送がないことをWeb/Androidで理解できること。外部決済・外部配送を行わない正式対象範囲と一致すること。",
       "rule_refs": [],
       "route": "`/legal/commerce`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "模擬取引・外部決済配送の対象外を案内で期待する表示と内部遷移を確認する",
-      "test_responsibility": "模擬取引・外部決済配送の対象外を案内の表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "模擬取引・外部決済配送の対象外を案内がガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Androidで模擬取引の項目別説明がなく、Webと比べ販売事業者・価格・支払方法の情報が確認できないこと。実際の課金が行われるとの誤認。",
+      "test_condition": "C1 Web /legal/commerceで架空事業者、価格の日本円表示、Local Mock Paymentのみ、配送は模擬を確認。C2 Android /legal/commerceの共通短文が課金・配送なしを述べる一方、項目別説明がないことを確認。C3 product-scopeの外部API禁止・legal_and_policyのダミー送料500円等とWeb/Android説明の範囲を照合。C4 Role別閲覧、実取引外部通信なしの技術的証拠と画面表示を分けて確認する。",
+      "test_responsibility": "C1〜C4で模擬取引表示、外部決済/配送の対象外、Web/Native説明差と非実課金の説明を検証する。",
+      "case_policy": "C1〜C4採用。実決済・配送の不存在や外部通信の実証は画面の静的分析だけでPASS扱いしない。",
+      "case_selection_reason": "Webの定義リストに比べNativeは一般的な非実注文・決済・配送の短文だけのため、正式な模擬取引表示の範囲を製品仕様と比較する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:103-120・現行製品、legal_and_policy.md:28-39とWeb app/legal/commerce.tsx:1-27→LegalPage(public)、Native commerce.native.tsx:1-5→NativeLegalScreen:984-993を照合。Webは架空事業者/テスト価格/Local Mock Payment/実配送なしを示す。Nativeも実注文・決済・配送なしとは表示するが、項目別の商取引表示はない。外部API通信禁止は正式scopeに記載、UI静的分析だけでは実行上の不在証明なし。Android表示範囲は#210確認候補。実端末/通信観測/a11y/視覚は未受入。",
       "requirement_refs": [
         "SCOPE-EXCLUDED",
         "UI-A11Y"
       ],
       "related_use_cases": [],
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/legal-page.tsx",
         "line": 5,
@@ -21784,7 +22398,86 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "app/legal/commerce.tsx",
+          "start_line": 1,
+          "end_line": 27,
+          "reason": "Web模擬取引4項目"
+        },
+        {
+          "path": "app/legal/commerce.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native模擬取引ルート"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 984,
+          "end_line": 993,
+          "reason": "Native共通短文"
+        },
+        {
+          "path": "docs/03_domain/legal_and_policy.md",
+          "start_line": 28,
+          "end_line": 40,
+          "reason": "模擬取引の対象説明"
+        },
+        {
+          "path": "src/presentation/pages/legal-page.tsx",
+          "start_line": 5,
+          "end_line": 18,
+          "reason": "公開ガードと本文"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-SUPPORTING-COMMERCE-A02-01",
@@ -21796,24 +22489,24 @@
       "platform": "web,android",
       "role": "All",
       "scenario": "default",
-      "data": "default・各ロールの表示、正常な内部ルートと未検出ルート",
+      "data": "defaultシナリオは固定ユーザー7件（customer5/operator1/admin1）を持ち、defaultデータセットのsessionsは空。Supporting画面は業務Use Case／Repository更新を呼ばない静的表示。Webはguest・customer・operator・admin、AndroidはNativeShellのguest/customerに限定され、staffを遮断する。 3つのLegal routeは固定の表示内容で、Seed内のカート/注文に依存しない。",
       "action": "ストアフロントに戻る",
-      "expected": "ストアフロントに戻るリンクを提示する",
+      "expected": "Web/Androidの模擬取引表示からストアフロントのホームに復帰できること。導線は利用可能な公開ルート/を指すこと。",
       "rule_refs": [],
       "route": "`/legal/commerce`",
-      "risk": "案内の誤り、対象外機能への誤誘導",
-      "test_condition": "ストアフロントに戻るで期待する表示と内部遷移を確認する",
-      "test_responsibility": "ストアフロントに戻るの表示契約を確認する",
-      "case_policy": "正常表示と禁止経路を選定",
-      "case_selection_reason": "ストアフロントに戻るがガイド内容・画面導線と一致するか確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Nativeの共通Shellと画面内のナビゲーションを区別しないことで、戻り導線の有無を誤判定すること。",
+      "test_condition": "C1 Web LegalPageのパンくず「ホーム」href=/。C2 Android NativeShellのブランドLink=/とbottomNavのホーム/。C3 guest/active customerの両PlatformとWeb staffで戻り先、表示を確認。C4状態を変更しない往復・タッチ/keyboard/a11y・視覚を確認する。",
+      "test_responsibility": "C1〜C4で各Platformの共通ナビゲーション、公開Role、状態不変を確認する。",
+      "case_policy": "C1〜C4採用。Native画面内専用Linkがないことだけを欠陥として扱わない。",
+      "case_selection_reason": "WebとNativeでは戻り導線の所有コンポーネントが異なるが、共通Shellの/リンクで正式なストアフロント復帰要件を満たし得るため。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。product-scope.md:124のナビゲーション要件をWeb LegalPage:5-18のホームLink(/)とNativeShell:82-94/159-175のブランド及びbottomNavホームLink(/)へ追跡。NativeLegalScreen:984-993自身に専用LinkはないがShellで補完する。defaultは静的表示・Seedデータ非更新。実Web/Android/状態前後/視覚・アクセシビリティは未受入。",
       "requirement_refs": [
         "SCOPE-EXCLUDED",
         "UI-A11Y"
       ],
       "related_use_cases": [],
-      "analysis_progress": "仕様に対応する表示条件を記録。実装参照の確認待ち",
+      "analysis_progress": "2026-11-03 非干渉独立ブランチで正式仕様→Web/Android表示→Role/Seed→Risk/Case C1以降を静的照合。基本分析のみanalyzed。実Web/Android・視覚/a11y・製品適合・直接Runと#199本体への取込は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/legal-page.tsx",
         "line": 5,
@@ -21833,7 +22526,80 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "src/presentation/pages/legal-page.tsx",
+          "start_line": 5,
+          "end_line": 18,
+          "reason": "WebホームLink"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 82,
+          "end_line": 94,
+          "reason": "NativeブランドホームLink"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 159,
+          "end_line": 175,
+          "reason": "Native下部ホームLink"
+        },
+        {
+          "path": "app/legal/commerce.native.tsx",
+          "start_line": 1,
+          "end_line": 5,
+          "reason": "Native模擬取引route"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 38,
+          "end_line": 143,
+          "reason": "正式なSupporting画面とWeb/Android対象"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 38,
+          "end_line": 44,
+          "reason": "画面ルート・対象Role・正式仕様の所有関係"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 29,
+          "reason": "Guest/Customer/Staffの権限境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 779,
+          "reason": "defaultユーザー7件と初期Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 101,
+          "reason": "defaultシナリオ・guest初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 37,
+          "reason": "defaultデータセットの分岐"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 81,
+          "end_line": 204,
+          "reason": "Nativeのstaff遮断と共通ホーム導線"
+        }
+      ]
     },
     {
       "id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
