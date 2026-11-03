@@ -125,11 +125,11 @@ Gitでコミットやプルリクエストを作成する前に、手元の作�
 ターミナルを開き、以下のコマンドを実行して、作業ディレクトリ内で変更・追加されたファイルの一覧を表示します。
 
 ```bash
-git status --short
+git status --short --untracked-files=all
 git diff --cached --name-only
 ```
 
-- `git status --short`：手元の作業ツリー内で「変更されたファイル」や「新しく作られた未追跡ファイル」が簡潔に一覧表示されます。
+- `git status --short --untracked-files=all`：変更・未追跡ファイルを個別に一覧表示します。`--untracked-files=all`がない場合、未追跡ディレクトリが1行にまとめられ、対象specの名前が直接表示されない場合があります。
 - `git diff --cached --name-only`：すでにステージングエリア（コミット準備領域）に追加されているファイルの名前だけが表示されます。
 
 > **警告：安易なファイル消去の禁止**\
@@ -257,7 +257,7 @@ M09の公開完成見本は、M10の正式評価器と同じ契約に従う必�
 
 - テストコマンド：`pnpm run training:ai-assisted-qa:test -- workspace/M07/repaired-assertion.spec.ts`。`PLAYWRIGHT_TEST_ROOT` は `workspace/M07` です。M07の故意FAIL用specを含むディレクトリ全体を実行しません。
 - 許される別経路は、公開fallbackの `workspace/M10/public-sample/handoff-smoke.spec.ts` と `PLAYWRIGHT_TEST_ROOT=workspace/M10/public-sample` との組合せです。本人のM07成果物が利用可能な場合は、それを優先します。
-- Artifact `course-playwright-results` には `output/training/ai-assisted-qa/target-sha.txt` と `output/training/ai-assisted-qa/playwright-result.json` の2ファイルのみを指定し、`if-no-files-found: error` と `if: always()` を維持します。
+- Artifact `course-playwright-results` の保存対象には `output/training/ai-assisted-qa/target-sha.txt` と `output/training/ai-assisted-qa/playwright-result.json` の2ファイルのみを指定し、`if-no-files-found: error` と `if: always()` を維持します。`if-no-files-found: error`は指定パスがすべて見つからない場合の検出であり、**2ファイルの両方が含まれたことまで保証しません**。取得したArtifactで2ファイルそれぞれの存在と内容を確認します。
 - `.github/workflows/` で使うworkflowの対象は本人の非公開リポジトリに限り、学習時の見本 `.disabled` をそのまま有効化してはいけません。変更後の内容を再確認してください。
 
 ### 4.2 実践：専用ワークフローを安全に有効化する（M10-02）
@@ -320,7 +320,7 @@ Gitのコミットは、その時点のファイル内容や履歴を識別す�
 ここに、初心者が見落としやすい最大の落とし穴があります。
 **「以前のCI実行（Run）が緑色（成功）だったとしても、それは現在の最新コミット（PR head）で成功した証拠とは限らない」**ということです。
 
-さらに、GitHub Actionsの `pull_request` イベントでは、PRの先端コミット（head SHA）をそのままテストする場合と、GitHubが自動生成したマージ用コミット（merge SHA）をテストする場合があります。そのため、画面に表示されているSHAの意味を正しく理解し、区別する必要があります。
+GitHub Actionsの`pull_request`イベントでは、既定の`GITHUB_SHA`はPR headではなく、GitHubが用意するマージ用コミットのSHAです。M09の完成見本は`actions/checkout`へ`github.event.pull_request.head.sha`を明示し、checkout後の`git rev-parse HEAD`を`target-sha.txt`に保存します。**Runの`head_sha`や`GITHUB_SHA`をPR headと無条件に同一視せず、実際にcheckoutしたコミットとPR APIの最新headを区別**してください。参考：<https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows>。
 
 ### 5.2 整合性を証明するための「6点セット」
 
@@ -378,14 +378,14 @@ CIの実行ログを開き、**「どのステップで最初に失敗したか�
 | **依存関係の導入** | `pnpm install` でエラー、テスト未開始 | 依存ライブラリの導入失敗により、テストは未実行 | Node.jsやpnpmのバージョン、ネットワーク、`pnpm-lock.yaml` の不整合 | テストコードのアサーションを疑う、製品コードを書き換える |
 | **ブラウザの準備** | `playwright install` で失敗、ブラウザ起動エラー | 実行環境の構築失敗、テストは未実行 | 必要なブラウザバイナリの不足、OS環境依存 | テストのタイムアウト時間を無暗に延ばす |
 | **テストの実行** | Playwrightの `expect` でエラー | 対象テストケースがFAIL、原因調査中 | 画面仕様、セレクタ（Locator）、データ初期化（Reset）、期待値の誤り | 仕様の根拠なしにアサーションを削って無理やり通す |
-| **成果物の保存** | テストはPASSしたが `upload-artifact` でエラー | テスト自体は成功、ただし証拠の保全に失敗 | 保存対象パスの誤り、ワークフローの権限不足 | 証拠ファイルが保存できていないのに完了扱いにする |
+| **成果物の保存** | テストはPASSしたが `upload-artifact` でエラー、または必要なファイルが欠落 | テストの成功と正式評価用の証拠保全を分けて報告 | 保存対象パス、生成タイミング、Artifact内の2ファイルの有無、権限 | Artifactが一部だけ保存されても完了扱いにする |
 | **ワークフロー未起動** | ActionsタブにRun自体が現れない | CI未実行 | トリガーイベントの設定ミス、ブランチ名やパスの不一致 | 存在しない成功画面を想像で報告する |
 | **SHAの不一致** | CheckはPASSだが、ArtifactのSHAが古い | 現在の最新コミットに対する検証証拠なし | 最新コミットに対する再実行の有無、チェックアウト設定 | 古いコミットの成功ログを最新の証拠として提出する |
 
 ### 6.2 「ローカルでは通るのにCIで落ちる」ときの考え方
 
-「自分のPCでは成功したのに、GitHubのCIでは失敗する」という現象は、テスト自動化で非常によく発生します。
-このとき、「CIがおかしい」「たまたま運が悪かった」と片付けてはいけません。必ず**実行環境の差**が存在します。
+「自分のPCでは成功したのに、GitHubのCIでは失敗する」という現象は、テスト自動化で発生します。
+ただし、その事実だけで**実行環境の差が原因だとは断定できません**。対象spec・revision・Seed・実行順・再現性が異なる場合や、同じ条件でも不安定なテストで結果が変わる場合があります。まず対象Runと最初の失敗stepを確認し、下記の差を仮説として調べます。
 
 比較すべき主なポイント：
 
@@ -422,7 +422,7 @@ AIエージェント（OpenCodeなど）と協働していると、AIが非常�
 
 | AIの危険な提案 | AIが主張する理由 | なぜ却下すべきか（リスク） | エンジニアの正しい判断 |
 | --- | --- | --- | --- |
-| 「CIを高速化するため、ブラウザのインストールを省きましょう」 | 実行時間が短縮されます | ブラウザが存在しないためテストが起動できず、テスト未実行のまま終了してしまう | 却下。テスト実行に必要な依存関係のセットアップは必須 |
+| 「CIを高速化するため、ブラウザのインストールを省きましょう」 | 実行時間が短縮されます | 対象Runnerに必要なChromiumとOS依存ライブラリが用意されているか未確認のまま省略すると、ブラウザ起動前に失敗するおそれがある | 現行の完成見本では却下。導入済みを実測・保証できる別構成なら、根拠と差分を検証して判断する |
 | 「権限エラーが出ないよう、permissionsを `write-all` に変更しましょう」 | 権限不足によるエラーを防げます | リポジトリに対する過剰な書き込み権限を与えてしまい、セキュリティ事故の元凶になる | 却下。必要最小限の `contents: read` を維持する |
 | 「Artifactのダウンロード確認は手間なので、Actions画面の緑色のCheckだけを成功の証拠にしましょう」 | 手順が簡単になります | 画面のCheckが古いコミットやmergeコミットの結果である可能性を排除できず、証拠能力を失う | 却下。Artifact内の `target-sha.txt` とPlaywrightレポートを照合して初めて証明となる |
 | 「テスト対象を絞るため、指定された学習specだけを直接実行するコマンドに変更しましょう」 | 不要なテストをスキップして効率化できます | カリキュラムの学習契約および検証範囲と完全に一致している | **採用**。安全・迅速に必要な対象だけを検証する適切な提案 |

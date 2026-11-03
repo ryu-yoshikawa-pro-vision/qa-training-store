@@ -53,7 +53,7 @@ M09の四択7問は教材本文、M09の演習、公開の模範解答、採点�
 
 ## 未完了の受入と検証
 
-- M00・M01・M04・M10の**残り22問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
+- M00・M01・M04の**残り15問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
 - クイズの復習先アンカー、ブラウザーの実表示・回答保存・旧版回答の拒否は、既存validator/契約テストの範囲と実Web確認を分けて受入する。今回は実Webを動かしていない。
 - M09の記述式10問・教材本文の全記述・演習提出物・採点用Caseの全意味一致は未受入。今回のM09レビューは**四択7問の静的正答・説明確認**に限る。
 - 51目標への四択の配置は確認できたが、学習目標のLevel 2・3を各問だけで評価できるとは結論しない。学習者本人の実技・採点・外部Skillの実Runは別に受入する。
@@ -239,3 +239,34 @@ CIでは今回の最終HEADに紐づく結果を確認する。合格しない�
 - 本人が作成する1回目と2回目のcommit、P01〜P06の実Run/差分、`course:load`/`course:check`での結果、M09へのhandoff、実GitHub PR/CI、最終HEADの必須CIは未受入。
 
 四択独立意味レビューの累計は**56/78問**（M02:8、M03:9、M05:12、M06:8、M07:7、M08:5、M09:7）。残りは**22問**（M00:6、M01:5、M04:4、M10:7）。全51学習目標へのID対応確認とは別に計上。製品SUT・正式仕様・Seed/Reset・既存E2E・定期実行4件の分析台帳/Planは変更していない。
+
+## 2026-11-03追記：M10四択7問とPR・Run・Check・Artifactの照合
+
+開始時HEAD：`75ae7000c6ef0f825a3631c46f2ff2b9b64728e7`。M10全7問・28選択肢の正答・理由を、教材本文、M10演習P01〜P06、公開無効化workflow `training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled`、`reference-solutions/M10.md`、`scoring-tests/M10.json`（5評価基準・8公開校正Case）、`states/M10/end.json`と照合した。7問とも正答の変更は不要。実GitHub Actionsの受講者Run・正式AI評価は実施していない。
+
+| 設問 | 正答 | 学習目標 | 選択肢を判別する根拠 | 照合先 |
+| --- | :---: | --- | --- | --- |
+| M10-Q01 | A | M10-01 | 共有前に対象spec・依存設定・Secret・対象外差分を特定してからstage/PRを作る | M10教材§2〜3、演習P01 |
+| M10-Q02 | C | M10-02 | 指定specだけの実行、Browser準備、read権限、Artifactが必要。全suiteやdeploy追加は要求外 | M10教材§4、公開完成workflow |
+| M10-Q03 | B | M10-03 | PR APIの最新head、実checkout SHA、同一RunのCheck/ArtifactとPlaywright JSONを照合し、旧SHA PASSを流用しない | M10教材§5、公開完成workflow、評価基準M10-CR-03 |
+| M10-Q04 | D | M10-04 | ブラウザー起動前ならspecのAssertion結果は未確認。失敗step・依存・Browser条件を調べる | M10教材§6、演習P05 |
+| M10-Q05 | C | M10-05 | AI提案の採否理由、差分・仕様、検証対象SHA・実Run、未確認を同時に報告 | M10教材§8・§11、演習P06 |
+| M10-Q06 | A | M10-03 | target SHAが一致しても要求specが未実行なら成功証拠にならない。別specのPASSやSKIPを混同しない | M10教材§5、K-M10-06 |
+| M10-Q07 | B | M10-04 | 依存導入失敗でtest未開始なら環境・権限・費用を確認し、必要時のみ再実行。Assertion変更を避ける | M10教材§6〜7、K-M10-07 |
+
+### M10教材の修正
+
+- **§2・Git差分**：未追跡ファイルを個別に確認できるよう、`git status --short --untracked-files=all`とし、`git status --short`のディレクトリ集約表示と区別。M08の演習で直接確認した挙動に整合。
+- **§4・Artifact保存契約**：`actions/upload-artifact`の`if-no-files-found: error`は、列挙した2ファイルがそれぞれ揃ったことを保証しない。実際にダウンロードしたArtifactで`target-sha.txt`と`playwright-result.json`の両方を確認する必要があると明記。根拠：<https://github.com/actions/upload-artifact>。
+- **§5・PR headとmerge SHA**：`pull_request`イベントの既定`GITHUB_SHA`はPR merge SHAで、完成見本は`github.event.pull_request.head.sha`を明示checkoutし`git rev-parse HEAD`を保存する点を明記。Runの`head_sha`等をPR headと無条件に同一視しない。根拠：<https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows>。
+- **§6・失敗原因**：ローカルPASS/CI FAILを「必ず実行環境の差」と断定せず、spec版・Seed・実行順・不安定な実行の可能性も調べるように修正。Artifact一部欠落はテストPASSと正式証拠受入の違いとして扱う。
+- **§8・Browser導入**：ブラウザインストール省略が常に失敗するという断定を修正。必要なChromiumとOS依存が保証されない現行見本では省略せず、別構成なら実測と契約確認の後に判断する。
+
+### 静的検証と未受入
+
+- 7問の正答は`A/C/B/D/C/A/B`。全設問には4つの異なる選択肢と、各目標・知識ノード、復習先が存在する。教材の見出しは変更せず、既存の`review_path`アンカーを維持。
+- 完成見本には`pull_request`、`permissions: contents: read`、PR headの明示checkout、SHA書出し、指定spec実行、`if: always()`のArtifact保存が存在することを静的確認。実行したという証拠ではない。
+- `scoring-tests/M10.json`の5評価基準と8公開校正Caseを照合。公開例でない評価時の具体条件を教材へ追加していない。正式評価は受講者の本人リポジトリ・PR・Run・Check・ArtifactをGitHub APIで確認する必要があり未受入。
+- 変更したREADMEの見出しとクイズJSONの正答値は変えない。学習環境における`pnpm format:check`、`pnpm lint:text:all`、全必須CIの最終HEAD判定は別に確認する。
+
+累計独立意味レビュー：**63/78問**（M02:8、M03:9、M05:12、M06:8、M07:7、M08:5、M09:7、M10:7）。残り**15問**（M00:6、M01:5、M04:4）。全51目標のID対応だけで実技・採点の到達を認定しない。製品実装・正式製品仕様・Seed/Reset・既存E2E・定期実行4件の分析台帳・Plan、別セッション専有の学習環境・評価実装は変更しない。
