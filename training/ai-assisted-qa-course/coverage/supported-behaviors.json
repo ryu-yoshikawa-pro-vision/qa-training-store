@@ -4050,7 +4050,7 @@
       "case_policy": "low-stock M=3/上限5、default M=10/上限5、S=20、L=0、数量3と4の境界を採用。Androidのlow-stock専用視覚正本は要求外",
       "case_selection_reason": "固定SeedでSKU単位の在庫3と購入上限5の差を再現でき、UIの数量上限の誤実装を製品コード変更なしに検出できる",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "storefront.md:108-115/BR-STOREFRONT-003/AC-STOREFRONT-003、metadata.ts:119-128、scenarios.ts:44-46、default-dataset.ts:67-82/294-323、CatalogUseCases.getProductDetail:108-124、DexieProductQueryRepository.getDetail:184-223、ProductDetailView:66-100/191-265、catalog-pages.test.tsx:361-370を照合。Seed実値はソース導出で、実ブラウザ/Android視覚受入PASSは未実施",
+      "basic_analysis_review": "storefront.md:108-115/BR-STOREFRONT-003/AC-STOREFRONT-003、metadata.ts:119-128、scenarios.ts:44-46、default-dataset.ts:67-82/294-323、CatalogUseCases.getProductDetail:108-124、DexieProductQueryRepository.getDetail:184-223、ProductDetailView:66-100/191-265、catalog-pages.test.tsx:350-359（在庫0の対照負例のみ。低在庫3の直接テストではない）を照合。Seed実値はソース導出で、実ブラウザ/Android視覚受入PASSは未実施",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -4064,7 +4064,7 @@
       ],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "正式BR/AC・Web UI・Use Case・Dexie・既存Seed SKU実値と数量境界を読み取り監査。実行E2E/視覚比較は未完了",
+      "analysis_progress": "正式BR/AC・Web UI・Use Case・Dexie・既存Seed SKU実値と数量境界を読み取り監査。実行E2E/視覚比較は未完了。2026-11-03 PR #212: 既存componentの参照行がファイル範囲外で、実際には在庫0負例のみと確認。低在庫3の直接実ブラウザ/Android検証を残す",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -4160,9 +4160,9 @@
         },
         {
           "path": "tests/component/catalog-pages.test.tsx",
-          "start_line": 361,
-          "end_line": 370,
-          "reason": "低在庫DTOの表示契約（実Seed実行ではない）"
+          "start_line": 350,
+          "end_line": 359,
+          "reason": "在庫0時の購入不可を確認する既存component負例。low-stock=3を直接検証するテストではない"
         }
       ]
     },
@@ -11955,7 +11955,7 @@
       "rule_refs": [],
       "route": "`/checkout/confirm`",
       "risk": "古いCartでの確定、確認できない画面からの再試行ループ",
-      "test_condition": "固定Seedと確認済みSessionへの版変更を区別し、getConfirmation失敗で『カートを確認』へのリンクがあり、beginOrderが拒否されることを検証。視覚正本の一致はAndroidと分離してWebで確認",
+      "test_condition": "C1 regular-memberでstart→setAddress→setPaymentしconfirm-ready到達後Cart.versionだけ変更（固定cart-version-invalidates-checkoutのunlockedStep=addressをそのまま用いない）。C2 getConfirmation/beginOrderのCART_VERSION_CHANGED拒否と注文・決済・在庫・履歴・Sessionの前後不変。C3 Webロード失敗の現戻り先は/checkout/paymentであり、正本BR-CHECKOUT-002のCart復帰要件と異なる可能性を実ブラウザ/視覚正本で判定。C4 submit後のエラー表示と二重押下、他人Session/期限切れ、Cart復帰操作の到達性を確認。既存契約テストは未実行。",
       "test_responsibility": "Web CheckoutLoadError/CheckoutConfirmContentとUse Case/RepositoryのCART_VERSION_CHANGEDを照合し、S-stale-cartはA02-01の状態別条件としてのみ数える",
       "case_policy": "Cart版変更後の確認ページ表示拒否と修正リンクを採用。価格差分はA02-02に区別し重複分母としない",
       "case_selection_reason": "通常時にはないCartの不一致状態から、意図しない注文確定を防ぎ安全にカートへ戻ることを確認するため",
@@ -12000,9 +12000,9 @@
       "audit_branch_refs": [
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 354,
-          "end_line": 476,
-          "reason": "Webの注文Snapshot/金額内訳と古いCart/価格変更時の修正導線"
+          "start_line": 319,
+          "end_line": 389,
+          "reason": "Web confirmのロード失敗href=/checkout/payment、通常変更リンクと注文確定失敗の表示。正式BR-CHECKOUT-002 Cartへ戻る要件との適合は未決"
         },
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
@@ -12011,10 +12011,10 @@
           "reason": "本人セッション・Cart version・価格再確認と注文開始境界"
         },
         {
-          "path": "tests/integration/checkout-order-use-cases.test.ts",
-          "start_line": 466,
-          "end_line": 499,
-          "reason": "Cart版/価格変更時の拒否と注文・決済・在庫・セッション不変"
+          "path": "tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs",
+          "start_line": 267,
+          "end_line": 305,
+          "reason": "確認表示の前後でCart.versionを変え、getConfirmation/beginOrderの拒否とOrder/Payment/Inventory等の前後不変を検査する既存契約テスト（実行未確認）"
         },
         {
           "path": "src/seeds/scenarios.ts",
@@ -12277,8 +12277,8 @@
         },
         {
           "path": "tests/component/checkout-order-pages.test.tsx",
-          "start_line": 525,
-          "end_line": 535,
+          "start_line": 302,
+          "end_line": 313,
           "reason": "WebのresumePayment(orderId)と処理完了への遷移を検査する既存テスト"
         },
         {
@@ -14327,7 +14327,7 @@
         {
           "path": "src/presentation/components/states.tsx",
           "start_line": 53,
-          "end_line": 85,
+          "end_line": 79,
           "reason": "WebのStatePanel空状態はaction未指定ならホームリンクを自動生成"
         }
       ],
@@ -14711,7 +14711,7 @@
         {
           "path": "src/presentation/components/states.tsx",
           "start_line": 53,
-          "end_line": 85,
+          "end_line": 79,
           "reason": "既定ホームhref=/"
         },
         {
@@ -15374,8 +15374,8 @@
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 722,
-          "end_line": 858,
+          "start_line": 664,
+          "end_line": 793,
           "reason": "WebのOrderDetail表示・商品/金額/レビュー/配送先/支払履歴/タイムライン"
         },
         {
@@ -15392,14 +15392,14 @@
         },
         {
           "path": "tests/component/checkout-order-pages.test.tsx",
-          "start_line": 538,
-          "end_line": 556,
+          "start_line": 315,
+          "end_line": 328,
           "reason": "Webの価格・配送先・支払履歴・Timeline保存DTO表示テスト"
         },
         {
           "path": "tests/component/native/native-purchase-screens.test.tsx",
-          "start_line": 911,
-          "end_line": 980,
+          "start_line": 571,
+          "end_line": 640,
           "reason": "Nativeの金額・配送先・SKU・支払/配送Snapshot表示テスト"
         },
         {
@@ -15536,8 +15536,8 @@
         },
         {
           "path": "tests/component/checkout-order-pages.test.tsx",
-          "start_line": 539,
-          "end_line": 581,
+          "start_line": 330,
+          "end_line": 357,
           "reason": "既存のレビュー状態別component期待（今回未実行）"
         },
         {
@@ -20855,14 +20855,14 @@
         },
         {
           "path": "src/presentation/pages/admin-master-pages.tsx",
-          "start_line": 489,
-          "end_line": 568,
+          "start_line": 439,
+          "end_line": 563,
           "reason": "検索/状態/公開数・ページング非露出"
         },
         {
           "path": "src/presentation/guards/route-guard.tsx",
-          "start_line": 37,
-          "end_line": 60,
+          "start_line": 16,
+          "end_line": 55,
           "reason": "staff route access"
         },
         {
@@ -21026,8 +21026,8 @@
         },
         {
           "path": "src/presentation/guards/route-guard.tsx",
-          "start_line": 37,
-          "end_line": 60,
+          "start_line": 16,
+          "end_line": 55,
           "reason": "staff route access"
         },
         {
@@ -21364,13 +21364,13 @@
         {
           "path": "src/presentation/pages/admin-master-pages.tsx",
           "start_line": 431,
-          "end_line": 568,
+          "end_line": 563,
           "reason": "StaffPage/新規required/maxlength/即clear・編集・通知"
         },
         {
           "path": "src/presentation/guards/route-guard.tsx",
-          "start_line": 25,
-          "end_line": 68,
+          "start_line": 16,
+          "end_line": 55,
           "reason": "staff route/停止Session"
         },
         {
@@ -21961,8 +21961,8 @@
         },
         {
           "path": "src/presentation/guards/route-guard.tsx",
-          "start_line": 30,
-          "end_line": 67,
+          "start_line": 16,
+          "end_line": 55,
           "reason": "active staffの画面ガード"
         },
         {
@@ -23006,7 +23006,7 @@
         {
           "path": "tests/component/admin-operations-pages.test.tsx",
           "start_line": 183,
-          "end_line": 217,
+          "end_line": 214,
           "reason": "一覧Linkと詳細version表示の部分証拠"
         },
         {
@@ -23995,7 +23995,7 @@
         {
           "path": "tests/integration/review-user-use-cases.test.ts",
           "start_line": 276,
-          "end_line": 354,
+          "end_line": 351,
           "reason": "自己role拒否、session無効化、withdrawnの既存Integration"
         },
         {
@@ -24174,8 +24174,8 @@
         },
         {
           "path": "tests/integration/review-user-use-cases.test.ts",
-          "start_line": 326,
-          "end_line": 355,
+          "start_line": 322,
+          "end_line": 351,
           "reason": "withdrawn status直接拒否の既存部分証拠"
         }
       ]
@@ -24347,8 +24347,8 @@
         },
         {
           "path": "tests/integration/review-user-use-cases.test.ts",
-          "start_line": 300,
-          "end_line": 355,
+          "start_line": 297,
+          "end_line": 351,
           "reason": "通常別user変更・自己変更拒否の既存部分証拠"
         },
         {
@@ -24505,8 +24505,8 @@
         },
         {
           "path": "tests/integration/review-user-use-cases.test.ts",
-          "start_line": 300,
-          "end_line": 355,
+          "start_line": 297,
+          "end_line": 351,
           "reason": "管理者Use Caseの既存部分証拠"
         }
       ]
@@ -24645,8 +24645,8 @@
         },
         {
           "path": "tests/integration/review-user-use-cases.test.ts",
-          "start_line": 300,
-          "end_line": 355,
+          "start_line": 297,
+          "end_line": 351,
           "reason": "既存promotion/自己/withdrawn部分証拠"
         },
         {
@@ -25012,9 +25012,9 @@
         },
         {
           "path": "tests/integration/review-user-use-cases.test.ts",
-          "start_line": 300,
-          "end_line": 360,
-          "reason": "既存integrationはself/customer/withdrawn拒否まで、last admin非self負例なし"
+          "start_line": 322,
+          "end_line": 351,
+          "reason": "自己Role変更・customerへのRole変更・withdrawn状態変更の既存負例。非self最後のactive管理者の負例は含まない"
         },
         {
           "path": "tests/component/review-user-pages.test.tsx",
