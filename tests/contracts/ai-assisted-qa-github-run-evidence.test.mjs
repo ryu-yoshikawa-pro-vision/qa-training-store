@@ -380,6 +380,17 @@ describe("M10 GitHub Run evidence contract", () => {
       "M10-ARTIFACT",
       "M10-PLAYWRIGHT",
     ]);
+    expect(result.checks.find((check) => check.id === "M10-RUN")).toMatchObject({
+      run_id: 345,
+      run_attempt: 1,
+      job_id: 1,
+    });
+    expect(result.checks.find((check) => check.id === "M10-CHECK")).toMatchObject({
+      check_run_id: 1,
+    });
+    expect(result.checks.find((check) => check.id === "M10-ARTIFACT")).toMatchObject({
+      digest: `sha256:${createHash("sha256").update(archive).digest("hex")}`,
+    });
     expect(urls).toHaveLength(7);
     expect(urls[3]).toContain(`/commits/${MERGE_SHA}/check-runs`);
 
