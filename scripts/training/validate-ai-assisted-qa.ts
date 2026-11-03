@@ -1150,20 +1150,10 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
           }[];
         };
         const endContracts = (state.outputs ?? [])
-          .map((output) => [
-            output.artifact_id,
-            output.path,
-            output.revision,
-            output.contract_id,
-          ])
+          .map((output) => [output.artifact_id, output.path, output.revision, output.contract_id])
           .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
         const completedContracts = completed.artifacts
-          ?.map((artifact) => [
-            artifact.id,
-            artifact.path,
-            artifact.revision,
-            artifact.contract_id,
-          ])
+          ?.map((artifact) => [artifact.id, artifact.path, artifact.revision, artifact.contract_id])
           .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
         requireCondition(
           JSON.stringify(completedContracts) === JSON.stringify(endContracts),
