@@ -215,7 +215,7 @@ describe("M10 GitHub Run evidence contract", () => {
       validateCourseWorkflow(
         workflow.replace(
           "      - uses: actions/upload-artifact@v4",
-          "      - run: pnpm run training:ai-assisted-qa:test -- workspace/M10/public-sample/handoff-smoke.spec.ts; echo unsafe\\n      - uses: actions/upload-artifact@v4",
+          "      - run: pnpm run training:ai-assisted-qa:test -- workspace/M10/public-sample/handoff-smoke.spec.ts; echo unsafe\n      - uses: actions/upload-artifact@v4",
         ),
         evidence.workflow_path,
         evidence,
@@ -225,7 +225,7 @@ describe("M10 GitHub Run evidence contract", () => {
       validateCourseWorkflow(
         workflow.replace(
           "      - uses: actions/upload-artifact@v4",
-          "      - run: pnpm install --frozen-lockfile\\n      - uses: actions/upload-artifact@v4",
+          "      - run: pnpm install --frozen-lockfile\n      - uses: actions/upload-artifact@v4",
         ),
         evidence.workflow_path,
         evidence,
