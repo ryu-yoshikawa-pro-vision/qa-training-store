@@ -53,7 +53,7 @@ M09の四択7問は教材本文、M09の演習、公開の模範解答、採点�
 
 ## 未完了の受入と検証
 
-- M00・M01・M04・M08・M10の**残り27問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
+- M00・M01・M04・M10の**残り22問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
 - クイズの復習先アンカー、ブラウザーの実表示・回答保存・旧版回答の拒否は、既存validator/契約テストの範囲と実Web確認を分けて受入する。今回は実Webを動かしていない。
 - M09の記述式10問・教材本文の全記述・演習提出物・採点用Caseの全意味一致は未受入。今回のM09レビューは**四択7問の静的正答・説明確認**に限る。
 - 51目標への四択の配置は確認できたが、学習目標のLevel 2・3を各問だけで評価できるとは結論しない。学習者本人の実技・採点・外部Skillの実Runは別に受入する。
@@ -206,3 +206,36 @@ CIでは今回の最終HEADに紐づく結果を確認する。合格しない�
 - 開始時HEADのWeb CI #41604340562は確認時点で未完了、既に`Vitest (contracts)`と`Style Quality`がfailure。今回の教材修正はそれらの原因修正と扱わず、最終HEADのCIで別途判定する。
 
 独立意味レビュー累計：**51/78問**（M02:8、M03:9、M05:12、M06:8、M07:7、M09:7）。**残27問**（M00:6、M01:5、M04:4、M08:5、M10:7）。学習目標IDの静的対応51件/51件とは別の進捗であり、全11モジュールの意味的総合受入、実技、配布、正式AI評価、CIの成功は未完了のまま残す。製品SUT・正式仕様・Seed/Reset・既存E2E・定期実行4件の分析台帳とPlanは変更しない。
+
+## 2026-11-03追記：M08四択5問と安全なGit演習の独立レビュー
+
+開始時HEAD：`d88bc1f84389596297aa4cad968dffd44a9a9815`。M08の5問・全20選択肢の意味を教材本文、演習P01〜P06、提出テンプレート、`reference-solutions/M08.md`、`scoring-tests/M08.json`（4評価基準・9校正Case）、`states/M08/end.json`、配布用`workspace.gitignore`と照合した。正答値は5問とも変更不要。実学習者のcommit、実PR、正式AI評価の受入ではない。
+
+| 設問 | 正答 | 学習目標 | 正答と他選択肢を区別する根拠 | 照合資料 |
+| --- | :---: | --- | --- | --- |
+| M08-Q01 | C | M08-01 | working treeの変更・stageでの選択・ローカルcommitを別の状態として扱う。branch/remote操作で代替できない | M08教材§1/§7.2 |
+| M08-Q02 | B | M08-02 | `git check-ignore`で除外規則を確認し、許可pathを選択してstageしcached diffで再確認する。ファイル名だけではSecretを検出できない | M08教材§4、演習手順3〜5 |
+| M08-Q03 | D | M08-03 | PR草稿に仕様・Case ID、差分、テスト、実Runと未確認を対応付ける。ローカルcommitだけでCI/PR完了とはしない | M08教材§5〜6、演習P06 |
+| M08-Q04 | A | M08-04 | 現在の重複・変更頻度・保守負荷・具体的便益を検証し、将来の可能性だけのPOM・Factory導入を採用しない | M08教材§6、演習P05 |
+| M08-Q05 | C | M08-01 | 当該新規branchでpush・PR作成が未実施と明記された条件では、ローカルcommitだけがある。remote CI/レビューの実施は導けない | M08教材§5.1/§7.5、K-M08-05 |
+
+### 修正した内容
+
+- **M08-Q05**：従来の「commitしたがpushしていない」という条件だけでは、既存PRの有無まで断定できない。新規練習branchでpushもPR作成も未実施と問題文に明記し、正答Cと理由を条件に合わせた。
+- **M08教材§2・§5・§7・§8、演習**：`git status --short`は未追跡ディレクトリを`?? workspace/M08/`とまとめて表示する場合があり、毎回`?? workspace/M08/review-candidate.md`となるわけではない。個別ファイルを列挙する際は`git status --short --untracked-files=all`とする。作業後は提出テンプレート等の未追跡ファイルが残り得るため、commit完了とclean状態を同一視しない。
+- **M08教材§4**：`git add .`と`git add -A`を実務一般で絶対禁止とする記述を改め、対象1ファイルだけをstageすべき**本演習の禁止**として明確化。`git restore -- <path>`が失わせるのは未保存だけでなく保存済み未commitの変更であると訂正。
+- **M08教材§6**：AIの「合計金額Assertion不足」指摘を無条件で採用する例は、Case/BR/ACがその検証を要求するか未確認で根拠不足だった。仕様と既存Assertionを照合できた場合のみ採用する条件に修正。
+- **M08教材§1・§7**：commitを永久保存と断定せず履歴保存と表現。既に追跡しているworking treeの変更はstage前にも存在するため、「保存しただけのファイルはGit履歴に一切載っていない」と誤読させない説明に変更。
+
+### 隔離した一時Gitリポジトリでの直接検証
+
+- 一時Gitリポジトリ（本PRの製品repo・受講者repoではない）を`git init`し、`workspace/.gitignore`の`/M08/local-only-run.log`規則、未追跡の`review-candidate.md`、`submission.md`、`private-note.md`を用意。
+- `git status --short`は`?? workspace/M08/`とディレクトリ表示。未追跡の候補に対する`git diff -- workspace/M08/review-candidate.md`は0行。`git check-ignore -v`は`workspace/.gitignore:1:/M08/local-only-run.log`を示し、`git status --ignored --short`は`!! workspace/M08/local-only-run.log`と表示。
+- `git add -- workspace/M08/review-candidate.md`後、`git diff --cached --name-only`は指定ファイル1件のみ、`git diff --cached --check`は終了コード0。local-only-run.logを含めずcommit後、`git show --format= --name-only HEAD`は対象1件。`git status --short`には`?? workspace/M08/private-note.md`と`?? workspace/M08/submission.md`が残る。実学習者・実ブラウザ・実CIの成功を示すものではない。
+
+### 評価契約の扱いと未受入
+
+- `M08-CR-01`〜`04`（4学習目標）の採点規則と校正Case9件を静的に照合。ローカルbranch、stage、commitの操作証拠と、PR草稿・AI指摘の採否・未実行push/PR/CIの区別は別々に必要。校正Caseを実モデルで走らせたわけではない。
+- 本人が作成する1回目と2回目のcommit、P01〜P06の実Run/差分、`course:load`/`course:check`での結果、M09へのhandoff、実GitHub PR/CI、最終HEADの必須CIは未受入。
+
+四択独立意味レビューの累計は**56/78問**（M02:8、M03:9、M05:12、M06:8、M07:7、M08:5、M09:7）。残りは**22問**（M00:6、M01:5、M04:4、M10:7）。全51学習目標へのID対応確認とは別に計上。製品SUT・正式仕様・Seed/Reset・既存E2E・定期実行4件の分析台帳/Planは変更していない。

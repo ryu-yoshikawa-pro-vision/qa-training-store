@@ -174,7 +174,7 @@
       "knowledge_ids": [
         "K-M08-05"
       ],
-      "question": "ローカルcommitを作成したがpushしていません。現在の状況はどれですか。",
+      "question": "新しく作った学習用branchでは、まだpushもPR作成も行っていません。そのbranchでローカルcommitを1件作成した直後の状況はどれですか。",
       "options": [
         {
           "value": "A",
@@ -190,9 +190,9 @@
         },
         {
           "value": "C",
-          "label": "ローカルにcommitはあるがRemote反映とPRは未実施",
-          "meaning": "ローカルにcommitはあるがRemote反映とPRは未実施",
-          "reason": "push・PR作成はcommitとは別の操作であり未実施です。"
+          "label": "このbranchのcommitはローカルにあり、Remote反映とPR作成はまだしていない",
+          "meaning": "ローカル履歴とRemote・PR・CIの実施状態を分ける",
+          "reason": "問題文でこのbranchのpushとPR作成は未実施と明記されています。commitはローカル履歴の操作で、GitHubへの反映やCI成功を保証しません。"
         },
         {
           "value": "D",
@@ -203,6 +203,7 @@
       ],
       "correct_value": "C",
       "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M08/README.md#51-コミットcommitを実行する",
         "docs/curriculum/ai-assisted-qa/modules/M08/README.md#k-m08-05"
       ],
       "review_path": "docs/curriculum/ai-assisted-qa/modules/M08/README.md#k-m08-05"
