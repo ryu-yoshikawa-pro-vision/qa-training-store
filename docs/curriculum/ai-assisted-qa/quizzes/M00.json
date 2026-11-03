@@ -174,12 +174,12 @@
       "knowledge_ids": [
         "K-M00-07"
       ],
-      "question": "Codespaceを停止してファイルを保存しました。GitHubのRemoteへ変更が公開されたと言えますか。",
+      "question": "Codespace内でファイルを保存してから停止しました。まだcommit・pushは行っていません。この変更がGitHubのRemoteリポジトリに反映されたと言えますか。",
       "options": [
         {
           "value": "A",
-          "label": "停止時に自動公開される",
-          "meaning": "停止時に自動公開される",
+          "label": "停止した時点で自動的にRemoteへ反映される",
+          "meaning": "停止時に自動的にRemoteへ反映される",
           "reason": "Codespaceの停止だけではGitHubへpushされません。"
         },
         {
@@ -190,9 +190,9 @@
         },
         {
           "value": "C",
-          "label": "保存とRemoteへのpushは異なるため公開されたとは言えない",
-          "meaning": "保存とRemoteへのpushは異なるため公開されたとは言えない",
-          "reason": "保存とRemoteへの反映は別操作で、必要に応じてcommit・pushを行います。"
+          "label": "保存とRemoteへのcommit・pushは別なので、反映されたとは言えない",
+          "meaning": "Codespace保存・停止とRemoteへの反映を区別する",
+          "reason": "保存と停止だけではRemoteへ変更は反映されません。Codespaceが残っていれば保存済み作業を再開できますが、削除時には未pushの変更を失う可能性があります。"
         },
         {
           "value": "D",
