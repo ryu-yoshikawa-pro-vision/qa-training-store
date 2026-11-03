@@ -1664,6 +1664,26 @@ describe("AI-assisted QA distribution contract", () => {
     );
     fs.rmSync(unexpectedShopFile);
 
+    const leakedReference = writeFixtureFile(
+      fixture.target,
+      "course/assessment/reference-solutions/M10.md",
+      "reference-only scoring material must not enter a learner distribution\n",
+    );
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /unmanifested file in the pinned course: course\/assessment\/reference-solutions\/M10\.md/,
+    );
+    fs.rmSync(leakedReference);
+
+    const extraCourseFile = writeFixtureFile(
+      fixture.target,
+      "course/modules/M00/unmanifested.md",
+      "unexpected course content\n",
+    );
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /unmanifested file in the pinned course: course\/modules\/M00\/unmanifested\.md/,
+    );
+    fs.rmSync(extraCourseFile);
+
     const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
     const originalManifest = fs.readFileSync(manifestPath, "utf8");
     const wrongSource = JSON.parse(originalManifest);
