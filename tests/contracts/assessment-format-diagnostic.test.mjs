@@ -4,7 +4,11 @@ import prettier from "prettier";
 import { it } from "vitest";
 
 it("reports the evaluator Prettier changes", async () => {
-  const file = path.resolve("scripts/training/ai-assisted-qa-assessment.mjs");
+  for (const relative of [
+    "scripts/training/ai-assisted-qa-assessment.mjs",
+    "tests/contracts/ai-assisted-qa-assessment.test.mjs",
+  ]) {
+    const file = path.resolve(relative);
   const original = fs.readFileSync(file, "utf8");
   const formatted = await prettier.format(original, {
     ...(await prettier.resolveConfig(file)),
@@ -47,5 +51,6 @@ it("reports the evaluator Prettier changes", async () => {
     }
   }
   flush();
-  console.log("PRETTIER_DIFF_JSON=" + JSON.stringify({ changes }));
+    console.log("PRETTIER_DIFF_JSON=" + JSON.stringify({ relative, changes }));
+  }
 });
