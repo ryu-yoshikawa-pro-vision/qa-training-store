@@ -570,8 +570,7 @@ function buildCalibrationPrompt(inputs) {
 }
 
 function validateCalibrationOutput(output, expected) {
-  if (!(expected instanceof Map) || expected.size === 0)
-    fail("calibration has no expected cases");
+  if (!(expected instanceof Map) || expected.size === 0) fail("calibration has no expected cases");
   if (!output || typeof output !== "object" || !Array.isArray(output.case_results))
     fail("calibration response has no case_results array");
   const seen = new Map();
@@ -715,6 +714,7 @@ export function readAttemptCalibration({ attemptDirectory, calibrationId, identi
 
 async function obtainCalibration({ inputs, modelId, version, attemptDirectory }) {
   const calibrationPrompt = buildCalibrationPrompt(inputs);
+  if (calibrationPrompt.expected.size === 0) fail("calibration has no expected cases");
   assertModelInputSize(calibrationPrompt.text, "calibration prompt");
   const calibrationPromptSha = systemPromptHash(CALIBRATION_SYSTEM);
   const assessmentPromptSha = systemPromptHash(ASSESSOR_SYSTEM);
