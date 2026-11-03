@@ -1757,8 +1757,29 @@ describe("AI-assisted QA distribution contract", () => {
         shopBuildRoot: fixture.source,
         allowUncommittedFixture: true,
       }),
-    ).rejects.toThrow("public course content contains a potential GitHub token: course/shop/index.html");
+    ).rejects.toThrow(
+      "public course content contains a potential GitHub token: course/shop/index.html",
+    );
     expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("scans Python and MJS files copied from generated Shop output", async () => {
+    for (const filePath of ["dist/inspection.py", "dist/runtime.mjs"]) {
+      const fixture = courseFixture();
+      writeFixtureFile(fixture.source, filePath, `ghp_${"d".repeat(36)}`);
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "d".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/public course content contains a potential GitHub token/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
   });
 
   it("rejects a registered Secret even when its manifest hash is adjusted", async () => {

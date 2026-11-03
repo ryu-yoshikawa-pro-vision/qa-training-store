@@ -498,7 +498,8 @@ const PUBLIC_CONTENT_PATTERNS = [
     /\b[A-Z0-9._%+-]+@(?:gmail\.com|yahoo\.(?:co\.jp|com)|icloud\.com|outlook\.(?:com|jp)|hotmail\.com)\b/i,
   ],
 ];
-const PUBLIC_TEXT_FILE = /(?:\.(?:css|csv|html|js|json|jsx|log|md|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
+const PUBLIC_TEXT_FILE =
+  /(?:\.(?:css|csv|gitignore|html|js|json|jsx|log|md|mjs|py|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
 
 function verifyPublicFileContent(targetPath, bytes) {
   if (!PUBLIC_TEXT_FILE.test(targetPath)) return;

@@ -245,8 +245,7 @@ async function readResponseBytesBounded(response, limit, label) {
     fail(`${label} exceeds the allowed size`);
   if (!response.body?.getReader) {
     const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > limit)
-      fail(`${label} exceeds the allowed size`);
+    if (bytes.length > limit) fail(`${label} exceeds the allowed size`);
     return bytes;
   }
   const reader = response.body.getReader();
