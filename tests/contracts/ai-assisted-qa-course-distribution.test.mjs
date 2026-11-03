@@ -1670,7 +1670,7 @@ describe("AI-assisted QA distribution contract", () => {
       "reference-only scoring material must not enter a learner distribution\n",
     );
     expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
-      /unmanifested file in the pinned course: course\/assessment\/reference-solutions\/M10\.md/,
+      /path is prohibited: course\/assessment\/reference-solutions/,
     );
     fs.rmSync(leakedReference);
 
