@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -190,6 +191,41 @@ it("serializes concurrent resumes and releases the lock on success or failure", 
   await expect(withAttemptResumeLock(attemptDirectory, async () => "restarted")).resolves.toBe(
     "restarted",
   );
+});
+
+it("rejects a second Node process while the same assessment attempt is locked", async () => {
+  const attemptDirectory = path.join(tempRoot, "resume-cross-process");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const moduleUrl = new URL("../../scripts/training/ai-assisted-qa-assessment.mjs", import.meta.url);
+  const script = `import { withAttemptResumeLock } from ${JSON.stringify(moduleUrl.href)};
+await withAttemptResumeLock(process.argv[1], async () => "completed");`;
+  const runChild = () =>
+    execFileSync(process.execPath, ["--input-type=module", "-e", script, attemptDirectory], {
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const first = withAttemptResumeLock(attemptDirectory, async () => {
+    await gate;
+  });
+  try {
+    let rejected;
+    try {
+      runChild();
+    } catch (error) {
+      rejected = error;
+    }
+    expect(rejected?.status).toBe(1);
+    expect(String(rejected?.stderr)).toContain("assessment resume is already active");
+  } finally {
+    release();
+    await first;
+  }
+  expect(runChild).not.toThrow();
 });
 
 it("reuses a pinned model candidate after interruption without another model call", async () => {
