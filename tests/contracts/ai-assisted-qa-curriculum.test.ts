@@ -254,6 +254,32 @@ describe("AI-assisted QA static learning course", () => {
     }
   });
 
+  it("rejects a completed reference artifact that differs from its canonical end state", () => {
+    const completedPath = path.join(
+      repositoryRoot,
+      "training/ai-assisted-qa-course/assessment/completed-states/M09.json",
+    );
+    const completed = JSON.parse(fs.readFileSync(completedPath, "utf8")) as {
+      artifacts: { id: string; revision: string }[];
+    };
+    const workflow = completed.artifacts.find((artifact) => artifact.id === "M09-result-02");
+    expect(workflow).toBeDefined();
+    workflow!.revision = "M09-workflow-mismatched";
+
+    const readFile = fs.readFileSync;
+    const spy = vi.spyOn(fs, "readFileSync").mockImplementation((...args) => {
+      if (String(args[0]) === completedPath) return JSON.stringify(completed);
+      return readFile(...args);
+    });
+    try {
+      expect(() => validateAiAssistedQa(repositoryRoot)).toThrow(
+        /完成基準artifactが.*終了artifact契約と一致しません/,
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("connects the new M06 and M07 exercises to learner-owned required files", () => {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(repositoryRoot, "training/course-sync/manifest.json"), "utf8"),
