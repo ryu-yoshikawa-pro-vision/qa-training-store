@@ -3472,3 +3472,18 @@ it.skipIf(process.platform === "win32")("rejects unsafe export symlinks", () => 
   fs.symlinkSync(path.join(root, "moved-attempts"), path.join(root, ".course-assessments"), "dir");
   expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
 });
+
+it("temporarily prints the exact Prettier diff for the assessment contract", async () => {
+  const prettier = await import("prettier");
+  const target = path.resolve("tests/contracts/ai-assisted-qa-assessment.test.mjs");
+  const original = fs.readFileSync(target, "utf8");
+  const options = (await prettier.resolveConfig(target)) ?? {};
+  const formatted = await prettier.format(original, { ...options, filepath: target });
+  const before = path.join(tempRoot, "pr211-format-before.mjs");
+  const after = path.join(tempRoot, "pr211-format-after.mjs");
+  fs.writeFileSync(before, original);
+  fs.writeFileSync(after, formatted);
+  const result = spawnSync("diff", ["-u", before, after], { encoding: "utf8" });
+  console.log("PR211_PRETTIER_DELTA_BEGIN\n" + result.stdout.slice(0, 24000) + "\nPR211_PRETTIER_DELTA_END");
+  expect([0, 1]).toContain(result.status);
+});
