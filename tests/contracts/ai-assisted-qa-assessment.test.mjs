@@ -3572,3 +3572,23 @@ it.skipIf(process.platform === "win32")("rejects unsafe export symlinks", () => 
   fs.symlinkSync(path.join(root, "moved-attempts"), path.join(root, ".course-assessments"), "dir");
   expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
 });
+
+it("PR211_FORMAT_DIAGNOSTIC", async () => {
+  const prettier = await import("prettier");
+  for (const file of [
+    "tests/contracts/ai-assisted-qa-course-distribution.test.mjs",
+    "tests/contracts/ai-assisted-qa-practical-exercises.test.mjs",
+  ]) {
+    const target = path.resolve(file);
+    const original = fs.readFileSync(target, "utf8");
+    const settings = (await prettier.resolveConfig(target)) ?? {};
+    const formatted = await prettier.format(original, { ...settings, filepath: target });
+    const before = path.join(tempRoot, path.basename(file) + ".before");
+    const after = path.join(tempRoot, path.basename(file) + ".after");
+    fs.writeFileSync(before, original);
+    fs.writeFileSync(after, formatted);
+    const diff = spawnSync("diff", ["-u", before, after], { encoding: "utf8" });
+    console.log("PR211_FORMAT_BEGIN " + file + "\n" + (diff.stdout ?? "") + "\nPR211_FORMAT_END " + file);
+    expect([0, 1]).toContain(diff.status);
+  }
+});
