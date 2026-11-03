@@ -59,6 +59,12 @@ PR #199の製品実装9ファイル、正式製品仕様1ファイル、既存�
 - 新規の状態更新用commit、待機用commit、PR本文の単なる同期は作らない。実質的な成果がある場合だけ、既存Planの「現在作業/結果/次の対象」を必要最小限で更新し、必要な関連ファイルと同じcommitへまとめる。共有状態の原子的な排他は自動化プロンプトだけでは保証されないため、重複実行の兆候がある場合は安全側に停止する。
 - **終了条件**：4定期タスクのどれも、自己判断でほかの自動化を停止/更新しない。PR全体の受入条件が全て満たされ、ユーザーから運用停止の指示があった場合のみ設定変更する。各回の報告には対象ID、実施・未実施、直接検証、CIの別判定、HEAD、再開条件を示す。
 
+## 2026-11-04 共通逐次：A01-02 C3非admin変更拒否契約（実行待ち）
+
+- 対象：`SCREEN-ADMIN-USER-DETAIL-A01-02` C3。active operatorの他ユーザーadmin降格要求が`PERMISSION_DENIED`、actor Session維持、全Dexieテーブル不変となる独立学習用Caseを追加。認可判定は`requireAdmin()`でtransaction開始前。
+- 判定：追加のみでPASSにしない。直接Vitest/formatter/validatorと追加後HEADのCI・実Webは未受入。`review_required`維持、分析件数加算なし。C3 withdrawn対象拒否、C4〜C7、製品適合、最終CIは残る。
+- 再開条件：同HEADの契約Case実行証拠を確認し、withdrawn operator fixtureの独立拒否Caseへ進む。同じA01-02を継続。
+
 ## 2026-11-04 共通逐次：A01-02 C3自己変更拒否契約（実行待ち）
 
 - 対象：`SCREEN-ADMIN-USER-DETAIL-A01-02` C3自己変更拒否。active adminの自己降格要求が`SELF_CHANGE_FORBIDDEN`となり、Session維持・全Dexieテーブル不変を検査する独立学習用Caseを追加。
