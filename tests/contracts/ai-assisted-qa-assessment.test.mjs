@@ -149,6 +149,103 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   expect(read(cache)).toEqual(concurrent);
 });
 
+for (const mismatch of ["identity", "case-count"]) {
+  it(\`rejects a cross-process shared calibration collision with mismatched \${mismatch}\`, async () => {
+    const root = path.join(tempRoot, \`conflicting-calibration-\${mismatch}\`);
+    const calibrationPath = path.join(root, "shared.json");
+    const barrierPath = path.join(root, "release");
+    fs.mkdirSync(root, { recursive: true });
+    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+    const script = \`import fs from "node:fs";
+import path from "node:path";
+import { persistCalibration } from \${JSON.stringify(moduleUrl.href)};
+const [root, calibrationPath, barrierPath, name, mismatch] = process.argv.slice(1);
+const attemptDirectory = path.join(root, name);
+fs.mkdirSync(attemptDirectory, { recursive: true });
+fs.writeFileSync(path.join(attemptDirectory, "ready"), "yes");
+for (let i = 0; !fs.existsSync(barrierPath); i++) {
+  if (i >= 1000) throw new Error("barrier timeout");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+}
+const calibration = {
+  schema_version: 1,
+  id: "same-calibration-key",
+  identity: {
+    model_id: name === "challenger" && mismatch === "identity" ? "other/model" : "provider/model",
+    source_sha: "pinned",
+  },
+  status: "passed",
+  case_count: name === "challenger" && mismatch === "case-count" ? 2 : 1,
+  mismatches: [],
+  critical_false_passes: 0,
+  candidate_session_id: name,
+  created_at: "2026-11-03T00:00:00.000Z",
+};
+const caseResults = Array.from({ length: calibration.case_count }, (_, index) => ({
+  case_id: \`CAL-\${index + 1}\`, decision: "pass", rationale: "supported",
+}));
+try {
+  persistCalibration({ calibration, calibrationPath, attemptDirectory, caseResults });
+  fs.writeFileSync(path.join(attemptDirectory, "outcome.json"), JSON.stringify({ ok: true }));
+} catch (error) {
+  fs.writeFileSync(
+    path.join(attemptDirectory, "outcome.json"),
+    JSON.stringify({ ok: false, message: String(error?.message ?? error) }),
+  );
+}\`;
+    const launch = (name) => {
+      const child = spawn(
+        process.execPath,
+        ["--input-type=module", "-e", script, root, calibrationPath, barrierPath, name, mismatch],
+        { stdio: ["ignore", "ignore", "pipe"] },
+      );
+      let stderr = "";
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk.toString();
+      });
+      const done = new Promise((resolve) => {
+        child.once("error", (error) => resolve({ error: String(error) }));
+        child.once("close", (code, signal) => resolve({ code, signal, stderr }));
+      });
+      return { child, done, name };
+    };
+    const children = [launch("baseline"), launch("challenger")];
+    try {
+      let bothReady = false;
+      for (let i = 0; i < 1000; i++) {
+        bothReady = children.every(({ name }) => fs.existsSync(path.join(root, name, "ready")));
+        if (bothReady) break;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(bothReady).toBe(true);
+      fs.writeFileSync(barrierPath, "go");
+      expect(await Promise.all(children.map(({ done }) => done))).toEqual([
+        { code: 0, signal: null, stderr: "" },
+        { code: 0, signal: null, stderr: "" },
+      ]);
+    } finally {
+      for (const { child } of children) child.kill();
+    }
+    const outcomes = children.map(({ name }) =>
+      JSON.parse(fs.readFileSync(path.join(root, name, "outcome.json"), "utf8")),
+    );
+    expect(outcomes.filter(({ ok }) => ok)).toHaveLength(1);
+    expect(outcomes.filter(({ ok }) => !ok)).toHaveLength(1);
+    expect(outcomes.find(({ ok }) => !ok)?.message).toMatch(
+      /concurrent model calibration differs from the verified attempt/,
+    );
+    const published = JSON.parse(fs.readFileSync(calibrationPath, "utf8"));
+    const winner = children[outcomes.findIndex(({ ok }) => ok)].name;
+    expect(published.candidate_session_id).toBe(winner);
+    for (const { name } of children) {
+      const attempt = path.join(root, name);
+      expect(fs.statSync(path.join(attempt, "calibration-candidate.json")).isFile()).toBe(true);
+      expect(fs.statSync(path.join(attempt, "calibration-result.json")).isFile()).toBe(true);
+    }
+    expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(published);
+  }, 20_000);
+}
+
 it("rebuilds a missing successful shared calibration from a verified saved attempt", () => {
   const root = path.join(tempRoot, "interrupted-calibration-cache");
   const attemptDirectory = path.join(root, "attempt");
@@ -1493,6 +1590,84 @@ process.exit(18);`;
     result_sha256: sha256(fs.readFileSync(resultPath)),
   });
 }, 20_000);
+
+for (const point of ["before", "after"]) {
+  it(\`recovers from process termination \${point} immutable result publication\`, () => {
+    const workspaceRoot = path.join(tempRoot, \`killed-result-publication-\${point}\`);
+    const phaseId = "P1";
+    const sourceSha = "pinned-source";
+    const modelId = "provider/model";
+    const priorId = "123e4567-e89b-42d3-a456-426614174160";
+    const nextId = "123e4567-e89b-42d3-a456-426614174161";
+    const phaseRoot = path.join(workspaceRoot, ".course-assessments", phaseId);
+    const makeResult = (assessmentId, createdAt) => ({
+      schema_version: 1,
+      phase_id: phaseId,
+      assessment_id: assessmentId,
+      terminal_module_id: "M04",
+      evaluator: { model_id: modelId },
+      source_sha: sourceSha,
+      status: "incomplete",
+      completed: false,
+      objectives: [],
+      created_at: createdAt,
+    });
+    const prior = makeResult(priorId, "2026-11-02T00:00:00.000Z");
+    const next = makeResult(nextId, "2026-11-03T00:00:00.000Z");
+    const priorDirectory = path.join(phaseRoot, "attempts", priorId);
+    const nextDirectory = path.join(phaseRoot, "attempts", nextId);
+    fs.mkdirSync(priorDirectory, { recursive: true });
+    fs.mkdirSync(nextDirectory, { recursive: true });
+    atomicWriteJson(path.join(priorDirectory, "result.json"), prior);
+    const resume = (assessmentId) =>
+      reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+    expect(resume(priorId)).toEqual(prior);
+    const pointerPath = path.join(phaseRoot, "current.json");
+    const oldPointer = fs.readFileSync(pointerPath);
+    const resultPath = path.join(nextDirectory, "result.json");
+    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment-core.mjs"));
+    const script = \`import fs from "node:fs";
+import { atomicWriteJson } from \${JSON.stringify(moduleUrl.href)};
+const [resultPath, point, payload] = process.argv.slice(1);
+const originalLink = fs.linkSync.bind(fs);
+fs.linkSync = (source, destination) => {
+  if (destination === resultPath) {
+    if (point === "after") originalLink(source, destination);
+    if (process.platform === "win32") process.exit(87);
+    process.kill(process.pid, "SIGKILL");
+  }
+  return originalLink(source, destination);
+};
+atomicWriteJson(resultPath, JSON.parse(payload));
+process.exit(18);\`;
+    const child = spawnSync(
+      process.execPath,
+      ["--input-type=module", "-e", script, resultPath, point, JSON.stringify(next)],
+      { encoding: "utf8", timeout: 10_000 },
+    );
+    expect(child.error).toBeUndefined();
+    if (process.platform === "win32") expect(child.status).toBe(87);
+    else expect(child.signal).toBe("SIGKILL");
+    expect(fs.existsSync(resultPath)).toBe(point === "after");
+    expect(fs.existsSync(path.join(nextDirectory, "summary.md"))).toBe(false);
+    expect(fs.readFileSync(pointerPath)).toEqual(oldPointer);
+    const existingBytes = point === "after" ? fs.readFileSync(resultPath) : null;
+    if (point === "before") {
+      expect(resume(nextId)).toBeNull();
+      atomicWriteJson(resultPath, next);
+    }
+    expect(resume(nextId)).toEqual(next);
+    expect(fs.readFileSync(path.join(nextDirectory, "summary.md"), "utf8")).toContain("未修了");
+    if (existingBytes) expect(fs.readFileSync(resultPath)).toEqual(existingBytes);
+    const pointer = JSON.parse(fs.readFileSync(pointerPath, "utf8"));
+    expect(pointer).toMatchObject({
+      assessment_id: nextId,
+      previous_assessment_id: priorId,
+      result_sha256: sha256(fs.readFileSync(resultPath)),
+    });
+    expect(resume(nextId)).toEqual(next);
+  }, 20_000);
+}
 
 it("lists immutable assessment history and rejects forged results or current pointers", () => {
   const root = path.join(tempRoot, "validated-history");
