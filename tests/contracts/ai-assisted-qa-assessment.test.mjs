@@ -150,15 +150,15 @@ it("keeps failed calibrations per attempt and only caches successful calibration
 });
 
 for (const mismatch of ["identity", "case-count"]) {
-  it(\`rejects a cross-process shared calibration collision with mismatched \${mismatch}\`, async () => {
-    const root = path.join(tempRoot, \`conflicting-calibration-\${mismatch}\`);
+  it(`rejects a cross-process shared calibration collision with mismatched ${mismatch}`, async () => {
+    const root = path.join(tempRoot, `conflicting-calibration-${mismatch}`);
     const calibrationPath = path.join(root, "shared.json");
     const barrierPath = path.join(root, "release");
     fs.mkdirSync(root, { recursive: true });
     const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
-    const script = \`import fs from "node:fs";
+    const script = `import fs from "node:fs";
 import path from "node:path";
-import { persistCalibration } from \${JSON.stringify(moduleUrl.href)};
+import { persistCalibration } from ${JSON.stringify(moduleUrl.href)};
 const [root, calibrationPath, barrierPath, name, mismatch] = process.argv.slice(1);
 const attemptDirectory = path.join(root, name);
 fs.mkdirSync(attemptDirectory, { recursive: true });
@@ -182,7 +182,7 @@ const calibration = {
   created_at: "2026-11-03T00:00:00.000Z",
 };
 const caseResults = Array.from({ length: calibration.case_count }, (_, index) => ({
-  case_id: \`CAL-\${index + 1}\`, decision: "pass", rationale: "supported",
+  case_id: "CAL-" + String(index + 1), decision: "pass", rationale: "supported",
 }));
 try {
   persistCalibration({ calibration, calibrationPath, attemptDirectory, caseResults });
@@ -192,7 +192,7 @@ try {
     path.join(attemptDirectory, "outcome.json"),
     JSON.stringify({ ok: false, message: String(error?.message ?? error) }),
   );
-}\`;
+}`;
     const launch = (name) => {
       const child = spawn(
         process.execPath,
@@ -1592,8 +1592,8 @@ process.exit(18);`;
 }, 20_000);
 
 for (const point of ["before", "after"]) {
-  it(\`recovers from process termination \${point} immutable result publication\`, () => {
-    const workspaceRoot = path.join(tempRoot, \`killed-result-publication-\${point}\`);
+  it(`recovers from process termination ${point} immutable result publication`, () => {
+    const workspaceRoot = path.join(tempRoot, `killed-result-publication-${point}`);
     const phaseId = "P1";
     const sourceSha = "pinned-source";
     const modelId = "provider/model";
@@ -1626,8 +1626,8 @@ for (const point of ["before", "after"]) {
     const oldPointer = fs.readFileSync(pointerPath);
     const resultPath = path.join(nextDirectory, "result.json");
     const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment-core.mjs"));
-    const script = \`import fs from "node:fs";
-import { atomicWriteJson } from \${JSON.stringify(moduleUrl.href)};
+    const script = `import fs from "node:fs";
+import { atomicWriteJson } from ${JSON.stringify(moduleUrl.href)};
 const [resultPath, point, payload] = process.argv.slice(1);
 const originalLink = fs.linkSync.bind(fs);
 fs.linkSync = (source, destination) => {
@@ -1639,7 +1639,7 @@ fs.linkSync = (source, destination) => {
   return originalLink(source, destination);
 };
 atomicWriteJson(resultPath, JSON.parse(payload));
-process.exit(18);\`;
+process.exit(18);`;
     const child = spawnSync(
       process.execPath,
       ["--input-type=module", "-e", script, resultPath, point, JSON.stringify(next)],
