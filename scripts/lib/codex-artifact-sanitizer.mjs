@@ -7,7 +7,6 @@ import {
   fsyncSync,
   lstatSync,
   openSync,
-  realpathSync,
   readFileSync,
   readdirSync,
   renameSync,
@@ -178,12 +177,8 @@ function createContext(options = {}) {
 
   add(root, "<REPO_ROOT>");
   try {
-    const canonicalRoot = realpathSync.native(root);
-    const canonicalCwd = realpathSync.native(cwd);
-    const normalizeIdentity = (value) =>
-      process.platform === "win32" ? value.toLowerCase() : value;
-    if (normalizeIdentity(canonicalCwd) === normalizeIdentity(canonicalRoot))
-      add(cwd, "<REPO_ROOT>");
+    const canonicalRoot = path.resolve(root);
+    if (path.resolve(cwd) === canonicalRoot) add(cwd, "<REPO_ROOT>");
   } catch {
     // The Git root remains the registered repository path.
   }

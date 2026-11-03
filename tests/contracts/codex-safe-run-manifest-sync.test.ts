@@ -10,14 +10,9 @@ const powerShellWrapperPath = path.join(repoRoot, "scripts", "codex-safe.ps1");
 const bashWrapperPath = path.join(repoRoot, "scripts", "codex-safe.sh");
 const collectorPowerShellPath = path.join(repoRoot, "scripts", "collect-run-artifacts.ps1");
 const collectorPythonPath = path.join(repoRoot, "scripts", "collect-run-artifacts.py");
-const bashProbe =
-  process.platform === "win32" ? spawnSync("bash", ["-c", "uname -s"], { encoding: "utf8" }) : null;
 const bashRunsInWsl =
-  bashProbe !== null &&
-  bashProbe.error === undefined &&
-  bashProbe.status === 0 &&
-  typeof bashProbe.stdout === "string" &&
-  bashProbe.stdout.trim().startsWith("Linux");
+  process.platform === "win32" &&
+  spawnSync("bash", ["-c", "uname -s"], { encoding: "utf8" }).stdout.trim().startsWith("Linux");
 
 function toBashPath(value: string) {
   const normalized = value.replaceAll("\\", "/");
@@ -303,17 +298,14 @@ function createFixture(options: FixtureOptions): Fixture {
 }
 
 function removeFixture(fixture: Fixture) {
-  // Windows and WSL can briefly keep the fixture directory busy after Bash exits.
+  // WSL can briefly keep a Windows-mounted working directory busy after Bash exits.
   const waitBuffer = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
   for (let retry = 0; ; retry += 1) {
     try {
       fs.rmSync(fixture.root, { recursive: true, force: true });
       return;
     } catch (error) {
-      if (
-        !new Set(["EPERM", "EBUSY"]).has((error as NodeJS.ErrnoException).code ?? "") ||
-        retry >= 2
-      ) {
+      if ((error as NodeJS.ErrnoException).code !== "EPERM" || retry >= 2) {
         throw error;
       }
       Atomics.wait(waitBuffer, 0, 0, 2_500);
