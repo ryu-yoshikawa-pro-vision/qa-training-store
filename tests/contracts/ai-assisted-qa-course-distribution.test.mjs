@@ -1672,7 +1672,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
       /path is prohibited: course\/assessment\/reference-solutions/,
     );
-    fs.rmSync(leakedReference);
+    fs.rmSync(path.dirname(leakedReference), { recursive: true, force: true });
 
     const extraCourseFile = writeFixtureFile(
       fixture.target,
