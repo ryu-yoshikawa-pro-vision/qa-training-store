@@ -617,8 +617,28 @@ export function persistCalibration({
     case_results: caseResults,
   });
   // Failed calibrations remain in their attempt only and do not block future attempts.
-  if (isPassingCalibration(calibration) && !existingCalibration)
-    atomicWriteJson(calibrationPath, calibration);
+  if (isPassingCalibration(calibration) && !existingCalibration) {
+    try {
+      atomicWriteJson(calibrationPath, calibration);
+    } catch (error) {
+      // Another assessment may have published the same successful calibration.
+      // Preserve the winner's immutable record only when the pinned identity matches.
+      if (
+        !/assessment result already exists and is immutable/.test(String(error?.message)) ||
+        !fs.existsSync(calibrationPath) ||
+        !fs.lstatSync(calibrationPath).isFile()
+      )
+        throw error;
+      const published = readJson(calibrationPath, "concurrent model calibration");
+      if (
+        !isPassingCalibration(published) ||
+        published.id !== calibration.id ||
+        published.case_count !== calibration.case_count ||
+        !isDeepStrictEqual(published.identity, calibration.identity)
+      )
+        fail("concurrent model calibration differs from the verified attempt");
+    }
+  }
 }
 
 export function readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected }) {

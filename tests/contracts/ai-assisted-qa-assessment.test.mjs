@@ -109,6 +109,31 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   });
   expect(read(legacy)).toEqual(failed);
   expect(read(path.join(third, "calibration-result.json"))).toEqual(passed);
+
+  const concurrent = { ...passed, id: "same-id", identity: { model_id: "provider/model" }, case_count: 1 };
+  fs.writeFileSync(cache, JSON.stringify(concurrent));
+  const fourth = makeAttempt("concurrent-match");
+  expect(() =>
+    persistCalibration({
+      calibration: concurrent,
+      calibrationPath: cache,
+      attemptDirectory: fourth,
+      caseResults: candidate,
+    }),
+  ).not.toThrow();
+  expect(read(cache)).toEqual(concurrent);
+  expect(read(path.join(fourth, "calibration-result.json"))).toEqual(concurrent);
+
+  const fifth = makeAttempt("concurrent-mismatch");
+  expect(() =>
+    persistCalibration({
+      calibration: { ...concurrent, identity: { model_id: "another/model" } },
+      calibrationPath: cache,
+      attemptDirectory: fifth,
+      caseResults: candidate,
+    }),
+  ).toThrow(/concurrent model calibration differs/);
+  expect(read(cache)).toEqual(concurrent);
 });
 
 it("reuses a pinned model candidate after interruption without another model call", async () => {
