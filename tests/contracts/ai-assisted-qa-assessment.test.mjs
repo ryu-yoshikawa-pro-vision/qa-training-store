@@ -1500,6 +1500,52 @@ process.exit(18);`;
   expect(resume()).toEqual(restoredCalibration);
 });
 
+it("preserves failed candidate-only calibration digest without creating a passing cache", () => {
+  const root = path.join(tempRoot, "failed-candidate-only-calibration");
+  const attemptDirectory = path.join(root, "attempt");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "pinned" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const expected = new Map([["negative", ["fail"]]]);
+  const candidate = {
+    calibration_id: calibrationId,
+    identity,
+    candidate_session_id: "failed-session",
+    created_at: "2026-11-03T00:00:00.000Z",
+    case_results: [
+      { case_id: "negative", decision: "pass", rationale: "unsupported positive decision" },
+    ],
+  };
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  const resultPath = path.join(attemptDirectory, "calibration-result.json");
+  const calibrationPath = path.join(root, "shared.json");
+  fs.writeFileSync(candidatePath, JSON.stringify(candidate));
+  const restore = () =>
+    readAttemptCalibration({
+      attemptDirectory,
+      calibrationId,
+      identity,
+      expected,
+      calibrationPath,
+    });
+  const saved = restore();
+  expect(saved).toMatchObject({
+    id: calibrationId,
+    status: "failed",
+    case_count: 1,
+    critical_false_passes: 1,
+    case_results_sha256: sha256(JSON.stringify(candidate.case_results)),
+  });
+  expect(fs.readFileSync(resultPath, "utf8")).toContain(saved.case_results_sha256);
+  expect(fs.existsSync(calibrationPath)).toBe(false);
+  expect(restore()).toEqual(saved);
+  const changed = structuredClone(candidate);
+  changed.case_results[0].rationale = "modified after failed calibration";
+  fs.writeFileSync(candidatePath, JSON.stringify(changed));
+  expect(restore).toThrow(/candidate hash differs from its result/);
+  expect(fs.existsSync(calibrationPath)).toBe(false);
+});
+
 it("refuses incomplete, modified, or unbound calibration candidates on resume", () => {
   const root = path.join(tempRoot, "invalid-candidate-only-calibration");
   fs.mkdirSync(root, { recursive: true });
