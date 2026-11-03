@@ -470,6 +470,60 @@ describe("M10 GitHub Run evidence contract", () => {
         }),
       ).rejects.toThrow(rejection);
     }
+    const wrongAttemptJob = {
+      id: 1,
+      run_id: 345,
+      run_attempt: 2,
+      name: "course-e2e",
+      head_sha: MERGE_SHA,
+      status: "completed",
+      conclusion: "success",
+      check_run_url: "https://api.github.com/repos/owner/course/check-runs/1",
+      started_at: "2026-11-03T12:00:00Z",
+      completed_at: "2026-11-03T12:03:00Z",
+    };
+    for (const [index, replacement, rejection] of [
+      [
+        4,
+        jsonResponse({ total_count: 1, jobs: [wrongAttemptJob] }),
+        /Check does not belong to the current Run attempt/,
+      ],
+      [
+        4,
+        jsonResponse({
+          total_count: 1,
+          jobs: [{ ...wrongAttemptJob, run_attempt: 1, id: 2 }],
+        }),
+        /Check does not belong to the current Run attempt/,
+      ],
+      [
+        5,
+        jsonResponse({
+          artifacts: [
+            {
+              id: 555,
+              name: evidence.artifact_name,
+              expired: false,
+              digest: `sha256:${createHash("sha256").update(archive).digest("hex")}`,
+              created_at: "2026-11-03T11:59:59Z",
+              workflow_run: { id: 345, head_sha: MERGE_SHA },
+            },
+          ],
+        }),
+        /creation time does not belong to the current Run attempt/,
+      ],
+    ]) {
+      const attemptResponses = acceptedGitHubResponses(workflow, archive);
+      attemptResponses[index] = replacement;
+      await expect(
+        verifyGitHubRunEvidence({
+          evidence,
+          currentHeadSha: SHA,
+          token: "test-token-value",
+          fetchImpl: async () => attemptResponses.shift(),
+        }),
+      ).rejects.toThrow(rejection);
+    }
     const staleResponses = [
       jsonResponse({ encoding: "base64", content: workflow.toString("base64") }),
       jsonResponse({
