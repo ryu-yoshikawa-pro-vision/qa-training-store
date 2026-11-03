@@ -827,7 +827,13 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.test_condition).toContain("changeStatus未呼出し");
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(8);
     const parent = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03");
-    expect(parent?.analysis_status).toBe("review_required");
+    expect(parent?.analysis_status).toBe("analyzed");
+    expect(parent?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+    expect(parent?.related_use_cases).toContain("AdminProductUseCases.changeStatus");
+    expect(parent?.test_condition).toContain("C1 ");
+    expect(parent?.test_condition).toContain("C7 ");
+    expect(parent?.basic_analysis_review).toContain("基本分析のみanalyzed");
+    expect(parent?.basic_analysis_review).toContain("実Web/Role/Session/DB全表前後");
   });
 
   it("audits Home newest and active Sale products across Web and Native", () => {
