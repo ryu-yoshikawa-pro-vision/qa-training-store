@@ -1204,6 +1204,21 @@ describe("AI-assisted QA formal assessment contracts", () => {
     };
     expect(finalizeAssessment(args).completed).toBe(true);
     expect(
+      finalizeAssessment({
+        ...args,
+        candidate: { ...normalized, objectives: [] },
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        candidate: { ...normalized, objectives: [normalized.objectives[0], normalized.objectives[0]] },
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
+      finalizeAssessment({ ...args, deterministicChecks: null }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
       finalizeAssessment({ ...args, calibration: { ...args.calibration, status: "failed" } }),
     ).toMatchObject({ status: "blocked", completed: false });
     expect(
