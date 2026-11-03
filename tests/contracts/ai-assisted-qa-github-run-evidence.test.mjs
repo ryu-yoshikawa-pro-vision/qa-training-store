@@ -347,6 +347,63 @@ describe("M10 GitHub Run evidence contract", () => {
     );
   });
 
+  it("rejects oversized GitHub API JSON responses before unbounded buffering", async () => {
+    const workflow = fs.readFileSync(
+      path.join(
+        root,
+        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      ),
+    );
+    const archive = makeZip([
+      ["target-sha.txt", SHA],
+      ["playwright-result.json", JSON.stringify(acceptedPlaywrightReport())],
+    ]);
+    const rejectFirstResponse = async (apiResponse) => {
+      const responses = acceptedGitHubResponses(workflow, archive);
+      responses[0] = apiResponse;
+      await expect(
+        verifyGitHubRunEvidence({
+          evidence,
+          currentHeadSha: SHA,
+          token: "test-token-value",
+          fetchImpl: async () => responses.shift(),
+        }),
+      ).rejects.toThrow(/pinned M10 workflow response exceeds the allowed size/);
+    };
+    let readBody = false;
+    await rejectFirstResponse({
+      status: 200,
+      redirected: false,
+      headers: { get: () => String(1024 * 1024 + 1) },
+      arrayBuffer: async () => {
+        readBody = true;
+        throw new Error("oversized API response must not be buffered");
+      },
+    });
+    expect(readBody).toBe(false);
+
+    let cancelled = false;
+    const chunk = Buffer.alloc(256 * 1024);
+    await rejectFirstResponse({
+      status: 200,
+      redirected: false,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          read: async () => ({ done: false, value: chunk }),
+          cancel: async () => {
+            cancelled = true;
+          },
+          releaseLock: () => {},
+        }),
+      },
+      arrayBuffer: async () => {
+        throw new Error("streaming API response must not use arrayBuffer");
+      },
+    });
+    expect(cancelled).toBe(true);
+  });
+
   it("rejects oversized Artifact responses before unbounded buffering", async () => {
     const workflow = fs.readFileSync(
       path.join(

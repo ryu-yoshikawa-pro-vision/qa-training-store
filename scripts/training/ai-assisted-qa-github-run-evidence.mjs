@@ -239,14 +239,14 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   };
 }
 
-async function readArtifactArchiveBounded(response) {
+async function readResponseBytesBounded(response, limit, label) {
   const headerSize = response.headers?.get?.("content-length");
-  if (headerSize !== undefined && headerSize !== null && Number(headerSize) > MAX_ARCHIVE_BYTES)
-    fail("ungradable: M10 GitHub Artifact archive exceeds the allowed size");
+  if (headerSize !== undefined && headerSize !== null && Number(headerSize) > limit)
+    fail(`${label} exceeds the allowed size`);
   if (!response.body?.getReader) {
     const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > MAX_ARCHIVE_BYTES)
-      fail("ungradable: M10 GitHub Artifact archive exceeds the allowed size");
+    if (bytes.length > limit)
+      fail(`${label} exceeds the allowed size`);
     return bytes;
   }
   const reader = response.body.getReader();
@@ -257,9 +257,9 @@ async function readArtifactArchiveBounded(response) {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.byteLength;
-      if (total > MAX_ARCHIVE_BYTES) {
+      if (total > limit) {
         await reader.cancel();
-        fail("ungradable: M10 GitHub Artifact archive exceeds the allowed size");
+        fail(`${label} exceeds the allowed size`);
       }
       chunks.push(Buffer.from(value));
     }
@@ -355,9 +355,12 @@ async function readJsonResponse(response, description) {
     fail(`BLOCKED: GitHub API is rate-limited or unavailable while reading ${description}`);
   if (response.status !== 200 || response.redirected)
     fail(`${description} was not returned by the expected GitHub API endpoint`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length === 0 || bytes.length > MAX_WORKFLOW_BYTES)
-    fail(`${description} response size is invalid`);
+  const bytes = await readResponseBytesBounded(
+    response,
+    MAX_WORKFLOW_BYTES,
+    `${description} response`,
+  );
+  if (bytes.length === 0) fail(`${description} response size is invalid`);
   try {
     return JSON.parse(bytes.toString("utf8"));
   } catch {
@@ -554,7 +557,11 @@ export async function verifyGitHubRunEvidence({
     fail(
       "BLOCKED: the M10 Artifact download did not complete through GitHub's signed download URL",
     );
-  const archiveBytes = await readArtifactArchiveBounded(archiveResponse);
+  const archiveBytes = await readResponseBytesBounded(
+    archiveResponse,
+    MAX_ARCHIVE_BYTES,
+    "ungradable: M10 GitHub Artifact archive",
+  );
   const artifactDigest = artifacts[0].digest;
   if (typeof artifactDigest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(artifactDigest))
     fail("ungradable: GitHub Artifact SHA-256 digest is missing or invalid");
