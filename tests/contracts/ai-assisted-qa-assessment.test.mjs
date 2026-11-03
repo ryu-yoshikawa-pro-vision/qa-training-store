@@ -504,17 +504,50 @@ it("recovers an immutable result after summary and pointer publication were inte
   expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(pointer);
 
   const newerId = "123e4567-e89b-42d3-a456-426614174001";
+  const newerAttempt = path.join(phaseRoot, "attempts", newerId);
+  fs.mkdirSync(newerAttempt, { recursive: true });
+  const newerResultPath = path.join(newerAttempt, "result.json");
+  const newerResult = {
+    ...result,
+    assessment_id: newerId,
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  fs.writeFileSync(newerResultPath, JSON.stringify(newerResult));
   const newerPointer = {
     ...pointer,
     assessment_id: newerId,
-    updated_at: "2026-11-03T00:00:00.000Z",
+    result_sha256: sha256(fs.readFileSync(newerResultPath)),
+    updated_at: newerResult.created_at,
   };
   fs.writeFileSync(pointerPath, JSON.stringify(newerPointer));
   expect(recover()).toEqual(result);
   expect(JSON.parse(fs.readFileSync(pointerPath, "utf8"))).toEqual(newerPointer);
 
+  // A future timestamp cannot protect a missing, modified, or inconsistent
+  // result from integrity checks.
+  fs.unlinkSync(newerResultPath);
+  expect(recover).toThrow(/missing or unsafe result/);
+  fs.writeFileSync(newerResultPath, JSON.stringify(newerResult));
+  fs.writeFileSync(newerResultPath, JSON.stringify({ ...newerResult, status: "blocked" }));
+  expect(recover).toThrow(/does not match its saved result bytes/);
+  fs.writeFileSync(newerResultPath, JSON.stringify(newerResult));
+  fs.writeFileSync(
+    newerResultPath,
+    JSON.stringify({ ...newerResult, created_at: result.created_at }),
+  );
+  const inconsistentPointer = {
+    ...newerPointer,
+    result_sha256: sha256(fs.readFileSync(newerResultPath)),
+  };
+  fs.writeFileSync(pointerPath, JSON.stringify(inconsistentPointer));
+  expect(recover).toThrow(/inconsistent result/);
+  fs.writeFileSync(newerResultPath, JSON.stringify(newerResult));
+
+  const equalTimestampResult = { ...newerResult, created_at: result.created_at };
+  fs.writeFileSync(newerResultPath, JSON.stringify(equalTimestampResult));
   const equalTimestampPointer = {
     ...newerPointer,
+    result_sha256: sha256(fs.readFileSync(newerResultPath)),
     updated_at: result.created_at,
   };
   fs.writeFileSync(pointerPath, JSON.stringify(equalTimestampPointer));

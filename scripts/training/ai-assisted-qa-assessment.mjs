@@ -953,6 +953,26 @@ function updateCurrentPointer(resultPath, result, workspaceRoot = WORKSPACE) {
           fail("current assessment pointer does not match immutable result bytes");
         return;
       }
+      // A stale, missing, or modified record must not block the publication of
+      // another attempt merely by claiming a later timestamp in current.json.
+      const priorResultPath = assertAssessmentPath(
+        workspaceRoot,
+        `.course-assessments/${result.phase_id}/attempts/${prior.assessment_id}/result.json`,
+      );
+      if (!fs.existsSync(priorResultPath) || !fs.lstatSync(priorResultPath).isFile())
+        fail("current assessment pointer refers to a missing or unsafe result");
+      if (sha256(fs.readFileSync(priorResultPath)) !== prior.result_sha256)
+        fail("current assessment pointer does not match its saved result bytes");
+      const priorResult = readJson(priorResultPath, "current assessment result");
+      if (
+        priorResult.schema_version !== 1 ||
+        priorResult.assessment_id !== prior.assessment_id ||
+        priorResult.phase_id !== result.phase_id ||
+        priorResult.created_at !== prior.updated_at ||
+        typeof priorResult.completed !== "boolean" ||
+        priorResult.completed !== (priorResult.status === "complete")
+      )
+        fail("current assessment pointer refers to an inconsistent result");
       // Equal timestamps are ambiguous; keep the existing pointer rather than
       // letting a late resume replace another attempt at the same millisecond.
       if (Date.parse(prior.updated_at) >= Date.parse(result.created_at)) return;
