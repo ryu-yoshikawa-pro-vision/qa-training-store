@@ -12504,11 +12504,11 @@
           "payment-declined"
         ],
         "transform": {
-          "path": "src/seeds/default-dataset.ts",
-          "line": 422,
-          "signature": "statuses.forEach((status, orderIndex) => {"
+          "path": "src/seeds/scenarios.ts",
+          "line": 33,
+          "signature": "case \"default\":"
         },
-        "review_scope": "固定のpaid/failed注文と業務番号を確認。各シナリオの初期認証はmetadataに従い、本人ログインを別操作として構成"
+        "review_scope": "固定のpaid/failed注文と業務番号を確認。各シナリオの初期認証はmetadataに従い、本人ログインを別操作として構成。default注文の業務ID実値はsrc/seeds/default-dataset.ts:422-475、公開シナリオの変換入口はsrc/seeds/scenarios.ts:33と分離して記録"
       },
       "use_case_evidence": [
         {
@@ -12666,11 +12666,11 @@
           "payment-declined"
         ],
         "transform": {
-          "path": "src/seeds/default-dataset.ts",
-          "line": 422,
-          "signature": "statuses.forEach((status, orderIndex) => {"
+          "path": "src/seeds/scenarios.ts",
+          "line": 33,
+          "signature": "case \"default\":"
         },
-        "review_scope": "固定のpaid/failed注文と業務番号を確認。各シナリオの初期認証はmetadataに従い、本人ログインを別操作として構成"
+        "review_scope": "固定のpaid/failed注文と業務番号を確認。各シナリオの初期認証はmetadataに従い、本人ログインを別操作として構成。default注文の業務ID実値はsrc/seeds/default-dataset.ts:422-475、公開シナリオの変換入口はsrc/seeds/scenarios.ts:33と分離して記録"
       },
       "use_case_evidence": [
         {
@@ -12822,11 +12822,11 @@
           "payment-declined"
         ],
         "transform": {
-          "path": "src/seeds/default-dataset.ts",
-          "line": 422,
-          "signature": "statuses.forEach((status, orderIndex) => {"
+          "path": "src/seeds/scenarios.ts",
+          "line": 33,
+          "signature": "case \"default\":"
         },
-        "review_scope": "固定のpaid/failed注文と業務番号を確認。各シナリオの初期認証はmetadataに従い、本人ログインを別操作として構成"
+        "review_scope": "固定のpaid/failed注文と業務番号を確認。各シナリオの初期認証はmetadataに従い、本人ログインを別操作として構成。default注文の業務ID実値はsrc/seeds/default-dataset.ts:422-475、公開シナリオの変換入口はsrc/seeds/scenarios.ts:33と分離して記録"
       },
       "use_case_evidence": [
         {
