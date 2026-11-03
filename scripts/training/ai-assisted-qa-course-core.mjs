@@ -924,6 +924,22 @@ export function verifySyncedCourseDistribution({ root }) {
       fail(`manifested Shop file is missing from course/shop: ${targetPath}`);
   }
 
+  const visitCourse = (directory, relativeDirectory = "course") => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const targetPath = `${relativeDirectory}/${entry.name}`;
+      const absolute = assertNoSymlinkPath(targetRoot, targetPath, true);
+      if (entry.isSymbolicLink())
+        fail(`symlink is prohibited in the pinned course: ${targetPath}`);
+      if (entry.isDirectory()) {
+        visitCourse(absolute, targetPath);
+        continue;
+      }
+      if (!entry.isFile() || !filesByTarget.has(targetPath))
+        fail(`unmanifested file in the pinned course: ${targetPath}`);
+    }
+  };
+  visitCourse(assertNoSymlinkPath(targetRoot, "course", true));
+
   return {
     source_sha: distribution.source_sha,
     state_contract_revision: distribution.state_contract_revision,
