@@ -128,16 +128,35 @@ function acceptedGitHubResponses(workflow, archive) {
       status: "completed",
       conclusion: "success",
       head_sha: MERGE_SHA,
+      run_attempt: 1,
       pull_requests: [{ number: 12, head: { sha: SHA } }],
     }),
     jsonResponse({
       check_runs: [
         {
+          id: 1,
           name: "course-e2e",
           head_sha: MERGE_SHA,
           status: "completed",
           conclusion: "success",
           details_url: "https://github.com/owner/course/actions/runs/345/job/1",
+        },
+      ],
+    }),
+    jsonResponse({
+      total_count: 1,
+      jobs: [
+        {
+          id: 1,
+          run_id: 345,
+          run_attempt: 1,
+          name: "course-e2e",
+          head_sha: MERGE_SHA,
+          status: "completed",
+          conclusion: "success",
+          check_run_url: "https://api.github.com/repos/owner/course/check-runs/1",
+          started_at: "2026-11-03T12:00:00Z",
+          completed_at: "2026-11-03T12:03:00Z",
         },
       ],
     }),
@@ -148,6 +167,7 @@ function acceptedGitHubResponses(workflow, archive) {
           name: evidence.artifact_name,
           expired: false,
           digest: `sha256:${digest}`,
+          created_at: "2026-11-03T12:02:00Z",
           workflow_run: { id: 345, head_sha: MERGE_SHA },
         },
       ],
@@ -360,7 +380,7 @@ describe("M10 GitHub Run evidence contract", () => {
       "M10-ARTIFACT",
       "M10-PLAYWRIGHT",
     ]);
-    expect(urls).toHaveLength(6);
+    expect(urls).toHaveLength(7);
     expect(urls[3]).toContain(`/commits/${MERGE_SHA}/check-runs`);
 
     expect(responses).toHaveLength(0);
@@ -429,12 +449,13 @@ describe("M10 GitHub Run evidence contract", () => {
       [`sha256:${"0".repeat(64)}`, /downloaded Artifact does not match/],
     ]) {
       const artifactResponses = acceptedGitHubResponses(workflow, archive);
-      artifactResponses[4] = jsonResponse({
+      artifactResponses[5] = jsonResponse({
         artifacts: [
           {
             id: 555,
             name: evidence.artifact_name,
             expired: false,
+            created_at: "2026-11-03T12:02:00Z",
             ...(digest === undefined ? {} : { digest }),
             workflow_run: { id: 345, head_sha: MERGE_SHA },
           },
