@@ -1459,7 +1459,11 @@ process.exit(18);`;
     });
   expect(resume()).toEqual(calibration);
   expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(calibration);
-  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(calibration);
+  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual({
+    ...calibration,
+    case_results: caseResults,
+    case_results_sha256: sha256(JSON.stringify(caseResults)),
+  });
   expect(resume()).toEqual(calibration);
 });
 
