@@ -3123,6 +3123,98 @@ describe("AI-assisted QA formal assessment contracts", () => {
     ).toMatchObject({ status: "ungradable" });
   });
 
+  it("rejects reversed initial/repeat receipts even when both runs pass", () => {
+    const { workspaceRoot } = writeM05RunEvidence(path.join(tempRoot, "m06-replay-order"));
+    const sourceModule = path.join(workspaceRoot, "M05");
+    const moduleRoot = path.join(workspaceRoot, "M06");
+    const specPath = path.join(moduleRoot, "new-case.spec.ts");
+    fs.mkdirSync(moduleRoot, { recursive: true });
+    fs.copyFileSync(path.join(sourceModule, "product-link.spec.ts"), specPath);
+    const sourceRun = path.join(
+      sourceModule,
+      "evidence",
+      "runs",
+      "123e4567-e89b-42d3-a456-426614174001",
+    );
+    const receiptPaths = new Map();
+    const runs = [
+      ["initial", "723e4567-e89b-42d3-a456-426614174000", "2026-10-27T00:00:02.000Z"],
+      ["repeat", "723e4567-e89b-42d3-a456-426614174001", "2026-10-27T00:00:04.000Z"],
+    ];
+    for (const [label, runId, startedAt] of runs) {
+      const targetRun = path.join(moduleRoot, "evidence", "runs", runId);
+      fs.cpSync(sourceRun, targetRun, { recursive: true });
+      const reportPath = path.join(targetRun, "playwright-result.json");
+      const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+      const originalSpec = report.suites[0].specs[0];
+      originalSpec.file = specPath;
+      report.suites[0].specs.push({ ...originalSpec, title: "second independent case" });
+      const reportBytes = Buffer.from(JSON.stringify(report));
+      fs.writeFileSync(reportPath, reportBytes);
+
+      const receiptPath = path.join(targetRun, "run-evidence.json");
+      const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+      Object.assign(receipt, {
+        module_id: "M06",
+        run_id: runId,
+        label,
+        spec_path: "workspace/M06/new-case.spec.ts",
+        source_snapshot_path: `workspace/M06/evidence/runs/${runId}/spec-snapshot.ts`,
+        report_path: `workspace/M06/evidence/runs/${runId}/playwright-result.json`,
+        report_sha256: sha256(reportBytes),
+        command:
+          "pnpm exec playwright test new-case.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0",
+        started_at: startedAt,
+        finished_at: new Date(Date.parse(startedAt) + 1000).toISOString(),
+        tests: report.suites[0].specs.map((entry) => ({
+          title: entry.title,
+          status: "passed",
+          expected_status: "passed",
+        })),
+      });
+      fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+      receiptPaths.set(label, receiptPath);
+    }
+
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            { spec: "new-case.spec.ts", label: "initial", minimum_tests: 2, expected_outcome: "passed" },
+            { spec: "new-case.spec.ts", label: "repeat", minimum_tests: 2, expected_outcome: "passed" },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M06",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify().status).toBe("passed");
+
+    const repeatPath = receiptPaths.get("repeat");
+    const repeat = JSON.parse(fs.readFileSync(repeatPath, "utf8"));
+    repeat.started_at = "2026-10-27T00:00:00.000Z";
+    repeat.finished_at = "2026-10-27T00:00:01.000Z";
+    fs.writeFileSync(repeatPath, JSON.stringify(repeat));
+    const result = verify();
+    expect(result.status).toBe("ungradable");
+    expect(result.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "M06-INITIAL-REPEAT-new-case.spec.ts",
+          status: "ungradable",
+          runs_are_separate_and_ordered: false,
+        }),
+      ]),
+    );
+  });
+
   it("rejects Playwright receipts from a different course distribution revision", () => {
     const { workspaceRoot } = writeM05RunEvidence(path.join(tempRoot, "stale-playwright-proof"));
     const scoring = {
