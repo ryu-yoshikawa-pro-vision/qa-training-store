@@ -352,34 +352,32 @@ await withAttemptResumeLock(process.argv[1], async () => "completed");`;
   expect(runChild).not.toThrow();
 });
 
-it.skipIf(process.platform === "win32")(
-  "preserves a resume lock after an actual killed Node process",
-  async () => {
-    const attemptDirectory = path.join(tempRoot, "resume-killed-process");
-    fs.mkdirSync(attemptDirectory, { recursive: true });
-    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
-    const script = `import { withAttemptResumeLock } from ${JSON.stringify(moduleUrl.href)};
+it("preserves a resume lock after an abruptly terminated Node process", async () => {
+  const attemptDirectory = path.join(tempRoot, "resume-killed-process");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import { withAttemptResumeLock } from ${JSON.stringify(moduleUrl.href)};
 await withAttemptResumeLock(process.argv[1], async () => {
+  if (process.platform === "win32") process.exit(87);
   process.kill(process.pid, "SIGKILL");
 });`;
-    const child = spawnSync(
-      process.execPath,
-      ["--input-type=module", "-e", script, attemptDirectory],
-      { encoding: "utf8", timeout: 10_000 },
-    );
-    expect(child.error).toBeUndefined();
-    expect(child.signal).toBe("SIGKILL");
-    const lockPath = path.join(attemptDirectory, ".resume.lock");
-    expect(fs.statSync(lockPath).isDirectory()).toBe(true);
-    await expect(withAttemptResumeLock(attemptDirectory, async () => "unsafe")).rejects.toThrow(
-      /left a lock after interruption/,
-    );
-    fs.rmdirSync(lockPath);
-    await expect(withAttemptResumeLock(attemptDirectory, async () => "recovered")).resolves.toBe(
-      "recovered",
-    );
-  },
-);
+  const child = spawnSync(process.execPath, ["--input-type=module", "-e", script, attemptDirectory], {
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  const lockPath = path.join(attemptDirectory, ".resume.lock");
+  expect(fs.statSync(lockPath).isDirectory()).toBe(true);
+  await expect(withAttemptResumeLock(attemptDirectory, async () => "unsafe")).rejects.toThrow(
+    /left a lock after interruption/,
+  );
+  fs.rmdirSync(lockPath);
+  await expect(withAttemptResumeLock(attemptDirectory, async () => "recovered")).resolves.toBe(
+    "recovered",
+  );
+});
 
 it("reuses a pinned model candidate after interruption without another model call", async () => {
   const attemptDirectory = path.join(tempRoot, "resumed-ai-candidate");
