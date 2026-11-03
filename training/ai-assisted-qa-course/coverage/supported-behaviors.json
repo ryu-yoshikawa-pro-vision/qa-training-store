@@ -9201,27 +9201,27 @@
       "source_line": 31,
       "source_text": "顧客自身の配送先を一覧表示し、追加・編集・選択へと進める。",
       "platform": "web,android",
-      "role": "customer",
-      "scenario": "regular-memberの本人住所0件から、本人の既定住所と非既定住所を2件以上作成。Webの「既定にする」とNativeの同名操作、旧version、guest/operator/admin・本人以外のIDを区別",
-      "data": "regular-member/defaultのuserAddressesは初期0件。regular@example.comで既定「自宅」と非既定「勤務先」を作成。本人の非既定addressId・expectedVersionと全入力項目を指定しmakeDefault=trueで更新する。第三者gold@example.comのIDや旧versionを拒否Caseへ使う",
+      "role": "active Customer本人（regular/gold/platinum）。guest/operator/admin/suspended/withdrawnは住所管理不可",
+      "scenario": "regular-memberのユーザー本人の住所0件から2件以上を作成。Web/Nativeの非既定住所から『既定にする』→AccountUseCases.updateAddressを呼ぶ。旧Version/他ユーザーID/既定切替二重発火/別Checkout Sessionを反例として確認。",
+      "data": "default/regular-memberのuserAddressesは空配列。regular会員で住所A(自宅)を最初に登録すると既定1件、B(勤務先)を追加し非既定にする。Web AddressesPageとAndroid NativeAddresses画面は非既定にのみ『既定にする』を表示。AccountUseCases.updateAddressはidentity.requireCurrentEntity()でactive customerを要求し、住所入力値を検証してuserId/addressId/expectedVersion/makeDefault=trueをRepositoryへ渡す。Web Dexie/Native SQLiteはTransaction内で本人所有とVersionを検証、旧既定のisDefault=false/version+1と対象BのisDefault=true/version+1を更新する。checkout setAddressは無関係。",
       "action": "既定の配送先に設定する",
-      "expected": "有効なcustomer本人の非既定住所に対する「既定にする」は、AccountUseCases.updateAddressの所有権/expectedVersion検証を通り、対象住所をisDefault=true・version+1に変更し、それまでの既定住所をisDefault=false・version+1へ切り替える。旧version、他人ID、存在しないID、guest/operator/adminは拒否し既定を変更しない。/account/addressesでは注文時の配送先選択・決済セッションを変更しない",
+      "expected": "active customerが本人所有の非既定住所Bを選ぶと、本人の既定がAからBへ切り替わり既定1件が保持され、A/B両方のVersionが1増加すること。他人所有・旧Version・未存在ID・非customer/停止/退会では変更を拒否し本人/他人の住所、既定状態、Checkout Sessionを不変とすること。Web/Nativeで管理画面の操作が成功/失敗として適切に表示されること。",
       "rule_refs": [],
       "route": "`/account/addresses`",
-      "risk": "既定住所が複数件になる/0件になる、他人の住所へ意図せず切替、古い画面のversionで更新を上書き、注文時の住所選択と住所管理を混同",
-      "test_condition": "2件以上の本人住所を用意。Web AddressesPageの非既定住所の「既定にする」とNativeの同名操作から、AccountUseCases.updateAddress({addressId,expectedVersion,makeDefault:true,...})までの経路を確認。旧/新既定双方のisDefaultとversionを比較し、旧versionと本人以外・非顧客では全住所不変を検証する",
-      "test_responsibility": "画面の既定切替ボタン、Use Caseの顧客認可、Web/DexieとNative/SQLiteの既定再割当transaction・所有者・楽観的versionを検証する。checkout.setAddressの配送先選択は別操作として追跡する",
-      "case_policy": "2件の既定切替、古いversion、他人所有ID、存在しないID、guest/operator/admin拒否を対象。住所の新規作成・編集フォーム・Checkoutでの住所選択は各別操作に分離する",
-      "case_selection_reason": "既定住所設定は両プラットフォームで明示的なボタンを持ち、配送先選択とは別の更新処理を行う。既存の画面操作を削除するのではなく、実装にある独立UI操作として正しく分析する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:25-39のSCREEN-CHECKOUT-ADDRESSESとSCREEN-CHECKOUT-ADDRESSを区別。Web addresses-page.tsx:135-165は「既定にする」からaccount.updateAddressを呼び、Native native-purchase-screens.tsx:494-516,550-557も同様。AccountUseCases:99-108,125-130、DexieAddressRepository:201-249、NativeAddressRepository:670-718、Seed default-dataset.ts:774の初期住所0件を照合。Web Integration testで既定昇格/旧version拒否を追加。決済時の住所選択はcheckout-order-pages.tsx:151-230の別画面にある。",
+      "risk": "他人住所への既定設定、旧Versionによる競合上書き、同時操作で既定が0件/2件、Webに既定変更中のbusyガードがなく二重押下でVersion競合を出すこと、Native内部messageKey露出、住所管理と購入時の配送先Snapshot選択の混同。",
+      "test_condition": "C1 regular-memberで住所A作成（自動既定）→住所B非既定→Web/NativeでBを『既定にする』、A/BのisDefaultと各Version+1、本人住所は常に既定1件を確認。C2 Bの旧Versionで同じ更新を再送しCONFLICT、他ユーザーB・存在しないIDを指定して拒否、全Address/Checkout Session不変を検証。C3 guest/operator/admin/suspended/withdrawnから住所管理URL直アクセス/UseCaseを呼んで拒否されることを確認。C4 Web既定切替連続押下とNative busy中ガードを比較し、多重送信の結果/表示/DB不変を検証。C5 登録住所0件時のEmptyと5件上限・削除後の新既定再割当を確認、購入Checkoutの配送先指定は別Caseに分ける。C6 Web/Androidの通知・画面再読込/アクセシビリティ/Visual/SQLite永続化を実Runで確認。",
+      "test_responsibility": "C1〜C6で住所管理の本人認可・入力/Version・既定一意性とWeb/Native UI→AccountUseCases.updateAddress→Dexie/SQLite Transactionの結果/未受入を照合する。",
+      "case_policy": "住所2件以上の既定変更、旧Version/他人ID・存在しないID・非active/staff・連打/競合・Empty/削除後再割当を採用。CheckoutOrderUseCases.setAddressによる配送先選択は別画面IDへ分離する。",
+      "case_selection_reason": "WebとNativeは既定住所を切り替える明示的UIを持ち、両Repositoryは本人所有+楽観的Version・Transactionで一意性を管理する。正式の画面仕様は『配送先一覧と管理アクション』として記載し、『既定にする』を特定文言で固定していないためUI実装由来の責務としてCase化する。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。checkout-and-payment.md:25-39（配送先管理とCheckoutでの配送先選択を分離）、Web addresses-page.tsx:37-55,110-165、Native native-purchase-screens.tsx:494-557、AccountUseCases.updateAddress:99-109→SessionIdentityResolver.requireCurrentEntity:41-59、Dexie basic-repositories.ts:201-249/Native SQLite native-customer-application-repositories.ts:670-722、default/regular-member userAddresses空、integration auth-account.test.ts:299-336（作成・削除後の既定一意性）を照合。既存integrationはupdateAddressによる既定切替のVersion競合・他人IDを直接確認していないため実証が残る。実Web/Native、DB/Session/他者Owner不変・視覚/a11y未受入。",
       "requirement_refs": [
         "ROLE-ACCESS"
       ],
       "related_use_cases": [
         "AccountUseCases.updateAddress"
       ],
-      "analysis_progress": "仕様の画面責務を修正し、管理画面の既定住所切替としてWeb/Native・Use Case・Repository・Seedを確認済み。Checkoutの配送先選択は別画面の別操作としてレビュー。全Caseの実機成功は別途判定 | #210分離後のmain正式仕様では「既定の配送先設定」を明示しないため、アカウント画面の実動作と画面契約の位置づけを再照合する。",
+      "analysis_progress": "2026-11-03 独立ブランチで仕様の配送先一覧・Web/Native UI→AccountUseCases.updateAddress→Dexie/SQLite Transaction、本人/Version・Seedの住所0件と既定状態/Case採否を静的照合。基本分析のみanalyzed。実Run、所有権/Version/連打・全DB/Checkout不変、Visual/a11y、製品適合、CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -9258,28 +9258,70 @@
       ],
       "audit_branch_refs": [
         {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 25,
+          "end_line": 39,
+          "reason": "配送先管理とCheckout配送先選択の画面責務を分離"
+        },
+        {
           "path": "src/presentation/pages/addresses-page.tsx",
-          "start_line": 135,
+          "start_line": 37,
+          "end_line": 55,
+          "reason": "Web active customer RouteGuard/住所一覧UseCase"
+        },
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 110,
           "end_line": 165,
-          "reason": "Web管理画面の既定住所切替ボタン"
+          "reason": "Web非既定住所の『既定にする』→updateAddress/version"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
           "start_line": 494,
           "end_line": 557,
-          "reason": "Native管理画面の既定住所切替操作"
+          "reason": "Native非既定住所の『既定にする』とUI busy"
+        },
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 99,
+          "end_line": 129,
+          "reason": "active customer認可・住所更新"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 58,
+          "reason": "Session未成立・停止/退会account拒否"
         },
         {
           "path": "src/infrastructure/database/dexie/basic-repositories.ts",
           "start_line": 201,
           "end_line": 249,
-          "reason": "Webの旧既定version更新と新既定の競合検証"
+          "reason": "Web Dexie Transactionで所有者・Version・旧/新既定"
         },
         {
           "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
           "start_line": 670,
-          "end_line": 718,
-          "reason": "Nativeの同一操作のtransaction"
+          "end_line": 722,
+          "reason": "Native SQLite同等の所有者/Version/既定切替"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 779,
+          "reason": "default既存7ユーザー/住所0件/Session空"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 152,
+          "end_line": 164,
+          "reason": "regular-memberのcustomer Session入口"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 299,
+          "end_line": 336,
+          "reason": "既定住所作成・削除で一意性を検査する既存Case（更新/競合は直接未確認）"
         }
       ]
     },
