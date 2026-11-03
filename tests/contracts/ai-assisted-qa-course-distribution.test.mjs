@@ -2196,12 +2196,10 @@ describe("AI-assisted QA distribution contract", () => {
       const changes = [
         { public_contract: false },
         { read_only: false },
-        ...[
-          ["public_source", false],
-          ["includes_reference_solutions", true],
-          ["includes_scoring_tests", true],
-          ["includes_completed_states", true],
-        ].map(([key, value]) => ({ distribution: { ...state.distribution, [key]: value } })),
+        { distribution: { ...state.distribution, public_source: false } },
+        { distribution: { ...state.distribution, includes_reference_solutions: true } },
+        { distribution: { ...state.distribution, includes_scoring_tests: true } },
+        { distribution: { ...state.distribution, includes_completed_states: true } },
       ];
       for (const change of changes) {
         const altered = Buffer.from(JSON.stringify({ ...state, ...change }));
@@ -2246,9 +2244,11 @@ describe("AI-assisted QA distribution contract", () => {
       ["includes_scoring_tests", true],
       ["includes_completed_states", true],
     ]) {
-      const altered = Buffer.from(
-        JSON.stringify({ ...state, distribution: { ...state.distribution, [field]: value } }),
-      );
+      const alteredState = {
+        ...state,
+        distribution: { ...state.distribution, [field]: value },
+      };
+      const altered = Buffer.from(JSON.stringify(alteredState));
       writeFixtureFile(fixture.target, statePath, altered);
       const manifest = JSON.parse(originalManifest);
       const record = manifest.files.find((file) => file.target_path === statePath);
@@ -2259,9 +2259,8 @@ describe("AI-assisted QA distribution contract", () => {
       expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
         "pinned M00 start state does not match its distribution contract",
       );
-      expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "start" })).toMatchObject(
-        { status: "mismatch" },
-      );
+      const checked = checkState({ root: fixture.target, moduleId: "M00", stateName: "start" });
+      expect(checked.status).toBe("mismatch");
       expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
       expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
     }
