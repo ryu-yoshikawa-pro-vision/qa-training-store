@@ -1138,6 +1138,37 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
             `${statePath}の終了artifact pathが単一モジュールのload allowlistにありません`,
           );
         }
+        const completedPath = `training/ai-assisted-qa-course/assessment/completed-states/${moduleId}.json`;
+        const completed = JSON.parse(
+          fs.readFileSync(repositoryPath(rootDir, completedPath), "utf8"),
+        ) as {
+          artifacts?: {
+            id?: string;
+            path?: string;
+            revision?: string;
+            contract_id?: string;
+          }[];
+        };
+        const endContracts = (state.outputs ?? [])
+          .map((output) => [
+            output.artifact_id,
+            output.path,
+            output.revision,
+            output.contract_id,
+          ])
+          .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+        const completedContracts = completed.artifacts
+          ?.map((artifact) => [
+            artifact.id,
+            artifact.path,
+            artifact.revision,
+            artifact.contract_id,
+          ])
+          .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+        requireCondition(
+          JSON.stringify(completedContracts) === JSON.stringify(endContracts),
+          `${completedPath}の完成基準artifactが${statePath}の終了artifact契約と一致しません`,
+        );
       }
       stateCount += 1;
     }
