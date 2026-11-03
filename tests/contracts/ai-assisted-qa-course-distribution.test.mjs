@@ -1686,11 +1686,11 @@ describe("AI-assisted QA distribution contract", () => {
 
     const unmanifestedSkillFile = writeFixtureFile(
       fixture.target,
-      ".agents/skills/qa-workflow/evals/injected.md",
+      ".agents/skills/qa-workflow/injected.md",
       "unapproved Skill runtime instructions\n",
     );
     expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
-      /unmanifested file in the pinned Skill: \.agents\/skills\/qa-workflow\/evals\/injected\.md/,
+      /unmanifested file in the pinned Skill: \.agents\/skills\/qa-workflow\/injected\.md/,
     );
     fs.rmSync(unmanifestedSkillFile);
 
