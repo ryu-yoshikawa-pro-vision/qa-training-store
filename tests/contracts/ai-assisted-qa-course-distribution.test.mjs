@@ -2175,6 +2175,46 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(true);
   });
 
+  it("rejects forged public or writable states during full distribution verification", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "2".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const originalManifest = fs.readFileSync(manifestPath);
+    for (const stateName of ["start", "end"]) {
+      const statePath = `course/states/M00/${stateName}.json`;
+      const originalState = fs.readFileSync(path.join(fixture.target, statePath));
+      for (const change of [{ public_contract: false }, { read_only: false }]) {
+        const altered = Buffer.from(
+          JSON.stringify({ ...JSON.parse(originalState.toString("utf8")), ...change }),
+        );
+        writeFixtureFile(fixture.target, statePath, altered);
+        const manifest = JSON.parse(originalManifest.toString("utf8"));
+        const record = manifest.files.find((file) => file.target_path === statePath);
+        record.sha256 = createHash("sha256").update(altered).digest("hex");
+        record.bytes = altered.length;
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+        expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+          `pinned module state lacks public read-only contract: ${statePath}`,
+        );
+      }
+      writeFixtureFile(fixture.target, statePath, originalState);
+    }
+    fs.writeFileSync(manifestPath, originalManifest);
+    expect(verifySyncedCourseDistribution({ root: fixture.target })).toMatchObject({
+      state_files_verified: 22,
+    });
+  });
+
   it("resumes a partial sync idempotently after a new-file write failure", async () => {
     const fixture = courseFixture();
     const sourceSha = "1".repeat(40);

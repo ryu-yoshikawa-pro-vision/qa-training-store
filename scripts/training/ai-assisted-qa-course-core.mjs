@@ -921,6 +921,8 @@ export function verifySyncedCourseDistribution({ root }) {
         state.revision !== distribution.state_contract_revision
       )
         fail(`pinned module state SHA or revision does not match the distribution: ${statePath}`);
+      if (state.public_contract !== true || state.read_only !== true)
+        fail(`pinned module state lacks public read-only contract: ${statePath}`);
     }
   }
 
