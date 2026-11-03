@@ -239,6 +239,36 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   };
 }
 
+async function readArtifactArchiveBounded(response) {
+  const headerSize = response.headers?.get?.("content-length");
+  if (headerSize !== undefined && headerSize !== null && Number(headerSize) > MAX_ARCHIVE_BYTES)
+    fail("ungradable: M10 GitHub Artifact archive exceeds the allowed size");
+  if (!response.body?.getReader) {
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > MAX_ARCHIVE_BYTES)
+      fail("ungradable: M10 GitHub Artifact archive exceeds the allowed size");
+    return bytes;
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_ARCHIVE_BYTES) {
+        await reader.cancel();
+        fail("ungradable: M10 GitHub Artifact archive exceeds the allowed size");
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+  return Buffer.concat(chunks, total);
+}
+
 export function readEvidenceZipEntries(archive) {
   if (!Buffer.isBuffer(archive) || archive.length < 22 || archive.length > MAX_ARCHIVE_BYTES)
     fail("M10 GitHub Artifact archive size is invalid");
@@ -524,7 +554,7 @@ export async function verifyGitHubRunEvidence({
     fail(
       "BLOCKED: the M10 Artifact download did not complete through GitHub's signed download URL",
     );
-  const archiveBytes = Buffer.from(await archiveResponse.arrayBuffer());
+  const archiveBytes = await readArtifactArchiveBounded(archiveResponse);
   const artifactDigest = artifacts[0].digest;
   if (typeof artifactDigest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(artifactDigest))
     fail("ungradable: GitHub Artifact SHA-256 digest is missing or invalid");

@@ -347,6 +347,64 @@ describe("M10 GitHub Run evidence contract", () => {
     );
   });
 
+  it("rejects oversized Artifact responses before unbounded buffering", async () => {
+    const workflow = fs.readFileSync(
+      path.join(
+        root,
+        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      ),
+    );
+    const archive = makeZip([
+      ["target-sha.txt", SHA],
+      ["playwright-result.json", JSON.stringify(acceptedPlaywrightReport())],
+    ]);
+    const assertRejected = async (artifactResponse) => {
+      const responses = acceptedGitHubResponses(workflow, archive);
+      responses[6] = artifactResponse;
+      await expect(
+        verifyGitHubRunEvidence({
+          evidence,
+          currentHeadSha: SHA,
+          token: "test-token-value",
+          fetchImpl: async () => responses.shift(),
+        }),
+      ).rejects.toThrow(/Artifact archive exceeds the allowed size/);
+    };
+
+    let arrayBufferRead = false;
+    await assertRejected({
+      status: 200,
+      redirected: true,
+      headers: { get: () => String(32 * 1024 * 1024 + 1) },
+      arrayBuffer: async () => {
+        arrayBufferRead = true;
+        throw new Error("oversized Artifact body must not be buffered");
+      },
+    });
+    expect(arrayBufferRead).toBe(false);
+
+    let cancelled = false;
+    const chunk = Buffer.alloc(1024 * 1024);
+    await assertRejected({
+      status: 200,
+      redirected: true,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          read: async () => ({ done: false, value: chunk }),
+          cancel: async () => {
+            cancelled = true;
+          },
+          releaseLock: () => {},
+        }),
+      },
+      arrayBuffer: async () => {
+        throw new Error("streamed Artifact must not use arrayBuffer");
+      },
+    });
+    expect(cancelled).toBe(true);
+  });
+
   it("binds PR head, successful Run/Check and Artifact contents", async () => {
     const workflow = fs.readFileSync(
       path.join(
