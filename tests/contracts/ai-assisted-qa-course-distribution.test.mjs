@@ -1809,6 +1809,62 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects tampered synced input before course:load writes a learner workspace", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "e".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = "course/exercises/M00/exercise.md";
+    const altered = Buffer.from(`ghp_${"e".repeat(36)}\n`);
+    writeFixtureFile(fixture.target, targetPath, altered);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const record = manifest.files.find((file) => file.target_path === targetPath);
+    record.sha256 = createHash("sha256").update(altered).digest("hex");
+    record.bytes = altered.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      "public course content contains a potential GitHub token: course/exercises/M00/exercise.md",
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("validates a pinned start state before copying any learner files", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "f".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = "course/states/M00/start.json";
+    const altered = Buffer.from("{invalid JSON");
+    writeFixtureFile(fixture.target, targetPath, altered);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const record = manifest.files.find((file) => file.target_path === targetPath);
+    record.sha256 = createHash("sha256").update(altered).digest("hex");
+    record.bytes = altered.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(SyntaxError);
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("rejects sync targets inside or above the source checkout without modifying either tree", async () => {
     const fixture = courseFixture();
     const nestedTarget = path.join(fixture.source, "learner-inside-source");

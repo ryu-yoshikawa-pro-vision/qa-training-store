@@ -870,6 +870,7 @@ function verifiedCourseSource(root, distribution, sourcePath) {
     fail(`distributed input is missing: ${sourcePath}`);
   const bytes = fs.readFileSync(absolute);
   if (sha256(bytes) !== entry.sha256) fail(`distributed input changed after sync: ${sourcePath}`);
+  verifyPublicFileContent(sourcePath, bytes);
   return bytes;
 }
 
@@ -1317,6 +1318,14 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     const bytes = verifiedCourseSource(targetRoot, distribution, entry.source_path);
     return { source_path: entry.source_path, target_path: entry.target_path, bytes };
   });
+  // Validate the pinned start state before writing any module files.
+  const startBytes = verifiedCourseSource(
+    targetRoot,
+    distribution,
+    `course/states/${moduleId}/start.json`,
+  );
+  const startState = JSON.parse(startBytes.toString("utf8"));
+  const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
   const receiptTime = now.toISOString();
   const receiptPath = `.course-load/${moduleId}-${receiptTime.replace(/[:.]/g, "-")}.json`;
   const receiptDestination = assertNoSymlinkPath(targetRoot, receiptPath, false);
@@ -1344,13 +1353,6 @@ export function loadModule({ root, moduleId, now = new Date() }) {
       `module load stopped after ${copied.length} new file(s); no existing learner file was overwritten. copied=${copied.join(",")}; retry the same module after resolving the cause. cause=${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  const startBytes = verifiedCourseSource(
-    targetRoot,
-    distribution,
-    `course/states/${moduleId}/start.json`,
-  );
-  const startState = JSON.parse(startBytes.toString("utf8"));
-  const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
   const receipt = {
     schema_version: 1,
     module_id: moduleId,
