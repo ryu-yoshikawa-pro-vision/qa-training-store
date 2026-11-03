@@ -87,8 +87,9 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   });
   expect(fs.existsSync(cache)).toBe(false);
   expect(read(path.join(first, "calibration-result.json"))).toEqual(failed);
-  expect(read(path.join(first, "calibration-candidate.json"))).toEqual({
+  expect(read(path.join(first, "calibration-candidate.json"))).toMatchObject({
     case_results: candidate,
+    candidate_session_id: null,
   });
 
   const second = makeAttempt("second");
@@ -355,6 +356,116 @@ it("resumes a verified attempt calibration without trusting missing or altered r
   expect(read).toThrow(/omitted one or more cases/);
   fs.unlinkSync(candidatePath);
   expect(read).toThrow(/incomplete or unsafe saved calibration/);
+});
+
+it("restores a complete calibration from a pinned candidate after interrupted result publication", () => {
+  const root = path.join(tempRoot, "candidate-only-calibration-recovery");
+  const attemptDirectory = path.join(root, "attempt");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "specific-source" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const calibration = {
+    schema_version: 1,
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 2,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: "session-123",
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  const expected = new Map([
+    ["positive", ["pass"]],
+    ["negative", ["fail"]],
+  ]);
+  const caseResults = [
+    { case_id: "positive", decision: "pass", rationale: "sufficient" },
+    { case_id: "negative", decision: "fail", rationale: "missing" },
+  ];
+  const resultPath = path.join(attemptDirectory, "calibration-result.json");
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  const originalLink = fs.linkSync.bind(fs);
+  const intercepted = vi.spyOn(fs, "linkSync").mockImplementation((source, destination) => {
+    if (destination === resultPath) throw new Error("injected interrupted result publication");
+    return originalLink(source, destination);
+  });
+  try {
+    expect(() =>
+      persistCalibration({
+        calibration,
+        calibrationPath: path.join(root, "cache.json"),
+        attemptDirectory,
+        caseResults,
+      }),
+    ).toThrow(/interrupted result publication/);
+  } finally {
+    intercepted.mockRestore();
+  }
+  expect(fs.existsSync(candidatePath)).toBe(true);
+  expect(fs.existsSync(resultPath)).toBe(false);
+  expect(fs.existsSync(path.join(root, "cache.json"))).toBe(false);
+
+  const read = () =>
+    readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected });
+  expect(read()).toEqual(calibration);
+  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(calibration);
+  expect(read()).toEqual(calibration);
+  expect(fs.readdirSync(attemptDirectory).sort()).toEqual([
+    "calibration-candidate.json",
+    "calibration-result.json",
+  ]);
+});
+
+it("refuses incomplete, modified, or unbound calibration candidates on resume", () => {
+  const root = path.join(tempRoot, "invalid-candidate-only-calibration");
+  fs.mkdirSync(root, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "specific-source" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const expected = new Map([
+    ["positive", ["pass"]],
+    ["negative", ["fail"]],
+  ]);
+  const candidatePath = path.join(root, "calibration-candidate.json");
+  const resultPath = path.join(root, "calibration-result.json");
+  const candidate = {
+    calibration_id: calibrationId,
+    identity,
+    candidate_session_id: "session-123",
+    created_at: "2026-11-03T00:00:00.000Z",
+    case_results: [
+      { case_id: "positive", decision: "pass", rationale: "sufficient" },
+      { case_id: "negative", decision: "fail", rationale: "missing" },
+    ],
+  };
+  const read = () =>
+    readAttemptCalibration({ attemptDirectory: root, calibrationId, identity, expected });
+  const write = (value) => fs.writeFileSync(candidatePath, JSON.stringify(value));
+  write({ case_results: candidate.case_results });
+  expect(read).toThrow(/without its pinned identity/);
+  write({ ...candidate, identity: { model_id: "other/model" } });
+  expect(read).toThrow(/without its pinned identity/);
+  write({ ...candidate, created_at: "not-a-date" });
+  expect(read).toThrow(/without its pinned identity/);
+  write({ ...candidate, case_results: candidate.case_results.slice(0, 1) });
+  expect(read).toThrow(/omitted one or more cases/);
+  write({ ...candidate, case_results: [] });
+  expect(read).toThrow(/omitted one or more cases/);
+  expect(fs.existsSync(resultPath)).toBe(false);
+  write(candidate);
+  expect(read()).toMatchObject({ status: "passed", case_count: 2 });
+  write({ ...candidate, identity: { model_id: "other/model" } });
+  expect(read).toThrow(/candidate identity differs/);
+  write(candidate);
+  expect(read()).toMatchObject({ status: "passed" });
+  expect(() =>
+    readAttemptCalibration({
+      attemptDirectory: root,
+      calibrationId,
+      identity,
+      expected: new Map(),
+    }),
+  ).toThrow(/no expected cases/);
 });
 
 it("recovers an immutable result after summary and pointer publication were interrupted", () => {

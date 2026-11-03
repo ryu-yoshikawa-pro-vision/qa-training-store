@@ -570,6 +570,8 @@ function buildCalibrationPrompt(inputs) {
 }
 
 function validateCalibrationOutput(output, expected) {
+  if (!(expected instanceof Map) || expected.size === 0)
+    fail("calibration has no expected cases");
   if (!output || typeof output !== "object" || !Array.isArray(output.case_results))
     fail("calibration response has no case_results array");
   const seen = new Map();
@@ -612,10 +614,16 @@ export function persistCalibration({
   caseResults,
   existingCalibration = null,
 }) {
-  atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
+  // Publish the model's validated decisions first. If the process stops before
+  // writing the result, they can be rechecked against the same pinned inputs.
   atomicWriteJson(path.join(attemptDirectory, "calibration-candidate.json"), {
+    calibration_id: calibration.id,
+    identity: calibration.identity,
+    candidate_session_id: calibration.candidate_session_id ?? null,
+    created_at: calibration.created_at,
     case_results: caseResults,
   });
+  atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
   // Failed calibrations remain in their attempt only and do not block future attempts.
   if (isPassingCalibration(calibration) && !existingCalibration) {
     try {
@@ -644,30 +652,62 @@ export function persistCalibration({
 export function readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected }) {
   const recordPath = path.join(attemptDirectory, "calibration-result.json");
   const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
-  if (!fs.existsSync(recordPath)) {
-    if (fs.existsSync(candidatePath))
-      fail("assessment has an incomplete saved calibration; start a new assessment");
-    return null;
-  }
+  const hasRecord = fs.existsSync(recordPath);
+  const hasCandidate = fs.existsSync(candidatePath);
+  if (!hasRecord && !hasCandidate) return null;
   if (
-    !fs.lstatSync(recordPath).isFile() ||
-    !fs.existsSync(candidatePath) ||
+    (hasRecord && !fs.lstatSync(recordPath).isFile()) ||
+    !hasCandidate ||
     !fs.lstatSync(candidatePath).isFile()
   )
     fail("assessment has an incomplete or unsafe saved calibration; start a new assessment");
+  const candidate = readJson(candidatePath, "saved attempt calibration candidate");
+  const verified = validateCalibrationOutput(candidate, expected);
+  if (!hasRecord) {
+    // Legacy candidate-only files lack a pinned identity: never infer that an
+    // unbound response belongs to this model, prompt, and source revision.
+    if (
+      candidate.calibration_id !== calibrationId ||
+      !isDeepStrictEqual(candidate.identity, identity) ||
+      typeof candidate.created_at !== "string" ||
+      !Number.isFinite(Date.parse(candidate.created_at)) ||
+      (candidate.candidate_session_id !== null &&
+        typeof candidate.candidate_session_id !== "string")
+    )
+      fail("saved calibration candidate cannot be restored without its pinned identity");
+    const restored = {
+      schema_version: 1,
+      id: calibrationId,
+      identity,
+      status: verified.status,
+      case_count: verified.case_results.length,
+      mismatches: verified.mismatches,
+      critical_false_passes: verified.critical_false_passes,
+      candidate_session_id: candidate.candidate_session_id,
+      created_at: candidate.created_at,
+    };
+    atomicWriteJson(recordPath, restored);
+    return restored;
+  }
   const saved = readJson(recordPath, "saved attempt calibration");
   if (
     saved.id !== calibrationId ||
-    JSON.stringify(saved.identity) !== JSON.stringify(identity) ||
+    !isDeepStrictEqual(saved.identity, identity) ||
     saved.case_count !== expected.size
   )
     fail("saved attempt calibration identity or case count differs from pinned inputs");
-  const candidate = readJson(candidatePath, "saved attempt calibration candidate");
-  const verified = validateCalibrationOutput(candidate, expected);
+  if (
+    Object.hasOwn(candidate, "calibration_id") &&
+    (candidate.calibration_id !== calibrationId ||
+      !isDeepStrictEqual(candidate.identity, identity) ||
+      candidate.created_at !== saved.created_at ||
+      candidate.candidate_session_id !== (saved.candidate_session_id ?? null))
+  )
+    fail("saved attempt calibration candidate identity differs from pinned inputs");
   if (
     saved.status !== verified.status ||
     saved.critical_false_passes !== verified.critical_false_passes ||
-    JSON.stringify(saved.mismatches) !== JSON.stringify(verified.mismatches)
+    !isDeepStrictEqual(saved.mismatches, verified.mismatches)
   )
     fail("saved attempt calibration result does not match its candidate");
   return saved;
