@@ -16712,20 +16712,20 @@
       "source_line": 65,
       "source_text": "商品、公開状態、フィルター条件、一括操作の結果を表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,many-products,admin-bulk-partial-failure。role=operator/admin、状態・対象ID・versionを区別。操作: 商品一覧・公開状態",
+      "role": "active Operator/Admin（Web/管理ビュー幅>=1024px）。guest/customer/suspended/withdrawn・未ログインは拒否。Native管理商品画面は対象外。",
+      "scenario": "default 11固定商品（published/unpublished/draft/discontinued、rank制限、在庫0/低在庫、12/13 Variations）とmany-products=1000件、admin-bulk-partial-failureの公開不可/状態競合を対比。管理表示の基準Clockはdefault BASE_CLOCK。",
+      "data": "Web AdminProductsPageはStaffPage→AdminProductUseCases.search({keyword/status/rank/stock/price/sort,page,pageSize:20})を実行し、ResourceTableに商品コード/名称・stored statusバッジ・カテゴリー/ブランド・各有効SKUの現在価格範囲・有効SKU数/総在庫・商品詳細リンクを表示。AdminProductUseCases.searchはactive staffを要求し、Keyword上限を検証してQueryRepositoryへ処理委譲。DexieAdminProductQueryRepository.searchはProduct全件をCategory/Brand/active Variantで結合してDTOを生成し、statusは保存済みProduct.statusをそのまま返す。公開可否の再判定/状態変更はこのSearchでは実行せず別UseCaseの公開操作が担当。active Variants0件ならMath.min(...[])・Math.max(...[])の結果がInfinity/-Infinityになる経路がある。default Seedは11固定商品を持つ。many-productsは1000件、管理Webは20件ページ。",
       "action": "商品一覧・公開状態",
-      "expected": "管理権限で商品一覧と現在の公開状態を表示し、公開不可商品をpublishedとして誤表示しない",
+      "expected": "active Operator/Adminで11商品・そのstored statusを正確に表示し、unpublished/draft/discontinuedも管理者検索から確認でき、公開状態・SKU価格・在庫・カテゴリー/ブランドがDTOと一致すること。表示は保存済みStatusの事実であって『新規に公開できる』保証ではないこと。guest/customer/staff無効Sessionが管理情報を取得できないこと。0有効SKU/非公開状態/価格0など異常表示の整合は別Caseで検証すること。",
       "rule_refs": [],
       "route": "`/admin/products`",
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品一覧・公開状態の前後に、管理権限で商品一覧と現在の公開状態を表示し、公開不可商品をpublishedとして誤表示しないことをUIと集約状態で比較する",
-      "test_responsibility": "操作対象ID、状態・versionと商品一覧・公開状態の結果を対応付ける",
-      "case_policy": "成功/不完全公開・参照違反・version競合・境界viewportを選定",
-      "case_selection_reason": "商品一覧・公開状態が不正公開・管理データ破損・競合時の上書きにつながるため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "stored publishedと公開可否条件の混同、下書き/販売終了を誤ってpublished表示、管理者向け非公開SKUが顧客側へ漏出、0 active SKUのInfinity/-Infinity価格表示、商品一覧取得時のActive/失効Session権限突破、Sort/ページが商品Statusと不一致、プレビュー/検索でDB更新すると誤認。",
+      "test_condition": "C1 default operator/adminで商品11件、published/unpublished/draft/discontinued各Status・カテゴリー/ブランド・SKU数/在庫・価格範囲・リンクをDexie Products/Variantsと突合。C2 active customer/guest/operator suspended/withdrawn/失効Sessionから管理URL直アクセスとAdminProductUseCases.searchを拒否し管理非公開商品・顧客データを露出しない。C3 0 active SKU、単SKU、在庫0/低在庫・Sale期間終端・rank制限の管理DTOと表示を比較しInfinity表示候補を実画面で確認。C4 many-productsの1000件/20件ページ/Sortと最終ページ、0件結果を確認。C5 公開可否条件を満たさないdraftの表示Statusとbulk publish失敗を区別し商品/在庫/Version/関連データは一覧読取で不変。C6 Webデスクトップ/タブレット・1024px未満警告と画面正本/アクセシビリティ/Playwrightを実証。フィルター変更時の選択件数/空送信・Page ResetはA01-02の未受入を維持。",
+      "test_responsibility": "C1〜C6でWeb 管理商品一覧のStored Status/有効SKU・価格/StockのDTO、operator/admin認可、固定Seed、多数ページと画面/DBの整合、公開可否とStatus表示の責務分離を検証する。",
+      "case_policy": "default11商品Status別、0 active SKU/価格境界、many-products1000/20件ページ、rank/Stock/Sale、許可/拒否Role、レスポンシブ警告、公開可否と一括結果の区別を採用。フィルター中の選択残留と送信対象0件は別ID A01-02として未受入。",
+      "case_selection_reason": "管理商品一覧のsearchはDBに保存されたProduct.statusを返し、公開適格性の再検証や更新は行わない。UIバッジのStatus表示と公開可否判断・一括更新/Filterを区別しないと、一覧の表示だけで業務操作をPASSと誤認する。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。admin-catalog.md:9-19/59-91の管理商品の状態・一覧契約、AdminProductsPage:48-85/200-269、AdminProductUseCases.search:80-102/requireStaff:524-534、DexieAdminProductQueryRepository.search:417-508、Seed default11固定商品:67-245・many-products:scenarios.ts:425-470、integration admin-product-use-cases.test.ts:61-81/90-114、component admin-product-pages.test.tsx:184-195を照合。stored Statusと新規公開可否を区別し、0 Active SKU価格がInfinityになる可能性とA01-02で未受入のSelected残留は別記。直接Web表示/Role/DB/Visual/CI未確認。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -16735,7 +16735,7 @@
       "related_use_cases": [
         "AdminProductUseCases.search"
       ],
-      "analysis_progress": "操作別期待を整理。プレビュー・取引の副作用/Seedデータと実装分岐の照合待ち",
+      "analysis_progress": "2026-11-03 独立ブランチで管理商品一覧のWeb UI→AdminProductUseCases.search→Dexie商品検索/active SKU・Seed/Role・管理Statusを静的基本分析。Stored statusの正しさと公開可否判定を分離、0 SKU価格等の実Run未受入を記載。定期実行の管理ユーザー詳細と別ID。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 48,
@@ -16764,6 +16764,85 @@
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 80,
           "signature": "async search("
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 9,
+          "end_line": 19,
+          "reason": "公開可否・商品集約と一覧表示の責務差"
+        },
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 59,
+          "end_line": 91,
+          "reason": "SCREEN-ADMIN-PRODUCTS/default/many-productsとWeb表示契約"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 48,
+          "end_line": 85,
+          "reason": "StaffPage、検索条件とUseCase呼出"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 200,
+          "end_line": 269,
+          "reason": "Stored ProductStatus badge、Link、現在価格/Active SKU数と在庫・Pagination"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 80,
+          "end_line": 102,
+          "reason": "active staffの管理商品検索・Keyword条件"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 524,
+          "end_line": 534,
+          "reason": "Guest/Customer/無効アカウントの実UseCase拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 417,
+          "end_line": 508,
+          "reason": "全Status DTO、active SKU・最新価格/在庫と決定順/ページ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "default11固定商品/Status・active/SKU・Stock/Ranks"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 425,
+          "end_line": 470,
+          "reason": "many-products 1000件のSeed"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 61,
+          "end_line": 114,
+          "reason": "active operator Seedと商品集約作成の既存テスト"
+        },
+        {
+          "path": "tests/component/admin-product-pages.test.tsx",
+          "start_line": 184,
+          "end_line": 195,
+          "reason": "一覧Filter/一括結果のcomponent契約（実Run未確認）"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 91,
+          "end_line": 111,
+          "reason": "1024px未満の管理ビュー警告"
         }
       ]
     },
