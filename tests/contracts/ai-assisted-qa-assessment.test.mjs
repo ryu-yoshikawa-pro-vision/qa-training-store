@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -28,6 +28,7 @@ import {
   exportAssessment,
   filterPhaseKnowledgeGraph,
   obtainAssessmentCandidate,
+  obtainCalibration,
   persistValidatedCandidate,
   persistCalibration,
   readAttemptCalibration,
@@ -389,6 +390,187 @@ await withAttemptResumeLock(process.argv[1], async () => {
     "recovered",
   );
 });
+
+it("blocks a calibration resend after the real Node process exits after its model response", async () => {
+  const workspaceRoot = path.join(tempRoot, "calibration-response-not-published");
+  const attemptDirectory = path.join(workspaceRoot, "attempt");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import path from "node:path";
+import { obtainCalibration } from ${JSON.stringify(moduleUrl.href)};
+const [workspaceRoot, attemptDirectory, modelId, version] = process.argv.slice(1);
+const inputs = {
+  phaseId: "P1",
+  modules: ["M04"],
+  rubric: { text: "Pinned calibration criteria" },
+  scoringByModule: new Map([["M04", {
+    cases: [{ id: "CAL-01", response: "Supported answer", evidence: [], expected_decision: "pass" }],
+    criteria: [],
+  }]]),
+  sourceMaterials: [],
+  assetHashes: { fixed_source: "pinned" },
+};
+const originalLink = fs.linkSync.bind(fs);
+fs.linkSync = (source, destination) => {
+  if (destination === path.join(attemptDirectory, "calibration-candidate.json")) {
+    if (process.platform === "win32") process.exit(87);
+    process.kill(process.pid, "SIGKILL");
+  }
+  return originalLink(source, destination);
+};
+await obtainCalibration({
+  inputs, modelId, version, attemptDirectory, workspaceRoot,
+  runModel: async () => {
+    fs.writeFileSync(path.join(attemptDirectory, "model-response-received"), "yes");
+    return {
+      value: { case_results: [{ case_id: "CAL-01", decision: "pass", rationale: "supported" }] },
+      sessionId: "mock-calibration-session",
+    };
+  },
+});
+process.exit(18);`;
+  const child = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script, workspaceRoot, attemptDirectory, modelId, version],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  expect(fs.readFileSync(path.join(attemptDirectory, "model-response-received"), "utf8")).toBe(
+    "yes",
+  );
+  expect(fs.statSync(path.join(attemptDirectory, "calibration-invocation.json")).isFile()).toBe(
+    true,
+  );
+  expect(fs.existsSync(path.join(attemptDirectory, "calibration-candidate.json"))).toBe(false);
+  expect(fs.existsSync(path.join(attemptDirectory, "calibration-result.json"))).toBe(false);
+  const inputs = {
+    phaseId: "P1",
+    modules: ["M04"],
+    rubric: { text: "Pinned calibration criteria" },
+    scoringByModule: new Map([
+      [
+        "M04",
+        {
+          cases: [
+            {
+              id: "CAL-01",
+              response: "Supported answer",
+              evidence: [],
+              expected_decision: "pass",
+            },
+          ],
+          criteria: [],
+        },
+      ],
+    ]),
+    sourceMaterials: [],
+    assetHashes: { fixed_source: "pinned" },
+  };
+  let modelCalls = 0;
+  await expect(
+    obtainCalibration({
+      inputs,
+      modelId,
+      version,
+      attemptDirectory,
+      workspaceRoot,
+      runModel: async () => {
+        modelCalls += 1;
+        throw new Error("must not repeat the model call");
+      },
+    }),
+  ).rejects.toThrow(/automatic resend is unsafe/);
+  expect(modelCalls).toBe(0);
+});
+
+it("serializes one immutable successful shared calibration across two Node processes", async () => {
+  const root = path.join(tempRoot, "calibration-two-processes");
+  const calibrationPath = path.join(root, "shared.json");
+  const barrierPath = path.join(root, "release");
+  fs.mkdirSync(root, { recursive: true });
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import path from "node:path";
+import { persistCalibration } from ${JSON.stringify(moduleUrl.href)};
+const [root, calibrationPath, barrierPath, name] = process.argv.slice(1);
+const attemptDirectory = path.join(root, name);
+fs.mkdirSync(attemptDirectory, { recursive: true });
+fs.writeFileSync(path.join(attemptDirectory, "ready"), "ready");
+for (let i = 0; !fs.existsSync(barrierPath); i++) {
+  if (i >= 1_000) throw new Error("concurrent process barrier timed out");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+}
+persistCalibration({
+  attemptDirectory,
+  calibrationPath,
+  calibration: {
+    schema_version: 1,
+    id: "same-pinned-calibration-id",
+    identity: { model_id: "provider/model", source_sha: "pinned" },
+    status: "passed",
+    case_count: 1,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: name,
+    created_at: "2026-11-03T00:00:00.000Z",
+  },
+  caseResults: [{ case_id: "CAL-01", decision: "pass", rationale: "supported" }],
+});`;
+  const start = (name) => {
+    const child = spawn(
+      process.execPath,
+      ["--input-type=module", "-e", script, root, calibrationPath, barrierPath, name],
+      { stdio: ["ignore", "ignore", "pipe"] },
+    );
+    let errorText = "";
+    child.stderr.on("data", (chunk) => {
+      errorText += chunk.toString();
+    });
+    const done = new Promise((resolve, reject) => {
+      child.once("error", reject);
+      child.once("close", (code, signal) => {
+        if (code === 0) resolve();
+        else reject(new Error(`${name} exited ${code ?? signal}: ${errorText}`));
+      });
+    });
+    return { child, done, name };
+  };
+  const children = [start("first"), start("second")];
+  try {
+    let bothReady = false;
+    for (let i = 0; i < 1_000; i++) {
+      bothReady = children.every(({ name }) =>
+        fs.existsSync(path.join(root, name, "ready")),
+      );
+      if (bothReady) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(bothReady).toBe(true);
+    fs.writeFileSync(barrierPath, "go");
+    await Promise.all(children.map(({ done }) => done));
+  } finally {
+    for (const { child } of children) child.kill();
+  }
+  const published = JSON.parse(fs.readFileSync(calibrationPath, "utf8"));
+  expect(published).toMatchObject({
+    id: "same-pinned-calibration-id",
+    status: "passed",
+    case_count: 1,
+    identity: { model_id: "provider/model", source_sha: "pinned" },
+  });
+  expect(["first", "second"]).toContain(published.candidate_session_id);
+  for (const name of ["first", "second"]) {
+    const attempt = path.join(root, name);
+    expect(JSON.parse(fs.readFileSync(path.join(attempt, "calibration-result.json"), "utf8")))
+      .toMatchObject({ id: published.id, candidate_session_id: name });
+    expect(fs.statSync(path.join(attempt, "calibration-candidate.json")).isFile()).toBe(true);
+  }
+}, 20_000);
 
 it("reuses a pinned model candidate after interruption without another model call", async () => {
   const attemptDirectory = path.join(tempRoot, "resumed-ai-candidate");

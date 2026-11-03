@@ -793,7 +793,14 @@ export function readAttemptCalibration({
   return cacheVerifiedAttempt(saved);
 }
 
-async function obtainCalibration({ inputs, modelId, version, attemptDirectory }) {
+export async function obtainCalibration({
+  inputs,
+  modelId,
+  version,
+  attemptDirectory,
+  workspaceRoot = WORKSPACE,
+  runModel = runOpenCode,
+}) {
   const calibrationPrompt = buildCalibrationPrompt(inputs);
   if (calibrationPrompt.expected.size === 0) fail("calibration has no expected cases");
   assertModelInputSize(calibrationPrompt.text, "calibration prompt");
@@ -807,7 +814,7 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     asset_hashes: inputs.assetHashes,
   };
   const calibrationId = sha256(JSON.stringify(identity));
-  const calibrationRoot = path.join(WORKSPACE, ".course-assessments", "calibrations");
+  const calibrationRoot = path.join(workspaceRoot, ".course-assessments", "calibrations");
   fs.mkdirSync(calibrationRoot, { recursive: true, mode: 0o700 });
   const calibrationPath = path.join(calibrationRoot, `${calibrationId}.json`);
   const savedAttempt = readAttemptCalibration({
@@ -852,7 +859,7 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     promptSha256: sha256(calibrationPrompt.text),
     systemPromptSha256: calibrationPromptSha,
   });
-  const run = await runOpenCode({
+  const run = await runModel({
     modelId,
     version,
     systemPrompt: CALIBRATION_SYSTEM,
