@@ -677,6 +677,48 @@ function verifySharedCalibrationCaseResults(calibration, expected = null) {
     fail("saved model calibration case decisions differ from pinned expected cases");
 }
 
+function verifySavedAttemptCalibrationEvidence(calibration, candidate) {
+  const cases = candidate?.case_results;
+  if (
+    !Array.isArray(cases) ||
+    !Number.isInteger(calibration?.case_count) ||
+    calibration.case_count < 1 ||
+    cases.length !== calibration.case_count
+  )
+    fail("saved attempt calibration candidate does not match its case count");
+  const seen = new Set();
+  const validDecisions = new Set(["pass", "fail", "partial", "pass_with_reason", "ungradable"]);
+  for (const item of cases) {
+    if (
+      typeof item?.case_id !== "string" ||
+      !item.case_id.trim() ||
+      seen.has(item.case_id) ||
+      !validDecisions.has(item.decision) ||
+      typeof item.rationale !== "string" ||
+      !item.rationale.trim()
+    )
+      fail("saved attempt calibration candidate contains invalid case decisions");
+    assertNoSecretText(item.rationale, `saved calibration rationale ${item.case_id}`);
+    seen.add(item.case_id);
+  }
+  // Fully pinned modern candidates must match their immutable result. Historical
+  // case-only candidates can still be read, but do not acquire an invented identity.
+  const pinnedFields = ["calibration_id", "identity", "candidate_session_id", "created_at"];
+  if (
+    pinnedFields.some((name) => Object.hasOwn(candidate, name)) &&
+    (candidate.calibration_id !== calibration.id ||
+      !isDeepStrictEqual(candidate.identity, calibration.identity) ||
+      candidate.created_at !== calibration.created_at ||
+      candidate.candidate_session_id !== (calibration.candidate_session_id ?? null))
+  )
+    fail("saved attempt calibration candidate identity differs from pinned inputs");
+  if (
+    Object.hasOwn(calibration, "case_results_sha256") &&
+    calibration.case_results_sha256 !== sha256(JSON.stringify(cases))
+  )
+    fail("saved attempt calibration candidate hash differs from its result");
+}
+
 function publishPassingCalibrationCache(
   calibration,
   calibrationPath,
@@ -822,14 +864,7 @@ export function readAttemptCalibration({
     saved.case_count !== expected.size
   )
     fail("saved attempt calibration identity or case count differs from pinned inputs");
-  if (
-    Object.hasOwn(candidate, "calibration_id") &&
-    (candidate.calibration_id !== calibrationId ||
-      !isDeepStrictEqual(candidate.identity, identity) ||
-      candidate.created_at !== saved.created_at ||
-      candidate.candidate_session_id !== (saved.candidate_session_id ?? null))
-  )
-    fail("saved attempt calibration candidate identity differs from pinned inputs");
+  verifySavedAttemptCalibrationEvidence(saved, candidate);
   if (
     saved.status !== verified.status ||
     saved.critical_false_passes !== verified.critical_false_passes ||
@@ -939,6 +974,7 @@ export async function obtainCalibration({
     critical_false_passes: evaluated.critical_false_passes,
     candidate_session_id: run.sessionId ?? null,
     created_at: new Date().toISOString(),
+    case_results_sha256: sha256(JSON.stringify(evaluated.case_results)),
   };
   persistCalibration({
     calibration,
@@ -1206,15 +1242,7 @@ function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
       attemptCandidatePath,
       "saved attempt calibration candidate",
     );
-    if (
-      !Array.isArray(candidateCalibration.case_results) ||
-      !Number.isInteger(calibration.case_count) ||
-      calibration.case_count < 1 ||
-      candidateCalibration.case_results.length !== calibration.case_count ||
-      new Set(candidateCalibration.case_results.map((item) => item?.case_id)).size !==
-        calibration.case_count
-    )
-      fail("saved attempt calibration candidate does not match its case count");
+    verifySavedAttemptCalibrationEvidence(calibration, candidateCalibration);
   } else {
     const sharedPath = assertAssessmentPath(
       workspaceRoot,

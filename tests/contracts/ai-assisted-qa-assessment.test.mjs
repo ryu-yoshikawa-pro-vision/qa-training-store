@@ -2075,6 +2075,9 @@ it("restores a completed result only with the matching candidate and passing cal
     mismatches: [],
     identity: calibrationIdentity,
     case_count: 1,
+    schema_version: 1,
+    candidate_session_id: null,
+    created_at: "2026-11-02T00:00:00.000Z",
     case_results: caseResults,
     case_results_sha256: sha256(JSON.stringify(caseResults)),
   };
@@ -2120,11 +2123,43 @@ it("restores a completed result only with the matching candidate and passing cal
   fs.writeFileSync(path.join(attempt, "calibration-result.json"), JSON.stringify(calibration));
   fs.writeFileSync(
     path.join(attempt, "calibration-candidate.json"),
-    JSON.stringify({ case_results: [{ case_id: "positive", decision: "pass" }] }),
+    JSON.stringify({
+      calibration_id: calibrationId,
+      identity: calibrationIdentity,
+      candidate_session_id: null,
+      created_at: calibration.created_at,
+      case_results: caseResults,
+    }),
   );
   const recover = () =>
     reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
   // A successful attempt must remain recoverable despite a legacy failed cache.
+  expect(recover().completed).toBe(true);
+  const originalCalibrationCandidate = fs.readFileSync(
+    path.join(attempt, "calibration-candidate.json"),
+  );
+  const wrongIdentity = JSON.parse(originalCalibrationCandidate.toString("utf8"));
+  wrongIdentity.calibration_id = "other-calibration";
+  fs.writeFileSync(
+    path.join(attempt, "calibration-candidate.json"),
+    JSON.stringify(wrongIdentity),
+  );
+  expect(recover).toThrow(/candidate identity differs from pinned inputs/);
+  const wrongDecision = JSON.parse(originalCalibrationCandidate.toString("utf8"));
+  wrongDecision.case_results[0].decision = "fail";
+  fs.writeFileSync(
+    path.join(attempt, "calibration-candidate.json"),
+    JSON.stringify(wrongDecision),
+  );
+  expect(recover).toThrow(/candidate hash differs from its result/);
+  const invalidDecision = JSON.parse(originalCalibrationCandidate.toString("utf8"));
+  delete invalidDecision.case_results[0].rationale;
+  fs.writeFileSync(
+    path.join(attempt, "calibration-candidate.json"),
+    JSON.stringify(invalidDecision),
+  );
+  expect(recover).toThrow(/contains invalid case decisions/);
+  fs.writeFileSync(path.join(attempt, "calibration-candidate.json"), originalCalibrationCandidate);
   expect(recover().completed).toBe(true);
   expect(JSON.parse(fs.readFileSync(path.join(phaseRoot, "current.json"), "utf8"))).toMatchObject({
     assessment_id: assessmentId,
