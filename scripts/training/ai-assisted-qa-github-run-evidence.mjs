@@ -484,14 +484,11 @@ export async function verifyGitHubRunEvidence({
       "BLOCKED: the M10 Artifact download did not complete through GitHub's signed download URL",
     );
   const archiveBytes = Buffer.from(await archiveResponse.arrayBuffer());
-  if (typeof artifacts[0].digest === "string") {
-    const [algorithm, expectedDigest] = artifacts[0].digest.split(":", 2);
-    if (
-      algorithm !== "sha256" ||
-      createHash("sha256").update(archiveBytes).digest("hex") !== expectedDigest
-    )
-      fail("ungradable: downloaded Artifact does not match the GitHub artifact digest");
-  }
+  const artifactDigest = artifacts[0].digest;
+  if (typeof artifactDigest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(artifactDigest))
+    fail("ungradable: GitHub Artifact SHA-256 digest is missing or invalid");
+  if (createHash("sha256").update(archiveBytes).digest("hex") !== artifactDigest.slice(7))
+    fail("ungradable: downloaded Artifact does not match the GitHub artifact digest");
   const files = readEvidenceZipEntries(archiveBytes);
   const targetShaFile = files.get("target-sha.txt");
   const playwrightFile = files.get("playwright-result.json");
