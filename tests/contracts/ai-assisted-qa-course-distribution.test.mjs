@@ -545,8 +545,7 @@ describe("AI-assisted QA distribution contract", () => {
         entry.module_id === "M05" && entry.target_path === "workspace/M05/product-link.spec.ts",
     );
     const m05Submission = manifest.load_files.find(
-      (entry) =>
-        entry.module_id === "M05" && entry.target_path === "workspace/M05/submission.md",
+      (entry) => entry.module_id === "M05" && entry.target_path === "workspace/M05/submission.md",
     );
     expect(m05).toBeDefined();
     expect(m05Submission).toBeDefined();
