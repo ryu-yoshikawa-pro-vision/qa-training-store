@@ -10222,20 +10222,20 @@
       "source_line": 100,
       "source_text": "不完全なセッションやカートバージョンの不一致を安全に処理する。",
       "platform": "web,android",
-      "role": "customer",
-      "scenario": "regular-memberの本人有効CartでCheckoutを開始するが配送先未保存の状態。guest、operator/admin、停止/退会の顧客、他人セッション、存在しないセッション、住所保存済みの正常状態を区別する",
-      "data": "regular-member Seedのactive customer/session/Cartを利用。CheckoutOrderUseCases.start後のSession(version1,unlockedStep=address,addressSnapshot=null)を不完全状態とする。正常CaseではsetAddress後、unlockedStep=paymentへ遷移する",
+      "role": "active customer本人のみ。guest/operator/admin・停止/退会済み・失効Session・他人のCheckout IDは認証/認可で拒否。Web/Androidで共通Use Caseを使用。",
+      "scenario": "regular-memberで本人のCartからstart後、住所未保存（unlockedStep=address, addressSnapshot=null）の状態で/checkout/paymentを直接開く。setAddress成功後(unlockedStep=payment)を正常対照、checkout-resume Seedも初期はaddressのみと区別。",
+      "data": "start-checkoutは有効Cartとversion一致でCheckoutSession(id=生成値,version1,unlockedStep=address,addressSnapshot=null,paymentMethodCode=null,status=active)を作る。checkout-resumeはcheckout-active/cartVersion1/Session version1/addressSnapshot=null。regular-member Seedの本人user-customer-regularでstep guardとWeb/Native表示を比較。失効/期限切れのexpireBefore副作用は無変更Caseと分ける。",
       "action": "不完全セッションを拒否",
-      "expected": "住所未保存でunlockedStep=addressのSessionへ/checkout/paymentからアクセスしても、CheckoutOrderUseCases.getActive('payment')はCHECKOUT_STEP_INCOMPLETEを返す。Webは『購入手続きを続けられません』と配送先画面への戻り先を表示して決済オプション/確認ボタンを描画しない。Nativeはエラー表示し、ready markerを出さずsetPaymentへ進めない。セッションの住所・version・ステップ、注文・決済は変更しない。顧客以外・他人のsessionは認証/認可・所有権で拒否する",
+      "expected": "住所未保存時はgetActive('payment')がCHECKOUT_STEP_INCOMPLETEとなり、保存済みaddressSnapshot/paymentMethodCode/unlockedStep/version、注文・決済を変更しない。Webは購入手続きエラーと/checkout/addressへの導線を表示し決済オプションを描画しない。AndroidはgetActive失敗をmessage表示しsession ready markerを出さず、submit時もsession=nullなのでsetPaymentを呼ばない。setAddress成功時のみpaymentステップが使用可能。期限切れはexpireBeforeによるstatus更新を許容して別判定。",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "住所未保存の注文確定、未解放の決済ステップへの直接URLアクセス、Nativeのready誤表示、前ステップ未完了で不正な支払方法を保存",
-      "test_condition": "regular-memberでstart直後のcheckout.getActive('payment')拒否とSession不変を確認。Web /checkout/paymentで不完全Sessionはエラー・配送先戻りLinkで確認ボタン非表示、Nativeはpayment ready marker非表示でsubmit不可。setAddress成功後は遷移可能、guest/operator/adminや他人sessionは別の認可Caseとして確認する",
-      "test_responsibility": "CheckoutOrderUseCases.getActive(requiredStep='payment')がunlockedStepをSTEP_ORDERで検査する。Web CheckoutPaymentContentとNative useCheckoutSession('payment')のエラー表示/非遷移を確認し、Repositoryに不正な更新がないことを統合テストで検証する",
-      "case_policy": "未保存住所、正常住所保存済み、guest/他人/管理Role、不正セッションと直接URLアクセスの状態を採用。Cart version不一致はA02-02で独立検証する",
-      "case_selection_reason": "未完了ステップを直接参照可能なため、画面表示だけでなくApplication境界と保存状態の非変更を検証する。Nativeにも同じセッション制約が必要",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:93-117、roles-and-permissions.md:1-25、Web checkout-order-pages.tsx:244-325、Native native-purchase-screens.tsx:684-735/878-939、CheckoutOrderUseCases.getActive:138-161とSessionIdentityResolver、regular-member Seed（初期住所なし）、integration checkout-order-use-cases.test.tsのstep guardとWeb/Nativeの不完全セッションcomponent testを照合。実行成功は別に判定",
+      "risk": "未保存住所でも決済方法が保存される・未解放URLからの注文確定・他人Checkoutの混入、Androidのsession-ready誤表示、expired検証に伴うstatus変更を『完全不変』と誤判定すること。",
+      "test_condition": "C1 regular-memberでstart後getActive('payment')がCHECKOUT_STEP_INCOMPLETE、CheckoutSession/Orders/Payments不変。C2 Web /checkout/paymentはエラー表示/配送先戻りLink、radioと確認アクション非表示。C3 Android NativeCheckoutPaymentScreenはエラーメッセージ・ready markerなし・次へdisabled、setPayment未呼出。C4 setAddressでunlockedStep=paymentへ解放しWeb/Android正常表示。C5 setPaymentを住所nullで直接呼んでもDexie/SQLiteがCHECKOUT_STEP_INCOMPLETE、Version不変。C6 guest/staff/停止・他人/期限切れ/Sessionなしはコード別に確認し、expireBeforeの期限切れstatusだけは許容。C1-C6実行/DB前後比較は未受入。",
+      "test_responsibility": "CheckoutOrderUseCases.start:108-139/getActive:141-160/setPayment:170-174→DexieCheckoutSessionRepository.setPayment:684-710/Native SQLite:1804-1838の住所・version制約。Web CheckoutPaymentContent:246-262/284-305はエラーUI、Native useCheckoutSession:661-709/NativeCheckoutPaymentScreen:852-904はmessageとready markerを確認。既存Native component:452-468はready marker拒否だけの部分証拠。",
+      "case_policy": "採用:C1 未保存SessionのUse Case拒否、C2 Web戻り導線/非描画、C3 Native ready/非遷移、C4 setAddress後解放、C5 Repository直境界、C6 Role/owner/expiryとexpire副作用。Cart版不一致はA02-02で独立し、決済結果・在庫変更は別操作へ分離。",
+      "case_selection_reason": "公式SCREEN-CHECKOUT-PAYMENT:93-106は不完全Sessionを安全に処理する要求。getActiveのSTEP_ORDER判定と両RepositoryのaddressSnapshot nullガードを確認したが、直接実Web/Android/DB前後と全例外ルートは別受入。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 独立ブランチ固定HEAD 90f75eb79a3462f75d1e5a1b405b309b231b1aeb。checkout-and-payment.md:9-23,93-118→CheckoutOrderUseCases.start/getActive/setPayment→Dexie setPayment/Native SQLite setPayment→Web CheckoutPaymentContent/Android useCheckoutSession・NativeCheckoutPaymentScreen→default/regular-member/checkout-resume Seedを再照合。NativeのgetActive拒否後にready markerを出さない既存Component:452-468を部分証拠に採用。期限切れに伴うexpireBefore更新はSession完全不変の例外として区別。C1-C6の実DB/実ブラウザ/実Android/CIは未実施。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10246,9 +10246,9 @@
       "related_use_cases": [
         "CheckoutOrderUseCases.start",
         "CheckoutOrderUseCases.getActive",
-        "CheckoutOrderUseCases.setAddress"
+        "CheckoutOrderUseCases.setPayment"
       ],
-      "analysis_progress": "正式仕様・Web/Native・Application/Repository・Seedを照合し、不完全Sessionの決済拒否と非遷移テストを追加。CIと実機結果は別判定 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "旧製品側差分のPASSを継承せず、独立ブランチのSUTを静的再照合して基本分析のみ完了。C1-C6実行/Role/expiry/DB前後/視覚・Android/CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 238,
@@ -10274,28 +10274,64 @@
       "use_case_evidence": [],
       "audit_branch_refs": [
         {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Checkout sessionとCart版ルール"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 93,
+          "end_line": 118,
+          "reason": "Payment UI/不完全Session規約"
+        },
+        {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 136,
-          "end_line": 163,
-          "reason": "requiredStep=paymentの状態検査とCart versionの順序"
+          "start_line": 108,
+          "end_line": 174,
+          "reason": "step guardとmutating API"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 244,
-          "end_line": 274,
-          "reason": "Webの未完了Sessionエラーと配送先への戻り先"
+          "start_line": 246,
+          "end_line": 305,
+          "reason": "Web getActive failure and no options"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 882,
-          "end_line": 939,
-          "reason": "Nativeの未完了セッション表示とready marker制御"
+          "start_line": 661,
+          "end_line": 709,
+          "reason": "Native step failure avoids start"
         },
         {
-          "path": "tests/integration/checkout-order-use-cases.test.ts",
-          "start_line": 150,
-          "end_line": 185,
-          "reason": "住所未保存状態の拒否・Session不変を追加検証"
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 852,
+          "end_line": 904,
+          "reason": "Native ready marker and submit guard"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 684,
+          "end_line": 710,
+          "reason": "Dexie addressSnapshot/version guard"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1804,
+          "end_line": 1838,
+          "reason": "SQLite addressSnapshot/version guard"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "checkout-resume/Cart version initial values"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 452,
+          "end_line": 468,
+          "reason": "Native ready marker negative test"
         }
       ],
       "reviewed_against": [
@@ -10312,20 +10348,20 @@
       "source_line": 100,
       "source_text": "不完全なセッションやカートバージョンの不一致を安全に処理する。",
       "platform": "web,android",
-      "role": "customer",
-      "scenario": "cart-version-invalidates-checkout Seedの顧客本人セッションでCart current version2に対しCheckoutSession cartVersion1の不整合。住所保存済みPaymentステップからCartを更新したケースでも同じ拒否を確認",
-      "data": "cart-version-invalidates-checkout Seed: session-checkout, checkout-activeはcartVersion1、Cartはversion2、固定時刻2026-07-01T03:00Z。統合テストではregular-memberでstart→setAddress後にDBのCart versionを+1して不一致を再現する",
+      "role": "active customer本人。guest・staff・停止顧客・他人Session拒否。Web/Androidの共通Use CaseによるCart version検証。",
+      "scenario": "cart-version-invalidates-checkout SeedはCart.version2対CheckoutSession.cartVersion1だがunlockedStep=addressなので『Payment到達済みの旧Cart』の直接Fixtureではない。Paymentステップの狭義の競合はregular-memberでstart→setAddress後、Cart.versionだけ+1して再現する。",
+      "data": "cart-version-invalidates-checkout Seedはsession-checkout/user-customer-regular、checkout-active(cartVersion1,version1,unlockedStep=address,expiresAt=2026-07-02T03:00:00Z)、active Cart.version2。正常なPayment比較にはregular-memberでstart→setAddress→Cart.versionを+1しcheckoutSession.cartVersionを保存値のままにする。各拒否前後でcheckout_sessions、carts、orders、payments、product_variantsを分けて比較。",
       "action": "古いカートバージョンを拒否",
-      "expected": "CheckoutOrderUseCases.getActive('payment')とsetPaymentは現在のCart versionとセッションのcartVersionが一致しない場合CART_VERSION_CHANGEDを返し、保存済みpaymentMethodCode、unlockedStep、versionを変更しない。Webは配送先へ戻る導線を表示し支払方法選択画面に進めず、Nativeはエラー表示して決済ready markerを出さない。旧Sessionで注文・支払確定できない",
+      "expected": "Cart.versionとCheckoutSession.cartVersionの不一致はCheckoutOrderUseCases.getActive('payment')/setPaymentからCART_VERSION_CHANGEDで拒否しpaymentMethodCode/unlockedStep/versionと注文・決済を変更しない。Web /checkout/paymentの読み込み失敗はCheckoutLoadErrorで選択を描画せず、現SUTは/checkout/addressへ戻す。正式BR-CHECKOUT-002の『Cart不一致ならカートへ戻す』とのルート適合は未解決。Androidはmessage/ready markerなし・submit不可だが、失敗専用のカート復帰Linkは確認できず製品側判断候補。基本分析完了は製品適合PASSでない。",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "カート変更後に旧価格・旧数量で決済、別商品の注文、stale Sessionから未検証の支払方法保存、誤って新しい支払方法を確定する",
-      "test_condition": "固定Seedとregular-member状態を用意し、Cart.version+1後にgetActive('payment')・setPaymentがCART_VERSION_CHANGEDを返すこと、checkout_sessionsのversionとpaymentMethodCode/unlockedStepが不変なことを確認。Webのエラー境界、NativeでgetActive拒否したときの非ready・start非実行・confirm非遷移を確認する",
-      "test_responsibility": "CheckoutOrderUseCases.assertCartVersion/ assertSessionForMutation、CheckoutPaymentContentとNative useCheckoutSession('payment')、Dexie/SQLiteのCheckoutSession/Cart整合性、固定Seedの不一致再現を検証する",
-      "case_policy": "Cart version一致・不一致、旧version mutation拒否、別Userセッション・期限切れは関連セッションCaseと区別して採用。既存決済結果の再実行は別の注文確定Case",
-      "case_selection_reason": "Cart変更時に旧Sessionから決済すると商品の価格/在庫の再検証規則に違反するため、状態の不一致による保存拒否とUI非遷移の双方が必要",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:13-18,93-117、CheckoutOrderUseCases.getActive:138-161/setPayment/ assertSessionForMutation:575-608, Dexie/SQLite checkoutSessionRepository、cart-version-invalidates-checkout Seed scenarios.ts:367-395（Cart2/Session1）、integration checkout-order-use-cases.test.tsのCart version拒否とWeb/Native componentのエラー境界を照合。最新実行PASSは別に確認",
+      "risk": "High R1=古いCart数量/価格を決済、R2=stale Sessionへの支払い方法保存・二重注文。Medium R3=Webがstale Cartでaddressへ戻すため正本のCart修正へ直接進めない、R4=Nativeでカート復帰導線がなく画面から復旧しにくい、R5=Seedのaddress Step未解放をCart version拒否と混同する。実UI再現・製品適合は未判定。",
+      "test_condition": "C1 Cart/version一致・住所保存済みでgetActive('payment')正常。C2 同SessionのCartをversion1→2としてgetActive('payment')がCART_VERSION_CHANGED。C3 旧checkoutExpectedVersionでsetPaymentがCART_VERSION_CHANGED、CheckoutSession.paymentMethodCode/unlockedStep/versionとorders/payments/stock/history不変。C4 fixed cart-version-invalidates-checkout SeedではgetActive('address')のCart mismatchを確認し、Payment到達済みの再現と区別。C5 Webの失敗UI/戻りLink(/checkout/address)と正式BR要求のCart戻りを対比、Nativeでmessage・ready markerなし・return pathを確認。C6 自分以外/期限切れ/old checkoutExpectedVersion、新Checkout再開後の復旧、実Web/Native/DB前後/Traceで検証。C1-C6実Runは未受入。",
+      "test_responsibility": "CheckoutOrderUseCases.getActive:141-160/ assertSessionForMutation:572-594がCART_VERSION_CHANGEDで拒否する（Repo単体setPaymentにはCart version再照合はない）。Web CheckoutPaymentContent:246-262とCheckoutLoadError:85-105、Android useCheckoutSession:661-709/NativeCheckoutPaymentScreen:852-904を区別。Dexie/SQLite setPaymentのversion guardとSeed:367-395、Integration:116-135はCart version拒否の部分証拠。",
+      "case_policy": "採用:C1 正常版、C2 Payment到達後Cart更新、C3 Mutation拒否と5種類DB不変、C4 Seedのaddress未解放との区別、C5 Web/Android復帰導線の正式BRとの差、C6 owner/expiry/旧checkoutExpectedVersion/新Session復旧。除外:確認画面の価格変動・注文確定(A02-02 of Confirm)、実決済失敗、製品SUT変更。",
+      "case_selection_reason": "BR-CHECKOUT-002はCart版不一致なら注文/決済を作成しないと明記。ApplicationのassertCartVersionは共通だが、固定SeedはPayment到達済みではない。Webの固定Link(/checkout/address)と正式Cart復帰規約・Androidの専用復帰導線未確認を区別したCaseが必要。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 独立ブランチ固定HEAD 90f75eb79a3462f75d1e5a1b405b309b231b1aeb。checkout-and-payment.md:9-23,93-118→CheckoutOrderUseCases.getActive/assertSessionForMutation/assertCartVersion→Dexie/SQLite setPayment→Web CheckoutLoadError/PaymentとNative useCheckoutSession/Payment→scenarios.ts:367-395の実Seed値とIntegration:116-135を静的照合。WebのCart mismatch戻り先がaddress固定（正式BRはcart戻り）という製品適合候補を明示し、Androidの復帰導線は未実証。C1-C6直接実Run/DB前後/Trace/CIは未実施。基本分析のみ完了。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10337,7 +10373,7 @@
         "CheckoutOrderUseCases.getActive",
         "CheckoutOrderUseCases.setPayment"
       ],
-      "analysis_progress": "固定SeedとApplication/RepositoryのCart version境界、Web/Nativeの拒否表示と統合テストを照合済み。CI/実機の最終結果は別に確認 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "Cart version競合の静的経路・実Seedのstep前提・Web/Android UI/BRの差を整理。製品側ルート適合判断とC1-C6実Web/Native/DB前後・CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 238,
@@ -10363,34 +10399,76 @@
       "use_case_evidence": [],
       "audit_branch_refs": [
         {
-          "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 138,
-          "end_line": 183,
-          "reason": "getActive('payment')のCart version照合とsetPayment検査"
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Cart版不一致時にCartへ戻すBR"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 93,
+          "end_line": 118,
+          "reason": "Payment不一致安全処理"
         },
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 580,
-          "end_line": 620,
-          "reason": "保存前の本人SessionとCart version検査"
+          "start_line": 141,
+          "end_line": 174,
+          "reason": "getActive and setPayment"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 572,
+          "end_line": 594,
+          "reason": "CartVersion guard prior to Repository"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 85,
+          "end_line": 105,
+          "reason": "Web CheckoutLoadError configurable route"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 246,
+          "end_line": 275,
+          "reason": "Web payment failure path always address"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 661,
+          "end_line": 709,
+          "reason": "Native getActive failure"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 852,
+          "end_line": 904,
+          "reason": "Native payment ready guard/no cart link"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 684,
+          "end_line": 710,
+          "reason": "Dexie update version guard"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1804,
+          "end_line": 1838,
+          "reason": "SQLite update version guard"
         },
         {
           "path": "src/seeds/scenarios.ts",
           "start_line": 367,
-          "end_line": 396,
-          "reason": "Cart version2と旧Session version1のSeed"
+          "end_line": 395,
+          "reason": "Actual Cart 2/checkout 1 and address step"
         },
         {
           "path": "tests/integration/checkout-order-use-cases.test.ts",
-          "start_line": 162,
-          "end_line": 230,
-          "reason": "支払方法更新前のCart version拒否・状態不変"
-        },
-        {
-          "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 684,
-          "end_line": 733,
-          "reason": "Native payment画面はversion不一致からcheckoutを再開始しない"
+          "start_line": 116,
+          "end_line": 135,
+          "reason": "getActive rejection and replacement evidence"
         }
       ],
       "reviewed_against": [
@@ -21048,28 +21126,31 @@
       "source_line": 28,
       "source_text": "0 / 1〜5 / 6以上の境界値判定とバージョン競合について明示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,low-stock,storage-write-failure。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 競合更新を拒否",
+      "role": "active operator/admin（Webの管理機能）。guest/customer・停止/退会・失効Sessionは認証/権限を別Caseで拒否確認する。",
+      "scenario": "default Seedのuser-operatorで対象SKU variant-basic-shirt-02を取得し、表示時のversion Vを保持する。別の正常調整で同一SKUをV+1へ更新した後、古いVで再調整する並行更新を隔離再現する。low-stockは在庫境界の補助、storage-write-failureは履歴書込み失敗時の原子性検証であり、version競合とは別条件。",
+      "data": "default SeedはP-0001-02（variant-basic-shirt-02）の初期数量10、version 1、初期履歴INITIAL_STOCK（before=0/after=10、actorUserId=user-admin）を持つ。Web一覧はSKU・stockQuantity・versionを表示して選択時のInventoryItemを保持。成功変更でversion+1・履歴1件追加。競合ケースでは同SKUの古いexpectedVersionを再送し、成功変更後のquantity/version/historyを基準に不変比較する。",
       "action": "競合更新を拒否",
-      "expected": "古いversionを使った在庫更新を拒否し、競合前の数量と変更履歴を保持する",
+      "expected": "active operator/adminの調整は選択SKUのexpectedVersionが保存済みversionと一致する時だけ適用する。不一致はCONFLICTで拒否し、そのリクエストによる在庫数/version/履歴件数の変更がない。数量と履歴の成功更新は同一トランザクション。Webは失敗時に『在庫を更新できませんでした。数量、理由、最新バージョンを確認してください。』と表示し成功メッセージを出さない。古い選択行の自動更新・復旧導線は別の実UI検証対象。",
       "rule_refs": [],
       "route": "`/admin/inventories`",
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "競合更新を拒否実施前後で、古いversionを使った在庫更新を拒否し、競合前の数量と変更履歴を保持することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、競合更新を拒否の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "競合更新を拒否が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "High R1=古いversionによる後勝ち上書き・在庫ロスト、R2=履歴のみ/数量のみ部分更新、R3=他SKUまたは権限外操作。Medium R4=選択中の古いSKU versionを再送し続けるUIの復旧不備、R5=数量非整数/非負超過・理由不正、R6=同時更新でリトライ挙動未実証。assertExpectedVersionは現在値比較だが同時実行での実証は別途必要。",
+      "test_condition": "C1 operatorがP-0001-02 (quantity10/version1)を選択し、同SKUを別の正常調整でversion2へ更新後、古いexpectedVersion=1のadjustInventoryがCONFLICT、version2の数量と履歴が前後不変であること。C2 将来version=V+1や非整数versionを指定してCONFLICT、変更なしを確認。C3 成功時は変更前後数量・reasonCode/Text・actorUserId・履歴ID/件数・version+1を同時検証。C4 0未満の減算や整数以外/理由空・ORDER_PURCHASE禁止を拒否。C5 履歴書込みを失敗注入し、product_variantsとinventory_histories双方のロールバックを確認。C6 Webでstale選択値から拒否時のエラー表示と成功メッセージ非表示、再読込または閉じて選び直して復帰可能か確認。C7 active operator/admin可・guest/customer/停止staff不可・別SKU不変、並行2リクエストの勝者が1件であることを実Web/DBで検証。C1-C7実Runは未受入。",
+      "test_responsibility": "Web AdminInventoriesPage:69-125/196-210/222-259のSKU選択・expectedVersion/エラー→AdminOperationsUseCases.adjustInventory:91-113のrequireStaff・入力検証→DexieApplicationTransactionRunner:98,134-140のproduct_variants+inventory_histories同一transaction→DexieInventoryRepository.updateQuantity:561-595のversion比較/数量チェック/履歴記録を追跡。既存Integration:61-117は成功と不正versionの部分証拠で、実際の2並行更新や履歴書込み途中失敗の直接検証ではない。",
+      "case_policy": "採用:C1 実変更後の古いversion、C2 不正version、C3 成功時履歴原子性、C4 負数/非整数/理由入力、C5 書込み途中失敗、C6 UIエラーと再選択、C7 Role/別SKU/実競合。除外:在庫0/1/5/6の分類(A02-01)、商品一覧/管理商品公開状態、Native管理非対応。実Web/DB/CI成功を基本静的分析完了に含めない。",
+      "case_selection_reason": "正式BR-ADMININV-002/AC-ADMININV-002は在庫変更・履歴の同時保存/失敗時不変を要求し、画面仕様28行にversion競合を明示。Use Case→transaction→Repositoryの原子性境界はコード上確認できるが、Integrationの競合テストは保存済みVersionより大きい値の拒否であり、成功した別更新後のstale再送/本物の並行競合は別Caseが必要。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 独立ブランチ固定HEAD 90f75eb79a3462f75d1e5a1b405b309b231b1aeb。admin-inventory.md:9-28,65-69、roles-and-permissions、Web AdminInventoriesPage:69-125/222-259→AdminOperationsUseCases.adjustInventory:91-113/requireStaff:289-299→Dexie transaction-runner:98,134-140→DexieInventoryRepository.updateQuantity:561-595/Repository helper:4-7を静的照合。default SeedのSKU数量とINITIAL_STOCK履歴、Integration:61-117/Component:160-180を確認。C1-C7のCaseと実行再開条件を具体化。真の同時競合・途中書込み失敗・UI再選択の実Run、Vitest/Playwright/CIは未実施。既存のVersion拒否テストは部分証拠に限定。",
       "requirement_refs": [
         "BR-ADMININV-001",
         "BR-ADMININV-002",
         "AC-ADMININV-001",
         "AC-ADMININV-002"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminOperationsUseCases.adjustInventory",
+        "AdminOperationsUseCases.getInventoryDetail"
+      ],
+      "analysis_progress": "基本静的分析完了。別更新後のstale再送・並行競合・履歴書込失敗注入・Role別DB前後・Webの古い選択値の復帰、直接テストと最終CIは未受入。製品側コードには非干渉。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-operations-pages.tsx",
         "line": 69,
@@ -21092,7 +21173,93 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "AdminOperationsUseCases.adjustInventory",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 91,
+          "signature": "async adjustInventory(request: AdjustInventoryRequest): Promise<InventoryDetail> {"
+        },
+        {
+          "id": "AdminOperationsUseCases.getInventoryDetail",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 73,
+          "signature": "async getInventoryDetail(variantId: string): Promise<InventoryDetail> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 9,
+          "end_line": 28,
+          "reason": "在庫・履歴の同時保存とVersion競合UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 65,
+          "end_line": 69,
+          "reason": "AC-ADMININV-002失敗時双方不変"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 109,
+          "end_line": 125,
+          "reason": "選択済みVersion送信と失敗メッセージ"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 222,
+          "end_line": 259,
+          "reason": "選択時の古いVersionと入力UI"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 91,
+          "end_line": 113,
+          "reason": "staff/入力検証/adjust-inventory scope"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 98,
+          "end_line": 98,
+          "reason": "VariantとHistoryのtransaction table"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 561,
+          "end_line": 599,
+          "reason": "expectedVersion/数量境界/履歴追記"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/repository-helpers.ts",
+          "start_line": 4,
+          "end_line": 8,
+          "reason": "version不一致CONFLICT"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 782,
+          "end_line": 793,
+          "reason": "初期履歴生成"
+        },
+        {
+          "path": "tests/integration/admin-operations-use-cases.test.ts",
+          "start_line": 61,
+          "end_line": 117,
+          "reason": "成功・不正version拒否の部分証拠"
+        },
+        {
+          "path": "tests/component/admin-operations-pages.test.tsx",
+          "start_line": 160,
+          "end_line": 180,
+          "reason": "WebからのexpectedVersion送信の部分証拠"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-INVENTORIES-S-stock-boundaries",
