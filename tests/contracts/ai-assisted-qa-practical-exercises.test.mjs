@@ -42,10 +42,11 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
     });
   }
 
-
   for (const moduleId of modules) {
     it(`${moduleId}のP01〜P06が各模範資料に対応し、学習用配布から除外される`, () => {
-      const exercise = read(`training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`);
+      const exercise = read(
+        `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`,
+      );
       const reference = read(
         `training/ai-assisted-qa-course/assessment/reference-solutions/${moduleId}.md`,
       );
