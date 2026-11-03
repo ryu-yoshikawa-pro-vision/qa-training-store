@@ -517,8 +517,7 @@ export function recordModelInvocation({
   promptSha256,
   systemPromptSha256,
 }) {
-  if (kind !== "calibration" && kind !== "assessment")
-    fail("unsupported OpenCode invocation kind");
+  if (kind !== "calibration" && kind !== "assessment") fail("unsupported OpenCode invocation kind");
   const invocationPath = path.join(attemptDirectory, `${kind}-invocation.json`);
   if (fs.existsSync(invocationPath)) {
     if (!fs.lstatSync(invocationPath).isFile())
