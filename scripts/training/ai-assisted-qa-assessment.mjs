@@ -509,6 +509,46 @@ export function writeImmutableOpenCodePrompt(promptPath, prompt) {
   }
 }
 
+export function recordModelInvocation({
+  attemptDirectory,
+  kind,
+  modelId,
+  version,
+  promptSha256,
+  systemPromptSha256,
+}) {
+  if (kind !== "calibration" && kind !== "assessment")
+    fail("unsupported OpenCode invocation kind");
+  const invocationPath = path.join(attemptDirectory, `${kind}-invocation.json`);
+  if (fs.existsSync(invocationPath)) {
+    if (!fs.lstatSync(invocationPath).isFile())
+      fail("saved OpenCode invocation is not a regular file");
+    const prior = readJson(invocationPath, "saved OpenCode invocation");
+    if (
+      prior.schema_version !== 1 ||
+      prior.model_id !== modelId ||
+      prior.opencode_version !== version ||
+      prior.prompt_sha256 !== promptSha256 ||
+      prior.system_prompt_sha256 !== systemPromptSha256
+    )
+      fail("saved OpenCode invocation differs from the pinned evaluator input");
+    fail(
+      "OpenCode invocation may already have reached the model without a saved response; automatic resend is unsafe. Check the provider's usage and create a new assessment for an explicitly authorized retry",
+    );
+  }
+  // Persist before any external model call. Even if the process dies after the
+  // provider responds but before its JSON is published, the same attempt must
+  // never silently send a duplicate request.
+  atomicWriteJson(invocationPath, {
+    schema_version: 1,
+    model_id: modelId,
+    opencode_version: version,
+    prompt_sha256: promptSha256,
+    system_prompt_sha256: systemPromptSha256,
+    started_at: new Date().toISOString(),
+  });
+}
+
 async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, fileName }) {
   const promptPath = path.join(directory, fileName);
   writeImmutableOpenCodePrompt(promptPath, prompt);
@@ -784,6 +824,18 @@ async function obtainCalibration({ inputs, modelId, version, attemptDirectory })
     if (isPassingCalibration(existingCalibration)) return existingCalibration;
     // Keep a legacy failed cache for audit, but retry rather than blocking this model forever.
   }
+  writeImmutableOpenCodePrompt(
+    path.join(attemptDirectory, "calibration-prompt.md"),
+    calibrationPrompt.text,
+  );
+  recordModelInvocation({
+    attemptDirectory,
+    kind: "calibration",
+    modelId,
+    version,
+    promptSha256: sha256(calibrationPrompt.text),
+    systemPromptSha256: calibrationPromptSha,
+  });
   const run = await runOpenCode({
     modelId,
     version,
@@ -1422,6 +1474,14 @@ export async function obtainAssessmentCandidate({
     return { value: saved.candidate, sessionId: saved.session_id ?? null };
   }
   writeImmutableOpenCodePrompt(promptPath, prompt);
+  recordModelInvocation({
+    attemptDirectory,
+    kind: "assessment",
+    modelId,
+    version,
+    promptSha256,
+    systemPromptSha256: evaluatorPromptSha256,
+  });
   const response = await run();
   atomicWriteJson(candidatePath, {
     received_at: new Date().toISOString(),

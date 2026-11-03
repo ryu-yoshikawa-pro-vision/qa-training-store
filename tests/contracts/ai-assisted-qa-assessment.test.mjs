@@ -33,6 +33,7 @@ import {
   readAttemptCalibration,
   readChallengeAnswer,
   reconcileFinalizedAssessment,
+  recordModelInvocation,
   showHistory,
   writeImmutableOpenCodePrompt,
   withAttemptResumeLock,
@@ -494,6 +495,118 @@ process.exit(18);`;
     /differs from the pinned evaluator input/,
   );
   expect(repeatedCalls).toBe(0);
+});
+
+it("does not resend an OpenCode response lost before immutable candidate publication", async () => {
+  const attemptDirectory = path.join(tempRoot, "unpublished-assessment-response");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const prompt = "Pinned learner evidence and live answer";
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  const candidatePath = path.join(attemptDirectory, "ai-candidate.json");
+  const invocationPath = path.join(attemptDirectory, "assessment-invocation.json");
+  let modelCalls = 0;
+  const evaluate = () =>
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt,
+      modelId,
+      version,
+      run: async () => {
+        modelCalls += 1;
+        return { value: { schema_version: 1, objectives: [] }, sessionId: "session-unpublished" };
+      },
+    });
+  const originalLink = fs.linkSync.bind(fs);
+  const intercept = vi.spyOn(fs, "linkSync").mockImplementation((source, destination) => {
+    if (destination === candidatePath) throw new Error("candidate publication interrupted");
+    return originalLink(source, destination);
+  });
+  try {
+    await expect(evaluate()).rejects.toThrow(/candidate publication interrupted/);
+  } finally {
+    intercept.mockRestore();
+  }
+  expect(modelCalls).toBe(1);
+  expect(fs.existsSync(candidatePath)).toBe(false);
+  const invocation = JSON.parse(fs.readFileSync(invocationPath, "utf8"));
+  expect(invocation).toMatchObject({
+    schema_version: 1,
+    model_id: modelId,
+    opencode_version: version,
+    prompt_sha256: sha256(prompt),
+  });
+  await expect(evaluate()).rejects.toThrow(/automatic resend is unsafe/);
+  expect(modelCalls).toBe(1);
+  await expect(
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt,
+      modelId: "provider/different",
+      version,
+      run: async () => {
+        modelCalls += 1;
+        throw new Error("unexpected model call");
+      },
+    }),
+  ).rejects.toThrow(/differs from the pinned evaluator input/);
+  expect(modelCalls).toBe(1);
+});
+
+it("does not call a model when its durable invocation record cannot be written", async () => {
+  const attemptDirectory = path.join(tempRoot, "failed-invocation-record");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const invocationPath = path.join(attemptDirectory, "assessment-invocation.json");
+  let modelCalls = 0;
+  const originalLink = fs.linkSync.bind(fs);
+  const intercept = vi.spyOn(fs, "linkSync").mockImplementation((source, destination) => {
+    if (destination === invocationPath) throw new Error("invocation record write failed");
+    return originalLink(source, destination);
+  });
+  try {
+    await expect(
+      obtainAssessmentCandidate({
+        attemptDirectory,
+        prompt: "Safe pinned input",
+        modelId: "provider/model",
+        version: "2.0.22",
+        run: async () => {
+          modelCalls += 1;
+          return { value: {}, sessionId: null };
+        },
+      }),
+    ).rejects.toThrow(/invocation record write failed/);
+  } finally {
+    intercept.mockRestore();
+  }
+  expect(modelCalls).toBe(0);
+  expect(fs.existsSync(invocationPath)).toBe(false);
+});
+
+it("never repeats a calibration invocation with a recorded but unverified response", () => {
+  const attemptDirectory = path.join(tempRoot, "unpublished-calibration-response");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const invocation = {
+    attemptDirectory,
+    kind: "calibration",
+    modelId: "provider/model",
+    version: "2.0.22",
+    promptSha256: sha256("fixed calibration prompt"),
+    systemPromptSha256: sha256("fixed calibration instructions"),
+  };
+  recordModelInvocation(invocation);
+  const saved = JSON.parse(
+    fs.readFileSync(path.join(attemptDirectory, "calibration-invocation.json"), "utf8"),
+  );
+  expect(saved).toMatchObject({
+    schema_version: 1,
+    model_id: invocation.modelId,
+    prompt_sha256: invocation.promptSha256,
+  });
+  expect(() => recordModelInvocation(invocation)).toThrow(/automatic resend is unsafe/);
+  expect(() =>
+    recordModelInvocation({ ...invocation, promptSha256: sha256("modified prompt") }),
+  ).toThrow(/differs from the pinned evaluator input/);
 });
 
 it("reuses identical validated candidates but never silently replaces changed results", () => {
