@@ -233,6 +233,85 @@ describe("M10 GitHub Run evidence contract", () => {
     ).toThrow(/exactly the reviewed actions and shell commands/);
   });
 
+  it("rejects workflow-level privilege, job overrides, and step-level bypasses", () => {
+    const workflow = fs.readFileSync(
+      path.join(root, "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled"),
+      "utf8",
+    );
+    const cases = [
+      [
+        workflow.replace("jobs:\n", "env:\n  BASH_ENV: ./bootstrap.sh\njobs:\n"),
+        /unapproved top-level fields/,
+      ],
+      [
+        workflow.replace(
+          "    runs-on: ubuntu-latest\n",
+          "    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n",
+        ),
+        /unapproved job fields/,
+      ],
+      [
+        workflow.replace(
+          "    runs-on: ubuntu-latest\n",
+          "    runs-on: ubuntu-latest\n    continue-on-error: true\n",
+        ),
+        /unapproved job fields/,
+      ],
+      [
+        workflow.replace(
+          "      - run: pnpm install --frozen-lockfile\n",
+          "      - run: pnpm install --frozen-lockfile\n        continue-on-error: true\n",
+        ),
+        /unapproved step fields/,
+      ],
+      [
+        workflow.replace(
+          "      - run: pnpm install --frozen-lockfile\n",
+          "      - run: pnpm install --frozen-lockfile\n        env:\n          NODE_OPTIONS: --require ./bootstrap.js\n",
+        ),
+        /unapproved shell environment variables/,
+      ],
+      [
+        workflow.replace(
+          "          persist-credentials: false\n",
+          "          persist-credentials: false\n          submodules: true\n",
+        ),
+        /unapproved action options fields/,
+      ],
+      [
+        workflow.replace(
+          "          PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample\n",
+          "          PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample\n          BASH_ENV: ./bootstrap.sh\n",
+        ),
+        /unapproved test step environment fields/,
+      ],
+      [
+        workflow.replace(
+          "          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}",
+          "          EXPECTED_HEAD_SHA: deadbeef",
+        ),
+        /must verify the PR head SHA/,
+      ],
+      [
+        workflow.replace(
+          "      - run: mkdir -p output/training/ai-assisted-qa\n      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
+          "      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt\n      - run: mkdir -p output/training/ai-assisted-qa",
+        ),
+        /reviewed checkout, SHA, test, and upload order/,
+      ],
+      [
+        workflow.replace("version: 10.34.5", "version: 10.34.6"),
+        /retain the reviewed Node and pnpm versions/,
+      ],
+    ];
+    for (const [changed, reason] of cases) {
+      expect(changed).not.toBe(workflow);
+      expect(() => validateCourseWorkflow(changed, evidence.workflow_path, evidence)).toThrow(
+        reason,
+      );
+    }
+  });
+
   it("extracts only expected, bounded evidence from ZIP and rejects traversal", () => {
     const archive = makeZip([
       ["target-sha.txt", SHA],
