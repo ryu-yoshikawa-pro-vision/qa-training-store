@@ -2340,7 +2340,8 @@ it("restores a completed result only with the matching candidate and passing cal
   fs.unlinkSync(attemptCandidatePath);
   expect(recover).toThrow(/incomplete attempt calibration/);
   fs.unlinkSync(attemptCalibrationPath);
-  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+  // The remaining shared cache is failed; reject it at the calibration metadata gate.
+  expect(recover).toThrow(/saved model calibration cache metadata is invalid/);
   // A prior passing shared cache is valid when no per-attempt calibration was run.
   fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
   expect(recover().completed).toBe(true);
