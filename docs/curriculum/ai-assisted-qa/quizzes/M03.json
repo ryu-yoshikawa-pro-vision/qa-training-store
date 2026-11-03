@@ -339,7 +339,7 @@
       "knowledge_ids": [
         "K-M03-01"
       ],
-      "question": "数量入力は0以下を拒否、1〜3を許可、4以上を上限超過として拒否する仕様です。3つの同値クラスから代表値を1つずつ選ぶ組合せはどれですか。",
+      "question": "Scenario Shopのカートとは別の架空の整数入力フォームでは、0以下を拒否、1〜3を許可、4以上を上限超過として拒否します。このフォームの3つの同値クラスから代表値を1つずつ選ぶ組合せはどれですか。",
       "options": [
         {
           "value": "A",
@@ -368,9 +368,9 @@
       ],
       "correct_value": "B",
       "source_refs": [
-        "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
+        "docs/curriculum/ai-assisted-qa/modules/M03/README.md#21-どうして同値分割が必要なのか"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#同値分割同じ結果になる値をまとめる"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M03/README.md#21-どうして同値分割が必要なのか"
     }
   ]
 }
