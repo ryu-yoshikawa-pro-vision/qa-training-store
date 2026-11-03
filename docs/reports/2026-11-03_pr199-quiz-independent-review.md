@@ -53,7 +53,7 @@ M09の四択7問は教材本文、M09の演習、公開の模範解答、採点�
 
 ## 未完了の受入と検証
 
-- M00・M01・M04〜M08・M10の**残り54問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
+- M00・M01・M04・M06〜M08・M10の**残り42問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
 - クイズの復習先アンカー、ブラウザーの実表示・回答保存・旧版回答の拒否は、既存validator/契約テストの範囲と実Web確認を分けて受入する。今回は実Webを動かしていない。
 - M09の記述式10問・教材本文の全記述・演習提出物・採点用Caseの全意味一致は未受入。今回のM09レビューは**四択7問の静的正答・説明確認**に限る。
 - 51目標への四択の配置は確認できたが、学習目標のLevel 2・3を各問だけで評価できるとは結論しない。学習者本人の実技・採点・外部Skillの実Runは別に受入する。
@@ -102,3 +102,37 @@ CIでは今回の最終HEADに紐づく結果を確認する。合格しない�
 修正後は17問とも提示された条件から正答が一意に導け、ほかの選択肢の理由も条件と矛盾しないと静的に判断した。独立意味レビューの累計は**24/78問**（M02:8、M03:9、M09:7）、残りは**54問**（M00/M01/M04〜M08/M10）。51学習目標へのID対応が存在することと、実技・評価・授業での理解が成立することは別の受入条件とする。
 
 直接確認はJSON構文・17問の問題数・正答値および差分の静的点検のみ。今回の3ファイル変更に対する`pnpm format:check`、`pnpm test:contracts`、`pnpm lint:text:all`と同一最終HEADのCI結果は**未検証**として残す。Scenario Shop製品SUT、正式仕様、既存E2E、定期実行4件の台帳は変更しない。
+
+## 2026-11-03追記：M05四択12問の独立レビュー
+
+開始時HEAD：`8a4ec4ef15a575240cc30aafe12a28ffdaf6dbe6`。教材、演習P01〜P06、模範成果物、専用Config、package.json、Playwright/TypeScript公式仕様を照合した。12問すべてで提示条件から正答が一意に導けることと全選択肢の理由を静的に点検した。実ブラウザー・実受講・正式評価の受入ではない。
+
+| 設問 | 正答 | 確認した理由 | 根拠 |
+| --- | :---: | --- | --- |
+| M05-Q01 | A | Node.js・package.json・pnpmの役割を区別 | package.json / M05 §1 |
+| M05-Q02 | B | page.gotoは既定のload完了条件まで待つ | Playwright Page.goto / M05 §6 |
+| M05-Q03 | B | getByRoleはLocatorを作りクリックしない | Playwright Locators / M05 §6A |
+| M05-Q04 | A | toBeVisibleは可視性のみを検証 | Playwright Assertions / M05 §7 |
+| M05-Q05 | A | 固定待機の前に失敗原因と期待結果を確認 | M05 §6.3・§8 / 演習P06 |
+| M05-Q06 | B | loopback 8082、専用testDirと結果先 | playwright.ai-assisted-qa.config.ts / settings.ts |
+| M05-Q07 | B | 配列の添字1は5 | Node.js v22.16.0実行：5 |
+| M05-Q08 | B | cart.quantityを4に変更 | Node.js v22.16.0実行：4 |
+| M05-Q09 | C | 2>=3が偽なので範囲内 | Node.js v22.16.0実行：範囲内 |
+| M05-Q10 | D | number引数2と3の加算は5 | Node.js v22.16.0実験的TS型除去：5 |
+| M05-Q11 | B | aria-label購入がbuttonのアクセシブル名 | M05 §6A / Playwright Locators |
+| M05-Q12 | C | stringをnumberへ代入するとTS2322 | tsc --noEmit --strict：終了コード2 |
+
+### 修正した不整合
+
+- **M05-Q02**：`await page.goto`の待機範囲を既定の`load`イベントまでと明確化。後続の通信・結果表示は別途確認する。無関係なTypeScript Everyday Typesの出典をPlaywright Page.goto公式へ置換。
+- **M05教材 §7.1**：LocatorとAssertionのみの例にActionがない点を明記。コメント番号、テスト名、ナビゲーション待機の説明を修正。可視性からリンク先の正しさを推論しない。
+- **M05模範成果物 P05**：演習・default Seed・参照specで同一の`product-mug`（セラミックマグ）/`product-low-stock`（コンパクトタオル）のIDと名称を明記。
+
+### 直接検証と未受入
+
+- Q07〜Q09はNode.js v22.16.0の実行結果を確認。Q10は同環境でTypeScript型除去（実験的機能）により5を確認。
+- Q12は独立した一時ファイルを`tsc --noEmit --skipLibCheck --strict --target ES2022`で検査し、TS2322・終了コード2を確認した。リポジトリの`pnpm`による型検査・Playwright実行を行ったわけではない。
+- TrainingのConfigで接続先loopback 8082と、許可されたworkspace/assessment領域・専用JSON reporterを静的確認した。M05 P05参照specの実Runは未受入。
+- 本人のM05 before/after Run、P01〜P06の実行と提出・採点照合、標準のformat/lint/test、最終HEADの全必須CI成功は未確認のまま残す。
+
+**累計36/78問の独立意味レビュー完了**（M02:8、M03:9、M05:12、M09:7）。**残り42問**（M00:6、M01:5、M04:4、M06:8、M07:7、M08:5、M10:7）。ID対応の集計78問/学習目標51件とは別判定。製品SUT、Seed/Reset、正式仕様、既存E2E、分析台帳、定期実行4件のPlanは変更しない。

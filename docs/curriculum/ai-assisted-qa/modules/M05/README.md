@@ -746,23 +746,25 @@ Playwrightのテストコードは、基本的に以下の3つの要素の組み
 ```ts
 import { expect, test } from "@playwright/test";
 
-test("商品一覧への導線を確認する", async ({ page }) => {
+test("商品詳細リンクの表示を確認する", async ({ page }) => {
   // 画面を開く
   await page.goto("/products");
 
   // 1. Locator: 対象のリンクを探す
   const productLinks = page.locator('a[href^="/products/"]');
 
-  // 3. Assertion: 最初のリンクが表示されていることを確認する
+  // 2. Assertion: 最初のリンクが表示されていることを確認する
   await expect(productLinks.first()).toBeVisible();
 });
 ```
+
+この例にはクリックなどのActionはありません。確認できるのは最初のリンクの可視性だけであり、リンク先URLや遷移後の業務結果までは検証していません。
 
 | コードの行 | 役割 | 意味と動作の解説 |
 | --- | --- | --- |
 | `import { expect, test } from "@playwright/test";` | 準備 | Playwright Testの標準機能である `test` と `expect` を読み込みます。 |
 | `test("テスト名", async ({ page }) => { ... });` | 枠組み | 独立した1件のテストケースを定義します。`page` はブラウザの1つのタブを表しています。 |
-| `await page.goto("/products");` | 操作 | 商品一覧ページを開き、初期ロードが完了するまで待機します。 |
+| `await page.goto("/products");` | 操作 | 商品一覧ページを開き、既定では`load`イベントまで待機します。追加の非同期通信や結果表示まで保証するものではありません。 |
 | `page.locator(...)` | **Locator** | 指定した条件（URLが `/products/` で始まる `<a>` リンク）に一致する画面要素を探します。 |
 | `await expect(...).toBeVisible();` | **Assertion** | その要素が画面上に人間の目で視認できる状態（表示中）になっているかを自動検証します。 |
 

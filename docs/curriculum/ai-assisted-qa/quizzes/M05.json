@@ -50,7 +50,7 @@
         "M05-01",
         "M05-04"
       ],
-      "question": "`async`関数の中で`await page.goto('/products')`を実行する意味として最も適切なものはどれですか。",
+      "question": "`async`関数の中で`await page.goto('/products')`を実行するとき、何を待つと説明するのが正確ですか。",
       "options": [
         {
           "value": "A",
@@ -60,9 +60,9 @@
         },
         {
           "value": "B",
-          "label": "非同期のページ移動処理が完了するのを待つ",
-          "meaning": "完了を待って次の処理へ進む",
-          "reason": "awaitはその非同期処理の完了を待ってから次へ進みます。"
+          "label": "ナビゲーションが完了条件（既定ではload）に達するまで待つ",
+          "meaning": "対象APIが定める待機条件と画面内の後続処理を区別する",
+          "reason": "page.gotoは既定でloadイベントまで待ちます。後続の非同期通信や業務上必要な表示は別途Assertion等で確認します。"
         },
         {
           "value": "C",
@@ -80,7 +80,7 @@
       "correct_value": "B",
       "source_refs": [
         "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む",
-        "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"
+        "https://playwright.dev/docs/api/class-page#page-goto"
       ],
       "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む",
       "knowledge_ids": [
