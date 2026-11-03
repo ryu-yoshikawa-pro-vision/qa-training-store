@@ -792,7 +792,9 @@ const inputs = {
   modules: ["M04"],
   rubric: { text: "Pinned calibration criteria" },
   scoringByModule: new Map([["M04", {
-    cases: [{ id: "CAL-01", response: "Supported answer", evidence: [], expected_decision: "pass" }],
+    cases: [
+      { id: "CAL-01", response: "Supported answer", evidence: [], expected_decision: "pass" },
+    ],
     criteria: [],
   }]]),
   sourceMaterials: [],
@@ -996,7 +998,7 @@ it("reuses a pinned model candidate after interruption without another model cal
   expect(runs).toBe(1);
 });
 
-it("reuses a complete AI response after an abrupt process exit during candidate publication", async () => {
+it("reuses the saved AI response after abrupt candidate publication exit", async () => {
   const attemptDirectory = path.join(tempRoot, "killed-ai-candidate");
   fs.mkdirSync(attemptDirectory, { recursive: true });
   const prompt = "Pinned learner input and current live challenge";
@@ -1262,7 +1264,7 @@ it("checks recovered calibration against the matching invocation", () => {
   expect(read()).toEqual(calibration);
 });
 
-it("refuses to resend after an actual process crash between response and candidate publication", async () => {
+it("blocks model resend after a crash before candidate publication", async () => {
   const attemptDirectory = path.join(tempRoot, "response-unpublished-sigkill");
   fs.mkdirSync(attemptDirectory, { recursive: true });
   const modelId = "provider/model";
@@ -1435,7 +1437,7 @@ it("resumes a verified attempt calibration without trusting missing or altered r
   expect(read).toThrow(/incomplete or unsafe saved calibration/);
 });
 
-it("restores a complete calibration from a pinned candidate after interrupted result publication", () => {
+it("restores pinned calibration after interrupted result publication", () => {
   const root = path.join(tempRoot, "candidate-only-calibration-recovery");
   const attemptDirectory = path.join(root, "attempt");
   fs.mkdirSync(attemptDirectory, { recursive: true });
@@ -1843,7 +1845,13 @@ import path from "node:path";
 import { reconcileFinalizedAssessment } from ${JSON.stringify(moduleUrl.href)};
 const [workspaceRoot, phaseId, assessmentId, modelId, sourceSha, barrierPath] =
   process.argv.slice(1);
-const directory = path.join(workspaceRoot, ".course-assessments", phaseId, "attempts", assessmentId);
+const directory = path.join(
+  workspaceRoot,
+  ".course-assessments",
+  phaseId,
+  "attempts",
+  assessmentId,
+);
 fs.writeFileSync(path.join(directory, "ready"), "yes");
 for (let i = 0; !fs.existsSync(barrierPath); i++) {
   if (i >= 1000) throw new Error("barrier timeout");
@@ -2341,6 +2349,15 @@ it("restores a completed result only with the matching candidate and passing cal
     JSON.stringify({ ...calibration, case_results: undefined, case_results_sha256: undefined }),
   );
   expect(recover).toThrow(/lacks verifiable case decisions/);
+  for (const change of [
+    { schema_version: 0 },
+    { created_at: "not-a-date" },
+    { candidate_session_id: { invalid: true } },
+    { critical_false_passes: 1 },
+  ]) {
+    fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, ...change }));
+    expect(recover).toThrow(/saved model calibration cache metadata is invalid/);
+  }
   fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
 
   fs.writeFileSync(candidatePath, JSON.stringify({ ...candidate, objectives: [] }));

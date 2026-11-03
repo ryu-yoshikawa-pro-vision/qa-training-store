@@ -944,7 +944,8 @@ export async function obtainCalibration({
       verifySharedCalibrationCaseResults(existingCalibration, calibrationPrompt.expected);
       return existingCalibration;
     }
-    if (existingCalibration.status !== "failed") fail("saved model calibration cache metadata is invalid");
+    if (existingCalibration.status !== "failed")
+      fail("saved model calibration cache metadata is invalid");
     // Keep a legacy failed cache for audit, but retry rather than blocking this model forever.
   }
   writeImmutableOpenCodePrompt(
