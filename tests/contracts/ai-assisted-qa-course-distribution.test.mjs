@@ -1718,6 +1718,76 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects Secret and personal email patterns before copying learner files", async () => {
+    for (const [label, payload] of [
+      ["GitHub token", `ghp_${"a".repeat(36)}`],
+      ["personal email address", "learner-private@gmail.com"],
+    ]) {
+      const fixture = courseFixture();
+      writeFixtureFile(
+        fixture.source,
+        "training/ai-assisted-qa-course/exercises/M00/exercise.md",
+        `# M00\\n${payload}\\n`,
+      );
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "a".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(new RegExp(`public course content contains a potential ${label}`));
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
+  it("rejects credentials in generated Shop files even when they are build outputs", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(fixture.source, "dist/index.html", `<body>ghp_${"b".repeat(36)}</body>`);
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "b".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/potential GitHub token: course\\/shop\\/index\\.html/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("rejects a registered Secret even when its manifest hash is adjusted", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "c".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = "course/exercises/M00/exercise.md";
+    const contents = Buffer.from(`ghp_${"c".repeat(36)}\\n`);
+    writeFixtureFile(fixture.target, targetPath, contents);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const file = distribution.files.find((entry) => entry.target_path === targetPath);
+    expect(file).toBeDefined();
+    file.sha256 = createHash("sha256").update(contents).digest("hex");
+    file.bytes = contents.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /potential GitHub token: course\\/exercises\\/M00\\/exercise\\.md/,
+    );
+  });
+
   it("rejects sync targets inside or above the source checkout without modifying either tree", async () => {
     const fixture = courseFixture();
     const nestedTarget = path.join(fixture.source, "learner-inside-source");

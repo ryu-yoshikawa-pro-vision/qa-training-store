@@ -483,6 +483,32 @@ function expandBuildOutput(root, manifest) {
   return files;
 }
 
+// Pattern-based pre-publication checks complement, but do not replace, a full content audit.
+const PUBLIC_CONTENT_PATTERNS = [
+  ["GitHub token", /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/],
+  ["OpenAI API key", /\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b/],
+  ["Anthropic API key", /\bsk-ant-api\d+-[A-Za-z0-9_-]{20,}\b/],
+  ["AWS access key", /\bAKIA[0-9A-Z]{16}\b/],
+  ["Google API key", /\bAIza[0-9A-Za-z_-]{35}\b/],
+  ["Slack token", /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/],
+  ["GitLab token", /\bglpat-[A-Za-z0-9_-]{20,}\b/],
+  ["private key", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
+  [
+    "personal email address",
+    /\b[A-Z0-9._%+-]+@(?:gmail\.com|yahoo\.(?:co\.jp|com)|icloud\.com|outlook\.(?:com|jp)|hotmail\.com)\b/i,
+  ],
+];
+const PUBLIC_TEXT_FILE = /(?:\.(?:css|csv|html|js|json|jsx|log|md|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
+
+function verifyPublicFileContent(targetPath, bytes) {
+  if (!PUBLIC_TEXT_FILE.test(targetPath)) return;
+  const content = bytes.toString("utf8");
+  for (const [description, pattern] of PUBLIC_CONTENT_PATTERNS) {
+    if (pattern.test(content))
+      fail(`public course content contains a potential ${description}: ${targetPath}`);
+  }
+}
+
 function atomicWriteNewFile(root, relativePath, bytes) {
   const absolute = assertNoSymlinkPath(root, relativePath, false);
   fs.mkdirSync(path.dirname(absolute), { recursive: true });
@@ -616,6 +642,8 @@ export async function syncCourse({
     files.push(...expandBuildOutput(buildRoot, manifest));
   else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
     fail("Shop build is required by the distribution contract");
+
+  for (const file of files) verifyPublicFileContent(file.target_path, file.bytes);
 
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
@@ -869,6 +897,7 @@ export function verifySyncedCourseDistribution({ root }) {
       fail(`distributed file is missing or not a regular file: ${targetPath}`);
     const bytes = fs.readFileSync(absolute);
     if (sha256(bytes) !== entry.sha256) fail(`distributed file changed after sync: ${targetPath}`);
+    verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
 
