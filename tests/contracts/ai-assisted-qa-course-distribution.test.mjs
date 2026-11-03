@@ -2330,13 +2330,15 @@ describe("AI-assisted QA distribution contract", () => {
     const testPath = path.join(fixture.target, "workspace/M05/product-link.spec.ts");
     const originalCopy = fs.copyFileSync.bind(fs);
     let interrupted = false;
-    const copySpy = vi.spyOn(fs, "copyFileSync").mockImplementation((source, destination, ...args) => {
-      if (!interrupted && destination === testPath) {
-        interrupted = true;
-        throw new Error("simulated load interruption");
-      }
-      return originalCopy(source, destination, ...args);
-    });
+    const copySpy = vi
+      .spyOn(fs, "copyFileSync")
+      .mockImplementation((source, destination, ...args) => {
+        if (!interrupted && destination === testPath) {
+          interrupted = true;
+          throw new Error("simulated load interruption");
+        }
+        return originalCopy(source, destination, ...args);
+      });
     try {
       expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
         /module load stopped after 1 new file\(s\).*simulated load interruption/,
