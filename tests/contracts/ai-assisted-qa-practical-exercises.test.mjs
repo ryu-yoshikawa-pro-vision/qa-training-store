@@ -65,6 +65,38 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       expect(reference).toContain(expected);
   });
 
+  for (const [moduleId, requiredTerms] of [
+    [
+      "M06",
+      ["CASE-CART-004", "CASE-CART-005", "数量0", "fallback", "initial", "repeat"],
+    ],
+    ["M07", ["合成B", "合成C", "Page Object", "3番目", "3件以上", "実Run"]],
+    [
+      "M08",
+      [
+        "private-note.md",
+        "git diff --cached --name-only",
+        "git show --stat HEAD",
+        "base→head",
+        "Factory",
+        "未実行",
+      ],
+    ],
+  ]) {
+    it(`${moduleId}のP01〜P06に模範判断があり、実行証拠の限界を明示する`, () => {
+      const exercise = read(`training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`);
+      const reference = read(
+        `training/ai-assisted-qa-course/assessment/reference-solutions/${moduleId}.md`,
+      );
+      for (let number = 1; number <= 6; number++) {
+        const id = `P0${number}`;
+        expect(exercise).toContain(`**${id}`);
+        expect(reference).toMatch(new RegExp(`^#{2,3} ${id}[^\\n]*$`, "m"));
+      }
+      for (const term of requiredTerms) expect(reference).toContain(term);
+    });
+  }
+
   it("M06の削除・数量更新Caseは両Runで2件以上実行する", () => {
     const exercise = read("training/ai-assisted-qa-course/exercises/M06/exercise.md");
     const scoring = JSON.parse(
