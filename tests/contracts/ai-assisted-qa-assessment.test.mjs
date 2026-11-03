@@ -1392,9 +1392,20 @@ it("restores a complete calibration from a pinned candidate after interrupted re
 
   const read = () =>
     readAttemptCalibration({ attemptDirectory, calibrationId, identity, expected });
-  expect(read()).toEqual(calibration);
-  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(calibration);
-  expect(read()).toEqual(calibration);
+  const restoredCalibration = {
+    ...calibration,
+    case_results_sha256: sha256(JSON.stringify(caseResults)),
+  };
+  expect(read()).toEqual(restoredCalibration);
+  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(restoredCalibration);
+  expect(read()).toEqual(restoredCalibration);
+  const originalCandidate = fs.readFileSync(candidatePath);
+  const changed = JSON.parse(originalCandidate.toString("utf8"));
+  changed.case_results[0].rationale = "modified without changing the decision";
+  fs.writeFileSync(candidatePath, JSON.stringify(changed));
+  expect(read).toThrow(/candidate hash differs from its result/);
+  fs.writeFileSync(candidatePath, originalCandidate);
+  expect(read()).toEqual(restoredCalibration);
   expect(fs.readdirSync(attemptDirectory).sort()).toEqual([
     "calibration-candidate.json",
     "calibration-result.json",
@@ -1476,14 +1487,17 @@ process.exit(18);`;
       expected,
       calibrationPath,
     });
-  expect(resume()).toEqual(calibration);
-  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(calibration);
-  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual({
+  const restoredCalibration = {
     ...calibration,
-    case_results: caseResults,
     case_results_sha256: sha256(JSON.stringify(caseResults)),
+  };
+  expect(resume()).toEqual(restoredCalibration);
+  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(restoredCalibration);
+  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual({
+    ...restoredCalibration,
+    case_results: caseResults,
   });
-  expect(resume()).toEqual(calibration);
+  expect(resume()).toEqual(restoredCalibration);
 });
 
 it("refuses incomplete, modified, or unbound calibration candidates on resume", () => {
@@ -1522,7 +1536,15 @@ it("refuses incomplete, modified, or unbound calibration candidates on resume", 
   expect(read).toThrow(/omitted one or more cases/);
   expect(fs.existsSync(resultPath)).toBe(false);
   write(candidate);
-  expect(read()).toMatchObject({ status: "passed", case_count: 2 });
+  expect(read()).toMatchObject({
+    status: "passed",
+    case_count: 2,
+    case_results_sha256: sha256(JSON.stringify(candidate.case_results)),
+  });
+  const editedRationale = structuredClone(candidate);
+  editedRationale.case_results[0].rationale = "modified rationale";
+  write(editedRationale);
+  expect(read).toThrow(/candidate hash differs from its result/);
   write({ ...candidate, identity: { model_id: "other/model" } });
   expect(read).toThrow(/candidate identity differs/);
   write(candidate);

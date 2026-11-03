@@ -853,6 +853,9 @@ export function readAttemptCalibration({
       critical_false_passes: verified.critical_false_passes,
       candidate_session_id: candidate.candidate_session_id,
       created_at: candidate.created_at,
+      // Candidate-only recovery must persist the same immutable case digest as
+      // a complete model response, before any shared cache is published.
+      case_results_sha256: sha256(JSON.stringify(verified.case_results)),
     };
     atomicWriteJson(recordPath, restored);
     return cacheVerifiedAttempt(restored);

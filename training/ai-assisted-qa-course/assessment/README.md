@@ -45,7 +45,8 @@ CLIは保存済みの正式結果を照合し、`summary.md` と `current.json` 
 破損や成功状態とエラー件数の矛盾を検出した場合、**自動で再評価・再送せず**エラーにします。
 過去の失敗キャッシュは監査用に維持します。
 
-新規の校正試行の`calibration-result.json`にはCase判定のSHA-256を保存し、
+新規校正と候補だけが残った中断からの復旧のどちらでも、
+`calibration-result.json`には検証済みCase判定のSHA-256を保存し、
 正式修了の復旧時に`calibration-candidate.json`のCase ID・判定値・根拠・
 校正ID・identity・日時・Session IDと照合します。旧試行にSHA-256がない場合は
 Case形式と保存済み識別情報を検証しますが、Case別判定が未改変であることは証明できません。
