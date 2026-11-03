@@ -8495,12 +8495,12 @@
       "rule_refs": [],
       "route": "`/cart`",
       "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "正常・不正入力/状態・競合を準備し、UIの数量selectは1〜maximumQuantityを表示し、有効な数量へ変更できる。0による削除はUse Case側の契約でありUIでは専用の削除ボタンを使うことを操作前後で確認する",
+      "test_condition": "C1 quantity=1/maximumQuantityと0/負数/小数/上限+1を分離し、Web selectは0削除を出さない。C2 User/Guestの各Cart、max=0と現在数量がmaximumQuantityより大きい不正明細を確認。C3 旧CartVersion/ItemVersionと別操作割込みでCONFLICT、UIエラー表示・再取得・Cart/Item前後不変。C4 0はUseCaseで削除に委譲しCartVersionが1回だけ増える。C5 管理Role拒否、本人以外非露出、Androidの別経路とWeb画面を確認。既存integraton/componentコードの実行・Web/Android TraceとDB前後は受入待ち。",
       "test_responsibility": "数量更新・不正明細修正のユーザー権限・入力と業務結果を確認する",
       "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
       "case_selection_reason": "数量更新・不正明細修正の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "正式Cart仕様（cart.md:32）とWeb CartContent:28-209、CartUseCases.updateQuantity:151-190、DexieCartRepository.setQuantityAndTouchCart:207-250、既存integration/componentテストを再照合。Webの数量selectはmaximumQuantityまでの1以上で、削除は別ボタン。UseCaseはquantity=0をremoveへ委譲、負数・小数をVALIDATION、上限超過をQUANTITY_LIMIT_EXCEEDED。両Versionを比較し更新時のみ親Cart/子Itemを進める。実Web操作・Android同等性・DB直接検証・CIは未実施。",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -8547,6 +8547,45 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：Web数選択→CartUseCases.updateQuantity→Dexieの数量上限/Cart・Item版競合と0削除の差を照合。既存テストは0削除・上限拒否・Web失敗時の表示を一部確認するコード。最大値0、現数量>最大値、旧VersionとUIの選択維持、Androidの直接比較は未受入。既存テスト未実行。",
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 30,
+          "end_line": 36,
+          "reason": "数量更新・不正明細修正のUI契約"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 28,
+          "end_line": 208,
+          "reason": "Web数量選択/エラー復帰とCart DTO"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 151,
+          "end_line": 190,
+          "reason": "0削除委譲と数量制約、Cart mutation transaction"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 207,
+          "end_line": 250,
+          "reason": "親・Item版と最大数量・更新"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "0削除と上限拒否/DB不変の既存コード"
+        },
+        {
+          "path": "tests/component/cart-page.test.tsx",
+          "start_line": 102,
+          "end_line": 117,
+          "reason": "Web失敗の既存部分テスト"
+        }
       ]
     },
     {
@@ -27785,12 +27824,12 @@
       "action": "本人のプロフィールを更新する",
       "expected": "顧客本人のdisplayName（必須・最大文字数）とphone（省略可・10〜11桁）だけを検証し、actionVersion一致で更新する。無効値・競合では更新しない",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "正常・不正入力/状態・競合を準備し、顧客本人のdisplayName（必須・最大文字数）とphone（省略可・10〜11桁）だけを検証し、actionVersion一致で更新する。無効値・競合では更新しないことを操作前後で確認する",
+      "test_condition": "C1 displayName空白のみ/trim後1文字/INPUT_LIMITS.displayName境界/上限+1で保存・拒否と未変更。C2 phone null/空欄/区切り含む10・11桁と9・12桁/非数字を正規化してDBへ保存するか・拒否かを契約どおり確認。C3 actionVersion一致→User.version+1、旧Version→CONFLICT/DB不変。C4 guest/staff/停止/別人アクセスと他属性（email/role/rank/status）が不変。C5 Web/Android画面、入力エラー・再編集、既存integration/componentとCIの実行証拠。",
       "test_responsibility": "本人のプロフィールを更新するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "本人のプロフィールを更新するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "AccountUseCases.updateProfile:56-81はrequireCustomer後にdisplayNameをtrim、phoneを非数字除去し、名前の必須/上限・電話10～11桁を検証し、UserRepository.updateへactionVersionを渡す。既存auth-account integration:251-299は名前の長さ超過、component:319-333はactionVersion送信を含む。連続更新、電話の区切り/空欄/9・10・11・12桁、Role/他人、Version競合とDB前後の実行証拠は別受入。テストは未実行。",
       "related_use_cases": [
         "AccountUseCases.updateProfile"
       ],
@@ -27828,6 +27867,33 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：プロフィール更新の入力正規化・電話10～11桁、顧客Role、actionVersionのCASを静的追跡。既存Integrationは名前上限の部分負例、ComponentはVersion送信の部分確認。電話境界、他人・staff・停止時拒否、DB不変とCI/画面は未受入。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 49,
+          "end_line": 81,
+          "reason": "本人プロフィール入力の正規化とCAS"
+        },
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 124,
+          "end_line": 129,
+          "reason": "customer専用制約"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 251,
+          "end_line": 299,
+          "reason": "既存プロフィール長さ境界のテスト"
+        },
+        {
+          "path": "tests/component/auth-account-pages.test.tsx",
+          "start_line": 319,
+          "end_line": 333,
+          "reason": "Web actionVersion送信の既存テスト"
+        }
       ]
     },
     {
@@ -28004,12 +28070,12 @@
       "action": "カテゴリーの有効状態を変更する",
       "expected": "公開商品が参照するカテゴリーの無効化はINVALID_STATEで拒否し状態を保持する。公開商品がない場合だけ許可されたactive変更を保存する",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "正常・不正入力/状態・競合を準備し、公開商品が参照するカテゴリーの無効化はINVALID_STATEで拒否し状態を保持する。公開商品がない場合だけ許可されたactive変更を保存することを操作前後で確認する",
+      "test_condition": "C1 公開商品の参照count>0→isActive=falseをINVALID_STATE、Category/Product/Version不変。C2 非参照Categoryのactive→inactive→activeの合法遷移でversion+1/検索結果を確認。C3 stale expectedVersion/削除済ID/他のstaff同時変更を拒否し全関連テーブル不変。C4 operator/admin許可、guest/customer/停止staff拒否。C5 Web一覧・詳細の状態表示、固定Seed+追加Categoryによる境界、Integration/DB/CIの実行証拠。",
       "test_responsibility": "カテゴリーの有効状態を変更するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "カテゴリーの有効状態を変更するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "AdminMasterUseCases.changeCategoryActiveState:110-135はstaff認可後、change-category-active-state transaction内で無効化対象を公開商品が参照する場合にINVALID_STATE、その他はcategories.changeActiveStateへexpectedVersionを渡す。既存integration:111-133は公開商品ありで拒否+Version不変、未使用カテゴリーを無効化する正常例を定義。復活、古いVersion、operator/guest区分、同時変更/transaction失敗の直接受入は未実施。",
       "related_use_cases": [
         "AdminMasterUseCases.changeCategoryActiveState"
       ],
@@ -28047,6 +28113,21 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：公開商品に紐づくカテゴリーの停止拒否と未使用カテゴリ停止成功の既存テストコードを照合。Version CAS・Role/同時変更・復活時の価格/商品表示の影響、失敗時DB不変を直接実行していない。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 110,
+          "end_line": 135,
+          "reason": "公開商品参照の無効化拒否とtransaction"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 111,
+          "end_line": 133,
+          "reason": "参照あり拒否・未参照成功の既存テスト"
+        }
       ]
     },
     {
@@ -28150,12 +28231,12 @@
       "action": "ブランドの有効状態を変更する",
       "expected": "公開商品が参照するブランドの無効化はINVALID_STATEで拒否し状態を保持する。公開商品がない場合だけ許可されたactive変更を保存する",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "正常・不正入力/状態・競合を準備し、公開商品が参照するブランドの無効化はINVALID_STATEで拒否し状態を保持する。公開商品がない場合だけ許可されたactive変更を保存することを操作前後で確認する",
+      "test_condition": "C1 公開商品が参照するBrandをinactiveにする操作はINVALID_STATE、Brand/Product/Version不変。C2 未使用Brandの停止・再開でversionと表示を確認。C3 stale expectedVersion/他staff同時更新/不明IDの拒否と他テーブル不変。C4 operator/admin許可、guest/customer/停止staff拒否。C5 Web一覧/詳細・固定Seed+新規Brand、既存Integration/DB/CIの実行証拠。",
       "test_responsibility": "ブランドの有効状態を変更するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "ブランドの有効状態を変更するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "AdminMasterUseCases.changeBrandActiveState:201-225はstaff認可後、change-brand-active-state transaction内で公開商品が参照するブランドの無効化をINVALID_STATE、無参照はbrands.changeActiveStateへ送る。既存integration:153-177はブランドの既存参照の拒否と新規未使用ブランドの停止を確認するコード。Version競合、他ロール、停止→復活、同時更新とUI受入は未実施。",
       "related_use_cases": [
         "AdminMasterUseCases.changeBrandActiveState"
       ],
@@ -28193,6 +28274,21 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：公開商品のブランド参照による停止拒否と未使用ブランド停止の既存コードを照合。operator/admin/停止staff・Version・競合・画面、全テーブルの前後差・CIは未受入。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/admin-master-use-cases.ts",
+          "start_line": 201,
+          "end_line": 225,
+          "reason": "公開商品参照を調べるBrand状態変更のtransaction"
+        },
+        {
+          "path": "tests/integration/admin-master-use-cases.test.ts",
+          "start_line": 153,
+          "end_line": 177,
+          "reason": "参照あり拒否・未使用成功の既存テスト"
+        }
       ]
     },
     {
@@ -28209,12 +28305,12 @@
       "action": "下書き商品を削除する",
       "expected": "参照がなく指定versionに一致する下書きのみ削除され、公開商品・参照あり・競合は拒否される",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "管理者が下書き商品に対して削除を要求する",
+      "test_condition": "C1 非参照draftのみ削除しProduct/Variant/Images/Review Summary/Inventory Historyの孤児0。C2 公開/unpublished等の非draft、Cart/Order/Review参照、旧Versionで拒否しデータ全体不変。C3 delete transaction途中で失敗注入したときの完全rollback、競合/連打。C4 operator/admin許可、guest/customer/停止staff拒否。C5 product-delete-blocked Seedの実際の参照種類と固定Seedの一致、UI確認Dialog/エラー表示、既存integrationの実行とCI。",
       "test_responsibility": "下書き商品を削除するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "下書き商品を削除するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "AdminProductUseCases.deleteDraft:253-258はstaff認可後delete-draft-product transactionに渡す。DexieProductRepository.deleteDraftAggregate:297-318は商品Versionを比較しdraft以外・Cart/Order/Review参照ありをPRODUCT_HAS_REFERENCEで拒否、非参照draftのInventory History・Review Summary・Image・Variant・Productを消去する。既存integration:397-436は非参照draft削除とCart参照による拒否の部分試験。履歴テーブル横断・version競合・transaction rollbackの動的証明は未実施。",
       "related_use_cases": [
         "AdminProductUseCases.deleteDraft"
       ],
@@ -28252,6 +28348,27 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：staff認可→delete-draft-product transaction→参照有無/Version比較と関連データ連鎖削除を静的再確認。既存テストは成功/Cart参照拒否の一部を検査。Order/Review参照・InventoryHistory・画像・Summaryの全件削除、遅延失敗時Rollback・Web/CIを未実行。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 253,
+          "end_line": 258,
+          "reason": "staffとdelete-draft-product transaction"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 297,
+          "end_line": 331,
+          "reason": "Product Version・参照拒否と関係データ削除"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 397,
+          "end_line": 436,
+          "reason": "成功/Cart参照拒否の既存テスト"
+        }
       ]
     },
     {
@@ -28336,12 +28453,12 @@
       "action": "ログアウトしてセッションを破棄する",
       "expected": "セッションが削除され、ログイン必須操作へ再アクセスすると認証が必要になる",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "ログイン状態でログアウトを操作する",
+      "test_condition": "C1 本人Session存在→DB Session削除+currentSessionStore null→保護URL再訪でログインを要求。C2 logout2回目/Sessionなしを許容し他Sessionに影響しない。C3 sessions.delete失敗注入とcurrentSessionStore.clear失敗注入を分け、エラー/残存状態と安全な再試行を確認。C4 guest/customer/staff/停止・失効で手順とRole境界確認。C5 Web/Androidの戻り先、ログアウト途中の非露出/Browser/SQLite、既存正常IntegrationとCIの実行証拠。",
       "test_responsibility": "ログアウトしてセッションを破棄するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "ログアウトしてセッションを破棄するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "AuthUseCases.logout:195-201はcurrentSessionStoreのSession IDがあればSessionRepository.delete、続けてローカルSession pointerをclear。ログイン状態での既存auth-account integration:223-249はDB Sessionとpointer双方の消去を確認するコード。SessionRepository.deleteが失敗するとclearまで到達しない直列の静的経路があり、再認証・別セッション・リトライ時の保証は未実証。認証元の安全な解除条件とUI文言は実Run待ち。",
       "related_use_cases": [
         "AuthUseCases.logout"
       ],
@@ -28383,6 +28500,21 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：DB Session削除→ローカルpointer解除の直列処理を確認。既存テストは正常登録後logoutのみ。削除I/O失敗・pointer clear失敗・2回目logout・guest/staff/停止Role・認証済み画面再訪と他Session不変/CIを未受入。失敗時のSession残留は条件付き静的懸念として記録。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 195,
+          "end_line": 201,
+          "reason": "Session delete後にpointer clear"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 223,
+          "end_line": 249,
+          "reason": "正常logoutでDB Sessionとpointer消去を検証する既存コード"
+        }
       ]
     },
     {
@@ -28626,12 +28758,12 @@
       "action": "本人レビューを削除する",
       "expected": "削除済みは終端状態となり、本人でも再投稿できない。他人のレビュー削除は拒否する",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "本人が投稿済みレビューを削除する",
+      "test_condition": "C1 本人published Review削除→status=deleted/version+1、History1件、PublishedCountとrating aggregate正しく減算。C2 hidden Review削除では公開Summary不変、他人/guest/staff/既deleted/旧Versionは拒否してReview/History/Summary前後不変。C3 同一Reviewの再投稿・同時二重削除を拒否しHistoryが増えない。C4 transaction途中失敗注入でReview/History/Summaryが全てrollback。C5 Review Editorの確認Dialog/失敗表示/eligibility、Web/Android・既存integration/component/CIの実行証拠。",
       "test_responsibility": "本人レビューを削除するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "本人レビューを削除するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "CustomerReviewUseCases.delete:193-231はcustomer/本人Review認可、deletedまたは遷移禁止状態拒否、Version CASを行い、review-change transaction内でReview status=deleted、StatusHistory追加、公開済みの場合ReviewSummaryのcount/rating更新を実行。既存integration:66-123は公開Reviewの作成→更新→削除・eligibility=REVIEW_DELETEDと公開件数復元を確認するコード。非公開状態・他人・既削除・失敗注入・二重送信を直接実証していない。",
       "related_use_cases": [
         "CustomerReviewUseCases.delete"
       ],
@@ -28669,6 +28801,27 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：本人Review削除のRole/Version/Status遷移・History・公開Summary更新を静的追跡。既存Integrationは正常削除と再投稿不可理由の一部を扱う。非公開Review・他人・重複削除・旧Version・transaction中断の原子性、Web/Android/CIは未受入。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 193,
+          "end_line": 231,
+          "reason": "本人レビュー/Status遷移/Version/History/ReviewSummaryのtransaction"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 66,
+          "end_line": 123,
+          "reason": "公開レビューの削除・Summary・Eligibility既存テスト"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 258,
+          "end_line": 275,
+          "reason": "Web削除確認Dialogの既存テスト"
+        }
       ]
     },
     {
@@ -28753,12 +28906,12 @@
       "action": "ログイン時にゲストカートと会員カートを統合する",
       "expected": "会員カートを基準に統合し、同一SKUの数量上限と現在価格・在庫を再検証する",
       "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "カートを持つゲストが顧客としてログインする",
+      "test_condition": "C1 guest-cart-merge-overflowの会員Cart3+guest4→合計上限5・追加2/overflow2・Guest Cart abandoned、後続Session生成と通知結果。C2 0追加/全部除外、NOT_FOUND/UNPUBLISHED/RANK_REQUIRED/INACTIVE/OUT_OF_STOCKのReasonと数量・price/Versionの再計算。C3 Session作成失敗・pointerセット失敗のtransaction rollback、他User Cart/Session非変更。C4 他Role/operator/adminはmergeしない、他Guest ID分離、ログイン連打・再試行の冪等性。C5 Web/Android表示のマージ結果、browser storage/SQLite、既存integrationの実行とCI/DB前後。",
       "test_responsibility": "ログイン時にゲストカートと会員カートを統合するの許可条件・状態更新・拒否時の旧値維持を比較",
       "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
       "case_selection_reason": "ログイン時にゲストカートと会員カートを統合するの状態変更と安全な拒否が仕様どおりか確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "正式BR/ACと関連Use Caseの実装条件、対応シナリオの生成経路を読み、許可/拒否・変更前後・version境界の期待結果と検証責務を独立に記録。実際のE2E実行は別評価。",
+      "basic_analysis_review": "AuthUseCases.login:52-120はcustomer認証時guestIdentityStoreでguest IDを取得し、login-and-merge-cart transaction内でDexieCartRepository.mergeGuestIntoUserを呼び、会員Cartを優先してSessionを作成する。Dexie:309以降は商品公開・Rank・在庫・上限ごとに除外理由/追加数量/overflowを記録しGuest Cartをabandonedにする。既存integration:149-205はguest-cart-merge-overflow固定Seedで3+4→上限5（追加2/溢れ2）とSession作成失敗時rollbackを検証するコード。別Role、不可視商品、全部除外、同時ログイン等の実証は未完了。",
       "related_use_cases": [
         "AuthUseCases.login",
         "AuthUseCases.register"
@@ -28803,6 +28956,27 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "analysis_progress": "2026-11-03 PR #212：Auth login→transaction→Cart merge→Session createとSeed guest-cart-merge-overflow（既存会員3+Guest4→5、2 overflow）を静的再監査。Session重複によるrollbackとpointer設定失敗の既存Integrationコードあり。SKU不可視/非公開/Rank/在庫不足/全件除外、二重ログイン/Version/Android・DB差分とCIを未受入。",
+      "audit_branch_refs": [
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 52,
+          "end_line": 120,
+          "reason": "login-and-merge-cart transactionとSession作成"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 309,
+          "end_line": 389,
+          "reason": "Guest/Customer Cart merge・除外理由と数量"
+        },
+        {
+          "path": "tests/integration/auth-account.test.ts",
+          "start_line": 149,
+          "end_line": 205,
+          "reason": "上限溢れ・Session作成失敗rollbackの既存テスト"
+        }
       ]
     },
     {
