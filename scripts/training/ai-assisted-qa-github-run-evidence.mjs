@@ -349,13 +349,17 @@ function verifyPlaywrightJsonTests(report, target) {
         fail("ungradable: Playwright JSON results do not contain only the selected spec");
       for (const test of spec.tests) {
         if (
-          test?.expectedStatus !== "passed" ||
+          test?.projectName !== "ai-assisted-qa-chromium" ||
+          test.expectedStatus !== "passed" ||
           test.status !== "expected" ||
           !Array.isArray(test.results) ||
-          test.results.length === 0 ||
-          test.results.some((result) => result?.status !== "passed")
+          test.results.length !== 1 ||
+          test.results[0]?.status !== "passed" ||
+          test.results[0].retry !== 0
         )
-          fail("ungradable: selected Playwright spec contains unverified or unsuccessful tests");
+          fail(
+            "ungradable: selected Playwright spec has an unexpected project, retry, or unsuccessful test",
+          );
         observed += 1;
       }
     }
