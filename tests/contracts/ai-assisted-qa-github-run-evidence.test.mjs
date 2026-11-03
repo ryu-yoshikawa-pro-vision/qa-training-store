@@ -85,6 +85,82 @@ function jsonResponse(body) {
   });
 }
 
+function acceptedPlaywrightReport() {
+  return {
+    stats: { expected: 1, unexpected: 0, flaky: 0, skipped: 0 },
+    suites: [
+      {
+        title: "handoff-smoke.spec.ts",
+        file: "handoff-smoke.spec.ts",
+        specs: [
+          {
+            title: "checks the public handoff",
+            file: "handoff-smoke.spec.ts",
+            tests: [
+              {
+                projectName: "ai-assisted-qa-chromium",
+                expectedStatus: "passed",
+                status: "expected",
+                results: [{ status: "passed", retry: 0 }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function acceptedGitHubResponses(workflow, archive) {
+  const digest = createHash("sha256").update(archive).digest("hex");
+  return [
+    jsonResponse({ encoding: "base64", content: workflow.toString("base64") }),
+    jsonResponse({
+      number: 12,
+      base: { repo: { full_name: "owner/course" } },
+      head: { sha: SHA },
+    }),
+    jsonResponse({
+      id: 345,
+      repository: { full_name: "owner/course" },
+      path: `${evidence.workflow_path}@refs/pull/12/merge`,
+      event: "pull_request",
+      status: "completed",
+      conclusion: "success",
+      head_sha: MERGE_SHA,
+      pull_requests: [{ number: 12, head: { sha: SHA } }],
+    }),
+    jsonResponse({
+      check_runs: [
+        {
+          name: "course-e2e",
+          head_sha: MERGE_SHA,
+          status: "completed",
+          conclusion: "success",
+          details_url: "https://github.com/owner/course/actions/runs/345/job/1",
+        },
+      ],
+    }),
+    jsonResponse({
+      artifacts: [
+        {
+          id: 555,
+          name: evidence.artifact_name,
+          expired: false,
+          digest: `sha256:${digest}`,
+          workflow_run: { id: 345, head_sha: MERGE_SHA },
+        },
+      ],
+    }),
+    {
+      status: 200,
+      redirected: true,
+      arrayBuffer: async () =>
+        archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength),
+    },
+  ];
+}
+
 describe("M10 GitHub Run evidence contract", () => {
   it("accepts exact identifiers and rejects placeholders or unsupported fields", () => {
     expect(validateGitHubRunEvidence(evidence).head_sha).toBe(SHA);
@@ -135,6 +211,26 @@ describe("M10 GitHub Run evidence contract", () => {
     expect(
       validateCourseWorkflow(m07Workflow, evidence.workflow_path, m07Evidence).check_name,
     ).toBe("course-e2e");
+    expect(() =>
+      validateCourseWorkflow(
+        workflow.replace(
+          "      - uses: actions/upload-artifact@v4",
+          "      - run: pnpm run training:ai-assisted-qa:test -- workspace/M10/public-sample/handoff-smoke.spec.ts; echo unsafe\\n      - uses: actions/upload-artifact@v4",
+        ),
+        evidence.workflow_path,
+        evidence,
+      ),
+    ).toThrow(/unapproved shell command/);
+    expect(() =>
+      validateCourseWorkflow(
+        workflow.replace(
+          "      - uses: actions/upload-artifact@v4",
+          "      - run: pnpm install --frozen-lockfile\\n      - uses: actions/upload-artifact@v4",
+        ),
+        evidence.workflow_path,
+        evidence,
+      ),
+    ).toThrow(/exactly the reviewed actions and shell commands/);
   });
 
   it("extracts only expected, bounded evidence from ZIP and rejects traversal", () => {
@@ -142,7 +238,7 @@ describe("M10 GitHub Run evidence contract", () => {
       ["target-sha.txt", SHA],
       [
         "playwright-result.json",
-        JSON.stringify({ stats: { expected: 1, unexpected: 0, flaky: 0, skipped: 0 } }),
+        JSON.stringify(acceptedPlaywrightReport()),
       ],
     ]);
     const files = readEvidenceZipEntries(archive);
@@ -163,56 +259,10 @@ describe("M10 GitHub Run evidence contract", () => {
       ["target-sha.txt", SHA],
       [
         "playwright-result.json",
-        JSON.stringify({ stats: { expected: 1, unexpected: 0, flaky: 0, skipped: 0 } }),
+        JSON.stringify(acceptedPlaywrightReport()),
       ],
     ]);
-    const digest = createHash("sha256").update(archive).digest("hex");
-    const responses = [
-      jsonResponse({ encoding: "base64", content: workflow.toString("base64") }),
-      jsonResponse({
-        number: 12,
-        base: { repo: { full_name: "owner/course" } },
-        head: { sha: SHA },
-      }),
-      jsonResponse({
-        id: 345,
-        repository: { full_name: "owner/course" },
-        path: `${evidence.workflow_path}@refs/pull/12/merge`,
-        event: "pull_request",
-        status: "completed",
-        conclusion: "success",
-        head_sha: MERGE_SHA,
-        pull_requests: [{ number: 12, head: { sha: SHA } }],
-      }),
-      jsonResponse({
-        check_runs: [
-          {
-            name: "course-e2e",
-            head_sha: MERGE_SHA,
-            status: "completed",
-            conclusion: "success",
-            details_url: "https://github.com/owner/course/actions/runs/345/job/1",
-          },
-        ],
-      }),
-      jsonResponse({
-        artifacts: [
-          {
-            id: 555,
-            name: evidence.artifact_name,
-            expired: false,
-            digest: `sha256:${digest}`,
-            workflow_run: { id: 345, head_sha: MERGE_SHA },
-          },
-        ],
-      }),
-      {
-        status: 200,
-        redirected: true,
-        arrayBuffer: async () =>
-          archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength),
-      },
-    ];
+    const responses = acceptedGitHubResponses(workflow, archive);
     const urls = [];
     const fetchImpl = async (url) => {
       urls.push(String(url));
@@ -236,7 +286,30 @@ describe("M10 GitHub Run evidence contract", () => {
     ]);
     expect(urls).toHaveLength(6);
     expect(urls[3]).toContain(`/commits/${MERGE_SHA}/check-runs`);
+
     expect(responses).toHaveLength(0);
+    for (const [mutate, message] of [
+      [(report) => { report.suites = []; }, /missing the selected spec results/],
+      [(report) => { report.suites[0].specs[0].file = "unrelated.spec.ts"; }, /only the selected spec/],
+      [(report) => { report.suites[0].specs[0].tests[0].results[0].status = "failed"; }, /unsuccessful tests/],
+      [(report) => { report.stats.expected = 2; }, /summary does not match/],
+    ]) {
+      const wrongReport = acceptedPlaywrightReport();
+      mutate(wrongReport);
+      const badArchive = makeZip([
+        ["target-sha.txt", SHA],
+        ["playwright-result.json", JSON.stringify(wrongReport)],
+      ]);
+      const badResponses = acceptedGitHubResponses(workflow, badArchive);
+      await expect(
+        verifyGitHubRunEvidence({
+          evidence,
+          currentHeadSha: SHA,
+          token: "test-token-value",
+          fetchImpl: async () => badResponses.shift(),
+        }),
+      ).rejects.toThrow(message);
+    }
     const staleResponses = [
       jsonResponse({ encoding: "base64", content: workflow.toString("base64") }),
       jsonResponse({
