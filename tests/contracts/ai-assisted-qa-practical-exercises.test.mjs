@@ -66,10 +66,7 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
   });
 
   for (const [moduleId, requiredTerms] of [
-    [
-      "M06",
-      ["CASE-CART-004", "CASE-CART-005", "数量0", "fallback", "initial", "repeat"],
-    ],
+    ["M06", ["CASE-CART-004", "CASE-CART-005", "数量0", "fallback", "initial", "repeat"]],
     ["M07", ["合成B", "合成C", "Page Object", "3番目", "3件以上", "実Run"]],
     [
       "M08",
