@@ -675,19 +675,19 @@
       "source_text": "公開商品、主要カテゴリー、新着商品、セール、会員ランク案内への導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: 会員ランク特典を案内。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default guest（初期Sessionなし）、regular-member/gold-member/platinum-member（有効customer Session）、empty-catalog（公開候補0件）を比較。Web/Nativeの案内の有無を直接区別する。",
+      "data": "default Seedはregular/gold/platinum各active顧客、operator/admin、suspended/withdrawn顧客を持ちSessionなし。Web HomeContentはpricing.tsのFREE_SHIPPING_THRESHOLD=5000、membershipDiscountRate(regular=0/gold=0.05/platinum=0.1)から固定の案内文を作る。OrderTotalsは商品行の割引額をfloorし、regular/goldは割引前小計5000円以上で送料無料、platinumは常時送料無料。Android NativeHomeScreenには会員特典本文も/guideへの導線もなく、商品/検索・カテゴリ/商品セクションのみを表示。価格計算と画面案内を混同しない。",
       "action": "会員ランク特典を案内",
-      "expected": "会員ランク案内の内容と購入価格の特典が閲覧者ランクの仕様に対応する",
+      "expected": "Web Homeの一般会員5000円以上送料無料、gold商品価格5%割引、platinum商品価格10%割引・常時送料無料がpricing.tsの現行定義と一致し、下部学習Guideリンクから詳細確認に進めること。Native Homeも正式仕様では会員ランク案内を要求するが、現行実装では案内が確認できないため製品適合は未判定。商品カードでの実際の金額・購入合計の一致は別Case。",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "会員ランク特典を案内の前後で、会員ランク案内の内容と購入価格の特典が閲覧者ランクの仕様に対応することを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "会員ランク特典を案内の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "会員ランク特典を案内の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "画面の会員特典と購入時の価格/送料無料条件の不一致、割引前小計と割引後小計の混同、端数floorの誤案内、Androidで会員ランク特典の説明がなく教材演習が迷うこと、guest/staffへ購入可能と誤案内すること。",
+      "test_condition": "C1 default guestのWeb / で一般会員5000円、gold5%、platinum10%・常時送料無料の案内を確認し、pricing.tsと照合。C2 regular/gold/platinum Sessionでの案内内容と商品単価/OrderTotalsの割引・送料（4999/5000円の割引前小計、1円未満端数floor）を区別して検証。C3 Android Homeで会員特典本文がない現状を記録し、正式UI・視覚正本と照合する（存在をPASSとしない）。C4 Web学習Guideリンクの有無とNativeの導線差を確認。C5 guest/staff/停止アカウントが価格/購入可否を誤解しないRole境界と前後DB/Session不変を実Runで確認。",
+      "test_responsibility": "C1〜C5で会員特典文言と価格ポリシー、Web/Native表示差、Role/Seed、税込小計・送料無料の境界、導線/実Runの未受入を検証する。",
+      "case_policy": "Web定数/価格の正常境界・guest/各rank・送料4999/5000・端数floor、Native案内欠落、Guideリンク、role別購入拒否を採用。Checkoutの表示確定額や実価格整合のPASSは別Case・製品適合として扱う。",
+      "case_selection_reason": "Home表示の値はpricing.tsから直接生成される一方、商品/注文価格は別処理で算出される。Webの案内は静的に証拠があるがNativeには同等の説明がなく、両Platformを同一PASSにできない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。storefront.md:21-39、roles-and-permissions.md:5-31とWeb HomePage:165-189の特典表示をpricing.ts:3-16/41-102の5000円閾値、gold5%/platinum10%・割引前小計による送料判定に照合。Web学習Guide Link:184-188は存在。NativeHomeScreen:31-115は商品探索/検索・商品/カテゴリーのみで会員特典表示なし。default Seed:730-775はguest Sessionなし、active regular/gold/platinum、staffと停止/退会顧客を含む。Native案内の有無は#210の製品適合判断候補。Web/Android画面実Run、価格/送料計算の動的Case、視覚/a11y、製品適合は未受入。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -696,12 +696,14 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getHome"
+      ],
       "platform_roles": {
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "2026-11-03 定期実行非干渉の独立静的基本分析。現行の正式仕様→Web/Android表示と共通Shell→Role→default/会員別Seed→Risk/Condition/Case採否を照合。基本分析のみanalyzed。Web/Native実Run、権限と遷移の動的保証、DB/Session不変、視覚/a11y、製品適合、最新#199への取込、CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -712,7 +714,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [
           "empty-catalog",
           "sale-active",
@@ -726,7 +728,92 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "BR-STOREFRONT-001/003・HOME公開案内とRole別導線"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Web/Android Role・rank・active状態/購入権限"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 13,
+          "end_line": 67,
+          "reason": "Web RouteGuard/Role分岐とHero CTA"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 31,
+          "end_line": 115,
+          "reason": "Android Homeの操作・表示範囲"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 42,
+          "end_line": 183,
+          "reason": "Androidのguest/customer/staff状態と共通ヘッダー/ナビ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "defaultの顧客ランク・停止/退会・スタッフと初期Session"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 110,
+          "reason": "default・会員別シナリオの初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 70,
+          "reason": "default/会員シナリオ・Session変換"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 165,
+          "end_line": 189,
+          "reason": "Web会員特典文言とGuide Link"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 3,
+          "end_line": 16,
+          "reason": "送料閾値と会員割引率"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 41,
+          "end_line": 102,
+          "reason": "端数floorと割引前小計・送料無料判定"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 84,
+          "reason": "閲覧者に基づくHome商品情報"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 65,
+          "end_line": 115,
+          "reason": "Native Homeの全表示内容に会員特典がないこと"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A02-01",
@@ -737,19 +824,19 @@
       "source_text": "既存のロール規約に従い、ゲストと顧客それぞれに利用可能な導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: ゲスト用の導線を提供。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default guest（Sessionなし）、empty-catalog guest、regular/gold/platinum customer比較。ログイン失敗/停止/退会で有効なguest Sessionと誤認しない。",
+      "data": "default SeedはinitialSession=guestかつsessions=[]。Web Home heroはcurrentUser===nullで『ログインして購入』→/login、StorefrontShellは非staffへ/orders・/account/profile・/cartを表示するがcustomer専用画面はRouteGuardでログインへ戻す。Web LoginPage:209は/signupへのLinkを持つ。Android NativeShell guestはheader『ログイン』→/login、cartと公開商品/検索を提供し、customer専用パスはbuildLoginHrefでRedirectする。NativeLoginScreen:218-227から/signupとguest継続へ進める。Home自体に業務更新処理はない。",
       "action": "ゲスト用の導線を提供",
-      "expected": "ゲストにはログイン・登録等の利用可能な導線を表示し、会員専用操作の完了画面を出さない",
+      "expected": "default guestのWeb Homeから商品/検索、Cart、Loginに進み、/loginからSignupも選べること。/orders・/account/profileのWeb公開ナビは表示されても未ログイン時にログインへ誘導され、顧客専用データ/購入完了画面を見せないこと。Android guestはHomeの商品/検索・共通Cart/Login、ログイン画面からSignupへ進めること。",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "ゲスト用の導線を提供の前後で、ゲストにはログイン・登録等の利用可能な導線を表示し、会員専用操作の完了画面を出さないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "ゲスト用の導線を提供の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "ゲスト用の導線を提供の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Web非staffナビに会員専用リンクが表示されることでguestが直接利用可能と誤認すること、ログイン未完了で注文・顧客個人情報が露出すること、Web/NativeでSignupまでの導線数が異なること、Session復元誤判定。",
+      "test_condition": "C1 default guestのWeb / で商品・『ログインして購入』→/login、LoginPage→/signupを確認。C2 Web guestの/order・/account/profile直アクセスとナビからの遷移がRouteGuard(customer)でログインへ戻り、個人/購入完了内容を露出しないこと。C3 Web guestの/cartは許可され注文確定だけは顧客認証必須。C4 Android guestのHome→商品/検索、NativeShellヘッダーの/login・/cart、NativeLoginScreenから/signupを確認。C5 Native guestが/orders等のcustomer専用Routeを開くとログインへRedirectし、DB/Session不変・戻り先・視覚/a11yを実Runで検証。",
+      "test_responsibility": "C1〜C5でWeb/Nativeのguest導線、Login/Signup、customer専用情報遮断、guest Cart許可、Sessionとアクセス制御を検証する。",
+      "case_policy": "default guestのWeb/Android、guest Cart、Login/Signup、customer-only path、直接URL/画面ナビ、Session前後不変を採用。ログイン後の購入経路は顧客向け別操作に分離する。",
+      "case_selection_reason": "Webでは会員専用のナビ項目がguestにも表示されるがガードは別途存在し、Nativeはcustomer-onlyルートをShellでRedirectする。表示の有無だけでguestの許可を断定できない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。storefront.md:31-32とRole契約、HomePage:44-67のguest→/login、StorefrontShell:65-125/165-175のguestナビ、LoginPage:207-213の/signup、NativeHomeScreen:65-115、NativeShell:99-160（guest login/cart、customer専用ルートRedirect）、NativeLoginScreen:218-227（Signup）、RouteGuard:16-55（customer未ログイン拒否）、default Seed metadata:75-84/default-dataset.ts:730-775を照合。UI導線は直接業務Use Case/Repository更新を行わず、認証/購入先で別のガードを適用。実Web/Android、直接URL/Session/DB不変、アクセス可否・視覚/a11yは未受入。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -763,7 +850,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "2026-11-03 定期実行非干渉の独立静的基本分析。現行の正式仕様→Web/Android表示と共通Shell→Role→default/会員別Seed→Risk/Condition/Case採否を照合。基本分析のみanalyzed。Web/Native実Run、権限と遷移の動的保証、DB/Session不変、視覚/a11y、製品適合、最新#199への取込、CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -774,7 +861,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [
           "empty-catalog",
           "sale-active",
@@ -788,7 +875,104 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "BR-STOREFRONT-001/003・HOME公開案内とRole別導線"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Web/Android Role・rank・active状態/購入権限"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 13,
+          "end_line": 67,
+          "reason": "Web RouteGuard/Role分岐とHero CTA"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 31,
+          "end_line": 115,
+          "reason": "Android Homeの操作・表示範囲"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 42,
+          "end_line": 183,
+          "reason": "Androidのguest/customer/staff状態と共通ヘッダー/ナビ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "defaultの顧客ランク・停止/退会・スタッフと初期Session"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 110,
+          "reason": "default・会員別シナリオの初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 70,
+          "reason": "default/会員シナリオ・Session変換"
+        },
+        {
+          "path": "src/presentation/shells/storefront-shell.tsx",
+          "start_line": 65,
+          "end_line": 125,
+          "reason": "Web guestナビとstaff分岐"
+        },
+        {
+          "path": "src/presentation/shells/storefront-shell.tsx",
+          "start_line": 165,
+          "end_line": 175,
+          "reason": "Web guestの会員専用リンク表示"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 101,
+          "end_line": 125,
+          "reason": "Web Login画面"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 200,
+          "end_line": 213,
+          "reason": "Web Login→Signup"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 150,
+          "end_line": 232,
+          "reason": "Native Login→SignupとGuest戻り"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 16,
+          "end_line": 55,
+          "reason": "Web customer認可・Login Redirect"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 190,
+          "end_line": 225,
+          "reason": "Native customer-only route判定"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A02-02",
@@ -799,19 +983,19 @@
       "source_text": "既存のロール規約に従い、ゲストと顧客それぞれに利用可能な導線を表示する。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,empty-catalog,sale-active,expired-sale,gold-member。対象: 顧客用の導線を提供。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "regular-member/gold-member/platinum-member（active customer）とdefault guestを比較。suspended/withdrawn customer、operator/adminは顧客向けアクションから除外。",
+      "data": "default Seedはactive regular/gold/platinum3顧客、suspended/withdrawn2顧客、active operator/admin2 staff、初期sessions空。会員シナリオはmetadata初期Sessionとscenarios.tsのapplyInitialSessionで利用者を設定。Web Homeはcustomer roleなら『マイページ』→/account/profile、StorefrontShellは注文・プロフィール・Cartを表示。Android NativeShellはcustomerならヘッダー『アカウント』→/account/profile、Cart/Ordersの共通導線を表示し、NativeHomeは商品/検索を提供。staffはWebの管理画面導線で購入は不可、NativeはShellが対象外表示。Navigationそのものは購入Use Caseを実行しない。",
       "action": "顧客用の導線を提供",
-      "expected": "有効な顧客には顧客向け購入・アカウント導線を表示し、管理操作は案内しない",
+      "expected": "active regular/gold/platinum customerにはWeb Homeの『マイページ』リンクと共通の注文/カート・プロフィール導線があり、Androidでは共通ヘッダーのアカウント、Cart、下部ナビの注文に進めること。これらの顧客データ閲覧・購入操作はその先のUse Case/Repositoryで所有者と状態を検査し、staff/停止/退会を許可しないこと。",
       "rule_refs": [],
       "route": "`/`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "顧客用の導線を提供の前後で、有効な顧客には顧客向け購入・アカウント導線を表示し、管理操作は案内しないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "顧客用の導線を提供の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "顧客用の導線を提供の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "active customerに必要な注文・アカウント導線が欠落すること、停止/退会・staffへ顧客購入画面を誤提示すること、Web RoleのみのUI分岐とSession失効で誤案内が残ること、Web/NativeヘッダーのRole差。",
+      "test_condition": "C1 regular/gold/platinum customerでWeb / のマイページ→/account/profile、StorefrontShellの/orders・/cartと顧客画面を確認。C2 Android active customerでNativeShellヘッダー『アカウント』、/cart、/ordersへ遷移し、本人データだけを参照。C3 Web staff（operator/admin）はホーム閲覧可能だがRoleアクションが/adminで顧客購入操作は拒否、Android staffはShell対象外。C4 suspended/withdrawn顧客のSession拒否/失効時のWeb/Native表示と遷移を検証。C5 guestへ戻したとき会員専用内容が残らずDB/Session不変、visual/a11yを実検証。",
+      "test_responsibility": "C1〜C5でactive customerの両Platform導線・Role/状態変化・本人確認/注文境界・共通Shell・実Run未受入を検証する。",
+      "case_policy": "active regular/gold/platinum、Web operator/admin、Native staff対象外、suspended/withdrawn、guestへの切替を採用。注文・プロフィールUse Caseのデータ所有者/状態変更テストは当該画面のCaseで検証する。",
+      "case_selection_reason": "WebはHome heroとStorefrontShellでRole別Link、NativeはShellでSession/Roleを使って共通Linkとcustomer-only Redirectを制御する。ホームだけの表示と個人データの認可を分ける必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。storefront.md:31-32とroles-and-permissions.md:5-31、HomePage:44-67のcustomer→/account/profile、StorefrontShell:65-125/165-175の注文/プロフィール/Cart、NativeShell:99-195のaccount/cart/orderとstaff遮断、NativeHomeScreen:65-115の商品/検索、RouteGuard:16-55のactive customer必須、default Seed:730-775と会員別metadata/scenariosを照合。Home自身は業務Use Case/Repository書込みをしない。実Web/Android/停止・退会Session/所有者認可の動的検証、視覚/a11yは未受入。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -825,7 +1009,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "2026-11-03 定期実行非干渉の独立静的基本分析。現行の正式仕様→Web/Android表示と共通Shell→Role→default/会員別Seed→Risk/Condition/Case採否を照合。基本分析のみanalyzed。Web/Native実Run、権限と遷移の動的保証、DB/Session不変、視覚/a11y、製品適合、最新#199への取込、CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/home-page.tsx",
         "line": 13,
@@ -836,7 +1020,7 @@
         "line": 75,
         "signature": "default: {",
         "scenario": "default",
-        "applicable": true,
+        "applicable": false,
         "alternatives": [
           "empty-catalog",
           "sale-active",
@@ -850,7 +1034,92 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 39,
+          "reason": "BR-STOREFRONT-001/003・HOME公開案内とRole別導線"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Web/Android Role・rank・active状態/購入権限"
+        },
+        {
+          "path": "src/presentation/pages/home-page.tsx",
+          "start_line": 13,
+          "end_line": 67,
+          "reason": "Web RouteGuard/Role分岐とHero CTA"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 31,
+          "end_line": 115,
+          "reason": "Android Homeの操作・表示範囲"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 42,
+          "end_line": 183,
+          "reason": "Androidのguest/customer/staff状態と共通ヘッダー/ナビ"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 775,
+          "reason": "defaultの顧客ランク・停止/退会・スタッフと初期Session"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 72,
+          "end_line": 110,
+          "reason": "default・会員別シナリオの初期条件"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 70,
+          "reason": "default/会員シナリオ・Session変換"
+        },
+        {
+          "path": "src/presentation/shells/storefront-shell.tsx",
+          "start_line": 65,
+          "end_line": 125,
+          "reason": "Web Role別共通注文/プロフィール/Cartナビ"
+        },
+        {
+          "path": "src/presentation/shells/storefront-shell.tsx",
+          "start_line": 165,
+          "end_line": 175,
+          "reason": "Webフッターの顧客導線"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 160,
+          "end_line": 195,
+          "reason": "Native customer-only Ordersとホーム/Cart共通ナビ"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 16,
+          "end_line": 55,
+          "reason": "Web active customerとstaff境界"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 80,
+          "end_line": 84,
+          "reason": "Homeの商品読取のみ（導線では更新なし）"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-S-empty-catalog",
