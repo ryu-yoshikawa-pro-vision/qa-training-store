@@ -250,6 +250,18 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     expect(await fullDatabaseSnapshot()).toEqual(staleBefore);
   });
 
+  it("rejects an active admin changing their own role without modifying any Dexie table", async () => {
+    const before = await fullDatabaseSnapshot();
+    const actor = forSession("training-user-admin");
+    await expect(actor.useCases.changeRole({
+      userId: "user-admin",
+      role: "operator",
+      expectedVersion: 1,
+    })).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
+    expect(await actor.store.getSessionId()).toBe("training-user-admin");
+    expect(await fullDatabaseSnapshot()).toEqual(before);
+  });
+
   it("rejects changeRole from an expired actor session, clears local session, and preserves every Dexie table", async () => {
     const before = await fullDatabaseSnapshot();
     const expired = forSession("training-missing-session");
