@@ -69,7 +69,7 @@ it("never permits a failed or inconsistent calibration to be reused", () => {
   }
 });
 
-it("refuses incomplete or contradictory shared calibration success metadata before reuse", async () => {
+it("rejects invalid successful calibration cache metadata", async () => {
   const workspaceRoot = path.join(tempRoot, "calibration-cache-metadata");
   const attemptDirectory = path.join(workspaceRoot, "first");
   fs.mkdirSync(attemptDirectory, { recursive: true });
@@ -152,7 +152,7 @@ it("refuses incomplete or contradictory shared calibration success metadata befo
   expect(calls).toBe(1);
 });
 
-it("records pinned Case decisions and rejects altered or legacy successful calibration caches", async () => {
+it("rejects altered or legacy successful calibration caches", async () => {
   const workspaceRoot = path.join(tempRoot, "calibration-cached-decisions");
   const firstAttempt = path.join(workspaceRoot, "first");
   fs.mkdirSync(firstAttempt, { recursive: true });
