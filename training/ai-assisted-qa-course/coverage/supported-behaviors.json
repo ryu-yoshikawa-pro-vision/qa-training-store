@@ -25193,27 +25193,27 @@
       "source_line": 45,
       "source_text": "Webの自動テスト（Automation Web）からシナリオ、クロック、決済遅延、シードリセットを操作する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "role": "active Admin、EXPO_PUBLIC_BUILD_KIND=automation/localに限る管理者UI。Customer/Operator/Guest/停止・退会Admin、およびproduction/public/previewのRouteGuard拒否は別のCase。Test API自体はWindow内の利用可能コードへの別認可を設けない。",
+      "scenario": "default→empty-catalog/low-stock/regular-member/admin-bulk-partial-failure等のSCENARIO_METADATA登録済みシナリオを選択しResetで反映。invalid ID、大小文字変更、リセット後にadmin Sessionからguest/customerへ変わる状態を対照。",
+      "data": "PHASE_ONE_SCENARIOS=Object.keys(SCENARIO_METADATA)の30件。UI selectはscenario stateを書き換えてdisplayName/purpose/guide/初期Session/推奨アカウント/安全遷移先/確認ルートを表示するが、選択のみではDB/appSettingsを変更しない。『シナリオを初期化』の確認後にTestControlService.reset({scenario})がisPhaseOneScenarioで検査し、DB削除→Seed変換/Session/GuestId復旧/Clock設定→Metadata.scenarioを反映。Test APIにも同じServiceのreset入口あり、UI側だけがNoticeと安全なhard reloadを行う。",
       "action": "シナリオ選択",
-      "expected": "許可されたシナリオIDのみ選択し、現在のシナリオを反映する",
+      "expected": "現行カタログの30個から有効Scenarioを選択すると概要が即時更新され、確認/Reset成功後だけmetadata.scenario、実DB、初期Session、GuestId、Clock、Payment Delayが選択Scenarioへ一致し安全ルートへhard reloadされること。未登録文字列はVALIDATIONで拒否し元のSeed/Sessionを維持すること。Role/ビルド条件の拒否はUIガードとTest API公開範囲を別々に確認すること。",
       "rule_refs": [],
       "route": "`/admin/test-control`",
-      "risk": "許可されない遷移、Reset不整合、業務状態の破損",
-      "test_condition": "シナリオ選択で初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "シナリオ選択の認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "シナリオ選択が未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "選択時にReset済みと誤認、未許可Scenario/大小文字/型不正がDB破壊を誘発、Reset成功後のUIが旧Runtimeを参照、admin Session失効に伴う遷移失敗、テストAPIをadmin認可相当と誤解すること、複数ContextでのIndexedDBロック。",
+      "test_condition": "C1 Automation Web active adminで全30表示・選択時の表示内容とDB/metadata不変を確認。C2 default→empty-catalog/regular-member/admin Scenarioを選び確認Reset、Scenario種別ごとの商品数/Session Role/GuestId/Clock/安全ルートを照合。C3 unknown/空文字/大小文字変更はServiceとwindow.__TEST_API__からVALIDATION拒否、DBとSession不変。C4 Reset確認ダイアログCancel/二重送信/Reset blockedの場合は再遷移/成功通知を発生させない。C5 production/public/preview・Guest/Customer/Operator/停止Admin・直接URLでUI拒否とTest API導入制限を個別検証。C6 UI選択、Reset結果、視覚/aria、Playwright/DB Snapshotを実Run。",
+      "test_responsibility": "C1〜C6でUIのScenario選択と実際のReset責務を区別し、30 Seedの型・初期Session/Identity/Clock、権限、エラー/Notice・reloadを検証。",
+      "case_policy": "全30シナリオのreset受理はParameterized contract、実代表SeedのDB/Role/安全ルート、無効入力、二重Reset、ビルド・Role境界、失敗時不変を独立Case化。NativeのDeepLink resetは別プロトコルとする。",
+      "case_selection_reason": "UIのselect自体はローカルstate変更のみで、Seed切替はTestControlService.reset時に初めて起こる。正式仕様ではSeed Metadata/Scenario変換が正本であり30個の適用範囲とビルド境界を同時に監査する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。state-and-scenarios.md:19-23,37-52とtestability_design.md:7-39、AdminTestControlContent:852-905/947-990、SCENARIO_METADATA:74-405・PHASE_ONE_SCENARIOS:407-409、TestControlService.reset:73-98、test-api.web.ts:23-52、e2e/web/fixtures.ts:24-50を照合。Reset成功後だけSeed/Session/Guest/Clock/Notice/hard reloadとなる。UI scenario選択はResetではない。Serviceはadmin認可を内包しない。実全30/複数コンテキスト/本番ビルドの動的結果未受入。",
       "requirement_refs": [
         "STATE-SEEDS",
         "STATE-RESET",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 独立ブランチで基本静的分析。正式Scenario/テスト容易性仕様→Web automation-admin UI→TestControlService/Test API/Seed・Clock/MockPaymentGateway→既存integration/component/contractと権限/Build/失敗条件を照合。実Web/production artifact、全DB/Storage snapshot、外部権限・CI/Playwrightは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 844,
@@ -25233,7 +25233,200 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "シナリオ正本、Reset後状態・テストAPIとUI責務・Native/本番境界"
+        },
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 37,
+          "end_line": 58,
+          "reason": "SCREEN-TEST-CONTROLのWeb専用・非Visualの画面契約"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 7,
+          "end_line": 39,
+          "reason": "local/automation用途、Test API制限、admin UI・Clock・遅延"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 66,
+          "end_line": 80,
+          "reason": "ブラウザコンテキスト1つ1ページ・Reset時の再読込・失敗条件"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 844,
+          "end_line": 906,
+          "reason": "automation-adminガード、UIのReset、Notice・hard reload"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 907,
+          "end_line": 1049,
+          "reason": "選択肢・metadata・Clock・Delay、成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "RouteGuardのactive adminかつisTestApiBuild許可"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 63,
+          "end_line": 98,
+          "reason": "Service initialize/resetでSeed/DB/identity/Clock操作"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 100,
+          "end_line": 137,
+          "reason": "Service Clock/Delay検証・保存・Metadata"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 202,
+          "end_line": 230,
+          "reason": "App Settings保存とSession/Guest復元"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 13,
+          "end_line": 52,
+          "reason": "ビルド種別によるWeb Test API導入/公開制御"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "Browser runtimeとMockPaymentGateway Delay Provider"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 54,
+          "end_line": 69,
+          "reason": "Browser initialize→Seed/Clock→Test API"
+        },
+        {
+          "path": "src/infrastructure/clock/clocks.ts",
+          "start_line": 4,
+          "end_line": 34,
+          "reason": "Clockの固定/実時刻とDate parse検証"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 4,
+          "end_line": 39,
+          "reason": "次回未キャッシュ決済への遅延と冪等キャッシュ"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 30,
+          "reason": "BASE_CLOCK, DEFAULT_GUEST_ID, DEFAULT_PAYMENT_DELAY_MS、Scenario Metadata型"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 74,
+          "end_line": 106,
+          "reason": "default/empty-catalog等と初期Session/安全な移動先"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 405,
+          "end_line": 453,
+          "reason": "SCENARIO_METADATA→PHASE_ONE_SCENARIOS/30件・isPhaseOneScenario"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "シナリオごとのSeed生成・初期Sessionの変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 820,
+          "reason": "7固定ユーザー・Session空、初期appSettings"
+        },
+        {
+          "path": "e2e/web/fixtures.ts",
+          "start_line": 24,
+          "end_line": 50,
+          "reason": "Test API Reset→hard reload→metadata/Local Identity一致確認"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 95,
+          "end_line": 133,
+          "reason": "Seed ResetとSession/Guest/Clockの既存integration Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 135,
+          "end_line": 181,
+          "reason": "Clock/Delay受入と不正Clockの既存Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 184,
+          "end_line": 225,
+          "reason": "production Test API阻止/Reset blocked/不正Scenario/Delayの既存Case"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 509,
+          "end_line": 575,
+          "reason": "UI遅延設定/成功Reset/二重操作/失敗/Notice失敗の既存component Case"
+        },
+        {
+          "path": "tests/contracts/test-api.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "reason": "local/automationの許可と明示的production/public/preview拒否"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 25,
+          "end_line": 51,
+          "reason": "Admin navがadmin+isTestApiBuildの場合だけ表示"
+        },
+        {
+          "path": "app.config.ts",
+          "start_line": 10,
+          "end_line": 20,
+          "reason": "Build kindのデフォルトlocal・productionのTestMode強制false"
+        },
+        {
+          "path": "eas.json",
+          "start_line": 17,
+          "end_line": 54,
+          "reason": "EAS development/preview/production-validation明示ビルド設定"
+        },
+        {
+          "path": "scripts/security-static-check.ts",
+          "start_line": 108,
+          "end_line": 114,
+          "reason": "Test API allowlistの静的チェック"
+        },
+        {
+          "path": "scripts/validate-native-production-bundle.ts",
+          "start_line": 116,
+          "end_line": 156,
+          "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
+        }
+      ]
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-02",
@@ -25243,27 +25436,27 @@
       "source_line": 45,
       "source_text": "Webの自動テスト（Automation Web）からシナリオ、クロック、決済遅延、シードリセットを操作する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "role": "active Adminのlocal/automation Web UI（Test API自体はWindow登録をビルド種別で許可）。guest/customer/operator/停止Admin拒否。",
+      "scenario": "default BASE_CLOCK固定からsale-activeの期間開始・expired-sale(2026-07-02T03:00:00Z)、境界の直前/一致/直後、nullによるシステム時刻へ解除、reset後の既定Clock復元を比較。",
+      "data": "default SeedのappSettings.test-controlはclock=BASE_CLOCK(2026-07-01T03:00:00Z)、sale期間の境界はsaleStartAt<=now<saleEndAt。UI ISO日時入力→setClock(clock||null) / 『システム時刻へ戻す』→setClock(null)。Serviceはnew Date(iso)がNaNならVALIDATIONを返し、app_settings.test-control.clockを保存してRuntimeClock.setFixedTimeへ反映する。MockPayment/Cart/Search等はRuntimeClockを参照する。Nullならnow()がnew Date().toISOString()を返す。現在の検証は厳密なISO形式チェックではなくDate parse可能性のみ。",
       "action": "クロック操作",
-      "expected": "固定クロックの設定をテスト環境の状態へ反映する",
+      "expected": "許容日時の設定後にMetadata.clock/RuntimeClock/価格・期限などClock依存UseCaseが同じ時刻を使い、解除時はclock=nullで実時計へ戻ること。不正日時でVALIDATIONが返る場合はClockとapp_settings不変。Resetを挟むと選択Scenarioの固定時刻へ復帰すること。正確なISO UTC形式/不正なローカル表現の取扱いは正式要求に従って別途受入する。",
       "rule_refs": [],
       "route": "`/admin/test-control`",
-      "risk": "許可されない遷移、Reset不整合、業務状態の破損",
-      "test_condition": "クロック操作で初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "クロック操作の認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "クロック操作が未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Clock適用前後にapp_settingsとRuntimeClock不一致、null解除後に時刻固定のまま残る、Date.parseがISOではない入力も受理する、Sale終端の含有比較を取り違える、Reset後metadata/Clockの残留、異なる画面で新旧Clockが混在。",
+      "test_condition": "C1 defaultのMetadata.clock=BASE_CLOCK、setClock(2026-07-02T03:00:00Z)でSale終端非適用・Clock依存価格/Checkout期限を確認。C2 開始時刻-1ms/一致/終了時刻-1ms/一致でSale境界を明示検証。C3 null解除でMetadata.clock=null・RuntimeClock.now()が実時計へ戻る（許容誤差を採用）こと。C4 空文字UI→null、非日時invalid→VALIDATIONかつDB/Clock不変、非ISOだがDate parseできる入力の実挙動を記録。C5 Seed Resetによる固定Clock復元とStorage失敗時の片側適用を注入。C6 Web/Playwrightとstate/Meta・画面表示/時計依存金額/注文番号の整合を実Run。",
+      "test_responsibility": "C1〜C6でUI入力・TestControlService.setClock・appSettings/RuntimeClock、Seed/時刻境界と失敗時原子性を確認する。",
+      "case_policy": "有効日時・Sale開始/終了境界、null/空文字解除、不正/非ISO入力、Reset・保存失敗、Role/Build境界を採用。システム時刻そのものの厳密再現は実行時の許容差を設ける。",
+      "case_selection_reason": "Serviceは設定を永続化してからRuntimeClockを書き換え、Date parse可能なら許容する。ClockはSale/Checkout/Order時刻に影響するため値・境界・失敗時不変の両方を確認する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。testability_design.md:41-46、AdminTestControlContent:993-1023、TestControlService.setClock:100-110/appSettings:202-220、RuntimeClock:4-34、default appSettings:813-820・BASE_CLOCK:11、Sale isSaleActive pricing.ts:18-29、integration seeds.test.ts:135-143/172-182を照合。UI空値はnull、システム時刻へ戻すとnull、Serviceの検証は厳密ISOではなくDate parse。実Date/タイムゾーン/跨日・Playwright/DB不変・CIは未受入。",
       "requirement_refs": [
         "STATE-SEEDS",
         "STATE-RESET",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 独立ブランチで基本静的分析。正式Scenario/テスト容易性仕様→Web automation-admin UI→TestControlService/Test API/Seed・Clock/MockPaymentGateway→既存integration/component/contractと権限/Build/失敗条件を照合。実Web/production artifact、全DB/Storage snapshot、外部権限・CI/Playwrightは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 844,
@@ -25283,7 +25476,206 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "シナリオ正本、Reset後状態・テストAPIとUI責務・Native/本番境界"
+        },
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 37,
+          "end_line": 58,
+          "reason": "SCREEN-TEST-CONTROLのWeb専用・非Visualの画面契約"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 7,
+          "end_line": 39,
+          "reason": "local/automation用途、Test API制限、admin UI・Clock・遅延"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 66,
+          "end_line": 80,
+          "reason": "ブラウザコンテキスト1つ1ページ・Reset時の再読込・失敗条件"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 844,
+          "end_line": 906,
+          "reason": "automation-adminガード、UIのReset、Notice・hard reload"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 907,
+          "end_line": 1049,
+          "reason": "選択肢・metadata・Clock・Delay、成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "RouteGuardのactive adminかつisTestApiBuild許可"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 63,
+          "end_line": 98,
+          "reason": "Service initialize/resetでSeed/DB/identity/Clock操作"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 100,
+          "end_line": 137,
+          "reason": "Service Clock/Delay検証・保存・Metadata"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 202,
+          "end_line": 230,
+          "reason": "App Settings保存とSession/Guest復元"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 13,
+          "end_line": 52,
+          "reason": "ビルド種別によるWeb Test API導入/公開制御"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "Browser runtimeとMockPaymentGateway Delay Provider"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 54,
+          "end_line": 69,
+          "reason": "Browser initialize→Seed/Clock→Test API"
+        },
+        {
+          "path": "src/infrastructure/clock/clocks.ts",
+          "start_line": 4,
+          "end_line": 34,
+          "reason": "Clockの固定/実時刻とDate parse検証"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 4,
+          "end_line": 39,
+          "reason": "次回未キャッシュ決済への遅延と冪等キャッシュ"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 30,
+          "reason": "BASE_CLOCK, DEFAULT_GUEST_ID, DEFAULT_PAYMENT_DELAY_MS、Scenario Metadata型"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 74,
+          "end_line": 106,
+          "reason": "default/empty-catalog等と初期Session/安全な移動先"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 405,
+          "end_line": 453,
+          "reason": "SCENARIO_METADATA→PHASE_ONE_SCENARIOS/30件・isPhaseOneScenario"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "シナリオごとのSeed生成・初期Sessionの変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 820,
+          "reason": "7固定ユーザー・Session空、初期appSettings"
+        },
+        {
+          "path": "e2e/web/fixtures.ts",
+          "start_line": 24,
+          "end_line": 50,
+          "reason": "Test API Reset→hard reload→metadata/Local Identity一致確認"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 95,
+          "end_line": 133,
+          "reason": "Seed ResetとSession/Guest/Clockの既存integration Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 135,
+          "end_line": 181,
+          "reason": "Clock/Delay受入と不正Clockの既存Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 184,
+          "end_line": 225,
+          "reason": "production Test API阻止/Reset blocked/不正Scenario/Delayの既存Case"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 509,
+          "end_line": 575,
+          "reason": "UI遅延設定/成功Reset/二重操作/失敗/Notice失敗の既存component Case"
+        },
+        {
+          "path": "tests/contracts/test-api.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "reason": "local/automationの許可と明示的production/public/preview拒否"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 25,
+          "end_line": 51,
+          "reason": "Admin navがadmin+isTestApiBuildの場合だけ表示"
+        },
+        {
+          "path": "app.config.ts",
+          "start_line": 10,
+          "end_line": 20,
+          "reason": "Build kindのデフォルトlocal・productionのTestMode強制false"
+        },
+        {
+          "path": "eas.json",
+          "start_line": 17,
+          "end_line": 54,
+          "reason": "EAS development/preview/production-validation明示ビルド設定"
+        },
+        {
+          "path": "scripts/security-static-check.ts",
+          "start_line": 108,
+          "end_line": 114,
+          "reason": "Test API allowlistの静的チェック"
+        },
+        {
+          "path": "scripts/validate-native-production-bundle.ts",
+          "start_line": 116,
+          "end_line": 156,
+          "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 18,
+          "end_line": 29,
+          "reason": "Sale start inclusive/end exclusive・Clock依存"
+        }
+      ]
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-03",
@@ -25293,27 +25685,27 @@
       "source_line": 45,
       "source_text": "Webの自動テスト（Automation Web）からシナリオ、クロック、決済遅延、シードリセットを操作する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "role": "active Adminのlocal/automation Web管理UI。Test APIはlocal/automationのWindowから利用可能。",
+      "scenario": "default delay=500ms、0/1/500/10000/30000の正常境界、-1/30001/小数/NaNの不正入力。変更前後のTEST-SUCCESS/TEST-DECLINED/processingの未完了決済と冪等キーの再試行を比較。",
+      "data": "default SeedのappSettings.paymentDelayMs=500。Web UIはnumber(min=0,max=30000)と『遅延を設定』を表示し、入力値をNumberに変換してServiceへ渡す。TestControlService.setPaymentDelayは整数かつ0〜30000のときのみappSettingsへ保存。browser-runtime.web.tsのMockPaymentGatewayは各初回chargeでgetMetadata().paymentDelayMsを呼び、delay>0ならsetTimeoutで待つ。同一gatewayIdempotencyKeyのキャッシュ済みchargeには再待機も再課金もない。mock gatewayのsetDelay()は10000上限の別APIでありWebのprovider経路では使用されない。",
       "action": "決済遅延設定",
-      "expected": "設定した決済遅延を次の模擬決済へ反映する",
+      "expected": "0〜30000の整数のみ設定でき、Metadata.paymentDelayMsが更新され、以後の未キャッシュ模擬決済に指定遅延を反映し、決済成功/失敗の業務結果や二重実行を変えないこと。不正整数/負/超過はVALIDATIONで拒否し旧設定のままであること。既処理冪等キーは再処理せずキャッシュ結果を返す。Reset後はScenario Seedの遅延に戻る。",
       "rule_refs": [],
       "route": "`/admin/test-control`",
-      "risk": "許可されない遷移、Reset不整合、業務状態の破損",
-      "test_condition": "決済遅延設定で初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "決済遅延設定の認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "決済遅延設定が未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "UI min/maxがService検証と不一致、小数/NaNの受入、同期遅延と実画面状態の不一致、タイムアウトによるE2E偽陰性、冪等キーキャッシュを遅延変更効果の失敗と誤判定、Delay設定だけで外部決済が実行されるとの誤解。",
+      "test_condition": "C1 default=500ms、0/1/10000/30000でMetadata更新と初回chargeの実待機を確認（実壁時計は許容幅設定）。C2 -1、30001、小数1.5、NaNでVALIDATION/旧appSettings不変。C3 TEST-SUCCESS/TEST-DECLINEDと同一冪等キー再呼出し時のDelay有無/結果同一、processing中の二重決済・在庫不変。C4 delay変更後の未使用冪等キーが新値、既使用キーはキャッシュという経路を検証。C5 UIの値変更だけで更新されないこと、設定ボタン成功通知・Error表示、Reset後500msを確認。C6 不正Role/Build、実Web/Clock・Checkout/Payment/visual/a11y/CIを別受入。",
+      "test_responsibility": "C1〜C6でUI制限とService整数検証、MockPaymentGatewayの遅延Provider/冪等キャッシュ、Reset初期値、失敗時不変を検証する。",
+      "case_policy": "0/1/500/10000/30000と-1/30001/小数/NaN、初回/再試行の冪等キー、SUCCESS/DECLINED、UI変更/設定確定、Reset、Role/BuildをCase選定。",
+      "case_selection_reason": "設定はappSettingsに保存されMockPaymentGatewayのProviderがcharge時に取得する。決済実行自体と設定更新を分け、既キャッシュ試行で新遅延が適用されないことを期待条件に含める。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。AdminTestControlContent:1025-1047、TestControlService.setPaymentDelay:112-120、browser-runtime.web.ts:24-35、MockPaymentGateway.charge:14-40、default Seed:813-820・DEFAULT_PAYMENT_DELAY_MS、integration seeds.test.ts:135-146/211-220、component review-user-pages.test.tsx:509-516を照合。0〜30000整数許容、初回chargeでProvider取得・同一冪等キーはキャッシュ済み結果。実決済/壁時計待機・UI/本番CIは未受入。",
       "requirement_refs": [
         "STATE-SEEDS",
         "STATE-RESET",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 独立ブランチで基本静的分析。正式Scenario/テスト容易性仕様→Web automation-admin UI→TestControlService/Test API/Seed・Clock/MockPaymentGateway→既存integration/component/contractと権限/Build/失敗条件を照合。実Web/production artifact、全DB/Storage snapshot、外部権限・CI/Playwrightは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 844,
@@ -25333,7 +25725,200 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "シナリオ正本、Reset後状態・テストAPIとUI責務・Native/本番境界"
+        },
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 37,
+          "end_line": 58,
+          "reason": "SCREEN-TEST-CONTROLのWeb専用・非Visualの画面契約"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 7,
+          "end_line": 39,
+          "reason": "local/automation用途、Test API制限、admin UI・Clock・遅延"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 66,
+          "end_line": 80,
+          "reason": "ブラウザコンテキスト1つ1ページ・Reset時の再読込・失敗条件"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 844,
+          "end_line": 906,
+          "reason": "automation-adminガード、UIのReset、Notice・hard reload"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 907,
+          "end_line": 1049,
+          "reason": "選択肢・metadata・Clock・Delay、成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "RouteGuardのactive adminかつisTestApiBuild許可"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 63,
+          "end_line": 98,
+          "reason": "Service initialize/resetでSeed/DB/identity/Clock操作"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 100,
+          "end_line": 137,
+          "reason": "Service Clock/Delay検証・保存・Metadata"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 202,
+          "end_line": 230,
+          "reason": "App Settings保存とSession/Guest復元"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 13,
+          "end_line": 52,
+          "reason": "ビルド種別によるWeb Test API導入/公開制御"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "Browser runtimeとMockPaymentGateway Delay Provider"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 54,
+          "end_line": 69,
+          "reason": "Browser initialize→Seed/Clock→Test API"
+        },
+        {
+          "path": "src/infrastructure/clock/clocks.ts",
+          "start_line": 4,
+          "end_line": 34,
+          "reason": "Clockの固定/実時刻とDate parse検証"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 4,
+          "end_line": 39,
+          "reason": "次回未キャッシュ決済への遅延と冪等キャッシュ"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 30,
+          "reason": "BASE_CLOCK, DEFAULT_GUEST_ID, DEFAULT_PAYMENT_DELAY_MS、Scenario Metadata型"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 74,
+          "end_line": 106,
+          "reason": "default/empty-catalog等と初期Session/安全な移動先"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 405,
+          "end_line": 453,
+          "reason": "SCENARIO_METADATA→PHASE_ONE_SCENARIOS/30件・isPhaseOneScenario"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "シナリオごとのSeed生成・初期Sessionの変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 820,
+          "reason": "7固定ユーザー・Session空、初期appSettings"
+        },
+        {
+          "path": "e2e/web/fixtures.ts",
+          "start_line": 24,
+          "end_line": 50,
+          "reason": "Test API Reset→hard reload→metadata/Local Identity一致確認"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 95,
+          "end_line": 133,
+          "reason": "Seed ResetとSession/Guest/Clockの既存integration Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 135,
+          "end_line": 181,
+          "reason": "Clock/Delay受入と不正Clockの既存Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 184,
+          "end_line": 225,
+          "reason": "production Test API阻止/Reset blocked/不正Scenario/Delayの既存Case"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 509,
+          "end_line": 575,
+          "reason": "UI遅延設定/成功Reset/二重操作/失敗/Notice失敗の既存component Case"
+        },
+        {
+          "path": "tests/contracts/test-api.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "reason": "local/automationの許可と明示的production/public/preview拒否"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 25,
+          "end_line": 51,
+          "reason": "Admin navがadmin+isTestApiBuildの場合だけ表示"
+        },
+        {
+          "path": "app.config.ts",
+          "start_line": 10,
+          "end_line": 20,
+          "reason": "Build kindのデフォルトlocal・productionのTestMode強制false"
+        },
+        {
+          "path": "eas.json",
+          "start_line": 17,
+          "end_line": 54,
+          "reason": "EAS development/preview/production-validation明示ビルド設定"
+        },
+        {
+          "path": "scripts/security-static-check.ts",
+          "start_line": 108,
+          "end_line": 114,
+          "reason": "Test API allowlistの静的チェック"
+        },
+        {
+          "path": "scripts/validate-native-production-bundle.ts",
+          "start_line": 116,
+          "end_line": 156,
+          "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
+        }
+      ]
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-04",
@@ -25343,27 +25928,27 @@
       "source_line": 45,
       "source_text": "Webの自動テスト（Automation Web）からシナリオ、クロック、決済遅延、シードリセットを操作する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "role": "active Adminのlocal/automation Web UIまたは許可ビルドでのみ公開されるWindow Test API。Nativeは別SQLite DeepLink Reset。",
+      "scenario": "default/regular-member/gold-member/expired-sale/cart-with-invalid-items/checkout-resume/admin等の30登録Scenario、別タブによるIndexedDB delete block、Reset失敗、重複確認/Notice保存失敗、実行中の既存Cart/Order/Sessionを対照。",
+      "data": "TestControlService.resetはisPhaseOneScenarioの先行検証後、現Dexie db.close()→Dexie.delete(dbName)→SessionStore.clear/GuestIdentityStore.clear→新DBのloadSeedDataset(createScenarioDataset)→restoreSeedIdentity（初期Sessionを選びGuestId固定）→Metadata.clockのRuntimeClock反映の順。Seedには商品/注文/決済/在庫/Cart/Review/設定(Clock/Delay)が入る。削除がopen page等で失敗した場合は新DB instanceを生成してRESET_BLOCKED_BY_OPEN_PAGEで終了し移動しない。削除後のSeed/Storage書込失敗について同等のRollbackはコードから証明できない。Web UIは成功後にCheckout/一回限りNoticeをクリアしてreset Noticeを書き安全ルートへhard reload、Test APIはResult/Metadataを返してNoticeクリアのみ行いUI側のreloadはしない。",
       "action": "シードリセット",
-      "expected": "リセットで対象シナリオのDB・セッション・時計・ゲストIDを再初期化する",
+      "expected": "有効ScenarioのResetが成功すると全業務DB・Session・Guest ID・Clock・DelayがSeed正本の値と一致し、UI経由ではNotice保存に失敗しても旧Runtimeを使い続けず安全ルートへreloadされること。削除失敗時はRESET_BLOCKED_BY_OPEN_PAGEと判定し成功通知/安全移動を行わないこと。不正ScenarioはDB close/delete前にVALIDATION拒否。削除後の途中失敗では成功と扱わず復旧方法を検証すること。",
       "rule_refs": [],
       "route": "`/admin/test-control`",
-      "risk": "許可されない遷移、Reset不整合、業務状態の破損",
-      "test_condition": "シードリセットで初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "シードリセットの認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "シードリセットが未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "別タブによるIndexedDB deleteのブロック、DB削除成功後のSeed失敗で既存データ全損/半端Seed、CurrentSession/GuestId/Clockの部分初期化、前状態のCheckout Notice残留、Reset再入/連打、テストAPIの再読込漏れ、初期Admin Session消失後のガード遷移。",
+      "test_condition": "C1 defaultを業務更新後Resetし商品/Cart/Checkout/Order/Payment/Inventory/Review/app_settings/schema_metadata数と値、Session/GuestId/Clock/DelayのSnapshotをSeed固定値と比較。C2 regular-member/expired-sale/adminなど異なるRole/ClockでmetadataとSession ID、safeResetPathとNotice・hard reloadを検証。C3 UIで二重確認/Cancel/Reset中busy、成功Notice保存失敗でも必ず移動、API resetはmetadata戻り値のみでUI reloadなしを確認。C4 別タブでDB deleteブロック時RESET_BLOCKED_BY_OPEN_PAGE、同Context余分なpageを閉じるE2E fixtureの手順を確認。C5 不正Scenario拒否で前DB/Storage不変、Delete成功後にSeed/Session/Guest書込失敗を注入し失敗時の復旧性と部分状態を評価（同等rollbackは未実装候補）。C6 実Web Playwright・同一/複数Context・手動操作・Metadata/Database version・a11yと安全なリロードを証拠化。",
+      "test_responsibility": "C1〜C6でDB/Seed/Identity/Clock/Delayの全Reset、成功時Notice/ReloadとTest APIの責務差、blocked/部分失敗/二重Resetと実DB一貫性を検証する。",
+      "case_policy": "30固定Scenarioのreset受理、代表の全DB比較、Reset中二重操作/Cancel/Notice保存失敗、blocked DB/seed途中失敗、不正ID/各Roleを分離。実データ削除を伴うため独立テストDB/Browser Contextでのみ実行。",
+      "case_selection_reason": "Web ResetはDexie.delete→SeedとIdentityを非単一Transactionで実行するため、通常成功・delete blocked・delete後失敗を別の失敗境界として扱う。UIは成功後reloadするがAPIは再読込を外側に委ねる。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。state-and-scenarios.md:19-23/07_testability:66-80、TestControlService.reset:73-98/restoreSeedIdentity:222-230、UI AdminTestControlContent:869-906/980-990、Test API:29-52、E2E fixture:24-50、Seed metadata:9-13,74-405・scenarios:20-75、integration seeds.test.ts:121-133/192-209、component:518-574を照合。Serviceはdb.close→Dexie.delete→Storage clear→Seed/Restoreであり削除後失敗の原子的rollbackは証明されない。実E2E/DB不変/全Seed数・復旧・CI未受入。",
       "requirement_refs": [
         "STATE-SEEDS",
         "STATE-RESET",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 独立ブランチで基本静的分析。正式Scenario/テスト容易性仕様→Web automation-admin UI→TestControlService/Test API/Seed・Clock/MockPaymentGateway→既存integration/component/contractと権限/Build/失敗条件を照合。実Web/production artifact、全DB/Storage snapshot、外部権限・CI/Playwrightは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 844,
@@ -25383,7 +25968,200 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "シナリオ正本、Reset後状態・テストAPIとUI責務・Native/本番境界"
+        },
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 37,
+          "end_line": 58,
+          "reason": "SCREEN-TEST-CONTROLのWeb専用・非Visualの画面契約"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 7,
+          "end_line": 39,
+          "reason": "local/automation用途、Test API制限、admin UI・Clock・遅延"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 66,
+          "end_line": 80,
+          "reason": "ブラウザコンテキスト1つ1ページ・Reset時の再読込・失敗条件"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 844,
+          "end_line": 906,
+          "reason": "automation-adminガード、UIのReset、Notice・hard reload"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 907,
+          "end_line": 1049,
+          "reason": "選択肢・metadata・Clock・Delay、成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "RouteGuardのactive adminかつisTestApiBuild許可"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 63,
+          "end_line": 98,
+          "reason": "Service initialize/resetでSeed/DB/identity/Clock操作"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 100,
+          "end_line": 137,
+          "reason": "Service Clock/Delay検証・保存・Metadata"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 202,
+          "end_line": 230,
+          "reason": "App Settings保存とSession/Guest復元"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 13,
+          "end_line": 52,
+          "reason": "ビルド種別によるWeb Test API導入/公開制御"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "Browser runtimeとMockPaymentGateway Delay Provider"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 54,
+          "end_line": 69,
+          "reason": "Browser initialize→Seed/Clock→Test API"
+        },
+        {
+          "path": "src/infrastructure/clock/clocks.ts",
+          "start_line": 4,
+          "end_line": 34,
+          "reason": "Clockの固定/実時刻とDate parse検証"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 4,
+          "end_line": 39,
+          "reason": "次回未キャッシュ決済への遅延と冪等キャッシュ"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 30,
+          "reason": "BASE_CLOCK, DEFAULT_GUEST_ID, DEFAULT_PAYMENT_DELAY_MS、Scenario Metadata型"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 74,
+          "end_line": 106,
+          "reason": "default/empty-catalog等と初期Session/安全な移動先"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 405,
+          "end_line": 453,
+          "reason": "SCENARIO_METADATA→PHASE_ONE_SCENARIOS/30件・isPhaseOneScenario"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "シナリオごとのSeed生成・初期Sessionの変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 820,
+          "reason": "7固定ユーザー・Session空、初期appSettings"
+        },
+        {
+          "path": "e2e/web/fixtures.ts",
+          "start_line": 24,
+          "end_line": 50,
+          "reason": "Test API Reset→hard reload→metadata/Local Identity一致確認"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 95,
+          "end_line": 133,
+          "reason": "Seed ResetとSession/Guest/Clockの既存integration Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 135,
+          "end_line": 181,
+          "reason": "Clock/Delay受入と不正Clockの既存Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 184,
+          "end_line": 225,
+          "reason": "production Test API阻止/Reset blocked/不正Scenario/Delayの既存Case"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 509,
+          "end_line": 575,
+          "reason": "UI遅延設定/成功Reset/二重操作/失敗/Notice失敗の既存component Case"
+        },
+        {
+          "path": "tests/contracts/test-api.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "reason": "local/automationの許可と明示的production/public/preview拒否"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 25,
+          "end_line": 51,
+          "reason": "Admin navがadmin+isTestApiBuildの場合だけ表示"
+        },
+        {
+          "path": "app.config.ts",
+          "start_line": 10,
+          "end_line": 20,
+          "reason": "Build kindのデフォルトlocal・productionのTestMode強制false"
+        },
+        {
+          "path": "eas.json",
+          "start_line": 17,
+          "end_line": 54,
+          "reason": "EAS development/preview/production-validation明示ビルド設定"
+        },
+        {
+          "path": "scripts/security-static-check.ts",
+          "start_line": 108,
+          "end_line": 114,
+          "reason": "Test API allowlistの静的チェック"
+        },
+        {
+          "path": "scripts/validate-native-production-bundle.ts",
+          "start_line": 116,
+          "end_line": 156,
+          "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
+        }
+      ]
     },
     {
       "id": "SCREEN-TEST-CONTROL-A02-01",
@@ -25393,27 +26171,27 @@
       "source_line": 46,
       "source_text": "テスト専用の操作画面であり、プロダクト本来の振る舞いを示すビジュアル仕様の対象には含めない。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "role": "Automation Webのactive AdminのみUI利用。Web Test APIはlocal/automation Buildで導入され、同一Window内のJavaScriptにはAdmin Roleの再認可なし。Nativeは別のテスト制御/本番Bundle排除契約。",
+      "scenario": "EXPO_PUBLIC_BUILD_KIND=automation/localとproduction/public/preview/unknown/空文字、BUILD_KIND未設定時、Guest/Customer/Operator/停止Admin/Active Admin、/admin/test-controlのURL直アクセス・sidebar表示・Window API有無を比較。",
+      "data": "route-guard.tsxのautomation-adminはcurrentUser.role=admin/accountStatus=activeかつisTestApiBuild()を要求。admin-shell.tsxは同条件のadminで『テスト制御』ナビを表示。test-api.web.tsのisTestApiBuildは明示的production/public/preview/unknown/空文字を拒否、automation/localだけtrueでwindow.__TEST_API__をinstall。app.config.tsとtest-api.web.tsはEXPO_PUBLIC_BUILD_KIND未設定時に'local'へfallbackするため、ビルド環境変数欠落はTest APIが許可側になる。eas.json production-validationはproductionを明示し、testMode=false。nativeの本番Hermesバンドル判定はWeb Test APIとは別検証。",
       "action": "テスト専用で本番対象外とする",
-      "expected": "テストコントロールは本番環境で利用不可とする",
+      "expected": "production/public/previewの明示BuildではAdminナビ・直URLのTest Control表示を拒否しWindow Test APIを公開せず、業務データのReset/Clock/Delayを任意ユーザーから操作できないこと。local/automationはactive AdminだけがUIを使えること。Build設定漏れ時にlocalへfallbackする実装のため、デプロイ手順・成果物の設定検査で公開リスクを防ぐこと。Test API公開自体はAdmin認可と同義ではなく、アクセスできる同Originコードへの管理者境界がない点を把握する。",
       "rule_refs": [],
       "route": "`/admin/test-control`",
-      "risk": "許可されない遷移、Reset不整合、業務状態の破損",
-      "test_condition": "テスト専用で本番対象外とするで初期状態・拒否・遷移結果を照合する",
-      "test_responsibility": "テスト専用で本番対象外とするの認可と境界条件を確認する",
-      "case_policy": "有効・無効条件、リセット前後を選定",
-      "case_selection_reason": "テスト専用で本番対象外とするが未許可操作や誤認につながらないことを検査する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "BUILD_KIND未設定の公開/productionビルドがlocalとしてTest APIを公開し業務データをReset可能、Window APIをAdminしか触れないと誤認、UI RouteGuardだけの保護に依存、単なるSidebar非表示を権限遮断と誤判定、Production BrowserとNative Bundleの責務の取り違え。",
+      "test_condition": "C1 production/public/preview/unknown/明示空文字でadmin/guestどちらでも/test-control直URLを拒否し、Window Test API=undefinedを確認。C2 local/automationはactive Admin UI許可、Guest/Customer/Operator/suspended/withdrawn Adminは拒否、URL直入力でも不可を確認。C3 BUILD_KIND unsetでisTestApiBuild()がlocal扱いとなる危険条件を契約テストし、公開ビルドでの環境変数必須・build artifact実検証を追加する判断を#210へ送る。C4 Test APIのreset/Clock/Delayが利用可能WindowではRoleチェックなしで呼べることを実ブラウザで確認し、信頼境界の是非・使用用途を製品セキュリティとして判断。C5 Preview /Cloudflare/EAS production-validationの環境別設定、build artifact中のmarker/API、Native production Hermès bundle guardを別々に確認。C6 RouteGuard/Console/CI/E2E/a11yとUnauthorized時のDB・Session不変を確認。",
+      "test_responsibility": "C1〜C6でBuild flags/Role/Route/Window Test API・production artifactの公開範囲を分け、設定欠落と同Origin APIの権限リスクを動的に確認する。",
+      "case_policy": "production/public/preview/unknown/空文字/unset、active Adminと非許可Role、直接URL・ナビ・Window API、build artifact・Native境界を別Case化。環境変数未設定時のlocal fallbackを安全と推定しない。",
+      "case_selection_reason": "テスト容易性の契約は本番では無効だが、RouteGuardとTest API installはビルド種別で制御される。未設定がlocalとなる実装とServiceのRole非検証は実際の信頼境界なので、静的allowlistテストの明示production拒否だけでは実成果物の安全性を証明できない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "静的基本分析のみanalyzed。state-and-scenarios.md:29-35/37-58、testability_design.md:7-39、RouteGuard:43-55、AdminShell:25-51、Test API:23-52、app.config.ts:10-20、eas.json:17-54、tests/contracts/test-api.test.ts:4-21、seeds integration:184-190、scripts/security-static-check.ts:108-114を照合。明示productionはAPI拒否、未設定はlocalへfallbackする。Service側はAdminの再認可をしない。Web production成果物・実ホスト環境、Native bundle、未許可アクセスの実Runは未受入。",
       "requirement_refs": [
         "STATE-SEEDS",
         "STATE-RESET",
         "PLATFORM-WEB"
       ],
       "related_use_cases": [],
-      "analysis_progress": "個別の期待・環境条件を記録。実装条件の確認待ち",
+      "analysis_progress": "2026-11-03 独立ブランチで基本静的分析。正式Scenario/テスト容易性仕様→Web automation-admin UI→TestControlService/Test API/Seed・Clock/MockPaymentGateway→既存integration/component/contractと権限/Build/失敗条件を照合。実Web/production artifact、全DB/Storage snapshot、外部権限・CI/Playwrightは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 844,
@@ -25433,7 +26211,200 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "シナリオ正本、Reset後状態・テストAPIとUI責務・Native/本番境界"
+        },
+        {
+          "path": "docs/spec/state-and-scenarios.md",
+          "start_line": 37,
+          "end_line": 58,
+          "reason": "SCREEN-TEST-CONTROLのWeb専用・非Visualの画面契約"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 7,
+          "end_line": 39,
+          "reason": "local/automation用途、Test API制限、admin UI・Clock・遅延"
+        },
+        {
+          "path": "docs/07_testability/testability_design.md",
+          "start_line": 66,
+          "end_line": 80,
+          "reason": "ブラウザコンテキスト1つ1ページ・Reset時の再読込・失敗条件"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 844,
+          "end_line": 906,
+          "reason": "automation-adminガード、UIのReset、Notice・hard reload"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 907,
+          "end_line": 1049,
+          "reason": "選択肢・metadata・Clock・Delay、成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 25,
+          "end_line": 55,
+          "reason": "RouteGuardのactive adminかつisTestApiBuild許可"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 63,
+          "end_line": 98,
+          "reason": "Service initialize/resetでSeed/DB/identity/Clock操作"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 100,
+          "end_line": 137,
+          "reason": "Service Clock/Delay検証・保存・Metadata"
+        },
+        {
+          "path": "src/test-controls/test-control-service.ts",
+          "start_line": 202,
+          "end_line": 230,
+          "reason": "App Settings保存とSession/Guest復元"
+        },
+        {
+          "path": "src/test-controls/test-api.web.ts",
+          "start_line": 13,
+          "end_line": 52,
+          "reason": "ビルド種別によるWeb Test API導入/公開制御"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 19,
+          "end_line": 35,
+          "reason": "Browser runtimeとMockPaymentGateway Delay Provider"
+        },
+        {
+          "path": "src/bootstrap/browser-runtime.web.ts",
+          "start_line": 54,
+          "end_line": 69,
+          "reason": "Browser initialize→Seed/Clock→Test API"
+        },
+        {
+          "path": "src/infrastructure/clock/clocks.ts",
+          "start_line": 4,
+          "end_line": 34,
+          "reason": "Clockの固定/実時刻とDate parse検証"
+        },
+        {
+          "path": "src/infrastructure/payment/mock-payment-gateway.ts",
+          "start_line": 4,
+          "end_line": 39,
+          "reason": "次回未キャッシュ決済への遅延と冪等キャッシュ"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 9,
+          "end_line": 30,
+          "reason": "BASE_CLOCK, DEFAULT_GUEST_ID, DEFAULT_PAYMENT_DELAY_MS、Scenario Metadata型"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 74,
+          "end_line": 106,
+          "reason": "default/empty-catalog等と初期Session/安全な移動先"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 405,
+          "end_line": 453,
+          "reason": "SCENARIO_METADATA→PHASE_ONE_SCENARIOS/30件・isPhaseOneScenario"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "シナリオごとのSeed生成・初期Sessionの変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 820,
+          "reason": "7固定ユーザー・Session空、初期appSettings"
+        },
+        {
+          "path": "e2e/web/fixtures.ts",
+          "start_line": 24,
+          "end_line": 50,
+          "reason": "Test API Reset→hard reload→metadata/Local Identity一致確認"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 95,
+          "end_line": 133,
+          "reason": "Seed ResetとSession/Guest/Clockの既存integration Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 135,
+          "end_line": 181,
+          "reason": "Clock/Delay受入と不正Clockの既存Case"
+        },
+        {
+          "path": "tests/integration/seeds.test.ts",
+          "start_line": 184,
+          "end_line": 225,
+          "reason": "production Test API阻止/Reset blocked/不正Scenario/Delayの既存Case"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 509,
+          "end_line": 575,
+          "reason": "UI遅延設定/成功Reset/二重操作/失敗/Notice失敗の既存component Case"
+        },
+        {
+          "path": "tests/contracts/test-api.test.ts",
+          "start_line": 4,
+          "end_line": 21,
+          "reason": "local/automationの許可と明示的production/public/preview拒否"
+        },
+        {
+          "path": "src/presentation/shells/admin-shell.tsx",
+          "start_line": 25,
+          "end_line": 51,
+          "reason": "Admin navがadmin+isTestApiBuildの場合だけ表示"
+        },
+        {
+          "path": "app.config.ts",
+          "start_line": 10,
+          "end_line": 20,
+          "reason": "Build kindのデフォルトlocal・productionのTestMode強制false"
+        },
+        {
+          "path": "eas.json",
+          "start_line": 17,
+          "end_line": 54,
+          "reason": "EAS development/preview/production-validation明示ビルド設定"
+        },
+        {
+          "path": "scripts/security-static-check.ts",
+          "start_line": 108,
+          "end_line": 114,
+          "reason": "Test API allowlistの静的チェック"
+        },
+        {
+          "path": "scripts/validate-native-production-bundle.ts",
+          "start_line": 116,
+          "end_line": 156,
+          "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
+        }
+      ]
     },
     {
       "id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
