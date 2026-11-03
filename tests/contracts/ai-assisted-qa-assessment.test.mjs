@@ -336,11 +336,11 @@ it("keeps failed calibrations per attempt and only caches successful calibration
       attemptDirectory: conflictingDecision,
       caseResults: [{ ...candidate[0], decision: "pass" }],
     }),
-  ).toThrow(/case decisions differ from the verified attempt/);
+  ).toThrow(/case evidence differs from the verified attempt/);
   expect(read(cache)).toEqual(verifiedCache);
 });
 
-for (const mismatch of ["identity", "case-count"]) {
+for (const mismatch of ["identity", "case-count", "rationale"]) {
   it(`rejects concurrent calibration mismatched by ${mismatch}`, async () => {
     const root = path.join(tempRoot, `conflicting-calibration-${mismatch}`);
     const calibrationPath = path.join(root, "shared.json");
@@ -373,7 +373,9 @@ const calibration = {
   created_at: "2026-11-03T00:00:00.000Z",
 };
 const caseResults = Array.from({ length: calibration.case_count }, (_, index) => ({
-  case_id: "CAL-" + String(index + 1), decision: "pass", rationale: "supported",
+  case_id: "CAL-" + String(index + 1),
+  decision: "pass",
+  rationale: name === "challenger" && mismatch === "rationale" ? "different" : "supported",
 }));
 try {
   persistCalibration({ calibration, calibrationPath, attemptDirectory, caseResults });
@@ -423,7 +425,9 @@ try {
     expect(outcomes.filter(({ ok }) => ok)).toHaveLength(1);
     expect(outcomes.filter(({ ok }) => !ok)).toHaveLength(1);
     expect(outcomes.find(({ ok }) => !ok)?.message).toMatch(
-      /concurrent model calibration differs from the verified attempt/,
+      mismatch === "rationale"
+        ? /concurrent model calibration case evidence differs from the verified attempt/
+        : /concurrent model calibration differs from the verified attempt/,
     );
     const published = JSON.parse(fs.readFileSync(calibrationPath, "utf8"));
     const winner = children[outcomes.findIndex(({ ok }) => ok)].name;
@@ -436,6 +440,66 @@ try {
     expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(published);
   }, 20_000);
 }
+
+it("rejects a changed shared calibration rationale when resuming the same attempt", () => {
+  const root = path.join(tempRoot, "conflicting-shared-calibration-rationale");
+  const attemptDirectory = path.join(root, "attempt");
+  const calibrationPath = path.join(root, "shared.json");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "pinned" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const caseResults = [
+    { case_id: "positive", decision: "pass", rationale: "original supporting evidence" },
+  ];
+  const calibration = {
+    schema_version: 1,
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 1,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: "session-pinned",
+    created_at: "2026-11-03T00:00:00.000Z",
+    case_results_sha256: sha256(JSON.stringify(caseResults)),
+  };
+  persistCalibration({ calibration, calibrationPath, attemptDirectory, caseResults });
+  const resultPath = path.join(attemptDirectory, "calibration-result.json");
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  const originalResult = fs.readFileSync(resultPath);
+  const originalCandidate = fs.readFileSync(candidatePath);
+  const originalCache = fs.readFileSync(calibrationPath);
+  const inspect = () =>
+    readAttemptCalibration({
+      attemptDirectory,
+      calibrationId,
+      identity,
+      expected: new Map([["positive", ["pass"]]]),
+      calibrationPath,
+    });
+  expect(inspect()).toEqual(calibration);
+  const altered = JSON.parse(originalCache.toString("utf8"));
+  altered.case_results[0].rationale = "different supporting evidence";
+  altered.case_results_sha256 = sha256(JSON.stringify(altered.case_results));
+  fs.writeFileSync(calibrationPath, JSON.stringify(altered));
+  expect(inspect).toThrow(/case evidence differs from the verified attempt/);
+  expect(fs.readFileSync(resultPath)).toEqual(originalResult);
+  expect(fs.readFileSync(candidatePath)).toEqual(originalCandidate);
+
+  fs.writeFileSync(
+    calibrationPath,
+    JSON.stringify({ ...altered, case_results_sha256: "0".repeat(64) }),
+  );
+  expect(inspect).toThrow(/lacks verifiable case decisions/);
+  fs.writeFileSync(
+    calibrationPath,
+    JSON.stringify({ ...altered, case_results: undefined, case_results_sha256: undefined }),
+  );
+  expect(inspect).toThrow(/lacks verifiable case decisions/);
+  fs.writeFileSync(calibrationPath, originalCache);
+  expect(inspect()).toEqual(calibration);
+  expect(fs.readFileSync(calibrationPath)).toEqual(originalCache);
+});
 
 it("rebuilds a missing successful shared calibration from a verified saved attempt", () => {
   const root = path.join(tempRoot, "interrupted-calibration-cache");
@@ -499,6 +563,15 @@ it("rebuilds a missing successful shared calibration from a verified saved attem
   );
   expect(resume).toThrow(/concurrent model calibration differs/);
   fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
+  expect(resume).toThrow(/lacks verifiable case decisions/);
+  fs.writeFileSync(
+    calibrationPath,
+    JSON.stringify({
+      ...calibration,
+      case_results: caseResults,
+      case_results_sha256: sha256(JSON.stringify(caseResults)),
+    }),
+  );
   expect(resume()).toEqual(calibration);
 });
 

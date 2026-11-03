@@ -740,27 +740,30 @@ function publishPassingCalibrationCache(
       !isDeepStrictEqual(published.identity, calibration.identity)
     )
       fail("concurrent model calibration differs from the verified attempt");
-    if (Array.isArray(published.case_results) && Array.isArray(caseResults)) {
-      const decisions = (items) =>
-        items
-          .map(({ case_id, decision }) => ({ case_id, decision }))
-          .sort((a, b) => a.case_id.localeCompare(b.case_id));
-      if (!isDeepStrictEqual(decisions(published.case_results), decisions(caseResults)))
-        fail("concurrent model calibration case decisions differ from the verified attempt");
-    }
   };
-  if (existingCalibration) {
-    // Failed legacy records remain immutable, but only for the matching model,
-    // prompt, and pinned source. Never ignore a foreign record at this cache key.
-    verifyIdentity(existingCalibration);
-    if (!isPassingCalibration(existingCalibration)) return;
-    return;
-  }
-  const verifyWinner = (published) => {
+  const verifySuccessfulRecord = (published) => {
     verifyIdentity(published);
     if (!isPassingCalibration(published))
       fail("concurrent model calibration differs from the verified attempt");
+    // Check the immutable winner before accepting it. Equal decisions with
+    // different rationales are different evidence and must not be reused.
+    verifySharedCalibrationCaseResults(published);
+    if (
+      !Array.isArray(caseResults) ||
+      !isDeepStrictEqual(published.case_results, caseResults) ||
+      (Object.hasOwn(calibration, "case_results_sha256") &&
+        calibration.case_results_sha256 !== published.case_results_sha256)
+    )
+      fail("concurrent model calibration case evidence differs from the verified attempt");
   };
+  if (existingCalibration) {
+    // A matching failed legacy cache is retained for audit. A published success
+    // must match the complete case evidence of this independently verified attempt.
+    verifyIdentity(existingCalibration);
+    if (!isPassingCalibration(existingCalibration)) return;
+    verifySuccessfulRecord(existingCalibration);
+    return;
+  }
   try {
     atomicWriteJson(calibrationPath, publishedRecord);
   } catch (error) {
@@ -772,8 +775,7 @@ function publishPassingCalibrationCache(
     )
       throw error;
     const winner = readJson(calibrationPath, "concurrent model calibration");
-    verifyWinner(winner);
-    if (Array.isArray(caseResults)) verifySharedCalibrationCaseResults(winner);
+    verifySuccessfulRecord(winner);
   }
 }
 
