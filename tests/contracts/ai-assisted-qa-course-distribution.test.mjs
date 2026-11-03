@@ -1885,9 +1885,7 @@ describe("AI-assisted QA distribution contract", () => {
         allowUncommittedFixture: true,
       });
       const targetPath = "course/states/M00/start.json";
-      const state = JSON.parse(
-        fs.readFileSync(path.join(fixture.target, targetPath), "utf8"),
-      );
+      const state = JSON.parse(fs.readFileSync(path.join(fixture.target, targetPath), "utf8"));
       const altered = Buffer.from(JSON.stringify({ ...state, ...change }));
       writeFixtureFile(fixture.target, targetPath, altered);
       const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
