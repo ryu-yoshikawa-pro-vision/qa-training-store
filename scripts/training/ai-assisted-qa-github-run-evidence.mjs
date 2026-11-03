@@ -107,8 +107,12 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   }
   if (
     steps.length !== 10 ||
-    [...allowedActions].some((action) => steps.filter((step) => step.uses === action).length !== 1) ||
-    [...allowedCommands].some((command) => steps.filter((step) => step.run === command).length !== 1)
+    [...allowedActions].some(
+      (action) => steps.filter((step) => step.uses === action).length !== 1,
+    ) ||
+    [...allowedCommands].some(
+      (command) => steps.filter((step) => step.run === command).length !== 1,
+    )
   )
     fail("M10 workflow must contain exactly the reviewed actions and shell commands");
   const checkout = steps.find(
