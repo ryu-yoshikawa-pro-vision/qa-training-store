@@ -929,13 +929,13 @@ export function verifySyncedCourseDistribution({ root }) {
       const targetPath = `${relativeDirectory}/${entry.name}`;
       const absolute = assertNoSymlinkPath(targetRoot, targetPath, true);
       if (entry.isSymbolicLink())
-        fail(`symlink is prohibited in pinned ${label}: ${targetPath}`);
+        fail(`symlink is prohibited in the pinned ${label}: ${targetPath}`);
       if (entry.isDirectory()) {
         visitPinnedFiles(absolute, targetPath, label);
         continue;
       }
       if (!entry.isFile() || !filesByTarget.has(targetPath))
-        fail(`unmanifested file in pinned ${label}: ${targetPath}`);
+        fail(`unmanifested file in the pinned ${label}: ${targetPath}`);
     }
   };
   visitPinnedFiles(assertNoSymlinkPath(targetRoot, "course", true), "course", "course");
