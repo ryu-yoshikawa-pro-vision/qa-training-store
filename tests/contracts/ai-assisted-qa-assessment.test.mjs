@@ -1327,55 +1327,61 @@ process.exit(18);`;
 });
 
 for (const point of ["before", "after"]) {
-  it("recovers validated candidate after actual process death " + point + " publication", () => {
-    const attemptDirectory = path.join(tempRoot, "killed-validated-candidate-" + point);
-    fs.mkdirSync(attemptDirectory, { recursive: true });
-    const candidate = {
-      schema_version: 1,
-      objectives: [{ objective_id: "M04-01", status: "assessed", level: 2 }],
-    };
-    const candidatePath = path.join(attemptDirectory, "validated-candidate.json");
-    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
-    const script = [
-      'import fs from "node:fs";',
-      'import path from "node:path";',
-      'import { persistValidatedCandidate } from ' + JSON.stringify(moduleUrl.href) + ";",
-      "const [attemptDirectory, point, candidateJson] = process.argv.slice(1);",
-      'const destinationPath = path.join(attemptDirectory, "validated-candidate.json");',
-      "const originalLink = fs.linkSync.bind(fs);",
-      "fs.linkSync = (source, destination) => {",
-      "  if (destination === destinationPath) {",
-      '    if (point === "after") originalLink(source, destination);',
-      '    if (process.platform === "win32") process.exit(87);',
-      '    process.kill(process.pid, "SIGKILL");',
-      "  }",
-      "  return originalLink(source, destination);",
-      "};",
-      "persistValidatedCandidate(attemptDirectory, JSON.parse(candidateJson));",
-      "process.exit(18);",
-    ].join("\n");
-    const child = spawnSync(
-      process.execPath,
-      ["--input-type=module", "-e", script, attemptDirectory, point, JSON.stringify(candidate)],
-      { encoding: "utf8", timeout: 10_000 },
-    );
-    expect(child.error).toBeUndefined();
-    if (process.platform === "win32") expect(child.status).toBe(87);
-    else expect(child.signal).toBe("SIGKILL");
-    expect(fs.existsSync(candidatePath)).toBe(point === "after");
-    const publishedBeforeRecovery = point === "after" ? fs.readFileSync(candidatePath) : null;
-    expect(() => persistValidatedCandidate(attemptDirectory, candidate)).not.toThrow();
-    const finalBytes = fs.readFileSync(candidatePath);
-    expect(JSON.parse(finalBytes.toString("utf8"))).toEqual(candidate);
-    if (publishedBeforeRecovery) expect(finalBytes).toEqual(publishedBeforeRecovery);
-    expect(() =>
-      persistValidatedCandidate(attemptDirectory, {
-        ...candidate,
-        objectives: [{ objective_id: "M04-02", status: "assessed", level: 2 }],
-      }),
-    ).toThrow(/differs from the resumed input/);
-    expect(fs.readFileSync(candidatePath)).toEqual(finalBytes);
-  }, 20_000);
+  it(
+    "recovers validated candidate after actual process death " + point + " publication",
+    () => {
+      const attemptDirectory = path.join(tempRoot, "killed-validated-candidate-" + point);
+      fs.mkdirSync(attemptDirectory, { recursive: true });
+      const candidate = {
+        schema_version: 1,
+        objectives: [{ objective_id: "M04-01", status: "assessed", level: 2 }],
+      };
+      const candidatePath = path.join(attemptDirectory, "validated-candidate.json");
+      const moduleUrl = pathToFileURL(
+        path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"),
+      );
+      const script = [
+        'import fs from "node:fs";',
+        'import path from "node:path";',
+        "import { persistValidatedCandidate } from " + JSON.stringify(moduleUrl.href) + ";",
+        "const [attemptDirectory, point, candidateJson] = process.argv.slice(1);",
+        'const destinationPath = path.join(attemptDirectory, "validated-candidate.json");',
+        "const originalLink = fs.linkSync.bind(fs);",
+        "fs.linkSync = (source, destination) => {",
+        "  if (destination === destinationPath) {",
+        '    if (point === "after") originalLink(source, destination);',
+        '    if (process.platform === "win32") process.exit(87);',
+        '    process.kill(process.pid, "SIGKILL");',
+        "  }",
+        "  return originalLink(source, destination);",
+        "};",
+        "persistValidatedCandidate(attemptDirectory, JSON.parse(candidateJson));",
+        "process.exit(18);",
+      ].join("\n");
+      const child = spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", script, attemptDirectory, point, JSON.stringify(candidate)],
+        { encoding: "utf8", timeout: 10_000 },
+      );
+      expect(child.error).toBeUndefined();
+      if (process.platform === "win32") expect(child.status).toBe(87);
+      else expect(child.signal).toBe("SIGKILL");
+      expect(fs.existsSync(candidatePath)).toBe(point === "after");
+      const publishedBeforeRecovery = point === "after" ? fs.readFileSync(candidatePath) : null;
+      expect(() => persistValidatedCandidate(attemptDirectory, candidate)).not.toThrow();
+      const finalBytes = fs.readFileSync(candidatePath);
+      expect(JSON.parse(finalBytes.toString("utf8"))).toEqual(candidate);
+      if (publishedBeforeRecovery) expect(finalBytes).toEqual(publishedBeforeRecovery);
+      expect(() =>
+        persistValidatedCandidate(attemptDirectory, {
+          ...candidate,
+          objectives: [{ objective_id: "M04-02", status: "assessed", level: 2 }],
+        }),
+      ).toThrow(/differs from the resumed input/);
+      expect(fs.readFileSync(candidatePath)).toEqual(finalBytes);
+    },
+    20_000,
+  );
 }
 
 it("reuses identical validated candidates but never silently replaces changed results", () => {
@@ -2236,9 +2242,7 @@ it("restores a completed result only with the matching candidate and passing cal
       },
     ],
   };
-  const caseResults = [
-    { case_id: "POS", decision: "pass", rationale: "supported" },
-  ];
+  const caseResults = [{ case_id: "POS", decision: "pass", rationale: "supported" }];
   const calibration = {
     id: calibrationId,
     status: "passed",
@@ -2311,17 +2315,11 @@ it("restores a completed result only with the matching candidate and passing cal
   );
   const wrongIdentity = JSON.parse(originalCalibrationCandidate.toString("utf8"));
   wrongIdentity.calibration_id = "other-calibration";
-  fs.writeFileSync(
-    path.join(attempt, "calibration-candidate.json"),
-    JSON.stringify(wrongIdentity),
-  );
+  fs.writeFileSync(path.join(attempt, "calibration-candidate.json"), JSON.stringify(wrongIdentity));
   expect(recover).toThrow(/candidate identity differs from pinned inputs/);
   const wrongDecision = JSON.parse(originalCalibrationCandidate.toString("utf8"));
   wrongDecision.case_results[0].decision = "fail";
-  fs.writeFileSync(
-    path.join(attempt, "calibration-candidate.json"),
-    JSON.stringify(wrongDecision),
-  );
+  fs.writeFileSync(path.join(attempt, "calibration-candidate.json"), JSON.stringify(wrongDecision));
   expect(recover).toThrow(/candidate hash differs from its result/);
   const invalidDecision = JSON.parse(originalCalibrationCandidate.toString("utf8"));
   delete invalidDecision.case_results[0].rationale;
@@ -3471,19 +3469,4 @@ it.skipIf(process.platform === "win32")("rejects unsafe export symlinks", () => 
   fs.renameSync(path.join(root, ".course-assessments"), path.join(root, "moved-attempts"));
   fs.symlinkSync(path.join(root, "moved-attempts"), path.join(root, ".course-assessments"), "dir");
   expect(() => exportAssessment("P1", id, root)).toThrow(/symlink/);
-});
-
-it("temporarily prints the exact Prettier diff for the assessment contract", async () => {
-  const prettier = await import("prettier");
-  const target = path.resolve("tests/contracts/ai-assisted-qa-assessment.test.mjs");
-  const original = fs.readFileSync(target, "utf8");
-  const options = (await prettier.resolveConfig(target)) ?? {};
-  const formatted = await prettier.format(original, { ...options, filepath: target });
-  const before = path.join(tempRoot, "pr211-format-before.mjs");
-  const after = path.join(tempRoot, "pr211-format-after.mjs");
-  fs.writeFileSync(before, original);
-  fs.writeFileSync(after, formatted);
-  const result = spawnSync("diff", ["-u", before, after], { encoding: "utf8" });
-  console.log("PR211_PRETTIER_DELTA_BEGIN\n" + result.stdout.slice(0, 24000) + "\nPR211_PRETTIER_DELTA_END");
-  expect([0, 1]).toContain(result.status);
 });
