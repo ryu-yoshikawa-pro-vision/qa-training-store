@@ -1036,6 +1036,59 @@ process.exit(18);`;
   expect(repeatedCalls).toBe(0);
 });
 
+for (const point of ["before", "after"]) {
+  it("recovers validated candidate after actual process death " + point + " publication", () => {
+    const attemptDirectory = path.join(tempRoot, "killed-validated-candidate-" + point);
+    fs.mkdirSync(attemptDirectory, { recursive: true });
+    const candidate = {
+      schema_version: 1,
+      objectives: [{ objective_id: "M04-01", status: "assessed", level: 2 }],
+    };
+    const candidatePath = path.join(attemptDirectory, "validated-candidate.json");
+    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+    const script = [
+      'import fs from "node:fs";',
+      'import path from "node:path";',
+      'import { persistValidatedCandidate } from ' + JSON.stringify(moduleUrl.href) + ";",
+      "const [attemptDirectory, point, candidateJson] = process.argv.slice(1);",
+      'const destinationPath = path.join(attemptDirectory, "validated-candidate.json");',
+      "const originalLink = fs.linkSync.bind(fs);",
+      "fs.linkSync = (source, destination) => {",
+      "  if (destination === destinationPath) {",
+      '    if (point === "after") originalLink(source, destination);',
+      '    if (process.platform === "win32") process.exit(87);',
+      '    process.kill(process.pid, "SIGKILL");',
+      "  }",
+      "  return originalLink(source, destination);",
+      "};",
+      "persistValidatedCandidate(attemptDirectory, JSON.parse(candidateJson));",
+      "process.exit(18);",
+    ].join("\n");
+    const child = spawnSync(
+      process.execPath,
+      ["--input-type=module", "-e", script, attemptDirectory, point, JSON.stringify(candidate)],
+      { encoding: "utf8", timeout: 10_000 },
+    );
+    expect(child.error).toBeUndefined();
+    if (process.platform === "win32") expect(child.status).toBe(87);
+    else expect(child.signal).toBe("SIGKILL");
+    expect(fs.existsSync(candidatePath)).toBe(point === "after");
+    const publishedBeforeRecovery =
+      point === "after" ? fs.readFileSync(candidatePath) : null;
+    expect(() => persistValidatedCandidate(attemptDirectory, candidate)).not.toThrow();
+    const finalBytes = fs.readFileSync(candidatePath);
+    expect(JSON.parse(finalBytes.toString("utf8"))).toEqual(candidate);
+    if (publishedBeforeRecovery) expect(finalBytes).toEqual(publishedBeforeRecovery);
+    expect(() =>
+      persistValidatedCandidate(attemptDirectory, {
+        ...candidate,
+        objectives: [{ objective_id: "M04-02", status: "assessed", level: 2 }],
+      }),
+    ).toThrow(/differs from the resumed input/);
+    expect(fs.readFileSync(candidatePath)).toEqual(finalBytes);
+  }, 20_000);
+}
+
 it("reuses identical validated candidates but never silently replaces changed results", () => {
   const attemptDirectory = path.join(tempRoot, "resumed-validated-candidate");
   fs.mkdirSync(attemptDirectory, { recursive: true });
