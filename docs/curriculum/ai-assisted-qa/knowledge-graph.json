@@ -1561,7 +1561,7 @@
       "module": "M07",
       "can_do": "失敗箇所と原因候補の証拠を探す",
       "status": "draft_requires_content_review",
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#3種類の診断素材"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#4種類の実行証拠"
     },
     {
       "id": "K-M07-03",
