@@ -608,14 +608,8 @@ function validateCalibrationOutput(output, expected) {
 
 function publishPassingCalibrationCache(calibration, calibrationPath, existingCalibration = null) {
   if (!isPassingCalibration(calibration)) return;
-  if (existingCalibration) {
-    // A legacy failed cache is immutable. Another attempt may still use its
-    // separately verified successful calibration without replacing the cache.
-    if (!isPassingCalibration(existingCalibration)) return;
-  }
-  const verifyWinner = (published) => {
+  const verifyIdentity = (published) => {
     if (
-      !isPassingCalibration(published) ||
       published.id !== calibration.id ||
       published.case_count !== calibration.case_count ||
       !isDeepStrictEqual(published.identity, calibration.identity)
@@ -623,9 +617,17 @@ function publishPassingCalibrationCache(calibration, calibrationPath, existingCa
       fail("concurrent model calibration differs from the verified attempt");
   };
   if (existingCalibration) {
-    verifyWinner(existingCalibration);
+    // Failed legacy records remain immutable, but only for the matching model,
+    // prompt, and pinned source. Never ignore a foreign record at this cache key.
+    verifyIdentity(existingCalibration);
+    if (!isPassingCalibration(existingCalibration)) return;
     return;
   }
+  const verifyWinner = (published) => {
+    verifyIdentity(published);
+    if (!isPassingCalibration(published))
+      fail("concurrent model calibration differs from the verified attempt");
+  };
   try {
     atomicWriteJson(calibrationPath, calibration);
   } catch (error) {

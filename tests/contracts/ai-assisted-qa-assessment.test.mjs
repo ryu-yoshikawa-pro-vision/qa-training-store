@@ -264,6 +264,11 @@ it("preserves a legacy failed cache and never publishes an unverified attempt", 
   fs.writeFileSync(calibrationPath, JSON.stringify(legacyFailed));
   expect(resume()).toEqual(saved);
   expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(legacyFailed);
+  fs.writeFileSync(
+    calibrationPath,
+    JSON.stringify({ ...legacyFailed, identity: { model_id: "other/model" } }),
+  );
+  expect(resume).toThrow(/concurrent model calibration differs/);
   fs.unlinkSync(calibrationPath);
   fs.writeFileSync(recordPath, JSON.stringify({ ...saved, status: "failed" }));
   expect(resume).toThrow(/does not match its candidate/);
@@ -539,6 +544,87 @@ it("restores a complete calibration from a pinned candidate after interrupted re
     "calibration-candidate.json",
     "calibration-result.json",
   ]);
+});
+
+it("recovers candidate-only calibration and its cache after actual process termination", () => {
+  const root = path.join(tempRoot, "killed-candidate-calibration");
+  const attemptDirectory = path.join(root, "attempt");
+  const calibrationPath = path.join(root, "shared.json");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const identity = { model_id: "provider/model", source_sha: "specific-source" };
+  const calibrationId = sha256(JSON.stringify(identity));
+  const calibration = {
+    schema_version: 1,
+    id: calibrationId,
+    identity,
+    status: "passed",
+    case_count: 2,
+    mismatches: [],
+    critical_false_passes: 0,
+    candidate_session_id: "session-pinned",
+    created_at: "2026-11-03T00:00:00.000Z",
+  };
+  const caseResults = [
+    { case_id: "positive", decision: "pass", rationale: "supported" },
+    { case_id: "negative", decision: "fail", rationale: "missing" },
+  ];
+  const expected = new Map([
+    ["positive", ["pass"]],
+    ["negative", ["fail"]],
+  ]);
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import path from "node:path";
+import { persistCalibration } from ${JSON.stringify(moduleUrl.href)};
+const [attemptDirectory, calibrationPath, calibrationJson, casesJson] = process.argv.slice(1);
+const originalLink = fs.linkSync.bind(fs);
+fs.linkSync = (source, destination) => {
+  originalLink(source, destination);
+  if (destination === path.join(attemptDirectory, "calibration-candidate.json")) {
+    if (process.platform === "win32") process.exit(87);
+    process.kill(process.pid, "SIGKILL");
+  }
+};
+persistCalibration({
+  calibration: JSON.parse(calibrationJson),
+  calibrationPath,
+  attemptDirectory,
+  caseResults: JSON.parse(casesJson),
+});
+process.exit(18);`;
+  const child = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      script,
+      attemptDirectory,
+      calibrationPath,
+      JSON.stringify(calibration),
+      JSON.stringify(caseResults),
+    ],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  const candidatePath = path.join(attemptDirectory, "calibration-candidate.json");
+  const resultPath = path.join(attemptDirectory, "calibration-result.json");
+  expect(fs.statSync(candidatePath).isFile()).toBe(true);
+  expect(fs.existsSync(resultPath)).toBe(false);
+  expect(fs.existsSync(calibrationPath)).toBe(false);
+  const resume = () =>
+    readAttemptCalibration({
+      attemptDirectory,
+      calibrationId,
+      identity,
+      expected,
+      calibrationPath,
+    });
+  expect(resume()).toEqual(calibration);
+  expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toEqual(calibration);
+  expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(calibration);
+  expect(resume()).toEqual(calibration);
 });
 
 it("refuses incomplete, modified, or unbound calibration candidates on resume", () => {
