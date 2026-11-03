@@ -538,7 +538,7 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
-  it("rejects course loads from missing sources or into another module before writing files", async () => {
+  it("rejects invalid module load bindings before writing files", async () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m05 = manifest.load_files.find(
       (entry) =>
@@ -554,6 +554,10 @@ describe("AI-assisted QA distribution contract", () => {
       {
         entry: { ...m05, source_path: "course/exercises/M05/unmanifested.spec.ts" },
         reason: /load source_path is not included in the pinned distribution/,
+      },
+      {
+        entry: { ...m05, source_path: "course/exercises/M06/exercise.md" },
+        reason: /load source_path belongs to another module/,
       },
       {
         entry: { ...m05, target_path: "workspace/M06/unexpected.spec.ts" },
