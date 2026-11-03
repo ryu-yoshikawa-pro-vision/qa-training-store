@@ -58,23 +58,15 @@ it("reports formatting differences for the new interrupted-publication tests", a
   const raw = fs.readFileSync(filePath, "utf8");
   const options = (await prettier.resolveConfig(filePath)) ?? {};
   const formatted = await prettier.format(raw, { ...options, filepath: filePath, endOfLine: "auto" });
-  const sections = [
-    [
-      "CALIBRATION",
-      'for (const mismatch of ["identity", "case-count"]) {',
-      'it("rebuilds a missing successful shared calibration from a verified saved attempt", () => {',
-    ],
-    [
-      "RESULT",
-      'for (const point of ["before", "after"]) {',
-      'it("lists immutable assessment history and rejects forged results or current pointers", () => {',
-    ],
-  ];
-  for (const [label, start, end] of sections) {
-    const a = formatted.indexOf(start);
-    const b = formatted.indexOf(end, a);
-    if (a < 0 || b < 0) throw new Error("formatter section missing: " + label);
-    console.log("FORMATTED_SECTION_" + label, JSON.stringify(formatted.slice(a, b)));
+  const formattedPath = path.join(tempRoot, "prettier-diagnostic.mjs");
+  fs.writeFileSync(formattedPath, formatted);
+  const diff = spawnSync("diff", ["-u", filePath, formattedPath], {
+    encoding: "utf8",
+    maxBuffer: 1_000_000,
+  });
+  if (diff.status !== 1) throw new Error("expected formatting changes for diagnostic");
+  for (const line of diff.stdout.split("\n")) {
+    if (/^(@@|[+-])/.test(line)) console.log("STYLE_DIFF", line);
   }
 });
 
