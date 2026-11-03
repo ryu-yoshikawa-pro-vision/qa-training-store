@@ -844,7 +844,22 @@ export async function obtainCalibration({
       existingCalibration.case_count !== calibrationPrompt.expected.size
     )
       fail("saved model calibration identity or case count is invalid");
-    if (isPassingCalibration(existingCalibration)) return existingCalibration;
+    if (existingCalibration.status === "passed") {
+      // A forged or truncated cache must never authorize a completed assessment.
+      // Legacy failed caches are kept unchanged and can still trigger a new calibration.
+      if (
+        !isPassingCalibration(existingCalibration) ||
+        existingCalibration.schema_version !== 1 ||
+        typeof existingCalibration.created_at !== "string" ||
+        !Number.isFinite(Date.parse(existingCalibration.created_at)) ||
+        (existingCalibration.candidate_session_id !== null &&
+          typeof existingCalibration.candidate_session_id !== "string")
+      )
+        fail("saved model calibration cache metadata is invalid");
+      return existingCalibration;
+    }
+    if (existingCalibration.status !== "failed")
+      fail("saved model calibration cache metadata is invalid");
     // Keep a legacy failed cache for audit, but retry rather than blocking this model forever.
   }
   writeImmutableOpenCodePrompt(

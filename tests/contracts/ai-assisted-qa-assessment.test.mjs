@@ -69,6 +69,89 @@ it("never permits a failed or inconsistent calibration to be reused", () => {
   }
 });
 
+it("refuses incomplete or contradictory shared calibration success metadata before reuse", async () => {
+  const workspaceRoot = path.join(tempRoot, "calibration-cache-metadata");
+  const attemptDirectory = path.join(workspaceRoot, "first");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const inputs = {
+    phaseId: "P1",
+    modules: ["M04"],
+    rubric: { text: "Pinned rubric" },
+    scoringByModule: new Map([
+      [
+        "M04",
+        {
+          cases: [
+            {
+              id: "CAL-01",
+              response: "Independent supported answer",
+              evidence: [],
+              expected_decision: "pass",
+            },
+          ],
+          criteria: [],
+        },
+      ],
+    ]),
+    sourceMaterials: [],
+    assetHashes: { scoring: "pinned" },
+  };
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  let calls = 0;
+  const get = (directory) =>
+    obtainCalibration({
+      inputs,
+      modelId,
+      version,
+      attemptDirectory: directory,
+      workspaceRoot,
+      runModel: async () => {
+        calls += 1;
+        return {
+          value: {
+            case_results: [{ case_id: "CAL-01", decision: "pass", rationale: "supported" }],
+          },
+          sessionId: "session-pinned",
+        };
+      },
+    });
+  const calibration = await get(attemptDirectory);
+  expect(calibration.status).toBe("passed");
+  const cachePath = path.join(
+    workspaceRoot,
+    ".course-assessments",
+    "calibrations",
+    `${calibration.id}.json`,
+  );
+  const pristine = fs.readFileSync(cachePath);
+  const original = JSON.parse(pristine.toString("utf8"));
+  const another = () => {
+    const directory = path.join(workspaceRoot, "reuse");
+    fs.mkdirSync(directory, { recursive: true });
+    return get(directory);
+  };
+  expect(await another()).toEqual(calibration);
+  expect(calls).toBe(1);
+  const changes = [
+    { schema_version: 0 },
+    { created_at: "invalid-date" },
+    { candidate_session_id: { id: "unexpected" } },
+    { critical_false_passes: 1 },
+    { mismatches: null },
+    { status: "unknown" },
+  ];
+  for (const change of changes) {
+    fs.writeFileSync(cachePath, JSON.stringify({ ...original, ...change }));
+    await expect(another()).rejects.toThrow(/cache metadata is invalid/);
+    expect(calls).toBe(1);
+  }
+  fs.writeFileSync(cachePath, pristine);
+  expect(await another()).toEqual(calibration);
+  expect(fs.readFileSync(cachePath)).toEqual(pristine);
+  expect(calls).toBe(1);
+});
+
 it("keeps failed calibrations per attempt and only caches successful calibrations", () => {
   const root = path.join(tempRoot, "calibration-cache");
   const cache = path.join(root, "shared.json");
