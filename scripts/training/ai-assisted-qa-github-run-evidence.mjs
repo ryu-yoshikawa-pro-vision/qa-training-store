@@ -577,7 +577,12 @@ export async function verifyGitHubRunEvidence({
         event: run.event,
         conclusion: run.conclusion,
       },
-      { id: "M10-CHECK", status: "passed", check_name: matchingChecks[0].name, check_run_id: matchingChecks[0].id },
+      {
+        id: "M10-CHECK",
+        status: "passed",
+        check_name: matchingChecks[0].name,
+        check_run_id: matchingChecks[0].id,
+      },
       {
         id: "M10-ARTIFACT",
         status: "passed",
