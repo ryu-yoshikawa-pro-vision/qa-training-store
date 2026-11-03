@@ -150,7 +150,7 @@ it("keeps failed calibrations per attempt and only caches successful calibration
 });
 
 for (const mismatch of ["identity", "case-count"]) {
-  it(`rejects a cross-process shared calibration collision with mismatched ${mismatch}`, async () => {
+  it(`rejects concurrent calibration mismatched by ${mismatch}`, async () => {
     const root = path.join(tempRoot, `conflicting-calibration-${mismatch}`);
     const calibrationPath = path.join(root, "shared.json");
     const barrierPath = path.join(root, "release");
@@ -196,7 +196,16 @@ try {
     const launch = (name) => {
       const child = spawn(
         process.execPath,
-        ["--input-type=module", "-e", script, root, calibrationPath, barrierPath, name, mismatch],
+        [
+          "--input-type=module",
+          "-e",
+          script,
+          root,
+          calibrationPath,
+          barrierPath,
+          name,
+          mismatch,
+        ],
         { stdio: ["ignore", "ignore", "pipe"] },
       );
       let stderr = "";
@@ -1625,7 +1634,9 @@ for (const point of ["before", "after"]) {
     const pointerPath = path.join(phaseRoot, "current.json");
     const oldPointer = fs.readFileSync(pointerPath);
     const resultPath = path.join(nextDirectory, "result.json");
-    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment-core.mjs"));
+    const moduleUrl = pathToFileURL(
+      path.resolve("scripts/training/ai-assisted-qa-assessment-core.mjs"),
+    );
     const script = `import fs from "node:fs";
 import { atomicWriteJson } from ${JSON.stringify(moduleUrl.href)};
 const [resultPath, point, payload] = process.argv.slice(1);
