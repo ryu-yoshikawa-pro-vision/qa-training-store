@@ -42,6 +42,43 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
     });
   }
 
+
+  for (const moduleId of modules) {
+    it(`${moduleId}のP01〜P06が各模範資料に対応し、学習用配布から除外される`, () => {
+      const exercise = read(`training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`);
+      const reference = read(
+        `training/ai-assisted-qa-course/assessment/reference-solutions/${moduleId}.md`,
+      );
+      expect(
+        manifest.local_files.some((entry) =>
+          entry.target_path.includes(`assessment/reference-solutions/${moduleId}`),
+        ),
+      ).toBe(false);
+      for (let number = 1; number <= 6; number++) {
+        const id = `P0${number}`;
+        expect(exercise).toContain(`**${id}`);
+        expect(reference).toMatch(new RegExp(`^### ${id}[^\\n]*$`, "m"));
+      }
+    });
+  }
+
+  for (const [moduleId, terms] of [
+    ["M00", ["course:load M00", "course/exercises/M00/exercise.md", "6080", "BLOCKED"]],
+    ["M01", ["BR-CART-003", "BR-STOREFRONT-003", "Unit", "Integration", "未実行"]],
+    ["M02", ["min(4,5,99)=4", "OPEN_QUESTIONS", "cart-with-invalid-items"]],
+    ["M03", ["有効上限", "OPEN_QUESTIONS", "valid/issues/missing/extra"]],
+    ["M04", ["BR-STOREFRONT-002", "Automate", "Later", "Do not automate"]],
+    ["M09", ["21回", "2回", "pull_request_target", "BLOCKED"]],
+    ["M10", ["target-sha.txt", "ungradable", "BLOCKED", "Run ID"]],
+  ]) {
+    it(`${moduleId}の別条件の採点上の判断根拠が模範資料に残る`, () => {
+      const reference = read(
+        `training/ai-assisted-qa-course/assessment/reference-solutions/${moduleId}.md`,
+      );
+      for (const term of terms) expect(reference).toContain(term);
+    });
+  }
+
   it("M05のP01〜P06の参照判断を課題・実行証拠の要件と対応付ける", () => {
     const exercise = read("training/ai-assisted-qa-course/exercises/M05/exercise.md");
     const reference = read("training/ai-assisted-qa-course/assessment/reference-solutions/M05.md");
