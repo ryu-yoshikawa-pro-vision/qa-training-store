@@ -27463,25 +27463,25 @@
       "source_line": 134,
       "source_text": "async listReviews(input: ProductReviewsQuery): Promise<Page<ReviewListItem>> {",
       "platform": "web,android",
-      "role": "guest,customer,operator,admin",
-      "scenario": "契約に関連する正常/異常/境界",
-      "data": "公開/非公開/削除済みレビュー、ページネーション",
+      "role": "Web guest/active customer/operator/adminは商品詳細から公開レビュー一覧を参照可能。Android Nativeは共通CatalogUseCasesをインスタンス化するがcustomerGateway経路は常時空の一覧を返す。購入/管理権限とは別。",
+      "scenario": "default/hidden-reviews（同じ固定商品/非公開レビューを含む）、reviewable-orders・reviews-empty、商品ID存在/不存在、page1/2/大きいPage、sort=newest/rating_desc/rating_asc、不正page/pageSizeを比較。",
+      "data": "default Seedは公開中のReview/サマリーに加えproduct-mugのreview-hidden(status=hidden,rating=1)とreview-deleted(status=deleted)を持つ。hidden-reviews Scenarioはdefault Datasetをそのまま返す（個別隠し処理はない）。Web CatalogUseCases.listReviewsはpage>=1の整数/pageSize=20を必須とし、Dexie ReviewRepository.listPublished(productId,query)で指定商品のpublishedのみ抽出・sort（新着/評価降順/昇順、同点ID決定順）・pageItemsを返す。Web ProductDetailViewはpage1・pageSize20とsort変更で一覧を再読込し氏名・title・body・rating・createdAtを表示。Android NativeのCatalogUseCasesはcustomerGatewayが有効で、入力検証後は{items:[],total:0,page,pageSize}を返す。Native ProductDetailはレビュー集計の件数/平均/星5〜3を表示するが個別レビュー一覧は描画しない。",
       "action": "商品の公開レビューを一覧表示する",
-      "expected": "公開レビューだけを表示し、非公開/削除済みレビューを集計しない",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
-      "test_condition": "商品詳細からレビューのページを取得する",
-      "test_responsibility": "商品の公開レビューを一覧表示するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "商品の公開レビューを一覧表示するの状態変更と安全な拒否が仕様どおりか確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "CatalogUseCases.listReviewsはレビュー問い合わせのpage>=1/pageSize=20を要求するが、customerGateway経路では空配列・total 0を返す。Web経路ではlistPublishedを利用。Nativeでレビュー一覧を表示する仕様かを明確化し、Platformと期待結果を経路別に分割する必要がある。",
+      "expected": "Webは同一productIdのpublishedだけをsort/page条件に従って返し、hidden/deletedや他商品を含めず、総件数と商品サマリーのpublishedCountが一致すること。Page2や件数0では空配列だが総件数は適切、page<1/非整数/pageSize!=20はVALIDATION。不正画面/未公開商品への遷移は商品詳細の別の閲覧認可と組み合わせる。Native実装では一覧常時空のため『Web/Native共通公開レビュー一覧』としては未受入。共通業務契約でAndroidのレビュー一覧が必要かを正式仕様・受入条件で決め、必要なら#210で実装し直すこと。",
+      "risk": "hidden/deletedレビューや他ユーザーの情報漏洩、レビュー件数・平均評価と一覧の不一致、星/日時sortとページ境界の不一致、存在しない商品/アクセス不可商品の内容漏洩、Nativeで公開レビューが存在するのにtotal0・空一覧を返して情報欠落すること。既存Seed名hidden-reviewsが独自に内容変更すると思い込むこと。",
+      "test_condition": "C1 defaultでproduct-basic-shirtの公開Reviewとproduct-mugのhidden/deletedをDB実値に対照し、Web listReviews(productId,page1,pageSize20)はpublishedのみでtotal/summary一致を確認。C2 sort newest/rating_desc/rating_ascと同日/同評価のtie-break ID、productId別データ隔離、Web UI sort変更後の表示を確認。C3 page=0/-1/非整数/pageSize=10/21等はVALIDATION・DB不変。page2/件数0/存在しない商品ID・reviews-emptyのemptyとtotalを確認。C4 hidden-reviewsとdefaultは同じSeed内容、レビュー非公開/削除への切替を管理ReviewUseCaseで別準備し、状態変更前後の公開件数・平均とWeb一覧を比較。C5 Android CatalogUseCases.listReviewsのcustomerGatewayは現行常に空/total0、Native画面はSummaryだけという状態をNative SQLiteデータ/共通BR-REVIEW-002/製品受入と比較。C6 公開データ/個人情報、Web/Android画面実Run/視覚/a11y、ゲスト/顧客/スタッフ、Data/Version不変を検証する。",
+      "test_responsibility": "C1〜C6でWeb Web ProductDetail→CatalogUseCases.listReviews→Dexie listPublished/Seed公開Reviewと、Android customerGateway→空Result/Native Summaryの差、入力/Sort/Page/Role/データ秘匿を確認する。",
+      "case_policy": "Web公開/非公開/削除済み商品別レビュー、3 sort/同点、page境界/不正Page、空状態、Summary一致とNative return0/画面SummaryをCase採用。Androidのレビュー一覧の必要性は未決の製品適合判断であり、現在の空配列を共通契約のPASSとしない。",
+      "case_selection_reason": "共通UseCaseのWeb/Dexie経路は公開レビュー一覧を返すが、Native customerGateway経路はレビューRepositoryを保持せず空ページを返す。Webの正しさをAndroidに流用できないため、両経路を個別に明示して基本分析を完成させる。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。reviews.md:9-19/92-96の公開Reviewのみ集計規定、native-customer.md:11/29の共有業務契約、CatalogUseCases.listReviews:134-146（入力検証・Web listPublished vs customerGateway常時empty）、DexieOrderReviewRepository:330-350・sortReviews:418-427、Web ProductDetailView:72-89/309-365、Native ProductDetail:765-775（Summaryのみ）、default-dataset.ts:629-668（hidden/deleted固定Review）、scenarios.ts:33-38（hidden-reviewsはdefault Datasetそのまま）、metadata.ts:284-294を照合。Nativeの同名UseCaseが常時空なのは共通仕様との適合候補でありAndroid公開一覧の受入PASSではない。実Web/Native/DB/CI未受入。",
       "related_use_cases": [
         "CatalogUseCases.listReviews"
       ],
       "requirement_refs": [
         "BR-REVIEW-002"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "2026-11-03 共通CatalogUseCases.listReviewsのWebとNativeの異なる実装経路、レビュー状態別Seed、画面の一覧/集計/ページ条件と正式仕様を静的照合。基本分析のみanalyzed。Android一覧の必要性・現行空の適合判断、実Run/DB前後・CIは未受入。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 284,
@@ -27508,7 +27508,98 @@
         "path": "src/application/use-cases/catalog-use-cases.ts",
         "line": 134,
         "signature": "async listReviews(input: ProductReviewsQuery): Promise<Page<ReviewListItem>> {"
-      }
+      },
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 9,
+          "end_line": 19,
+          "reason": "published/hidden/deletedの公開集計契約"
+        },
+        {
+          "path": "docs/spec/features/reviews.md",
+          "start_line": 82,
+          "end_line": 96,
+          "reason": "公開件数/平均/評価分布の受入"
+        },
+        {
+          "path": "docs/spec/features/native-customer.md",
+          "start_line": 9,
+          "end_line": 29,
+          "reason": "NativeもWeb共通業務契約を共有する原則"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 134,
+          "end_line": 146,
+          "reason": "Web listPublishedとAndroid customerGateway空Resultの分岐"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 47,
+          "end_line": 76,
+          "reason": "Web/AndroidのReviewRepository有無"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 330,
+          "end_line": 350,
+          "reason": "publishedフィルター/商品ID/sort/PageとDTO"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 418,
+          "end_line": 427,
+          "reason": "sort別とtie-break ID"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 72,
+          "end_line": 89,
+          "reason": "Webレビュー一覧UIのUseCase呼出"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 309,
+          "end_line": 365,
+          "reason": "Web公開レビュー個別表示とSummary"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 765,
+          "end_line": 775,
+          "reason": "NativeはReview Summaryのみ描画"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 509,
+          "end_line": 534,
+          "reason": "defaultの公開レビュー生成"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 629,
+          "end_line": 668,
+          "reason": "hidden/deletedレビュー実Seedと履歴"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 33,
+          "end_line": 38,
+          "reason": "hidden-reviewsはdefaultのDataset変換なし"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 284,
+          "end_line": 294,
+          "reason": "hidden-reviews Scene説明と初期Guest"
+        }
+      ]
     },
     {
       "id": "UC-REVIEW-DELETE",
