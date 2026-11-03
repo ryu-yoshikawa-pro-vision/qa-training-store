@@ -150,3 +150,35 @@
 
 - Node/Vitest/Prettier/Playwright/Androidのローカル実行や製品の変更はしていない。Web CIに関する成功・失敗はGitHub Actionsが公開している**固定SHAの既存ジョブ結果**を確認したもの。
 - PR #199/#210/#211へcommitしていない。PR #212はDraftのまま保持し、動的受入と契約調停が終わったと主張しない。
+
+## 2026-11-04 最終HEADのCI確定後の独立照合
+
+### 同一HEADのWeb CI結果（前回queuedから確定）
+
+- 対象はPR #212の**最終確認HEAD `128d4f0be601b5cb777dab5873f18147d3949b0d`**。Web CI [#41740409345](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41740409345)は`completed/failure`。この段落の結果を#199や#211のHEADへ流用しない。
+- `Vitest (contracts)` は**74ファイル中72成功・2失敗、1,031 passed・13 failed・1 expected fail・15 skipped**。失敗の内訳は `ai-assisted-qa-supported-behaviors.test.mjs`の12件と、`ai-assisted-qa-assessment.test.mjs`の1件。前者は下記6操作IDへの固定ステータス期待値で、既報の12コード箇所と実ログが一致した。
+- Assessmentの失敗は`tests/contracts/ai-assisted-qa-assessment.test.mjs:2343`。当時の`/lacks consistent verified mastery evidence/`期待に対し、実際は`saved model calibration cache metadata...`。**#212の台帳ステータス衝突とは独立**。#211 HEAD `8c4f2219c711bb049f6b3cd4c4eaec7a26e69f15`の同テストでは`2341-2342`の期待が`/saved model calibration cache metadata is invalid/`へ更新されている。ただし統合HEADの直接実行は未確認であり、修正済みPASSとは判定しない。
+- `Style Quality` のPrettierチェックで`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`と`tests/contracts/ai-assisted-qa-assessment.test.mjs`の**2ファイル**に警告。#212の報告/台帳ファイル名はこのログの警告対象に含まれない。#211のAssessment修正と、#199のadmin-users-list最新変更それぞれの整形を、取り込み先で検査する。
+- `Code Quality`、`Training runtime contracts`、`Vitest (integration/component/unit/repository)`、`Chromium E2E (required/cross-role/accessibility/mobile-boundary/training-web-baseline)`、`UI Review` 4画面幅は成功。`verify`/`validate`は上記失敗に連動して不成功。Android/Maestro実受入は未確認。
+
+### 固定status契約の判断材料と修正先
+
+- 現行validator `scripts/training/validate-supported-behaviors.mjs:202-237,325-327,366-389`は、`analyzed`に要求するRole/Platform/Scenario/Data/Action/Expected/Risk/Condition/Case採否と、仕様・実装・Seed照合の存在を検査する。**製品差異の解決済み・実端末受入・CI成功は完了条件に含まない**。
+- `tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs:17-24`には、`analyzed`と`review_required`の両方を許容する既存`expectAuditedOrAwaitingReanalysis`ヘルパーがある。それにもかかわらず6操作IDの**12箇所**が`toBe("review_required")`で進行状況を固定している。
+- 6操作の#212台帳には`basic_analysis_review`・`analysis_progress`・`test_condition`・`case_policy`があり、未実施の実Runや製品側の保留判断も明記している。**この証拠に基づく限り「静的基本分析の完了」と「製品受入の未完了」は両立する**。ただし本監査は各説明の製品適合性や実行結果を新規に証明したものではない。
+- **推奨する調停箇所は#199側の学習用契約テスト**。12固定assertionをそのまま`analyzed`へ反転させるのではなく、既存`expectAuditedOrAwaitingReanalysis`を再利用し、6操作それぞれで未解決の実Run/製品差異が`basic_analysis_review`・`test_condition`等に保持されることを検証する。既存のUse Case、Seed、画面経路・期待結果の詳細assertionを削除しない。`review_required`が必要な動作を無条件で`analyzed`とする許容にも広げない。
+- #212側で`analyzed→review_required`を機械的に戻すと、独立して成立させた静的基本分析58件の一部が失われる。現行の`analysis_status`だけで**製品差異の解決/未解決**も表現したいのであれば、#199の正本・validator・全契約テスト側で状態の意味を変更する判断が必要。今回#212では仕様・テストを変更しない。
+
+### analyzedだがaudit_branch_refsがない13件の追加監査
+
+- 現台帳208件を独立集計すると、`analysis_status=analyzed`で`audit_branch_refs`が未設定なのは**13件**。全13件に`implementation_evidence`、`seed_evidence`、1件以上の`use_case_evidence`、`related_use_cases`、`reviewed_against=[specification, implementation, seed]`を確認した。該当するのはSignup遷移1、注文詳細1、商品一覧→作成/編集導線2、商品新規4、商品詳細4、在庫一覧1。
+- validatorは`audit_branch_refs`を必須の基本分析条件としていない。したがって**13件を参照未記入だけでFAIL/未分析へ戻さない**。一方、これらの追加証拠が現在の実装・Seedと意味まで一致するか、動的受入条件を満たすかは別監査。入力・出力に存在しないUse Caseを補完目的だけで追加しない。
+
+### 統合に必要な次の検証（順序）
+
+1. #199の現HEADに対し、6操作IDの新しい`analysis_status`契約を確定し、テストの12固定判定と静的根拠・未解決条件の検査を整合させる（#212で既存テストは編集しない）。
+2. #211 Assessment側の期待エラー更新、#199 admin-users-listのPrettier、#211側Assessmentの書式を取り込み先HEADで個別に検証する。#211が未マージである間は修正の存在を親PRのPASSと数えない。
+3. 59件の新規分析加算としないよう、#212だけで分析済みの**58操作**と説明・根拠のみ異なる**41件**を最新の#199 HEADへID・フィールド単位で再比較する。変更のない操作/状態は上書きしない。
+4. 契約/Styleの個別修正後、**同一最終HEAD**のvalidator、Vitest、Prettier、Web必須CIを実行し、Android/Maestro・実Run・教材/配布の受入を別判定する。CI成功でも各操作の動的証拠を自動加算しない。
+
+**今回実施したこと**：GitHub Actionsの最終ジョブログ、#212台帳208件、validator、既存契約テスト、#211のAssessment差分、#199のadmin-users-list追加契約を読み取り照合した。**実施していないこと**：ローカルNode/Vitest/Prettier/Playwright/Androidの実行、製品SUT/正式仕様/Seed/既存テストの変更、#199/#210/#211へのcommit、merge/force push。基本分析179/188・非default17/20は維持する。
