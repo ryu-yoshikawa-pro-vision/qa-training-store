@@ -131,7 +131,7 @@ it("refuses incomplete or contradictory shared calibration success metadata befo
     fs.mkdirSync(directory, { recursive: true });
     return get(directory);
   };
-  expect(await another()).toEqual(calibration);
+  expect(await another()).toEqual(original);
   expect(calls).toBe(1);
   const changes = [
     { schema_version: 0 },
@@ -147,7 +147,7 @@ it("refuses incomplete or contradictory shared calibration success metadata befo
     expect(calls).toBe(1);
   }
   fs.writeFileSync(cachePath, pristine);
-  expect(await another()).toEqual(calibration);
+  expect(await another()).toEqual(original);
   expect(fs.readFileSync(cachePath)).toEqual(pristine);
   expect(calls).toBe(1);
 });
@@ -248,7 +248,7 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   const read = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
   const failed = { status: "failed", critical_false_passes: 1, mismatches: ["case-1"] };
   const passed = { status: "passed", critical_false_passes: 0, mismatches: [] };
-  const candidate = [{ case_id: "case-1", decision: "fail" }];
+  const candidate = [{ case_id: "case-1", decision: "fail", rationale: "expected failure" }];
 
   const first = makeAttempt("first");
   persistCalibration({
@@ -295,6 +295,8 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     id: "same-id",
     identity: { model_id: "provider/model" },
     case_count: 1,
+    case_results: candidate,
+    case_results_sha256: sha256(JSON.stringify(candidate)),
   };
   fs.writeFileSync(cache, JSON.stringify(concurrent));
   const fourth = makeAttempt("concurrent-match");
