@@ -10009,20 +10009,20 @@
       "source_line": 99,
       "source_text": "モック決済オプションを選択し、確認画面へ進める。",
       "platform": "web,android",
-      "role": "customer",
-      "scenario": "regular-member Seedの本人顧客が有効なCartからCheckoutを開始し、有効な配送先を保存してpaymentステップに到達する。checkout-resumeはaddressで止まるため追加操作で住所保存が必要。旧checkoutExpectedVersion、Cart変更、期限切れ、他人のSessionを区別",
-      "data": "regular-member Seedはuser-customer-regularの本人Sessionと有効なCartを用意する。checkout-resume Seedはcheckout-active(version1, cartVersion1, unlockedStep=address, addressSnapshot=null)、固定時計2026-07-01T03:00Z、期限2026-07-02T03:00Z。有効住所（例：〒1000001、東京都千代田区1-1、09000000000）をsetAddressで保存後に検証する。許可する決済コードはTEST-SUCCESS/TEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILED",
+      "role": "active customer本人のみ。guest/operator/admin・停止/退会/失効Sessionや他人Checkoutは認証/認可で拒否。Web/Androidの同じUse Case契約と異なる保存層を区別する。",
+      "scenario": "regular-memberのactive Cartからstart→有効配送先setAddress→payment到達。checkout-resume SeedはunlockedStep=address/addressSnapshot=nullのためそのままでは選択できず、先に住所設定が必要。4つの正式モックコードと実行時の不正値を区別する。",
+      "data": "default/regular-memberの本人user-customer-regularの有効Cart/active Sessionを使う。checkout-resumeはcheckout-active(version1,cartVersion1,unlockedStep=address,addressSnapshot=null)なのでsetAddress後のversion2で選択。PAYMENT_METHODS=TEST-SUCCESS/TEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILED。型制約のないAPI呼び出しではTEST-UNKNOWNも入力候補となる。Web IndexedDBとAndroid SQLiteのCHECK制約有無を分けて検査する。",
       "action": "決済方法を選択",
-      "expected": "本人Customerは4種類のローカルモック決済コードのみをUIで選択できる。Web/Nativeの選択はsetPayment成功時にCheckout Sessionへ保存され、paymentMethodCodeが選択値、version+1、unlockedStep=confirmとなる。Application境界でも許可外コードをVALIDATIONで拒否し、Session・注文・決済を変更しない。選択自体は外部決済・在庫減算を発生させない",
+      "expected": "UIはWeb/Androidとも許可済み4コードのみを提示し、正常なsetPaymentでSession.paymentMethodCode/confirm解放/version+1を保存し注文・決済は作成しない。実装のWeb/Android UI列挙は一致する。一方現行CheckoutOrderUseCases.setPayment:170-174は不正コードのruntime検証なしでRepositoryへ転送する。Dexie setPayment:684-710も許可コード検証がなく型を迂回した呼び出しでは不正値永続化の経路がある。Android SQLite schema:187は4コードのCHECK制約で拒否するため、Application統一VALIDATION・プラットフォーム等価性は未適合候補（実行未検証）。",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "未許可の決済コードの永続化、他人のセッションへの支払設定、確認画面に進む前の誤決済・在庫変更、Web/Nativeで許可選択肢が食い違う",
-      "test_condition": "4種類のコードのWeb/Native選択とsetPayment送信値を確認。存在しないTEST-UNKNOWNはUse CaseでVALIDATIONとなりsession.version/unlockedStep/paymentMethodCodeが不変。未保存住所、他人Session、旧version、期限切れ、Cart変更を拒否。保存成功前は注文/決済レコードを作らない",
-      "test_responsibility": "Web CheckoutPaymentContentとNativeCheckoutPaymentScreenのUIはPAYMENT_METHODSから選択し、Use Caseが許可リスト・本人・有効セッション・Cart versionを検証。Dexie/SQLiteは住所必須とexpectedVersionを再確認しSessionを更新する",
-      "case_policy": "4つの許可コードを同値クラス、未許可コード、住所未保存、旧version/Cart変更、他人のSessionを境界として選択。モック決済の成功・失敗確定は別の注文実行操作へ分離",
-      "case_selection_reason": "コードのTypeScript unionは実行時検証にならないため、UI列挙だけでなくUse Caseで不正コードを拒否する回帰テストを必要とする",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:17-23,93-106、PAYMENT_METHODS(4種類)とCheckoutOrderUseCases.getActive/setPayment、Dexie/SQLite setPayment、Web/Native Payment UI、regular-member/checkout-resume Seedを照合。実行時未許可コードを拒否するUse Case修正と統合テストを追加。CI実行受入は未判定",
+      "risk": "High R1=Web IndexedDBに未許可paymentMethodCodeを保存できる経路、R2=UI型チェックだけに依存したApplication trust boundary欠落、R3=Web/Nativeが異なるエラー結果を返す、R4=他人Session・期限切れ・Cart不一致の拒否漏れ。Medium R5=Method保存時の注文/決済誤作成、R6=Native SQLite制約違反がユーザー向けエラーに正しく変換されるか未実証。",
+      "test_condition": "C1 Web/Native UIのラジオ/ボタンが4コードだけを選択し送信値が一致。C2 4コードごとにsetPayment成功時のSession.paymentMethodCode/version+1/unlockedStep=confirmとOrders/Payments/Inventory不変。C3 TypeScript cast等でTEST-UNKNOWNをApplicationに渡し、正式な期待VALIDATIONに対する現SUTのWeb Dexie永続化可能経路とNative SQLite CHECK拒否を隔離DBで実証。C4 未保存住所/他人Session/期限切れ/Cart変更/旧checkoutExpectedVersionで拒否し正しく復旧。C5 Web/Nativeの不正method入力が決済Gateway/注文作成へ到達しないことと例外表示を検証。実Web/Android/DB/Trace/直接Vitest未受入。",
+      "test_responsibility": "Web CheckoutPaymentContent:246-309、NativeCheckoutPaymentScreen:852-904はPAYMENT_METHODSをUI列挙。CheckoutOrderUseCases.setPayment:170-174でruntime enum検証がなく、DexieCheckoutSessionRepository.setPayment:684-710は入力を直接保存。NativeCheckoutSessionRepository.setPayment:1804-1838には同じApplication経路だが、SQLite schema:175-195のCHECK(payment_method_code IN (...))が保存を拒否。Seed/4種モックUIと実保存契約の差を分離。",
+      "case_policy": "採用:C1 4コードUI列挙、C2 正常保存と注文/決済不変、C3 不正コードのWeb/Native異差、C4 Role/住所/Session/Cart版/期限切れ、C5 非同期エラーとGateway非呼出。除外:決済成功/失敗のGateway実行と在庫減算(注文確定/結果画面の操作)、製品修正。製品適合不合格候補は#210管理資料と照合し、SUTには非干渉。",
+      "case_selection_reason": "TypeScriptのPaymentMethodCode unionはruntime境界を保護しない。正式UIは4種類で統一されているが、Web Dexie永続化にはSQLiteのCHECK制約と同等の入力検証がないため、正常4類だけでなく未知コードのApplication直接呼出を必須Caseとする。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 独立ブランチ固定HEAD 400f7db756d223bc207b264a62aff12c8ed335ab。checkout-and-payment.md:93-106、PAYMENT_METHODS:661-673、Web Payment:246-309、Native Payment:852-904、CheckoutOrderUseCases.setPayment:170-174、Dexie:684-710、Native SQLite:1804-1838とschema CHECK:187、checkout-resume Seed:367-395を静的再照合。旧製品分離前の『実行時不正コード拒否修正済み』という記録は現行独立ブランチに適用しない。Application runtime validatorなし、Web/Native DB制約差を製品適合候補として記録。C1-C5の実行、実エラーコード・Web DB状態・Android/CIは未検証。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10036,7 +10036,7 @@
         "CheckoutOrderUseCases.getActive",
         "CheckoutOrderUseCases.setPayment"
       ],
-      "analysis_progress": "4モック決済方法の選択とApplication/Repositoryの永続化境界を照合。実行時未許可コードの拒否を実装・統合テスト追加。CI/実機は別判定 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "4種UI選択とWeb/Native保存層の差を再分析。基本静的分析のみ完了、未許可コードのWeb永続化/Android SQLite制約エラーの実Run、Session・Order・Payment・Inventory前後、Role/期限切れ/CIは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 238,
@@ -10074,40 +10074,70 @@
       ],
       "audit_branch_refs": [
         {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 93,
+          "end_line": 118,
+          "reason": "Paymentでのモック方法選択の正式契約"
+        },
+        {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 141,
-          "end_line": 181,
-          "reason": "本人・Cart/Session version・決済方法の許可リストを検査"
+          "start_line": 170,
+          "end_line": 174,
+          "reason": "Application runtime whitelistなし"
         },
         {
-          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
-          "start_line": 695,
-          "end_line": 721,
-          "reason": "Webの住所・version条件と決済選択の永続化"
-        },
-        {
-          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
-          "start_line": 1815,
-          "end_line": 1849,
-          "reason": "Nativeの同一決済保存契約"
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 660,
+          "end_line": 673,
+          "reason": "4つのPAYMENT_METHODS定義"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 244,
-          "end_line": 326,
-          "reason": "Webの決済オプション選択、保存失敗の画面維持、成功時遷移"
+          "start_line": 246,
+          "end_line": 309,
+          "reason": "Web UI列挙と送信"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 889,
-          "end_line": 942,
-          "reason": "Nativeの決済選択と保存成功・失敗時の分岐"
+          "start_line": 852,
+          "end_line": 904,
+          "reason": "Native UI列挙と送信"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 684,
+          "end_line": 710,
+          "reason": "Web Repositoryに保存前のenum検証なし"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1804,
+          "end_line": 1838,
+          "reason": "Native Repositoryの保存"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/schema.ts",
+          "start_line": 175,
+          "end_line": 195,
+          "reason": "Native SQLiteの4コードCHECK"
         },
         {
           "path": "src/seeds/scenarios.ts",
-          "start_line": 20,
-          "end_line": 55,
-          "reason": "default/regular-memberのSeed生成・固定状態"
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "Checkout-resumeのStepとVersion"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 264,
+          "end_line": 271,
+          "reason": "Web UIの4つの説明文の部分証拠"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 349,
+          "end_line": 381,
+          "reason": "Native method選択とsetPayment送信の部分証拠"
         }
       ]
     },
@@ -10119,20 +10149,20 @@
       "source_line": 99,
       "source_text": "モック決済オプションを選択し、確認画面へ進める。",
       "platform": "web,android",
-      "role": "customer",
-      "scenario": "regular-member Seedの本人顧客が有効なCartからCheckoutを開始し、有効な配送先を保存してpaymentステップに到達する。checkout-resumeはaddressで止まるため追加操作で住所保存が必要。旧checkoutExpectedVersion、Cart変更、期限切れ、他人のSessionを区別",
-      "data": "regular-member Seedはuser-customer-regularの本人Sessionと有効なCartを用意する。checkout-resume Seedはcheckout-active(version1, cartVersion1, unlockedStep=address, addressSnapshot=null)、固定時計2026-07-01T03:00Z、期限2026-07-02T03:00Z。有効住所（例：〒1000001、東京都千代田区1-1、09000000000）をsetAddressで保存後に検証する。許可する決済コードはTEST-SUCCESS/TEST-DECLINED/TEST-INSUFFICIENT/TEST-AUTH-FAILED",
+      "role": "active customer本人。Web/Androidの共通CheckoutOrderUseCasesを使用し、guest/operator/admin・停止/失効/他人Sessionは拒否Case。",
+      "scenario": "regular-memberのactive Cartからstart→setAddress→payment画面表示。支払method選択後setPayment成功時だけconfirmへ進む。失敗を旧version/Cart更新/期限切れ/住所未保存/他人Session/書込み拒否に分け、WebとNativeのエラー表示差を確認する。",
+      "data": "checkout-resume SeedはunlockedStep=addressのためsetAddress後にpaymentを開く。WebはgetActive('payment')で保持したsession.versionをcheckoutExpectedVersionとして送信し、NativeもuseCheckoutSession('payment')で取得したversionを送信。setPayment成功ならunlockedStep=confirm、version+1。失敗注入/古いSessionを使ってUI非遷移・保存値不変を比較する。",
       "action": "確認画面へ遷移",
-      "expected": "有効な本人のactive Checkout Sessionで住所保存済み、現Cart versionとexpectedVersionが一致し、許可された支払方法の保存が成功した場合だけWeb/Nativeは/checkout/confirmへ遷移する。保存後はunlockedStep=confirm、paymentMethodCodeとversion+1が永続化される。失敗時はpayment画面に留まりエラーを提示し、セッション・注文・決済を変更しない",
+      "expected": "本人の有効Sessionで住所保存済み・Cart版一致・支払方法の保存成功後だけ/checkout/confirmへ遷移し、Session version+1、unlockedStep=confirm、paymentMethodCodeが永続化される。Webの現実装はawait setPayment→router.pushなので失敗時は遷移しないが、catchがなくfinallyのみ:263-275、onClick:void submitでPromise rejectionが未処理となり画面にエラーを通知しない。Androidは.catch(asPurchaseError)によりerror messageを表示して非遷移。正式な失敗時通知のプラットフォーム等価性は未適合候補。",
       "rule_refs": [],
       "route": "`/checkout/payment`",
-      "risk": "非同期保存失敗後の確認画面遷移、未処理Promiseによる無通知エラー、未保存住所・期限切れ・旧Cart版での不正な確認画面進入、重複注文",
-      "test_condition": "有効SessionでsetPayment成功後にWeb router.pushとNative router.pushが/checkout/confirmを呼ぶ。setPayment失敗時は両画面にエラーを表示し遷移しない。未保存住所/他人Session/旧version/Cart版不一致/期限切れは拒否しSessionと注文/決済を変更しない。確認画面直URLはgetActive('confirm')で未完了ステップを拒否",
-      "test_responsibility": "Web/NativeのPayment submitはsetPaymentのPromise成功後のみ遷移し、失敗を画面エラーにする。Use Caseは本人・有効Cart/Session、Dexie/SQLiteは住所・versionを検証しconfirmへステップ解放する。注文作成は別のbeginOrderで行う",
-      "case_policy": "正常な4コードの保存後遷移、保存失敗、住所未設定、他人/旧version/期限切れ/Cart変更、確認URL直アクセスを選定。実際の決済結果と在庫変化は注文確定の操作へ分離",
-      "case_selection_reason": "以前のWeb payment submitはfinallyのみでsetPayment拒否を捕捉せず、未処理Promiseになりユーザーへ復旧情報が出なかったため、失敗時の画面維持と通知を回帰テストで固定する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:13-23,93-106、CheckoutOrderUseCases.getActive/setPayment、Dexie/SQLite setPayment、Web/NativeのPayment UIとregular-member/checkout-resume Seedを照合。Webの保存失敗未処理を修正しcomponent回帰テストを追加。CI・Android実機は未判定",
+      "risk": "High R1=保存前confirm遷移/旧Sessionでの注文作成、R2=Webの保存失敗に対する未捕捉Promiseと無通知で復旧方法不明、R3=旧Cart/住所未保存/期限切れの不正遷移。Medium R4=連打による複数setPaymentや送信Version競合、R5=AndroidとWebで失敗表示が異なる。",
+      "test_condition": "C1 Web/Androidで有効SessionのsetPayment成功後のみrouter.push('/checkout/confirm')が1回、version+1/unlockedStep=confirm/paymentMethodCode保存。C2 setPaymentがCONFLICT/CART_VERSION_CHANGED/CHECKOUT_EXPIRED/書込み失敗した場合は両画面非遷移かつSession/Order/Payment不変。C3 Nativeはerror message表示、Webは現実装で独自error表示なし・未処理rejectionの有無を実ブラウザ/Componentで実証し正式期待との差と扱う。C4 直confirm URLはgetActive('confirm')のStep gate。C5 submit連打中button disabled、再試行/復旧・Session再取得のUIを確認。C6 Role/他人/期限切れ/旧Cart版とAndroid再起動後のSession永続化。C1-C6実Runは未受入。",
+      "test_responsibility": "Web CheckoutPaymentContent:246-309のsubmit try/finallyのみでcatch不在、Native Payment:852-904はthen/catch/finally。Use Case setPayment:170-174→assertSessionForMutation:572-594→Dexie:684-710/Native SQLite:1804-1838のaddress/expectedVersion/Cart確認→UI遷移と保存を追跡。既存Native成功Component:349-381は部分証拠、Webの保存拒否通知とCI/実機を追加検証する。",
+      "case_policy": "採用:C1 成功遷移、C2 旧Version/Cart/住所/期限切れ/書込み拒否の非遷移とDB不変、C3 Web未捕捉/Native通知差、C4 confirm直URL、C5 連打/復旧、C6 Role/Session再起動。除外:beginOrder/支払い結果そのもの、製品UI修正（#210側）。",
+      "case_selection_reason": "保存成功時だけルート遷移する点は両実装で確認できるが、Webがcatchを持たずエラーをUIへ通知しないことは正式な失敗時の回復操作と不整合。WebとNativeを同一合格とせずエラー表示を独立Caseで検証する。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-03 独立ブランチ固定HEAD 400f7db756d223bc207b264a62aff12c8ed335ab。checkout-and-payment.md:9-23,93-118、Web CheckoutPaymentContent:246-309、NativeCheckoutPaymentScreen:852-904、CheckoutOrderUseCases.getActive/setPayment/assertSessionForMutation、Dexie/SQLite setPayment、checkout-resume Seedを現行SUTで再照合。Webは保存拒否時try/finallyでrejectを捕捉せずエラー表示せず、Nativeはcatchで表示する。旧製品差分の『Web修正済み』は現在枝へ継承しない。既存Native成功テストは部分証拠。C1-C6の実Web/Android/Vitest/CI、DB前後は未検証。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10146,7 +10176,7 @@
         "CheckoutOrderUseCases.getActive",
         "CheckoutOrderUseCases.setPayment"
       ],
-      "analysis_progress": "保存成功時だけ確認画面へ遷移することをWeb/Native/Use Case/Repository/Seedで照合。Webの保存失敗未処理を修正。CI/実機は別判定 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "保存成功後のみconfirm遷移する制御を基本静的分析。Web未処理reject/Native catch差、実Web/Android/Session・Orders・Payments不変、直接Component/CIは別受入。製品側差異は#210判断候補として非干渉。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 238,
@@ -10177,40 +10207,70 @@
       ],
       "audit_branch_refs": [
         {
-          "path": "src/application/use-cases/checkout-order-use-cases.ts",
-          "start_line": 141,
-          "end_line": 181,
-          "reason": "本人・Cart/Session version・決済方法の許可リストを検査"
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Session/Cart版とStep規約"
         },
         {
-          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
-          "start_line": 695,
-          "end_line": 721,
-          "reason": "Webの住所・version条件と決済選択の永続化"
-        },
-        {
-          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
-          "start_line": 1815,
-          "end_line": 1849,
-          "reason": "Nativeの同一決済保存契約"
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 93,
+          "end_line": 118,
+          "reason": "支払選択→確認の画面要求"
         },
         {
           "path": "src/presentation/pages/checkout-order-pages.tsx",
-          "start_line": 244,
-          "end_line": 326,
-          "reason": "Webの決済オプション選択、保存失敗の画面維持、成功時遷移"
+          "start_line": 246,
+          "end_line": 309,
+          "reason": "Web submit has finally but no catch"
         },
         {
           "path": "src/presentation/native/native-purchase-screens.tsx",
-          "start_line": 889,
-          "end_line": 942,
-          "reason": "Nativeの決済選択と保存成功・失敗時の分岐"
+          "start_line": 852,
+          "end_line": 904,
+          "reason": "Native submit catches failure"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 141,
+          "end_line": 174,
+          "reason": "Step gating and setPayment"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 572,
+          "end_line": 594,
+          "reason": "Session/Cart guards"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 684,
+          "end_line": 710,
+          "reason": "Web repository mutation/version"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1804,
+          "end_line": 1838,
+          "reason": "Native repository mutation/version"
         },
         {
           "path": "src/seeds/scenarios.ts",
-          "start_line": 20,
-          "end_line": 55,
-          "reason": "default/regular-memberのSeed生成・固定状態"
+          "start_line": 367,
+          "end_line": 395,
+          "reason": "Seed starts at address step"
+        },
+        {
+          "path": "tests/component/native/native-purchase-screens.test.tsx",
+          "start_line": 349,
+          "end_line": 381,
+          "reason": "Native success case partial evidence"
+        },
+        {
+          "path": "tests/component/checkout-order-pages.test.tsx",
+          "start_line": 264,
+          "end_line": 271,
+          "reason": "Web displays payment methods only"
         }
       ]
     },
