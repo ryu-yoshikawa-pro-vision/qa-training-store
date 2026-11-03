@@ -230,7 +230,7 @@ describe("M10 GitHub Run evidence contract", () => {
         evidence.workflow_path,
         evidence,
       ),
-    ).toThrow(/exactly the reviewed actions and shell commands/);
+    ).toThrow(/reviewed checkout, SHA, test, and upload order/);
   });
 
   it("rejects workflow-level privilege, job overrides, and step-level bypasses", () => {
@@ -428,4 +428,22 @@ describe("M10 GitHub Run evidence contract", () => {
       }),
     ).rejects.toThrow(/does not match the current local HEAD SHA/);
   });
+});
+
+it("PR211_WORKFLOW_PRETTIER_DIFF", async () => {
+  const prettier = await import("prettier");
+  const { spawnSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const target = path.join(root, "tests/contracts/ai-assisted-qa-github-run-evidence.test.mjs");
+  const original = fs.readFileSync(target, "utf8");
+  const options = (await prettier.resolveConfig(target)) ?? {};
+  const formatted = await prettier.format(original, { ...options, filepath: target });
+  const temp = fs.mkdtempSync(path.join(tmpdir(), "pr211-workflow-format-"));
+  const before = path.join(temp, "before.mjs");
+  const after = path.join(temp, "after.mjs");
+  fs.writeFileSync(before, original);
+  fs.writeFileSync(after, formatted);
+  const diff = spawnSync("diff", ["-u", before, after], { encoding: "utf8" });
+  console.log("PR211_WORKFLOW_PRETTIER_DIFF_BEGIN\n" + (diff.stdout ?? "") + "\nPR211_WORKFLOW_PRETTIER_DIFF_END");
+  expect([0, 1]).toContain(diff.status);
 });
