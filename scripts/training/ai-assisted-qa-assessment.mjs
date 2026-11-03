@@ -1802,8 +1802,7 @@ export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPAC
   fs.mkdirSync(exportRoot, { recursive: true, mode: 0o700 });
   assertAssessmentPath(workspaceRoot, "course-assessment-exports");
   const target = path.join(exportRoot, assessmentId);
-  if (fs.existsSync(target))
-    fail("export destination already exists; no files were overwritten");
+  if (fs.existsSync(target)) fail("export destination already exists; no files were overwritten");
   const lockPath = path.join(exportRoot, `.${assessmentId}.export.lock`);
   try {
     fs.mkdirSync(lockPath, { mode: 0o700 });
@@ -1816,8 +1815,7 @@ export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPAC
   // leaves its private staging directory and lock for explicit inspection.
   const staging = path.join(exportRoot, `.${assessmentId}.${randomUUID()}.partial`);
   try {
-    if (fs.existsSync(target))
-      fail("export destination already exists; no files were overwritten");
+    if (fs.existsSync(target)) fail("export destination already exists; no files were overwritten");
     fs.mkdirSync(staging, { mode: 0o700 });
     for (const name of [
       "input-manifest.json",
@@ -1832,8 +1830,7 @@ export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPAC
     ]) {
       const sourceFile = assertAssessmentPath(workspaceRoot, `${sourceRelative}/${name}`);
       if (!fs.existsSync(sourceFile)) {
-        if (name === "result.json")
-          fail("only a finalized assessment record can be exported");
+        if (name === "result.json") fail("only a finalized assessment record can be exported");
         continue;
       }
       if (!fs.lstatSync(sourceFile).isFile()) fail(`unsafe export file: ${name}`);
@@ -1841,8 +1838,7 @@ export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPAC
     }
     // The lock serializes our exports; recheck to protect a destination created
     // by an unrelated process while the staging copy was being prepared.
-    if (fs.existsSync(target))
-      fail("export destination already exists; no files were overwritten");
+    if (fs.existsSync(target)) fail("export destination already exists; no files were overwritten");
     fs.renameSync(staging, target);
   } catch (error) {
     throw new Error(
