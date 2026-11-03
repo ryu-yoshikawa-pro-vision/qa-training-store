@@ -3209,82 +3209,19 @@
       "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: 有効なバリエーションを選択。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
+      "scenario": "default guest（shirt S=20/M=10/L=0、12色ポーチと13サイズウェア）、low-stock（shirt M=3）、out-of-stock、regular/gold/platinum会員、expired-saleを比較。",
+      "data": "default SeedのP-0001 shirtは3 Variations S/M/Lのstock20/10/0、purchaseLimit5。P-0010は12件、P-0011は13件、いずれもstock5・上限5。getProductDetailはviewer/Clockで公開・rank可視とactive SKUのDTOを取得し、SKUごとのregular/sale/viewerUnitPrice・stockQuantity/purchaseLimitを返す。Webは初期stock>0のVariationを選択、12件以下はbutton、13件以上はselect、stock0選択肢はdisabled。Androidは1件だけ初期選択、複数は未選択でchips、stock0でも選択可能だが追加は無効。価格/Stock表示は選択SKUに追従する。",
       "action": "有効なバリエーションを選択",
-      "expected": "存在し現在購入可能なSKUだけを選択でき、選択後の在庫/価格表示が当該SKUへ切り替わる",
+      "expected": "公開かつ閲覧許可のSKUを商品詳細で選択し、SKUの価格・Sale・会員価格・在庫・購入上限を切り替えて表示できること。Webは12件以下をbutton/13件以上をselectにし、在庫0を選択不能とする。Androidは複数SKUで利用者の選択必須、在庫0は選択できるがCart追加は不可。正式共通の12/13 UIとstock0選択の解釈差は製品適合判定に残す。",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "有効なバリエーションを選択の前後で、存在し現在購入可能なSKUだけを選択でき、選択後の在庫/価格表示が当該SKUへ切り替わることを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "有効なバリエーションを選択の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "有効なバリエーションを選択の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
-      "requirement_refs": [
-        "BR-STOREFRONT-001",
-        "BR-STOREFRONT-002",
-        "BR-STOREFRONT-003",
-        "AC-STOREFRONT-001",
-        "AC-STOREFRONT-002",
-        "AC-STOREFRONT-003"
-      ],
-      "related_use_cases": [],
-      "platform_roles": {
-        "web": "guest,customer（operator/adminは購入操作を行わない）",
-        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
-      },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
-      "implementation_evidence": {
-        "path": "src/presentation/pages/product-detail-page.tsx",
-        "line": 23,
-        "signature": "export function ProductDetailPage({ productId }: { productId: string }) {"
-      },
-      "seed_evidence": {
-        "path": "src/seeds/metadata.ts",
-        "line": 75,
-        "signature": "default: {",
-        "scenario": "default",
-        "applicable": true,
-        "alternatives": [
-          "out-of-stock",
-          "low-stock",
-          "sale-active",
-          "expired-sale",
-          "platinum-member"
-        ],
-        "transform": {
-          "path": "src/seeds/scenarios.ts",
-          "line": 33,
-          "signature": "case \"default\":"
-        },
-        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
-      },
-      "use_case_evidence": []
-    },
-    {
-      "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-02",
-      "kind": "action",
-      "screen": "SCREEN-STOREFRONT-PRODUCT-DETAIL",
-      "source_path": "docs/spec/features/storefront.md",
-      "source_line": 107,
-      "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
-      "platform": "web,android",
-      "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: カートに追加。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
-      "action": "カートに追加",
-      "expected": "選択された有効SKUを指定数量だけ本人またはゲストのカートへ追加し、成功時に件数・金額へ反映する",
-      "rule_refs": [],
-      "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "カートに追加の前後で、選択された有効SKUを指定数量だけ本人またはゲストのカートへ追加し、成功時に件数・金額へ反映することを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "カートに追加の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "カートに追加の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "rank制限商品/SKUの情報露出、異なるSKUの価格・在庫への表示すり替わり、Web 12/13 UI境界とNative全件chipsの差、stock0選択可否差、Sale終了後/会員単価が誤表示、単品と複数SKUでの初期選択誤認。",
+      "test_condition": "C1 default shirtのS/M/L stock20/10/0をWebで選択しSKUごとの価格/在庫・1〜5数量・stock0 disabledを確認。C2 Web P-0010=12 buttonsとP-0011=13 selectの境界/アクセシビリティ/選択で数量1リセットを確認。C3 Android shirtの複数SKUは初期未選択、選択後に価格・残在庫・上限が変わること、stock0はselectableでもAdd disabled、1SKU商品は初期選択を確認。C4 gold/platinumのviewer単価・Sale active/expired時刻、商品rank制限/非公開/不活性Variant拒否をDTOとUIで比較。C5 low-stock/stock0 Seed・再読込/商品ID切替・Session変化・視覚/a11yを実Web/Androidで検証。",
+      "test_responsibility": "C1〜C5でProductDetail UIとCatalogUseCases.getProductDetail→Dexie/SQLite SKU DTO・Role/Clock/Seedの対応、12/13・初期/在庫0選択境界、画面実Run未受入を確認する。",
+      "case_policy": "C1〜C5を採用。Web/Nativeで意図的に異なるstock0選択とVariation UIを同一表示条件でPASSにせず、Cart追加可否はA02-02/03と分離する。",
+      "case_selection_reason": "正式storefront.mdの12/13バリエーションUIと選択可能SKUの契約に対し、Webは12/13切替、Nativeはチップのみでstock0も選択可。ただし両者ともCart追加条件はstock>0のため、表示選択と追加可否を個別に照合する。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。storefront.md:17-23/100-115、Web ProductDetailPage:61-104/191-265、NativeProductDetailScreen:586-758・native-variation-selection.ts:3-16、CatalogUseCases.getProductDetail:108-126、Web/SQLiteの商品DTO、Seed defaultシャツstock20/10/0・12色・13サイズ・low-stock/out-of-stockを照合。Web stock0選択不可、Nativeは選択可/追加不可。両PlatformのUI境界差は製品適合候補。実Web/Native・視覚・Role/rankの画面実Runは未受入。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -3294,13 +3231,13 @@
         "AC-STOREFRONT-003"
       ],
       "related_use_cases": [
-        "CartUseCases.addItem"
+        "CatalogUseCases.getProductDetail"
       ],
       "platform_roles": {
         "web": "guest,customer（operator/adminは購入操作を行わない）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "2026-11-03 独立ブランチで正本・Web/Native詳細表示→CatalogUseCases.getProductDetail→CartUseCases.addItem→Dexie/SQLite/Owner/Seed・Risk/Condition/Caseを静的照合。基本分析のみanalyzed。実Web/Android・Role/在庫・数量・DB/Session不変・視覚/a11y・製品適合・CIは別受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -3328,15 +3265,160 @@
       },
       "use_case_evidence": [
         {
-          "id": "CartUseCases.addItem",
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "閲覧者ランク/公開と時刻・SKUを反映するBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 139,
+          "reason": "詳細画面・Variation・在庫0/低在庫/視覚の正本"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "数量上限min(stock,purchaseLimit,99)・失敗不変とRole契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/active customer購入可、staff購入不可"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 23,
+          "end_line": 58,
+          "reason": "Web公開Route→CatalogUseCaseによる詳細取得と権限/Not Found表示"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 61,
+          "end_line": 104,
+          "reason": "Web選択SKU、在庫・価格・上限・数量の状態"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 191,
+          "end_line": 300,
+          "reason": "Web 12/13 UI、stock0無効、数量選択・addItem・成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 633,
+          "reason": "Native詳細取得/初期Variant選択・上限"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 649,
+          "end_line": 758,
+          "reason": "Native価格/Stock、Variant chips、addItem固定1、Cart導線"
+        },
+        {
+          "path": "src/presentation/native/native-variation-selection.ts",
+          "start_line": 1,
+          "end_line": 18,
+          "reason": "Native在庫0は選択できるが追加不可の意図的制御"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "viewer/ClockとWeb/Nativeの商品詳細取得・秘匿"
+        },
+        {
           "path": "src/application/use-cases/cart-use-cases.ts",
-          "line": 118,
-          "signature": "async addItem(request: AddCartItemRequest): Promise<CartDto> {"
+          "start_line": 118,
+          "end_line": 149,
+          "reason": "Owner/Viewer解決→Cart mutation transaction/gateway"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 230,
+          "end_line": 268,
+          "reason": "Web/Nativeを通るguest/customerのOwner/Role条件"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "stock/purchaseLimit/99の最小数量上限と加算"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 111,
+          "end_line": 205,
+          "reason": "Web SKU公開/購入権限/在庫判定・CartItem/Cart更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1157,
+          "end_line": 1279,
+          "reason": "Native購入条件/Cart明細・親Version更新"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "公開/非公開/rank/在庫0、12色・13サイズ/低在庫の固定商品"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 269,
+          "end_line": 329,
+          "reason": "Variant実生成：shirt S/M/L stock20/10/0、P-0010 12件、P-0011 13件、上限5"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 152,
+          "reason": "default/out-of-stock/low-stock/sale/expired-saleの登録シナリオ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 56,
+          "reason": "Variant在庫3/0/Clockの固定シナリオ変換"
+        },
+        {
+          "path": "tests/component/native/native-variation-selection.test.ts",
+          "start_line": 1,
+          "end_line": 34,
+          "reason": "Native出庫不可Variantの選択とAdd拒否の既存component test"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "正常Cart追加・versionと更新時超過拒否の既存integration test"
+        },
+        {
+          "path": "tests/repository-contract/cart-mutations.test.ts",
+          "start_line": 25,
+          "end_line": 42,
+          "reason": "Dexie初回Cart/Item追加の既存repository contract"
         }
       ]
     },
     {
-      "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+      "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-02",
       "kind": "action",
       "screen": "SCREEN-STOREFRONT-PRODUCT-DETAIL",
       "source_path": "docs/spec/features/storefront.md",
@@ -3344,19 +3426,19 @@
       "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
       "platform": "web,android",
       "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "Seed: default,out-of-stock,low-stock,sale-active,expired-sale,platinum-member。対象: 選択不能・在庫切れの追加を拒否。公開状態・会員ランク・SKU/価格/数量など該当境界を準備する",
-      "action": "選択不能・在庫切れの追加を拒否",
-      "expected": "無効SKU・在庫0・購入上限超過では追加が拒否され、既存カート数量は変化しない",
+      "scenario": "default guest（初期Sessionなし）・regular-member/gold-member/platinum-member顧客、low-stock、out-of-stock、sale-active/expired-sale、guest-cart-merge-overflowで繰返し追加を検証。",
+      "data": "defaultではguest Cartは初期明細なし、regular customerのCartは既存項目あり。Web ProductDetailViewの選択SKU/quantity(1〜min(stock,purchaseLimit))からCartUseCases.addItemを呼ぶ。Android Nativeは選択SKUを固定addQuantity=1で追加し『カートを見る』へ遷移可能。CartUseCasesはguestまたはactive customerを解決し、Web Dexie transactionまたはNative SQLite gateway transactionでSKU存在、active、公開/rank、在庫、合算上限min(stock,purchaseLimit,99)を再確認。新規ならCart/Item生成、既存SKUなら数量合算とCart/Item version増加、現在のeffectiveUnitPriceを保存。",
+      "action": "カートに追加",
+      "expected": "guest/active customerが選択・購入可能なSKUの追加数量でCart DTOを更新し、別所有者のCartは変更しないこと。既存SKUへの追加は同一明細へ数量合算してCart versionが更新され、商品詳細に成功表示とCartへの導線を出すこと。Webは選択可能数量を提示し、Nativeは1個ずつ追加するが両者ともRepository側の総数量制限を守ること。Cart表示の金額は実際のviewer/Clockで再評価すること。",
       "rule_refs": [],
       "route": "`/products/[productId]`",
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "選択不能・在庫切れの追加を拒否の前後で、無効SKU・在庫0・購入上限超過では追加が拒否され、既存カート数量は変化しないことを画面と対応するUse Caseの出力で確認する",
-      "test_responsibility": "選択不能・在庫切れの追加を拒否の成立条件と反例を区別する",
-      "case_policy": "正常条件、対象外/権限外、数量・期間・ページ境界から必要な代表Caseを採用",
-      "case_selection_reason": "選択不能・在庫切れの追加を拒否の誤判定が公開範囲・金額・購入可否に影響するため、正常と主要な拒否/境界を確認する",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Web追加時のCart既存数量未考慮、連打/並行追加で購入上限を超えること、guest/customer所有者混線、staffでCart更新、Sale/割引価格の不一致、Native固定1による演習期待差、Cart/Itemの部分更新。",
+      "test_condition": "C1 default guestでP-0002 mugを1追加しCart/Item新規生成・Version・現在単価・success/Cart Linkを確認。C2 active regular/gold/platinumで1SKUへの追加後同一Cartの数量が合算され他会員/guest Cart不変、viewerUnitPriceとCart金額を確認。C3 Web数量2/5とNative1ずつの追加を比較し、既存数量を足して上限を超える場合は拒否・Version不変（A02-03）。C4 Sale active/expiredとRank変更時、追加時点のeffectiveUnitPriceとCart再読込の現在価格を区別。C5 staff/suspended/withdrawn拒否、短時間二重押下・並行異なるSession、Page→Cartの実Web/Android・DB全表snapshotを検証。",
+      "test_responsibility": "C1〜C5でWeb/Native選択UI→CartUseCases.addItem→Dexie/SQLite Transaction→Cart/CartItem DTO、Role/Owner・Seed・価格・合算数量と成功/拒否表示を検証する。",
+      "case_policy": "C1〜C5を採用。正常初回作成、既存SKU合算、Role/Owner、数量/価格/同時実行の境界を分ける。既存integrationはWeb二回追加とVersionのみであり、Native実Runや在庫競合PASSの根拠にはしない。",
+      "case_selection_reason": "Webは数量selectから追加、Nativeは1個追加でUI挙動が異なるが共有UseCaseとDBの合算上限により整合する必要がある。Guest/会員のOwnerおよびTransactionの原子性が重要。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。storefront.md:100-115、cart.md:9-23、Web ProductDetailPage:245-300、NativeProductDetailScreen:724-748、CartUseCases.addItem:118-149/resolveOwner:230-268、Dexie CartRepository.addQuantityToActiveCart:111-205とNative SQLiteの同名Repository:1187-1279、quantity/service cart.ts:3-27、default/low-stock等Seed、integration cart-use-cases.test.ts:146-189・repository-contract:25-42を照合。Webは数量1〜min、Nativeは固定1、DBは既存合算で最終チェック。直接実行・会員価格・owner/DB不変、実機/CIは未受入。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -3365,15 +3447,15 @@
         "AC-STOREFRONT-002",
         "AC-STOREFRONT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail",
+        "CartUseCases.addItem"
+      ],
       "platform_roles": {
         "web": "guest,customer（operator/adminは購入操作を行わない）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "state_refs": [
-        "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock"
-      ],
-      "analysis_progress": "期待結果と候補Seedを具体化。実装・Seedの全分岐確認後に分析済みへ変更",
+      "analysis_progress": "2026-11-03 独立ブランチで正本・Web/Native詳細表示→CatalogUseCases.getProductDetail→CartUseCases.addItem→Dexie/SQLite/Owner/Seed・Risk/Condition/Caseを静的照合。基本分析のみanalyzed。実Web/Android・Role/在庫・数量・DB/Session不変・視覚/a11y・製品適合・CIは別受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/product-detail-page.tsx",
         "line": 23,
@@ -3399,7 +3481,392 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        },
+        {
+          "id": "CartUseCases.addItem",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 118,
+          "signature": "async addItem(request: AddCartItemRequest): Promise<CartDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "閲覧者ランク/公開と時刻・SKUを反映するBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 139,
+          "reason": "詳細画面・Variation・在庫0/低在庫/視覚の正本"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "数量上限min(stock,purchaseLimit,99)・失敗不変とRole契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/active customer購入可、staff購入不可"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 23,
+          "end_line": 58,
+          "reason": "Web公開Route→CatalogUseCaseによる詳細取得と権限/Not Found表示"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 61,
+          "end_line": 104,
+          "reason": "Web選択SKU、在庫・価格・上限・数量の状態"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 191,
+          "end_line": 300,
+          "reason": "Web 12/13 UI、stock0無効、数量選択・addItem・成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 633,
+          "reason": "Native詳細取得/初期Variant選択・上限"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 649,
+          "end_line": 758,
+          "reason": "Native価格/Stock、Variant chips、addItem固定1、Cart導線"
+        },
+        {
+          "path": "src/presentation/native/native-variation-selection.ts",
+          "start_line": 1,
+          "end_line": 18,
+          "reason": "Native在庫0は選択できるが追加不可の意図的制御"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "viewer/ClockとWeb/Nativeの商品詳細取得・秘匿"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 118,
+          "end_line": 149,
+          "reason": "Owner/Viewer解決→Cart mutation transaction/gateway"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 230,
+          "end_line": 268,
+          "reason": "Web/Nativeを通るguest/customerのOwner/Role条件"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "stock/purchaseLimit/99の最小数量上限と加算"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 111,
+          "end_line": 205,
+          "reason": "Web SKU公開/購入権限/在庫判定・CartItem/Cart更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1157,
+          "end_line": 1279,
+          "reason": "Native購入条件/Cart明細・親Version更新"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "公開/非公開/rank/在庫0、12色・13サイズ/低在庫の固定商品"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 269,
+          "end_line": 329,
+          "reason": "Variant実生成：shirt S/M/L stock20/10/0、P-0010 12件、P-0011 13件、上限5"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 152,
+          "reason": "default/out-of-stock/low-stock/sale/expired-saleの登録シナリオ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 56,
+          "reason": "Variant在庫3/0/Clockの固定シナリオ変換"
+        },
+        {
+          "path": "tests/component/native/native-variation-selection.test.ts",
+          "start_line": 1,
+          "end_line": 34,
+          "reason": "Native出庫不可Variantの選択とAdd拒否の既存component test"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "正常Cart追加・versionと更新時超過拒否の既存integration test"
+        },
+        {
+          "path": "tests/repository-contract/cart-mutations.test.ts",
+          "start_line": 25,
+          "end_line": 42,
+          "reason": "Dexie初回Cart/Item追加の既存repository contract"
+        }
+      ]
+    },
+    {
+      "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+      "kind": "action",
+      "screen": "SCREEN-STOREFRONT-PRODUCT-DETAIL",
+      "source_path": "docs/spec/features/storefront.md",
+      "source_line": 107,
+      "source_text": "選択可能なバリエーションのみ、カートへの追加操作を可能にする。",
+      "platform": "web,android",
+      "role": "platform_rolesを参照",
+      "scenario": "default shirt L stock0、P-0006 stock0、low-stock shirt M=3、out-of-stock、非公開/draft/discontinued、gold/platinum限定、PurchaseLimit5を用いる。",
+      "data": "default SeedでshirtのL SKUはstock0、公開P-0006は在庫0、P-0007 unpublished/P-0008 draft/P-0009 discontinuedは閲覧候補から除外。Web ProductDetailPageはstock0のVariation選択をdisabledにし、選択済みstock0では数量/追加をdisabled。Native isNativeVariantSelectableはstock0でもtrueだがisNativeVariantAddableはstock>0必須で、ボタン無効。アプリ層は正整数数量・active customer/guest Ownerを検証。Dexie/SQLite CartRepositoryでvariant active/公開・rank・stock>0、合算上限min(stock,purchaseLimit,99)を再検証し、失敗時Cart/Itemを更新しない設計。失敗時の実原子性は直接Run未確認。",
+      "action": "選択不能・在庫切れの追加を拒否",
+      "expected": "無効・非公開・rank不足・在庫0・購入上限を超えるSKUのCart追加を拒否し、CartItems/親CartVersion・Checkout Session・他ユーザーCartを変えないこと。Web/Nativeの選択状態表示に差があっても追加が不能であること。成功/拒否のメッセージは技術内部情報を利用者へ露出させず、状態を再読込して最新在庫を反映できること。",
+      "rule_refs": [],
+      "route": "`/products/[productId]`",
+      "risk": "UIは追加可でもDB更新までに在庫/公開状態が変化するTOCTOU、既存Cart数量を無視する上限超過、ゼロ在庫選択のWeb/Native差、Inactive/非公開Rank制限の拒否漏れ、失敗前に空Cartを残す部分書込、Nativeの内部Error.messageKey露出、価格/Version不変未実証。",
+      "test_condition": "C1 default shirt L=0とP-0006=0のWeb/Nativeで追加不可、Web選択肢disabled・Native選択は可能でもAdd disabledを確認。C2 low-stock shirt M stock3、PurchaseLimit5、既存Cart数量2/3/5を作り、追加でstockまたは購入上限超過を拒否してDB/Cart/ItemVersion不変を確認。C3 nonpublished/draft/discontinued/active=false SKUとrank不足（guest→gold/platinum商品）を直接UseCaseと画面で拒否。C4 Cart作成前の不正SKU・欠損SKUを送信し取引内で空Cartを残さないこと、status/価格/在庫の競合変更を二Sessionで実証。C5 許可量と境界0/1/3/5/6/99でaddQuantityと合算上限を検証し、Web/Native失敗メッセージと画面更新・a11yを実Run。C6 商品詳細初期表示の在庫切れ/残りNの正本視覚を照合する。",
+      "test_responsibility": "C1〜C6でWeb/NativeのStock/UI阻止→CartUseCases.addItem→Dexie/SQLite再検証・Transaction/OwnerとSeedの在庫0・低在庫・上限・公開/rankの拒否、Cart/DB不変を確認する。",
+      "case_policy": "C1〜C6を採用。失敗の直接DB全表snapshotとVersion不変は未受入。既存在庫0 Native component testとCart updateQuantity integration testのPASSをaddItemのすべての拒否条件へ流用しない。",
+      "case_selection_reason": "WebとNativeでは在庫0の選択条件が異なるがCartRepositoryが最後の権限/在庫/数量確認を行う。既存Cartと同時に追加するとUIで選んだ1個でも上限を超えるためDB側で検証する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。storefront.md:17-23/100-115、cart.md:9-23、default-dataset.ts:133-162/213-245/294-324、Web ProductDetailPage:191-300、NativeProductDetailScreen:660-758/native-variation-selection.ts:3-16、CartUseCases.addItem:118-149/resolveOwner:230-268、Dexie addQuantityToActiveCart:111-205、Native SQLite CartRepository:1157-1279、cart.ts:3-27、既存component native-variation-selection.test.ts:21-34とintegration cart-use-cases.test.ts:168-189を照合。Web disabled stock0、Native選択可/追加不可。実Cart/Version/DB不変・同時競合・製品適合・a11y未確認。",
+      "requirement_refs": [
+        "BR-STOREFRONT-001",
+        "BR-STOREFRONT-002",
+        "BR-STOREFRONT-003",
+        "AC-STOREFRONT-001",
+        "AC-STOREFRONT-002",
+        "AC-STOREFRONT-003"
+      ],
+      "related_use_cases": [
+        "CatalogUseCases.getProductDetail",
+        "CartUseCases.addItem"
+      ],
+      "platform_roles": {
+        "web": "guest,customer（operator/adminは購入操作を行わない）",
+        "android": "guest,customer（Native管理・管理者向け購入は対象外）"
+      },
+      "state_refs": [
+        "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock"
+      ],
+      "analysis_progress": "2026-11-03 独立ブランチで正本・Web/Native詳細表示→CatalogUseCases.getProductDetail→CartUseCases.addItem→Dexie/SQLite/Owner/Seed・Risk/Condition/Caseを静的照合。基本分析のみanalyzed。実Web/Android・Role/在庫・数量・DB/Session不変・視覚/a11y・製品適合・CIは別受入。",
+      "implementation_evidence": {
+        "path": "src/presentation/pages/product-detail-page.tsx",
+        "line": 23,
+        "signature": "export function ProductDetailPage({ productId }: { productId: string }) {"
+      },
+      "seed_evidence": {
+        "path": "src/seeds/metadata.ts",
+        "line": 75,
+        "signature": "default: {",
+        "scenario": "default",
+        "applicable": true,
+        "alternatives": [
+          "out-of-stock",
+          "low-stock",
+          "sale-active",
+          "expired-sale",
+          "platinum-member"
+        ],
+        "transform": {
+          "path": "src/seeds/scenarios.ts",
+          "line": 33,
+          "signature": "case \"default\":"
+        },
+        "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
+      },
+      "use_case_evidence": [
+        {
+          "id": "CatalogUseCases.getProductDetail",
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "line": 108,
+          "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
+        },
+        {
+          "id": "CartUseCases.addItem",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 118,
+          "signature": "async addItem(request: AddCartItemRequest): Promise<CartDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "閲覧者ランク/公開と時刻・SKUを反映するBR"
+        },
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 100,
+          "end_line": 139,
+          "reason": "詳細画面・Variation・在庫0/低在庫/視覚の正本"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "数量上限min(stock,purchaseLimit,99)・失敗不変とRole契約"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "guest/active customer購入可、staff購入不可"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 23,
+          "end_line": 58,
+          "reason": "Web公開Route→CatalogUseCaseによる詳細取得と権限/Not Found表示"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 61,
+          "end_line": 104,
+          "reason": "Web選択SKU、在庫・価格・上限・数量の状態"
+        },
+        {
+          "path": "src/presentation/pages/product-detail-page.tsx",
+          "start_line": 191,
+          "end_line": 300,
+          "reason": "Web 12/13 UI、stock0無効、数量選択・addItem・成功/失敗表示"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 586,
+          "end_line": 633,
+          "reason": "Native詳細取得/初期Variant選択・上限"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 649,
+          "end_line": 758,
+          "reason": "Native価格/Stock、Variant chips、addItem固定1、Cart導線"
+        },
+        {
+          "path": "src/presentation/native/native-variation-selection.ts",
+          "start_line": 1,
+          "end_line": 18,
+          "reason": "Native在庫0は選択できるが追加不可の意図的制御"
+        },
+        {
+          "path": "src/application/use-cases/catalog-use-cases.ts",
+          "start_line": 108,
+          "end_line": 126,
+          "reason": "viewer/ClockとWeb/Nativeの商品詳細取得・秘匿"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 118,
+          "end_line": 149,
+          "reason": "Owner/Viewer解決→Cart mutation transaction/gateway"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 230,
+          "end_line": 268,
+          "reason": "Web/Nativeを通るguest/customerのOwner/Role条件"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "stock/purchaseLimit/99の最小数量上限と加算"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 111,
+          "end_line": 205,
+          "reason": "Web SKU公開/購入権限/在庫判定・CartItem/Cart更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1157,
+          "end_line": 1279,
+          "reason": "Native購入条件/Cart明細・親Version更新"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 67,
+          "end_line": 245,
+          "reason": "公開/非公開/rank/在庫0、12色・13サイズ/低在庫の固定商品"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 269,
+          "end_line": 329,
+          "reason": "Variant実生成：shirt S/M/L stock20/10/0、P-0010 12件、P-0011 13件、上限5"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 152,
+          "reason": "default/out-of-stock/low-stock/sale/expired-saleの登録シナリオ"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 26,
+          "end_line": 56,
+          "reason": "Variant在庫3/0/Clockの固定シナリオ変換"
+        },
+        {
+          "path": "tests/component/native/native-variation-selection.test.ts",
+          "start_line": 1,
+          "end_line": 34,
+          "reason": "Native出庫不可Variantの選択とAdd拒否の既存component test"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "正常Cart追加・versionと更新時超過拒否の既存integration test"
+        },
+        {
+          "path": "tests/repository-contract/cart-mutations.test.ts",
+          "start_line": 25,
+          "end_line": 42,
+          "reason": "Dexie初回Cart/Item追加の既存repository contract"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
