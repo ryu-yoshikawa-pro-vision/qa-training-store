@@ -1378,8 +1378,7 @@ export async function withAttemptResumeLock(attemptDirectory, action) {
 }
 
 async function resumeAttempt(request) {
-  if (!ASSESSMENT_ID_PATTERN.test(request.resumeId))
-    fail("resume attempt is missing or unsafe");
+  if (!ASSESSMENT_ID_PATTERN.test(request.resumeId)) fail("resume attempt is missing or unsafe");
   const relative = `.course-assessments/${request.phase}/attempts/${request.resumeId}`;
   const attemptDirectory = assertAssessmentPath(WORKSPACE, relative);
   return withAttemptResumeLock(attemptDirectory, () => resumeAttemptUnlocked(request));

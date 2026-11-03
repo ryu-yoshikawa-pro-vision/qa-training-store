@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   assertAssessmentPath,
@@ -196,7 +197,9 @@ it("serializes concurrent resumes and releases the lock on success or failure", 
 it("rejects a second Node process while the same assessment attempt is locked", async () => {
   const attemptDirectory = path.join(tempRoot, "resume-cross-process");
   fs.mkdirSync(attemptDirectory, { recursive: true });
-  const moduleUrl = new URL("../../scripts/training/ai-assisted-qa-assessment.mjs", import.meta.url);
+  const moduleUrl = pathToFileURL(
+    path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"),
+  );
   const script = `import { withAttemptResumeLock } from ${JSON.stringify(moduleUrl.href)};
 await withAttemptResumeLock(process.argv[1], async () => "completed");`;
   const runChild = () =>
