@@ -700,9 +700,9 @@ function publishPassingCalibrationCache(
       fail("concurrent model calibration differs from the verified attempt");
     if (Array.isArray(published.case_results) && Array.isArray(caseResults)) {
       const decisions = (items) =>
-        items.map(({ case_id, decision }) => ({ case_id, decision })).sort((a, b) =>
-          a.case_id.localeCompare(b.case_id),
-        );
+        items
+          .map(({ case_id, decision }) => ({ case_id, decision }))
+          .sort((a, b) => a.case_id.localeCompare(b.case_id));
       if (!isDeepStrictEqual(decisions(published.case_results), decisions(caseResults)))
         fail("concurrent model calibration case decisions differ from the verified attempt");
     }

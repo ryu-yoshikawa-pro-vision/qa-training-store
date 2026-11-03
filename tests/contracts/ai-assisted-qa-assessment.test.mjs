@@ -319,6 +319,23 @@ it("keeps failed calibrations per attempt and only caches successful calibration
     }),
   ).toThrow(/concurrent model calibration differs/);
   expect(read(cache)).toEqual(concurrent);
+
+  const verifiedCache = {
+    ...concurrent,
+    case_results: candidate,
+    case_results_sha256: sha256(JSON.stringify(candidate)),
+  };
+  fs.writeFileSync(cache, JSON.stringify(verifiedCache));
+  const conflictingDecision = makeAttempt("concurrent-decision-mismatch");
+  expect(() =>
+    persistCalibration({
+      calibration: concurrent,
+      calibrationPath: cache,
+      attemptDirectory: conflictingDecision,
+      caseResults: [{ ...candidate[0], decision: "pass" }],
+    }),
+  ).toThrow(/case decisions differ from the verified attempt/);
+  expect(read(cache)).toEqual(verifiedCache);
 });
 
 for (const mismatch of ["identity", "case-count"]) {
