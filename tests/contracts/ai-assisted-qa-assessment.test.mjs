@@ -428,6 +428,74 @@ it("reuses a pinned model candidate after interruption without another model cal
   expect(runs).toBe(1);
 });
 
+it("reuses a complete AI response after an abrupt process exit during candidate publication", async () => {
+  const attemptDirectory = path.join(tempRoot, "killed-ai-candidate");
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  const prompt = "Pinned learner input and current live challenge";
+  const modelId = "provider/model";
+  const version = "2.0.22";
+  const candidate = { schema_version: 1, objectives: [{ objective_id: "M04-01" }] };
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import path from "node:path";
+import { obtainAssessmentCandidate } from ${JSON.stringify(moduleUrl.href)};
+const [attemptDirectory, prompt, modelId, version, candidateJson] = process.argv.slice(1);
+const originalLink = fs.linkSync.bind(fs);
+fs.linkSync = (source, destination) => {
+  originalLink(source, destination);
+  if (destination === path.join(attemptDirectory, "ai-candidate.json")) {
+    if (process.platform === "win32") process.exit(87);
+    process.kill(process.pid, "SIGKILL");
+  }
+};
+await obtainAssessmentCandidate({
+  attemptDirectory,
+  prompt,
+  modelId,
+  version,
+  run: async () => ({ value: JSON.parse(candidateJson), sessionId: "session-saved" }),
+});
+process.exit(18);`;
+  const child = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      script,
+      attemptDirectory,
+      prompt,
+      modelId,
+      version,
+      JSON.stringify(candidate),
+    ],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  const candidatePath = path.join(attemptDirectory, "ai-candidate.json");
+  expect(fs.statSync(candidatePath).isFile()).toBe(true);
+  expect(fs.statSync(path.join(attemptDirectory, "assessment-prompt.md")).isFile()).toBe(true);
+  let repeatedCalls = 0;
+  const resume = (resumeModelId = modelId) =>
+    obtainAssessmentCandidate({
+      attemptDirectory,
+      prompt,
+      modelId: resumeModelId,
+      version,
+      run: async () => {
+        repeatedCalls += 1;
+        throw new Error("an already published model answer must never be requested again");
+      },
+    });
+  await expect(resume()).resolves.toEqual({ value: candidate, sessionId: "session-saved" });
+  expect(repeatedCalls).toBe(0);
+  await expect(resume("provider/other-model")).rejects.toThrow(
+    /differs from the pinned evaluator input/,
+  );
+  expect(repeatedCalls).toBe(0);
+});
+
 it("reuses identical validated candidates but never silently replaces changed results", () => {
   const attemptDirectory = path.join(tempRoot, "resumed-validated-candidate");
   fs.mkdirSync(attemptDirectory, { recursive: true });
