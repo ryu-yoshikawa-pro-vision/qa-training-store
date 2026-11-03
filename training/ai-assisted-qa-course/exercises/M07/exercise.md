@@ -42,7 +42,7 @@ Page Objectとfixtureの実装後に**3件目の回帰testを追加してから*
 pnpm course:run M07 maintenance.spec.ts --label after
 ```
 
-`course:run`は検証済み配布manifestの`source_sha`と実行specの`spec_sha256`を含むreceipt、spec snapshot、JSON reportとattachmentを一意のRun directoryに保存します。再挑戦しても前の結果は上書きされません。`course:assess M07`は同じ配布`source_sha`に属し、修正前後で異なるspec SHAを持つ別Runを照合します。
+`course:run`は検証済み配布manifestの`source_sha`と実行specの`spec_sha256`を含むreceipt、spec snapshot、JSON reportと、生成されたattachmentを一意のRun directoryに保存します。新課程Configは`trace: "retain-on-failure"`、`screenshot: "only-on-failure"`のため、PASSしたRunに自動Trace・Screenshotがなくても、それだけで未実行とは判断しません。再挑戦しても前の結果は上書きされません。`course:assess M07`は同じ配布`source_sha`に属し、修正前後で異なるspec SHAを持つ別Runを照合します。
 
 ## 提出物
 

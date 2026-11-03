@@ -64,9 +64,9 @@
         },
         {
           "value": "C",
-          "label": "同じRun IDと時刻に結び付け、各証拠が示す範囲を説明する",
-          "meaning": "同じRun IDと時刻に結び付け、各証拠が示す範囲を説明する",
-          "reason": "Runと証拠の由来を保ち、観測できない事項も分けられます。"
+          "label": "同じRun ID・対象spec版に対応付け、各証拠の取得時刻と示す範囲を確認する",
+          "meaning": "Runと対象specの一致を保ち、証拠の限界を区別する",
+          "reason": "Run IDと実行対象を照合し、その実行で取得したログ・Trace・Screenshot等の範囲と限界を説明します。各ファイルの時刻が完全一致する必要はありません。"
         },
         {
           "value": "D",
@@ -77,9 +77,10 @@
       ],
       "correct_value": "C",
       "source_refs": [
-        "docs/curriculum/ai-assisted-qa/modules/M07/README.md"
+        "docs/curriculum/ai-assisted-qa/modules/M07/README.md#4種類の実行証拠",
+        "playwright.ai-assisted-qa.config.ts"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#3種類の診断素材",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M07/README.md#4種類の実行証拠",
       "knowledge_ids": [
         "K-M07-02"
       ]

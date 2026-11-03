@@ -53,7 +53,7 @@ M09の四択7問は教材本文、M09の演習、公開の模範解答、採点�
 
 ## 未完了の受入と検証
 
-- M00・M01・M04・M07・M08・M10の**残り34問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
+- M00・M01・M04・M08・M10の**残り27問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
 - クイズの復習先アンカー、ブラウザーの実表示・回答保存・旧版回答の拒否は、既存validator/契約テストの範囲と実Web確認を分けて受入する。今回は実Webを動かしていない。
 - M09の記述式10問・教材本文の全記述・演習提出物・採点用Caseの全意味一致は未受入。今回のM09レビューは**四択7問の静的正答・説明確認**に限る。
 - 51目標への四択の配置は確認できたが、学習目標のLevel 2・3を各問だけで評価できるとは結論しない。学習者本人の実技・採点・外部Skillの実Runは別に受入する。
@@ -170,3 +170,39 @@ CIでは今回の最終HEADに紐づく結果を確認する。合格しない�
 - 変更後HEADの`pnpm format:check`、`pnpm lint:text:all`、`pnpm test:contracts`と全必須CIは未受入。開始時HEADのWeb CI #41603123632は失敗済み。Style Quality（2契約テストの整形）、Contracts（assessment cacheの期待エラー・supported-behaviorsのstatus期待）、required Chromium E2E、validate、verifyの未完は今回の教材修正では解決しない。
 
 累計の四択独立意味レビュー：**44/78問**（M02:8、M03:9、M05:12、M06:8、M09:7）。残り**34問**（M00:6、M01:5、M04:4、M07:7、M08:5、M10:7）。全51学習目標のID対応確認と、実技・採点・実ブラウザーでの達成判定は別に残す。製品SUT、正式仕様、既存Seed/Reset、既存製品テスト、分析台帳、定期実行Planは変更しない。
+
+## 2026-11-03追記：M07四択7問と診断・保守演習の独立レビュー
+
+開始時HEAD：`4fcb7f65f805e586405899c3165e742dd8f2a1d7`。M07の7問について、全選択肢の理由、教材本文、演習P01〜P06、診断素材A/B/C、配布開始素材、完成参照spec、正式Cart仕様、`playwright.ai-assisted-qa.config.ts`、5評価基準・10校正Caseを静的に照合した。正答値は7問とも変更しない。校正Caseは内容と期待判定のみの確認であり、実モデルによる判定結果ではない。
+
+| 設問 | 正答 | 学習目標 | 正答と誤答を判別する根拠 | 照合した資料 |
+| --- | :---: | --- | --- | --- |
+| M07-Q01 | A | M07-01 | 一回の失敗Runだけで確定原因を決めず、Test/Product/Environment/Flakyの仮説と確認計画を残す | M07教材§1、演習P01〜P03 |
+| M07-Q02 | C | M07-02 | 同一Run ID・対象spec版に証拠を対応付ける。スクリーンショット等の取得時刻は同一とは限らず、各証拠の限界を区別 | M07教材§2、新課程Playwright Config |
+| M07-Q03 | D | M07-03 | Retry/Timeoutの増加やAssertion削除は原因解決の代替ではない | M07教材§3、演習P03 |
+| M07-Q04 | B | M07-04 | 変更前後の別Run・spec SHA・差分・仕様上の期待結果を照合する | M07教材§4、演習のdiagnosis/Run契約 |
+| M07-Q05 | A | M07-05 | 既存重複と保守負荷を確認して必要な範囲だけ共通化する | M07教材§5、完成maintenance-before/after |
+| M07-Q06 | C | M07-05 | 共通の操作・LocatorはPage Objectに、Case固有の業務Assertionはtestに置く | M07教材§5、完成maintenance-after/cart.spec.ts |
+| M07-Q07 | A | M07-05 | test単位のfixtureスコープと必要なSeed/Resetを確認する。Context分離だけでは指定Seedを保証しない | M07教材§5〜6、Playwright Isolation、Reset helper |
+
+### 修正した不整合
+
+- **M07-Q02**：同じRunに属するログ・Trace・スクリーンショットが「同じ時刻」でなければならないかのような正答文を修正。同じRun IDと対象spec版で対応付け、各証拠の取得時刻・保証範囲を確認する。復習先も教材§2の4種類の証拠へ合わせた。
+- **M07教材§2**：「別Runのログとスクリーンショットを見比べること自体を禁止」という説明を修正。異なるRunを一組の成功証拠として混同することは禁止するが、対象Run・spec SHAを分けて修正前後を比較することは本演習の必須作業。Runの識別子は配布元`source_sha`・実行した`spec_sha256`を使い、GitコミットSHAと混同しない。
+- **M07教材§2・M07演習**：専用Configは`trace: "retain-on-failure"`、`screenshot: "only-on-failure"`を指定している。PASS時にこれらが残らない条件を説明し、receipt・JSON reportを確認せず「Traceなし＝未実行」と誤判定しないよう修正。
+- **M07教材§4・診断素材**：素材Aは存在しない商品見出しを期待する実Assertion失敗、修正用`repaired-assertion.spec.ts`のbeforeはTODOエラーであり、異なる失敗原因・spec・Run。TODOを仕様に沿う業務Assertionへ置き換えてafterで検証する手順と、診断素材Aを変更しない条件を明記。TODOの置換を製品側の不具合修正とは呼ばない。
+- **M07教材§6**：Playwright Testは既定で各testに独立BrowserContextを割り当てる。前testのブラウザ内Cartが後testへ必ず残るという誤った例を改め、test単位のContext分離と各testに必要なSeed/Resetの適用を区別。
+- **M07模範成果物**：診断素材Aは実行可能な期待Assertion失敗、説明用ログB/Cは人工データという出所の違いを明記した。M07の完成参照spec・Scoring本体は変更しない。
+
+### 実技・評価の静的照合結果
+
+- 診断素材Aの参照specは意図的に存在しない商品見出しを期待する。修正版参照specは商品見出し「セラミックマグ」と数量1を業務Assertionで確認する。学習者が実行したRunとは別物として扱う。
+- `maintenance-before/cart.spec.ts`は2件のReset・Cart操作を各test内に記述。`maintenance-after/cart.spec.ts`はPage Objectとtest単位fixtureで共通化し、数量1・2のAssertionと再読込後の数量2保持を検証する3件目を保持。**参照コードが存在することはbefore 2件/after 3件PASSの証拠にはならない**。
+- M07の`scoring-tests/M07.json`は評価基準5件・校正Case10件。異なるRun・spec SHA、POM/fixtureとCase Assertion、3件目の再表示Case、公開fallbackと実証拠の区別を要求する。実OpenCode採点・106 Case校正は未実施。
+
+### 検証範囲・未受入
+
+- 7問と関連Markdown/参照specの意味レビューを実施。実ブラウザ、受講者によるbefore/after実Run、`course:assess`、全評価基準の実モデル採点、学習環境内の`pnpm format:check`/`pnpm test:contracts`は未実施。
+- 開始時HEADのWeb CI #41604340562は確認時点で未完了、既に`Vitest (contracts)`と`Style Quality`がfailure。今回の教材修正はそれらの原因修正と扱わず、最終HEADのCIで別途判定する。
+
+独立意味レビュー累計：**51/78問**（M02:8、M03:9、M05:12、M06:8、M07:7、M09:7）。**残27問**（M00:6、M01:5、M04:4、M08:5、M10:7）。学習目標IDの静的対応51件/51件とは別の進捗であり、全11モジュールの意味的総合受入、実技、配布、正式AI評価、CIの成功は未完了のまま残す。製品SUT・正式仕様・Seed/Reset・既存E2E・定期実行4件の分析台帳とPlanは変更しない。
