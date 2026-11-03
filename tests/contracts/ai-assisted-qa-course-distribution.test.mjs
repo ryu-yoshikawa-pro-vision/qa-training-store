@@ -1865,6 +1865,42 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
   });
 
+  it("rejects a forged distribution revision before loading learner files", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "5".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const statePath = "course/states/M00/start.json";
+    const state = JSON.parse(fs.readFileSync(path.join(fixture.target, statePath), "utf8"));
+    const forged = Buffer.from(
+      JSON.stringify({ ...state, revision: "ai-assisted-qa-course-v2" }),
+    );
+    writeFixtureFile(fixture.target, statePath, forged);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    manifest.state_contract_revision = "ai-assisted-qa-course-v2";
+    const entry = manifest.files.find((file) => file.target_path === statePath);
+    entry.sha256 = createHash("sha256").update(forged).digest("hex");
+    entry.bytes = forged.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      "course distribution manifest has an unsupported state contract revision",
+    );
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      "course distribution manifest has an unsupported state contract revision",
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("rejects a start state with mismatched module, revision, or source before copying", async () => {
     for (const change of [
       { module_id: "M01" },

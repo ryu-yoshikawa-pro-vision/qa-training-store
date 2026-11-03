@@ -720,11 +720,8 @@ function readDistribution(root) {
   const distribution = readJson(manifestPath, "course distribution manifest");
   if (distribution.schema_version !== 1 || !SHA_PATTERN.test(distribution.source_sha))
     fail("course distribution manifest has an invalid source SHA");
-  if (
-    typeof distribution.state_contract_revision !== "string" ||
-    !distribution.state_contract_revision
-  )
-    fail("course distribution manifest has no state contract revision");
+  if (distribution.state_contract_revision !== STATE_CONTRACT_REVISION)
+    fail("course distribution manifest has an unsupported state contract revision");
   if (!Array.isArray(distribution.files) || !Array.isArray(distribution.load_files))
     fail("course distribution manifest is incomplete");
   validateAssessmentAssetSet(distribution.assessment_assets, distribution.source_sha);
