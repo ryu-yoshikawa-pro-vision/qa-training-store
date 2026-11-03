@@ -7329,20 +7329,20 @@
       "source_line": 31,
       "source_text": "ゲストおよび会員カートの明細、数量、現在価格、問題が発生している理由、合計金額を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,cart-with-invalid-items,low-stock,guest-cart-merge-overflow。操作: ゲスト・顧客のカート明細。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest / active Customer。Web RouteGuard guest-or-customer、Native Shellのowner復元。operator/admin/suspended/withdrawnはCartを利用しない",
+      "scenario": "default guest=初期Sessionなし・空Cart、regular-member=customer Cart、gold-member/platinum-member=会員Rank、guest-cart-merge-overflow=認証時のCart合算、cart-with-invalid-items=初期Guestのためregular customerへのログインまたは手動Sessionセットが必要。",
+      "data": "default Seedは7 users(active regular/gold/platinum、停止/退会、operator/admin)とsessions=[]、`cart-regular-active`はregular user所有でshirt M SKU数量1/追加時価格2000、default guestのactive Cartは未作成。CartUseCases.getCartはcurrent actorからGuestIdかactive customerのUserIdを導出し、該当ownerのactive Cartを取得/空なら作成。Web DexieとNative SQLiteはいずれもCart DTOをOwnerのCart IDから読み出してitemsのSKU/商品/数量/Version/画像/問題理由を提供。Guest→Customerログイン時の統合はAuthUseCases経由で別の書込処理。",
       "action": "ゲスト・顧客のカート明細",
-      "expected": "ゲストまたはログイン中の顧客本人のカート明細のみを表示し、別ユーザーの明細を出さない",
+      "expected": "GuestのCartには他Userのseed済み`cart-regular-active`を表示せず、空なら`カートは空です`と商品へ進む導線を表示すること。active regularは自分のshirt M数量1のCartを見られ、gold/platinumは自身のCart内容のみ表示すること。staff/停止/退会による顧客カート参照を拒否し、Cart item/owner/版/画像がDTOと画面で一致すること。getCart自体は未作成active Cartを作るため、完全ReadOnlyとは扱わない。",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "ゲスト・顧客のカート明細に対して、ゲストまたはログイン中の顧客本人のカート明細のみを表示し、別ユーザーの明細を出さないことをUI/業務状態で照合する",
-      "test_responsibility": "ゲスト・顧客のカート明細のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "ゲスト・顧客のカート明細の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Guestがseed済み他者Cartを表示・変更、ログイン後旧GuestIDのまま表示、停止/退会・staffが顧客Cartを取得、空Cart読取時のDB書込みの見落とし、複数owner/Sessionで画像や明細混線、Native再起動後の永続化誤読。",
+      "test_condition": "C1 default Guestの/cartを表示し既存regular userのCartを表示しないこと、空状態・商品導線・新規active Guest Cart作成をDB前後で確認。C2 regular-memberで本人のshirt M数量1・CartId/Version/画像/SKUを確認しgold/platinumで他者明細非表示を確認。C3 guest-cart-merge-overflowでGuest/regular Cartを別ownerとして確認しログイン後の合算/Guest Cart abandoned/超過除外を検証（別Role境界Caseと関連）。C4 operator/admin/suspended/withdrawnとSession失効時にWeb RouteGuard・CartUseCases.resolveOwnerを通じてCart個人情報を遮断しDB不変を確認。C5 Web/Native再描画/Android再起動後のCart badge合計数量、本人明細・画像/SKU・画面遷移・視覚/a11yを実Runで確認。C6 cart-with-invalid-itemsの初期guestでは問題Cartを表示しないこと、regularにログイン/Sessionをセットすると4 Issue明細となることを区別。",
+      "test_responsibility": "C1〜C6でOwner/Role/Session・Empty/SeedとWeb/Native表示→getCart→DTOの一致、正常/拒否時の他者データ非露出と初回Cart作成副作用を確認する。",
+      "case_policy": "Guestの空Cart/初回作成、regular/gold/platinum本人Cart、Guest統合、staff/停止/退会、invalid Seedの明示ログイン、Native永続化を採用。Checkout更新・価格承認は別操作と分離。",
+      "case_selection_reason": "defaultはGuest Sessionなしでもregular会員のactive Cartを含むため、Guestが空と本人が明細ありを同じSeedで比較できる。CartUseCases.getCartは空Cartを作成し得るのでDB不変を無条件には要求しない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。cart.md:9-40/70-86、CartPage:22-96/144-228、NativeCartScreen:780-925、CartUseCases.getCart:82-116/resolveOwner:240-268、Dexie getCartDto:437-529、SQLite getCartDto:1566-1649、default Seed:705-775、metadata:207-217（invalid scenario guest）・scenarios.ts:259-284、integration tests:218-248を照合。GuestはUser Cartを見ない。invalid Scenarioは初期GuestなのでUser Cart可視化にはSession準備が必要。直接実Run/所有者漏洩・Cart初回DB書込・a11y未受入。",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -7357,7 +7357,7 @@
       "state_refs": [
         "SCREEN-STOREFRONT-CART-S-empty"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 既存PR #199の定期実行へ非干渉の静的基本分析。正式仕様→Web/Android UI→CartUseCases→Dexie/Native SQLite DTO・変更Repository→Guest/Customer/Staff→Seedの実値・既存テストとRisk/Condition/Caseを個別照合。基本分析だけanalyzed。実Web/Native/Role・DB差分・視覚/a11y・CI・製品適合・#199反映は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -7388,6 +7388,211 @@
           "line": 82,
           "signature": "async getCart(): Promise<CartDto> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 7,
+          "end_line": 23,
+          "reason": "BR-CART-001/002/003・所有者、数量・価格・商品状態の仕様"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 25,
+          "end_line": 86,
+          "reason": "Cart画面とempty/invalid-items、AC-CART-001/002/003"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Checkout開始時のCart version/価格/所有者の再検証"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Guest/active CustomerのCart利用とStaff禁止"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 13,
+          "end_line": 40,
+          "reason": "Web Cart RouteGuard/問題理由文言/getCart呼出"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 41,
+          "end_line": 96,
+          "reason": "Web更新中状態・空Cartの導線・ロード時UI"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 95,
+          "end_line": 143,
+          "reason": "Web価格変更/問題複合時の確認操作"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 144,
+          "end_line": 228,
+          "reason": "Web明細/単価/Issue/数量/削除/明細小計"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 230,
+          "end_line": 278,
+          "reason": "Web合計/送料・割引/Blocking/Checkout停止"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 780,
+          "end_line": 830,
+          "reason": "Android Cart getCart/空状態/読込中・全体busy"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 832,
+          "end_line": 966,
+          "reason": "Native明細/数量/上限/問題文言/合計・価格確認/Checkout停止"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 82,
+          "end_line": 116,
+          "reason": "Owner別Cart取得と空Cart作成副作用"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 151,
+          "end_line": 238,
+          "reason": "数量/削除/価格変更承諾のUseCase"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 240,
+          "end_line": 268,
+          "reason": "Guest/current active CustomerのOwnerとStaff/停止拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 437,
+          "end_line": 529,
+          "reason": "Web Dexie DTO、各Issue、現在価格・Cart Totals"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1566,
+          "end_line": 1649,
+          "reason": "Native SQLite DTO、各Issue、Rank/値引き/送料計算"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 3,
+          "end_line": 16,
+          "reason": "送料500/送料無料閾値5000とRank割引"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 41,
+          "end_line": 103,
+          "reason": "割引端数floor/小計/送料/合計の算出"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "上限min(stock,purchaseLimit,99)・拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 683,
+          "end_line": 728,
+          "reason": "default既存regular customer Cartとshirt M SKUの現在単価・数量"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 796,
+          "reason": "default固定7 users、初期Session空、Cart/Items"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 128,
+          "reason": "default/low-stockの初期Session guestとSeed概要"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 207,
+          "end_line": 217,
+          "reason": "cart-with-invalid-itemsの初期Session guest"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 295,
+          "end_line": 305,
+          "reason": "guest-cart-merge-overflowの初期Session guest"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "cart-with-invalid-items/low-stock等のSeed生成"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 259,
+          "end_line": 284,
+          "reason": "invalidCartのPRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVE4行"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "数量変更とVersion/上限拒否の既存integrationテスト"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 191,
+          "end_line": 248,
+          "reason": "価格変更承諾・invalid Seedでの4 Issue確認/Staff拒否（顧客Sessionを別設定）"
+        },
+        {
+          "path": "tests/component/cart-page.test.tsx",
+          "start_line": 69,
+          "end_line": 116,
+          "reason": "Web Cart DTO/価格/空状態/競合エラーの既存componentテスト"
+        },
+        {
+          "path": "tests/component/native/native-cart-screen.test.tsx",
+          "start_line": 73,
+          "end_line": 198,
+          "reason": "Native初期ロード/全ボタンbusy/数量上限/再読込の既存componentテスト"
+        },
+        {
+          "path": "src/bootstrap/native-runtime.ts",
+          "start_line": 162,
+          "end_line": 171,
+          "reason": "Native CartUseCasesはSQLite transactionRunnerを利用（Gatewayではない）"
+        },
+        {
+          "path": "src/presentation/guards/route-guard.tsx",
+          "start_line": 16,
+          "end_line": 55,
+          "reason": "Web guest-or-customerとstaff/停止Roleのガード"
+        },
+        {
+          "path": "src/bootstrap/native-runtime.ts",
+          "start_line": 205,
+          "end_line": 211,
+          "reason": "Native services.cart→共有CartUseCases"
+        }
       ]
     },
     {
@@ -7398,20 +7603,20 @@
       "source_line": 31,
       "source_text": "ゲストおよび会員カートの明細、数量、現在価格、問題が発生している理由、合計金額を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,cart-with-invalid-items,low-stock,guest-cart-merge-overflow。操作: 数量と合計金額。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest/active regular/gold/platinum Customer。staffはCart操作禁止",
+      "scenario": "default guestの空Cartと追加操作、regular-memberのshirt M Cart数量1、gold-member/platinum-memberの割引、low-stock stock3・stock0、sale-active/expired-sale・cart-with-invalid-itemsの無効明細を比較。",
+      "data": "Cart DTOは各明細でquantity、maximumQuantity=min(stock,purchaseLimit,99)、追加時単価、現行単価、rank適用単価、割引前小計・割引・割引後明細合計を保持する。Webは数量select、明細小計、商品小計、割引、送料、合計、送料無料まで残額を表示。Nativeは+/-数量と現行会員単価、商品小計/送料/合計/Cart badge合計点数を表示するが各明細小計と総割引を明示しない。calculateOrderTotalsでは単価割引額をfloor後に数量を掛け、送料無料は割引前商品小計5000円以上またはplatinum、送料は500円。数量変更はcartVersion/itemVersionを伴ってWeb Dexie・Native SQLite Repositoryが更新しCart親Versionを増加させる。",
       "action": "数量と合計金額",
-      "expected": "商品数量と現在の単価から明細小計と合計金額を計算し、金額・数量の不一致を起こさない",
+      "expected": "画面に表示する数量・明細金額・商品小計・Rank値引き・送料・最終合計がCart DTO・pricing.tsの算式と一致すること。1SKUの変更可能数量は在庫/購入上限/99の最小値、既存数量を超える指定は拒否され旧数量・親/明細Versionを維持。WebとNative双方の操作で再読込後も数量が一致し、他の所有者のCartに影響しないこと。Nativeの明細割引非表示は契約上必須か実受入で判断する。",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "数量と合計金額に対して、商品数量と現在の単価から明細小計と合計金額を計算し、金額・数量の不一致を起こさないことをUI/業務状態で照合する",
-      "test_responsibility": "数量と合計金額のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "数量と合計金額の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "単価の会員値引きと単純な小計計算の混同、割引前/割引後の送料閾値誤り、platinumの送料扱い、数量更新時に親Cart Versionを失う、アカウント/Rank変更後の合計誤り、Webの別明細操作の二重発火、Web/Nativeの総割引・明細小計表示差。",
+      "test_condition": "C1 regular Cartのshirt M=1単価2000を元にWeb/Nativeの各数量・明細小計・合計・CartBadge、選択値+1と−1/削除/更新後のVersionを確認。C2 gold5%/platinum10%の単価割引floor、4999/5000円の割引前小計送料境界、platinum常時送料無料をDTO/画面で確認。C3 stock3/上限5/99を別々に到達させ数量0→削除、最大+1・不正数・Version競合でQuantity/CartVersion/ItemVersion不変を確認。C4 Webでitem A変更中にitem Bの操作/価格同意が有効になり得ることを実UIで検証。Nativeはbusy非nullですべての数量/削除ボタンが無効になることを確認。C5 Webの割引・明細小計・無料送料まで残額とNativeの合計/送料/Badge表示について最終仕様/アクセシビリティ/Native実機で確認。C6 他ユーザー/GuestからのVersion再利用・所有者差を拒否しDB状態不変とカートCheckout Session version連動を検証。",
+      "test_responsibility": "C1〜C6でWeb/Native UI→CartUseCases.updateQuantity/removeItem→Dexie/SQLiteの数量/Version・Role/Ownerとpricing.tsの金額、同時操作・境界・Seedを検証する。",
+      "case_policy": "数量0/1/最大/最大+1/99、金額閾値4999/5000、各Rank・Saleの切替、同時操作・Version conflict、Web/Native表示差を別Caseで採用。既存テストで未確認の操作は実Run未受入。",
+      "case_selection_reason": "CartDtoの数量と金額算出責務はRepository/ドメインにあり、UIは既存DTOを表示する。Webの同一Cart同時操作ガードはper-itemだがNativeはglobal busyであり、設計上の一致を別に確認する必要がある。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。cart.md:9-23/70-86、CartPage:41-58/144-278、NativeCartScreen:804-966、CartUseCases.updateQuantity:151-193/removeItem:195-218、Dexie setQuantity:207-253、Native SQLite setQuantity:1287-1343、pricing.ts:41-103、cart.ts:3-27、default shirt M:705-727、integration cart-use-cases.test.ts:146-189、Native component test:101-179を照合。Webは明細小計/割引を、Nativeは総価格/送料・数量を主に表示。Webで別明細更新ボタンが排他されない候補。直接実金額/同時操作/DB不変/CI未受入。",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -7420,8 +7625,12 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "CartUseCases.getCart",
+        "CartUseCases.updateQuantity",
+        "CartUseCases.removeItem"
+      ],
+      "analysis_progress": "2026-11-03 既存PR #199の定期実行へ非干渉の静的基本分析。正式仕様→Web/Android UI→CartUseCases→Dexie/Native SQLite DTO・変更Repository→Guest/Customer/Staff→Seedの実値・既存テストとRisk/Condition/Caseを個別照合。基本分析だけanalyzed。実Web/Native/Role・DB差分・視覚/a11y・CI・製品適合・#199反映は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -7445,7 +7654,231 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CartUseCases.getCart",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 82,
+          "signature": "async getCart(): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.updateQuantity",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 151,
+          "signature": "async updateQuantity(request: UpdateCartItemQuantityRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.removeItem",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 195,
+          "signature": "async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 7,
+          "end_line": 23,
+          "reason": "BR-CART-001/002/003・所有者、数量・価格・商品状態の仕様"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 25,
+          "end_line": 86,
+          "reason": "Cart画面とempty/invalid-items、AC-CART-001/002/003"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Checkout開始時のCart version/価格/所有者の再検証"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Guest/active CustomerのCart利用とStaff禁止"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 13,
+          "end_line": 40,
+          "reason": "Web Cart RouteGuard/問題理由文言/getCart呼出"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 41,
+          "end_line": 96,
+          "reason": "Web更新中状態・空Cartの導線・ロード時UI"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 95,
+          "end_line": 143,
+          "reason": "Web価格変更/問題複合時の確認操作"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 144,
+          "end_line": 228,
+          "reason": "Web明細/単価/Issue/数量/削除/明細小計"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 230,
+          "end_line": 278,
+          "reason": "Web合計/送料・割引/Blocking/Checkout停止"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 780,
+          "end_line": 830,
+          "reason": "Android Cart getCart/空状態/読込中・全体busy"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 832,
+          "end_line": 966,
+          "reason": "Native明細/数量/上限/問題文言/合計・価格確認/Checkout停止"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 82,
+          "end_line": 116,
+          "reason": "Owner別Cart取得と空Cart作成副作用"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 151,
+          "end_line": 238,
+          "reason": "数量/削除/価格変更承諾のUseCase"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 240,
+          "end_line": 268,
+          "reason": "Guest/current active CustomerのOwnerとStaff/停止拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 437,
+          "end_line": 529,
+          "reason": "Web Dexie DTO、各Issue、現在価格・Cart Totals"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1566,
+          "end_line": 1649,
+          "reason": "Native SQLite DTO、各Issue、Rank/値引き/送料計算"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 3,
+          "end_line": 16,
+          "reason": "送料500/送料無料閾値5000とRank割引"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 41,
+          "end_line": 103,
+          "reason": "割引端数floor/小計/送料/合計の算出"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "上限min(stock,purchaseLimit,99)・拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 683,
+          "end_line": 728,
+          "reason": "default既存regular customer Cartとshirt M SKUの現在単価・数量"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 796,
+          "reason": "default固定7 users、初期Session空、Cart/Items"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 128,
+          "reason": "default/low-stockの初期Session guestとSeed概要"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 207,
+          "end_line": 217,
+          "reason": "cart-with-invalid-itemsの初期Session guest"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 295,
+          "end_line": 305,
+          "reason": "guest-cart-merge-overflowの初期Session guest"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "cart-with-invalid-items/low-stock等のSeed生成"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 259,
+          "end_line": 284,
+          "reason": "invalidCartのPRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVE4行"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "数量変更とVersion/上限拒否の既存integrationテスト"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 191,
+          "end_line": 248,
+          "reason": "価格変更承諾・invalid Seedでの4 Issue確認/Staff拒否（顧客Sessionを別設定）"
+        },
+        {
+          "path": "tests/component/cart-page.test.tsx",
+          "start_line": 69,
+          "end_line": 116,
+          "reason": "Web Cart DTO/価格/空状態/競合エラーの既存componentテスト"
+        },
+        {
+          "path": "tests/component/native/native-cart-screen.test.tsx",
+          "start_line": 73,
+          "end_line": 198,
+          "reason": "Native初期ロード/全ボタンbusy/数量上限/再読込の既存componentテスト"
+        },
+        {
+          "path": "src/bootstrap/native-runtime.ts",
+          "start_line": 162,
+          "end_line": 171,
+          "reason": "Native CartUseCasesはSQLite transactionRunnerを利用（Gatewayではない）"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 207,
+          "end_line": 253,
+          "reason": "Web optimistic versionsと数量限界・親Cart更新"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1287,
+          "end_line": 1343,
+          "reason": "Native SQLite optimistic versions/数量限界・親Cart更新"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CART-A01-03",
@@ -7455,20 +7888,20 @@
       "source_line": 31,
       "source_text": "ゲストおよび会員カートの明細、数量、現在価格、問題が発生している理由、合計金額を表示する。",
       "platform": "web,android",
-      "role": "Guest / Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,cart-with-invalid-items,low-stock,guest-cart-merge-overflow。操作: 現在価格・問題の理由。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest/active Customer（Rank別価格と未購入可SKUの差）。管理RoleはCart不可",
+      "scenario": "cart-with-invalid-items（4 Issue: PRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVE、初期guestなのでregularログイン準備が必要）、sale-active/expired-sale（Clock変更による価格差）、default/low-stock・Rank downgrade/非公開手動変更を比較。",
+      "data": "invalidCartはregular active CartにpriceChanged mug(追加時999/現在1500)、非公開商品、stock0商品、inactive SKUの計4明細を投入する。SCENARIO_METADATAの初期Sessionはguestなので対象Cartを閲覧するにはregular customerとして明示ログインが必要。Web Dexie/Native SQLite getCartDtoは商品公開/rank/variant active/stockQuantity/追加時vs現在単価を再読込し`UNPUBLISHED`,`RANK_REQUIRED`,`INACTIVE`,`OUT_OF_STOCK`,`INSUFFICIENT_STOCK`,`PRICE_CHANGED`のIssueとBlockingIssuesを構築。Webは各Issueの個別日本語ラベル、追加時/現在/会員価格、価格同意操作（非価格Issueがあればdisabled）を表示。Nativeは各明細に汎用『購入前に確認が必要な商品です。』と価格確認ボタンを表示するが、非価格Issueが同居してもUI上はボタン有効。Repositoryは全SKUのassertPurchasableを実施するため複合エラーでは実際の承諾更新は拒否される設計。",
       "action": "現在価格・問題の理由",
-      "expected": "価格変更や無効なSKU/在庫不足を検出した明細では理由を提示し、古い価格で購入確定させない",
+      "expected": "各Issueの発生原因と現在単価・追加時単価を区別し、問題のあるCartからCheckoutを開始できないこと。価格のみ変更ならVersion付きの本人同意で追加時単価を現在価格へ更新後、blockingを解消できること。PRICE_CHANGED以外の問題がある場合は先に修正/削除する必要があり同意だけでCheckout可能にならないこと。Nativeでは現行の個別理由が見えないため正式な『問題理由の提示』への適合を別判定。",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "現在価格・問題の理由に対して、価格変更や無効なSKU/在庫不足を検出した明細では理由を提示し、古い価格で購入確定させないことをUI/業務状態で照合する",
-      "test_responsibility": "現在価格・問題の理由のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "現在価格・問題の理由の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "Web/Nativeの問題原因説明差、価格変更だけの承諾で非公開・在庫切れ等を見逃すこと、Nativeで複合Issue同意ボタンが操作でき失敗→内部Error messageKey露出、old priceでCheckout、Screen状態とSeedのGuest初期値不整合、割引前単価とrank適用価格を混同。",
+      "test_condition": "C1 cart-with-invalid-itemsをResetしてguestでは空を確認しregularログイン後、4種Issue・4明細とWeb個別原因・Native総称文言を観測。C2 価格差のみのCartをSeed操作/Clockで用意し、追加時999/現行1500、Versionを添えて同意するとPRICE_CHANGED解消・CartVersion+1、他Item価格も同時に更新すること。C3 PRICE_CHANGED+UNPUBLISHED/INACTIVE/OUT_OF_STOCK/INSUFFICIENT_STOCK/RANK_REQUIREDの複合条件で同意を許さずCheckoutを拒否し、Cart/ItemVersion/Checkout/DB状態が不変であることを確認。C4 時刻やRank変更で現在単価/会員価格が異なる場合、PRICE_CHANGED判定はSale後のeffective priceを使いRank差のみとの区別を確認。C5 Nativeのgeneric警告と有効な同意ボタンを押した時の実エラー、Web日本語ラベル/a11y/VisualとCheckout導線を検証。",
+      "test_responsibility": "C1〜C5で各Cart Issue・原因表示とWeb/Nativeの同意/修正導線、商品状態再検証・Checkoutブロック・価格/Version/Owner/DB不変を照合する。",
+      "case_policy": "正常価格差のみ・invalid 4種・数量不足・Rank不足・Sale時間差・複合問題・Web/Native UI差・同意後のVersionを採用。静的なボタン無効化は実CheckoutブロックのPASSと同一視しない。",
+      "case_selection_reason": "正式BR-CART-003は価格・在庫・公開・Rankの問題理由と修正、Checkout拒否を要求する。Webは具体ラベル・他Issue時同意disabled、Nativeは原因汎用文言/他Issueがあっても同意可能UIであり、共有Repositoryで再検証するからといってUI要件を満たしたとはいえない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。cart.md:17-23/31-40/82-86、invalidCart Seed scenarios.ts:259-284とmetadata.ts:207-217（初期Guest）、Web CartPage:13-20/95-143/158-177/255-278、NativeCartScreen:912-966、Dexie getCartDto:469-527/acceptPriceChanges:277-307、Native getCartDto:1590-1649/同意:1378-1423、CheckoutOrderUseCases.start:108-139、integration:191-235を静的照合。NativeはIssue個別理由なし・複合Issueで価格同意ボタン有効、Repositoryは拒否。実Web/Android・画面/a11y・DB/Version不変は未受入。",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -7477,11 +7910,15 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CartUseCases.getCart",
+        "CartUseCases.acceptPriceChanges",
+        "CheckoutOrderUseCases.start"
+      ],
       "state_refs": [
         "SCREEN-STOREFRONT-CART-S-invalid-items"
       ],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "analysis_progress": "2026-11-03 既存PR #199の定期実行へ非干渉の静的基本分析。正式仕様→Web/Android UI→CartUseCases→Dexie/Native SQLite DTO・変更Repository→Guest/Customer/Staff→Seedの実値・既存テストとRisk/Condition/Caseを個別照合。基本分析だけanalyzed。実Web/Native/Role・DB差分・視覚/a11y・CI・製品適合・#199反映は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -7505,7 +7942,237 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CartUseCases.getCart",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 82,
+          "signature": "async getCart(): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.acceptPriceChanges",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 220,
+          "signature": "async acceptPriceChanges(request: AcceptPriceChangesRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.start",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 108,
+          "signature": "async start(request: StartCheckoutRequest): Promise<CheckoutStartResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 7,
+          "end_line": 23,
+          "reason": "BR-CART-001/002/003・所有者、数量・価格・商品状態の仕様"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 25,
+          "end_line": 86,
+          "reason": "Cart画面とempty/invalid-items、AC-CART-001/002/003"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Checkout開始時のCart version/価格/所有者の再検証"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Guest/active CustomerのCart利用とStaff禁止"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 13,
+          "end_line": 40,
+          "reason": "Web Cart RouteGuard/問題理由文言/getCart呼出"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 41,
+          "end_line": 96,
+          "reason": "Web更新中状態・空Cartの導線・ロード時UI"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 95,
+          "end_line": 143,
+          "reason": "Web価格変更/問題複合時の確認操作"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 144,
+          "end_line": 228,
+          "reason": "Web明細/単価/Issue/数量/削除/明細小計"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 230,
+          "end_line": 278,
+          "reason": "Web合計/送料・割引/Blocking/Checkout停止"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 780,
+          "end_line": 830,
+          "reason": "Android Cart getCart/空状態/読込中・全体busy"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 832,
+          "end_line": 966,
+          "reason": "Native明細/数量/上限/問題文言/合計・価格確認/Checkout停止"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 82,
+          "end_line": 116,
+          "reason": "Owner別Cart取得と空Cart作成副作用"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 151,
+          "end_line": 238,
+          "reason": "数量/削除/価格変更承諾のUseCase"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 240,
+          "end_line": 268,
+          "reason": "Guest/current active CustomerのOwnerとStaff/停止拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 437,
+          "end_line": 529,
+          "reason": "Web Dexie DTO、各Issue、現在価格・Cart Totals"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1566,
+          "end_line": 1649,
+          "reason": "Native SQLite DTO、各Issue、Rank/値引き/送料計算"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 3,
+          "end_line": 16,
+          "reason": "送料500/送料無料閾値5000とRank割引"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 41,
+          "end_line": 103,
+          "reason": "割引端数floor/小計/送料/合計の算出"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "上限min(stock,purchaseLimit,99)・拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 683,
+          "end_line": 728,
+          "reason": "default既存regular customer Cartとshirt M SKUの現在単価・数量"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 796,
+          "reason": "default固定7 users、初期Session空、Cart/Items"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 128,
+          "reason": "default/low-stockの初期Session guestとSeed概要"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 207,
+          "end_line": 217,
+          "reason": "cart-with-invalid-itemsの初期Session guest"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 295,
+          "end_line": 305,
+          "reason": "guest-cart-merge-overflowの初期Session guest"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "cart-with-invalid-items/low-stock等のSeed生成"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 259,
+          "end_line": 284,
+          "reason": "invalidCartのPRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVE4行"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "数量変更とVersion/上限拒否の既存integrationテスト"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 191,
+          "end_line": 248,
+          "reason": "価格変更承諾・invalid Seedでの4 Issue確認/Staff拒否（顧客Sessionを別設定）"
+        },
+        {
+          "path": "tests/component/cart-page.test.tsx",
+          "start_line": 69,
+          "end_line": 116,
+          "reason": "Web Cart DTO/価格/空状態/競合エラーの既存componentテスト"
+        },
+        {
+          "path": "tests/component/native/native-cart-screen.test.tsx",
+          "start_line": 73,
+          "end_line": 198,
+          "reason": "Native初期ロード/全ボタンbusy/数量上限/再読込の既存componentテスト"
+        },
+        {
+          "path": "src/bootstrap/native-runtime.ts",
+          "start_line": 162,
+          "end_line": 171,
+          "reason": "Native CartUseCasesはSQLite transactionRunnerを利用（Gatewayではない）"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 277,
+          "end_line": 307,
+          "reason": "Web価格承諾時のVersion・全SKU再検証"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1378,
+          "end_line": 1423,
+          "reason": "Native価格承諾時のVersion・全SKU再検証"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 108,
+          "end_line": 139,
+          "reason": "Checkout開始前のCartBlocking Issue検査"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CART-A02-01",
@@ -7515,20 +8182,20 @@
       "source_line": 32,
       "source_text": "在庫数、購入上限数、公開状態、価格を再検証し、問題がある明細の修正や削除を行えるようにする。",
       "platform": "web,android",
-      "role": "Guest / Customer",
-      "scenario": "default",
-      "data": "対象Seed/条件: default,cart-with-invalid-items,low-stock,guest-cart-merge-overflow。操作: 商品状態を再検証。正常・不許可・変化前後の入力を区別する",
+      "role": "Guest/active CustomerのCart明細と、Checkout開始はactive Customerのみ。operator/admin/停止/退会はCart拒否",
+      "scenario": "default active regular/guest、cart-with-invalid-items（初期Guestのためregular Session準備）、low-stock(Stock3)、out-of-stock(Stock0)、sale-active/expired-sale、価格/Rank/公開状態を運用操作で変更した反例を用いる。",
+      "data": "CartUseCases.getCartは毎回Ownerからactive Cartを解決してDTOを取得/空Cart作成。Dexie/Native SQLite getCartDtoは毎回SKUの公開・requiredRank、variant.isActive、stock、stored add price vs current effective priceを照合し6種のIssueとBlockingIssuesを返す。Webは明細削除・数量更新・価格同意を提供、Nativeも数量+/−・削除・価格同意を実装。CheckoutOrderUseCases.startは顧客確認・Cart version一致、Cart DTOのitems非空・blockingIssues空をTransaction内で検査してからCheckout Session開始。CheckoutでのSession versionとCart実データの一致は別Case。",
       "action": "商品状態を再検証",
-      "expected": "カート表示とチェックアウト開始時に公開状態・SKU在庫・購入上限・価格を再検証する",
+      "expected": "カートの各表示・更新・Checkout開始に先立ち最新商品状態・価格・在庫・Rankを再照合し、購入不能SKU/価格未承諾が残る場合はCheckoutを拒否すること。商品状態が変化した場合は理由と修正/削除・価格同意の必要性を示し、ユーザーがIssueを解消すれば自分のCartでのみCheckoutへ進めること。競合/版不一致・staff/停止/退会のアクセスを許さず、失敗時の注文/決済/在庫を変更しないこと。",
       "rule_refs": [],
       "route": "`/cart`",
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "商品状態を再検証に対して、カート表示とチェックアウト開始時に公開状態・SKU在庫・購入上限・価格を再検証することをUI/業務状態で照合する",
-      "test_responsibility": "商品状態を再検証のユーザー権限・入力と業務結果を確認する",
-      "case_policy": "正常と権限外・不正・上限/Emptyなどの代表Caseを採用",
-      "case_selection_reason": "商品状態を再検証の誤動作により本人以外の表示・不正更新・誤った購入処理が発生するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "risk": "画面DTOとCheckout Start間のTOCTOU、Stock3/既存数量5の不一致、商品非公開/Rank change/Price changeの見逃し、未解決Issue中のCheckout生成、旧Cart Versionへの処理継続、並行更新でCart/Item/Checkoutの中間不整合、Webの別明細同時更新、Nativeの総称エラーによる復旧困難。",
+      "test_condition": "C1 defaultのGuest空Cart・regular明細を閲覧しWeb/Nativeで最新価格/stock/RankとDTO一致を確認。C2 cart-with-invalid-items（regular Session準備）でPRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVEを観測し、Checkout禁止・Issue解消までSession/注文/決済/在庫不変を確認。C3 low-stock(3)/stock0/公開停止/Rank不足/不活性SKU/Expired Sale/追加後の価格差を作り、各Issueと対応する更新/削除・同意による復旧を検証。C4 `CheckoutOrderUseCases.start`をCart version旧/正・blocking有無・Guest/Staff/active Customerで呼び、VersionまたはPRICE_CHANGED/INVALID_STATEの拒否とCheckout Session更新の有無を照合。C5 Cart表示後に別セッションからstock/価格を変え、画面操作→DB→Checkoutの二段階で再照合することを実Web/Androidで検証。C6 Webの別明細/price同意の二重操作・Native全体busyの差とRole/Version/DB前後/a11yを確認。",
+      "test_responsibility": "C1〜C6でWeb/Native商品状態→Cart DTO/各Issue→修正/削除/同意→Checkout Startの最新再検証・Role/Owner/Session/DB不変まで検証する。",
+      "case_policy": "正常/異常の商品・SKU・stock/数量/Role/Price/Clock/Version/Checkoutを別Caseに分解。既存integrationは4 Issue・価格同意と上限/Staffを部分検証済みだが、実画面/Checkoutの全境界に代用しない。",
+      "case_selection_reason": "Cart表示ではDTOの現在値を取得するが、その後でStock/Price/Statusが更新される可能性がある。Checkout Startは同じCart version/DTO Issueを再検査し、画面のdisabledだけに依存しない設計。UIの再検証/最新通知の適合には実Runが必要。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "基本静的分析のみanalyzed。cart.md:17-23/31-40/82-86、CartPage:30-58/95-143/144-278とNativeCartScreen:780-966、CartUseCases.getCart:82-116/quantity:151-218/acceptPriceChanges:220-238、Dexie getCartDto:437-529・Native SQLite getCartDto:1566-1649、CheckoutOrderUseCases.start:108-139（Cart version/items/blockingIssues再検査）、invalid Seed scenarios.ts:259-284とmetadata初期guest、integration tests:191-248を静的照合。追加時ではなく現在時刻の価格・stock・status・RankをDTO化しCheckoutで再検査。動的TOCTOU/DB不変/CI未受入。",
       "requirement_refs": [
         "BR-CART-001",
         "BR-CART-002",
@@ -7537,8 +8204,14 @@
         "AC-CART-002",
         "AC-CART-003"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "具体的な期待・候補Seedを記録。画面とUse Caseの条件分岐およびSeed実値の照合が必要",
+      "related_use_cases": [
+        "CartUseCases.getCart",
+        "CartUseCases.updateQuantity",
+        "CartUseCases.removeItem",
+        "CartUseCases.acceptPriceChanges",
+        "CheckoutOrderUseCases.start"
+      ],
+      "analysis_progress": "2026-11-03 既存PR #199の定期実行へ非干渉の静的基本分析。正式仕様→Web/Android UI→CartUseCases→Dexie/Native SQLite DTO・変更Repository→Guest/Customer/Staff→Seedの実値・既存テストとRisk/Condition/Caseを個別照合。基本分析だけanalyzed。実Web/Native/Role・DB差分・視覚/a11y・CI・製品適合・#199反映は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/cart-page.tsx",
         "line": 22,
@@ -7562,7 +8235,249 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [
+        {
+          "id": "CartUseCases.getCart",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 82,
+          "signature": "async getCart(): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.updateQuantity",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 151,
+          "signature": "async updateQuantity(request: UpdateCartItemQuantityRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.removeItem",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 195,
+          "signature": "async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.acceptPriceChanges",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 220,
+          "signature": "async acceptPriceChanges(request: AcceptPriceChangesRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.start",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 108,
+          "signature": "async start(request: StartCheckoutRequest): Promise<CheckoutStartResult> {"
+        }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 7,
+          "end_line": 23,
+          "reason": "BR-CART-001/002/003・所有者、数量・価格・商品状態の仕様"
+        },
+        {
+          "path": "docs/spec/features/cart.md",
+          "start_line": 25,
+          "end_line": 86,
+          "reason": "Cart画面とempty/invalid-items、AC-CART-001/002/003"
+        },
+        {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "start_line": 9,
+          "end_line": 23,
+          "reason": "Checkout開始時のCart version/価格/所有者の再検証"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 31,
+          "reason": "Guest/active CustomerのCart利用とStaff禁止"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 13,
+          "end_line": 40,
+          "reason": "Web Cart RouteGuard/問題理由文言/getCart呼出"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 41,
+          "end_line": 96,
+          "reason": "Web更新中状態・空Cartの導線・ロード時UI"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 95,
+          "end_line": 143,
+          "reason": "Web価格変更/問題複合時の確認操作"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 144,
+          "end_line": 228,
+          "reason": "Web明細/単価/Issue/数量/削除/明細小計"
+        },
+        {
+          "path": "src/presentation/pages/cart-page.tsx",
+          "start_line": 230,
+          "end_line": 278,
+          "reason": "Web合計/送料・割引/Blocking/Checkout停止"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 780,
+          "end_line": 830,
+          "reason": "Android Cart getCart/空状態/読込中・全体busy"
+        },
+        {
+          "path": "src/presentation/native/native-screens.tsx",
+          "start_line": 832,
+          "end_line": 966,
+          "reason": "Native明細/数量/上限/問題文言/合計・価格確認/Checkout停止"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 82,
+          "end_line": 116,
+          "reason": "Owner別Cart取得と空Cart作成副作用"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 151,
+          "end_line": 238,
+          "reason": "数量/削除/価格変更承諾のUseCase"
+        },
+        {
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "start_line": 240,
+          "end_line": 268,
+          "reason": "Guest/current active CustomerのOwnerとStaff/停止拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 437,
+          "end_line": 529,
+          "reason": "Web Dexie DTO、各Issue、現在価格・Cart Totals"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1566,
+          "end_line": 1649,
+          "reason": "Native SQLite DTO、各Issue、Rank/値引き/送料計算"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 3,
+          "end_line": 16,
+          "reason": "送料500/送料無料閾値5000とRank割引"
+        },
+        {
+          "path": "src/domain/services/pricing.ts",
+          "start_line": 41,
+          "end_line": 103,
+          "reason": "割引端数floor/小計/送料/合計の算出"
+        },
+        {
+          "path": "src/domain/services/cart.ts",
+          "start_line": 3,
+          "end_line": 27,
+          "reason": "上限min(stock,purchaseLimit,99)・拒否"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 683,
+          "end_line": 728,
+          "reason": "default既存regular customer Cartとshirt M SKUの現在単価・数量"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 729,
+          "end_line": 796,
+          "reason": "default固定7 users、初期Session空、Cart/Items"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 128,
+          "reason": "default/low-stockの初期Session guestとSeed概要"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 207,
+          "end_line": 217,
+          "reason": "cart-with-invalid-itemsの初期Session guest"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 295,
+          "end_line": 305,
+          "reason": "guest-cart-merge-overflowの初期Session guest"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 20,
+          "end_line": 75,
+          "reason": "cart-with-invalid-items/low-stock等のSeed生成"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 259,
+          "end_line": 284,
+          "reason": "invalidCartのPRICE_CHANGED/UNPUBLISHED/OUT_OF_STOCK/INACTIVE4行"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 146,
+          "end_line": 189,
+          "reason": "数量変更とVersion/上限拒否の既存integrationテスト"
+        },
+        {
+          "path": "tests/integration/cart-use-cases.test.ts",
+          "start_line": 191,
+          "end_line": 248,
+          "reason": "価格変更承諾・invalid Seedでの4 Issue確認/Staff拒否（顧客Sessionを別設定）"
+        },
+        {
+          "path": "tests/component/cart-page.test.tsx",
+          "start_line": 69,
+          "end_line": 116,
+          "reason": "Web Cart DTO/価格/空状態/競合エラーの既存componentテスト"
+        },
+        {
+          "path": "tests/component/native/native-cart-screen.test.tsx",
+          "start_line": 73,
+          "end_line": 198,
+          "reason": "Native初期ロード/全ボタンbusy/数量上限/再読込の既存componentテスト"
+        },
+        {
+          "path": "src/bootstrap/native-runtime.ts",
+          "start_line": 162,
+          "end_line": 171,
+          "reason": "Native CartUseCasesはSQLite transactionRunnerを利用（Gatewayではない）"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 108,
+          "end_line": 139,
+          "reason": "Checkout StartのCart Version・Issue再検証と拒否"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+          "start_line": 111,
+          "end_line": 205,
+          "reason": "SKU追加時の最新版/所有者/Stock検証"
+        },
+        {
+          "path": "src/infrastructure/database/sqlite/native-customer-application-repositories.ts",
+          "start_line": 1187,
+          "end_line": 1284,
+          "reason": "Native追加・Stock/Owner/Version再検証"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-CART-A02-02",
