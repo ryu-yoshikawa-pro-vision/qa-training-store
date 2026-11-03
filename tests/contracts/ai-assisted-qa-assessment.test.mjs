@@ -1301,6 +1301,199 @@ it("recovers an immutable result after summary and pointer publication were inte
   ).toThrow(/differs from the prepared attempt/);
 });
 
+it("preserves the newest assessment pointer across competing Node processes", async () => {
+  const workspaceRoot = path.join(tempRoot, "parallel-current-pointers");
+  const phaseId = "P1";
+  const modelId = "provider/model";
+  const sourceSha = "pinned-source";
+  const phaseRoot = path.join(workspaceRoot, ".course-assessments", phaseId);
+  const barrierPath = path.join(phaseRoot, "release");
+  const attempts = [
+    ["123e4567-e89b-42d3-a456-426614174140", "2026-11-02T00:00:00.000Z"],
+    ["123e4567-e89b-42d3-a456-426614174141", "2026-11-03T00:00:00.000Z"],
+  ];
+  for (const [assessmentId, createdAt] of attempts) {
+    const directory = path.join(phaseRoot, "attempts", assessmentId);
+    fs.mkdirSync(directory, { recursive: true });
+    atomicWriteJson(path.join(directory, "result.json"), {
+      schema_version: 1,
+      phase_id: phaseId,
+      assessment_id: assessmentId,
+      terminal_module_id: "M04",
+      evaluator: { model_id: modelId },
+      source_sha: sourceSha,
+      status: "incomplete",
+      completed: false,
+      objectives: [],
+      created_at: createdAt,
+    });
+  }
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import path from "node:path";
+import { reconcileFinalizedAssessment } from ${JSON.stringify(moduleUrl.href)};
+const [workspaceRoot, phaseId, assessmentId, modelId, sourceSha, barrierPath] =
+  process.argv.slice(1);
+const directory = path.join(workspaceRoot, ".course-assessments", phaseId, "attempts", assessmentId);
+fs.writeFileSync(path.join(directory, "ready"), "yes");
+for (let i = 0; !fs.existsSync(barrierPath); i++) {
+  if (i >= 1000) throw new Error("barrier timeout");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+}
+let published = false;
+for (let i = 0; i < 100; i++) {
+  try {
+    reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+    published = true;
+    break;
+  } catch (error) {
+    if (!/pointer publication is locked/.test(String(error?.message))) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+if (!published) throw new Error("could not acquire pointer publication lock");`;
+  const start = (assessmentId) => {
+    const child = spawn(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        script,
+        workspaceRoot,
+        phaseId,
+        assessmentId,
+        modelId,
+        sourceSha,
+        barrierPath,
+      ],
+      { stdio: ["ignore", "ignore", "pipe"] },
+    );
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    const done = new Promise((resolve) => {
+      child.once("error", (error) => resolve({ error }));
+      child.once("close", (code, signal) => resolve({ code, signal, stderr }));
+    });
+    return { child, done, assessmentId };
+  };
+  const children = attempts.map(([assessmentId]) => start(assessmentId));
+  try {
+    let bothReady = false;
+    for (let i = 0; i < 1000; i++) {
+      bothReady = children.every(({ assessmentId }) =>
+        fs.existsSync(path.join(phaseRoot, "attempts", assessmentId, "ready")),
+      );
+      if (bothReady) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(bothReady).toBe(true);
+    fs.writeFileSync(barrierPath, "go");
+    const statuses = await Promise.all(children.map(({ done }) => done));
+    expect(statuses).toEqual([
+      { code: 0, signal: null, stderr: "" },
+      { code: 0, signal: null, stderr: "" },
+    ]);
+  } finally {
+    for (const { child } of children) child.kill();
+  }
+  const pointer = JSON.parse(fs.readFileSync(path.join(phaseRoot, "current.json"), "utf8"));
+  const newestId = attempts[1][0];
+  const newestResultPath = path.join(phaseRoot, "attempts", newestId, "result.json");
+  expect(pointer).toMatchObject({
+    phase_id: phaseId,
+    assessment_id: newestId,
+    result_sha256: sha256(fs.readFileSync(newestResultPath)),
+    updated_at: attempts[1][1],
+  });
+  for (const [assessmentId] of attempts) {
+    const attempt = path.join(phaseRoot, "attempts", assessmentId);
+    expect(fs.readFileSync(path.join(attempt, "summary.md"), "utf8")).toContain("未修了");
+  }
+}, 20_000);
+
+it("retains the previous pointer after process death before pointer replacement", () => {
+  const workspaceRoot = path.join(tempRoot, "interrupted-pointer-publish");
+  const phaseId = "P1";
+  const modelId = "provider/model";
+  const sourceSha = "pinned-source";
+  const phaseRoot = path.join(workspaceRoot, ".course-assessments", phaseId);
+  const priorId = "123e4567-e89b-42d3-a456-426614174142";
+  const newerId = "123e4567-e89b-42d3-a456-426614174143";
+  for (const [assessmentId, createdAt] of [
+    [priorId, "2026-11-02T00:00:00.000Z"],
+    [newerId, "2026-11-03T00:00:00.000Z"],
+  ]) {
+    const directory = path.join(phaseRoot, "attempts", assessmentId);
+    fs.mkdirSync(directory, { recursive: true });
+    atomicWriteJson(path.join(directory, "result.json"), {
+      schema_version: 1,
+      phase_id: phaseId,
+      assessment_id: assessmentId,
+      terminal_module_id: "M04",
+      evaluator: { model_id: modelId },
+      source_sha: sourceSha,
+      status: "incomplete",
+      completed: false,
+      objectives: [],
+      created_at: createdAt,
+    });
+  }
+  const reconcile = (assessmentId) =>
+    reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+  expect(reconcile(priorId)?.assessment_id).toBe(priorId);
+  const pointerPath = path.join(phaseRoot, "current.json");
+  const previousPointer = fs.readFileSync(pointerPath);
+  const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
+  const script = `import fs from "node:fs";
+import { reconcileFinalizedAssessment } from ${JSON.stringify(moduleUrl.href)};
+const [workspaceRoot, phaseId, assessmentId, modelId, sourceSha, pointerPath] =
+  process.argv.slice(1);
+const originalRename = fs.renameSync.bind(fs);
+fs.renameSync = (source, destination) => {
+  if (destination === pointerPath) {
+    if (process.platform === "win32") process.exit(87);
+    process.kill(process.pid, "SIGKILL");
+  }
+  return originalRename(source, destination);
+};
+reconcileFinalizedAssessment({ workspaceRoot, phaseId, assessmentId, modelId, sourceSha });
+process.exit(18);`;
+  const child = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      script,
+      workspaceRoot,
+      phaseId,
+      newerId,
+      modelId,
+      sourceSha,
+      pointerPath,
+    ],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  expect(child.error).toBeUndefined();
+  if (process.platform === "win32") expect(child.status).toBe(87);
+  else expect(child.signal).toBe("SIGKILL");
+  expect(fs.readFileSync(pointerPath)).toEqual(previousPointer);
+  const lockPath = path.join(phaseRoot, ".current-publish.lock");
+  expect(fs.statSync(lockPath).isDirectory()).toBe(true);
+  expect(reconcile.bind(null, newerId)).toThrow(/pointer publication is locked/);
+  expect(fs.readFileSync(pointerPath)).toEqual(previousPointer);
+  fs.rmdirSync(lockPath);
+  expect(reconcile(newerId)?.assessment_id).toBe(newerId);
+  const pointer = JSON.parse(fs.readFileSync(pointerPath, "utf8"));
+  const resultPath = path.join(phaseRoot, "attempts", newerId, "result.json");
+  expect(pointer).toMatchObject({
+    assessment_id: newerId,
+    previous_assessment_id: priorId,
+    result_sha256: sha256(fs.readFileSync(resultPath)),
+  });
+}, 20_000);
+
 it("lists immutable assessment history and rejects forged results or current pointers", () => {
   const root = path.join(tempRoot, "validated-history");
   const phaseId = "P1";
