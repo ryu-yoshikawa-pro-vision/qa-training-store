@@ -31,7 +31,9 @@ function headingAnchors(moduleId) {
 
 describe("AI-assisted QA knowledge and assessment references", () => {
   it("links every knowledge node to an existing heading in its own lesson", () => {
-    const anchorsByModule = new Map(modules.map((moduleId) => [moduleId, headingAnchors(moduleId)]));
+    const anchorsByModule = new Map(
+      modules.map((moduleId) => [moduleId, headingAnchors(moduleId)]),
+    );
     const nodes = graph.nodes.filter((node) => node.type === "knowledge");
     expect(nodes).toHaveLength(82);
 
@@ -41,9 +43,8 @@ describe("AI-assisted QA knowledge and assessment references", () => {
       expect(parts, `${node.id}: review_path must include one fragment`).toHaveLength(2);
       expect(parts[0], `${node.id}: review_path must stay in its lesson`).toBe(expectedPath);
       const anchor = decodeURIComponent(parts[1]);
-      expect(anchorsByModule.get(node.module)?.has(anchor), `${node.id}: missing #${anchor}`).toBe(
-        true,
-      );
+      const hasHeading = anchorsByModule.get(node.module)?.has(anchor);
+      expect(hasHeading, `${node.id}: missing #${anchor}`).toBe(true);
     }
   });
 
@@ -80,12 +81,10 @@ describe("AI-assisted QA knowledge and assessment references", () => {
       expect([...actualKnowledge].sort(), `${moduleId}: knowledge coverage`).toEqual(
         expectedKnowledge.sort(),
       );
-      expect([...new Set(scoring.objective_ids)].sort(), `${moduleId}: objective header`).toEqual(
-        expectedObjectives,
-      );
-      expect([...new Set(scoring.knowledge_ids)].sort(), `${moduleId}: knowledge header`).toEqual(
-        expectedKnowledge,
-      );
+      const declaredObjectives = [...new Set(scoring.objective_ids)].sort();
+      const declaredKnowledge = [...new Set(scoring.knowledge_ids)].sort();
+      expect(declaredObjectives, `${moduleId}: objective header`).toEqual(expectedObjectives);
+      expect(declaredKnowledge, `${moduleId}: knowledge header`).toEqual(expectedKnowledge);
     }
   });
 
@@ -119,9 +118,7 @@ describe("AI-assisted QA knowledge and assessment references", () => {
         const optionValues = question.options.map((option) => option.value);
         expect(optionValues, `${id}: requires four distinct options`).toHaveLength(4);
         expect(new Set(optionValues).size, `${id}: option values must be unique`).toBe(4);
-        expect(optionValues, `${id}: correct answer must exist`).toContain(
-          question.correct_value,
-        );
+        expect(optionValues, `${id}: correct answer must exist`).toContain(question.correct_value);
       }
     }
     expect([...new Set(foundIds)].sort()).toEqual([...graphIds].sort());
