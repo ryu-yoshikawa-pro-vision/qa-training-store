@@ -53,7 +53,7 @@ M09の四択7問は教材本文、M09の演習、公開の模範解答、採点�
 
 ## 未完了の受入と検証
 
-- M00・M01・M04・M06〜M08・M10の**残り42問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
+- M00・M01・M04・M07・M08・M10の**残り34問については、ID・対応関係の集計まで**。正答・誤答理由の独立意味レビューは未完了。
 - クイズの復習先アンカー、ブラウザーの実表示・回答保存・旧版回答の拒否は、既存validator/契約テストの範囲と実Web確認を分けて受入する。今回は実Webを動かしていない。
 - M09の記述式10問・教材本文の全記述・演習提出物・採点用Caseの全意味一致は未受入。今回のM09レビューは**四択7問の静的正答・説明確認**に限る。
 - 51目標への四択の配置は確認できたが、学習目標のLevel 2・3を各問だけで評価できるとは結論しない。学習者本人の実技・採点・外部Skillの実Runは別に受入する。
@@ -136,3 +136,37 @@ CIでは今回の最終HEADに紐づく結果を確認する。合格しない�
 - 本人のM05 before/after Run、P01〜P06の実行と提出・採点照合、標準のformat/lint/test、最終HEADの全必須CI成功は未確認のまま残す。
 
 **累計36/78問の独立意味レビュー完了**（M02:8、M03:9、M05:12、M09:7）。**残り42問**（M00:6、M01:5、M04:4、M06:8、M07:7、M08:5、M10:7）。ID対応の集計78問/学習目標51件とは別判定。製品SUT、Seed/Reset、正式仕様、既存E2E、分析台帳、定期実行4件のPlanは変更しない。
+
+## 2026-11-03追記：M06四択8問とCase・Reset・Assertionの整合レビュー
+
+開始時HEAD：`fe61b5d3a310b95101a04eed1aef708b040f5405`。M06四択8問を教材本文、演習の固定3 Caseと新規CASE-CART-004/005、配布開始素材、完成参照spec 3ファイル、模範成果物、`scoring-tests/M06.json`、正式Cart仕様、Reset helperと照合。正答・各誤答の理由について、設問の条件下で明確な矛盾や二重正答を認めなかった。クイズJSON自体の変更は不要と判断した。
+
+| 設問 | 正答 | 対応学習目標 | 正答と誤答を判別する根拠 | 参照先 |
+| --- | :---: | --- | --- | --- |
+| M06-Q01 | A | M06-02 | 各testの前提に合うReset/Seedで開始状態を作る。Retry・固定順序は独立性を保証しない | M06本文§2、reset-scenario.ts、Playwright Isolation |
+| M06-Q02 | B | M06-03 | Cart見出しの可視性だけでは上限超過の拒否・数量維持を検証していない | M06本文§3、BR-CART-001/AC-CART-001 |
+| M06-Q03 | A | M06-01/03 | Case前提・操作・期待・BR/ACをReset/Action/業務Assertionへ対応付ける | M06本文§1/§6、演習の提出条件 |
+| M06-Q04 | B | M06-04 | 変更後specとRun/入力revision/実行コマンド/結果を一致させ、別specのsummaryを流用しない | M06本文§6、course:run実行契約 |
+| M06-Q05 | C | M06-05 | 接続障害でCase本体を開始できなければ環境BLOCKED・未実行の原因を記録する | M06本文§5/§6 |
+| M06-Q06 | A | M06-01/05 | テストコードが原因なら学習用specだけを修正し別Runで結果を確認。製品SUTとAssertionを変更しない | M06本文§4、演習手順と変更境界 |
+| M06-Q07 | D | M06-01 | 新規Caseの開始条件・操作対象・Action・業務Assertion・期待結果を対応付ける | M06本文§4、K-M06-06、演習P01 |
+| M06-Q08 | B | M06-03 | Locatorの一意性とActionの成功だけでは数量結果を保証せず、別の業務Assertionが必要 | M06本文§3、K-M06-07 |
+
+### 教材本文の修正
+
+- **独立性の説明（§2.2）**：従来の「`test.beforeAll`だけでResetすると2番目以降のtestが前のCart状態を引き継ぐ」は、Playwright Test既定のtestごとに分離されたBrowserContextと矛盾していた。Context分離によりブラウザ内状態は通常引き継がれないが、特定のSeedが適用されたことも保証されないと訂正。`page`はtest単位のfixtureで`beforeAll`に使えないこと、各test冒頭または`beforeEach`でResetと前提確認を行うことを明記。根拠：<https://playwright.dev/docs/browser-contexts>、<https://playwright.dev/docs/test-fixtures>、`training/playwright/support/reset-scenario.ts`。
+- **Caseの要求範囲（§1・§4）**：章前半では削除`CASE-CART-004`だけの実装と読めたが、演習・scoring-tests・正式提出は削除004と数量更新005を独立した2 testとして要求している。未完成specのTODOを使う前提、両testの実装、再実行、SHA/Run証拠の案内へ統一。新しい課題や模範解答は追加しない。
+- **識別子の誤表記（§1.2）**：商品IDの`product-mug`をSKUと誤記していたため、default Seedに一致する商品ID=`product-mug`とSKU=`P-0002-ONE`を区別した。根拠：`src/seeds/default-dataset.ts`の製品定義とvariantのSKU生成規則。
+
+### 独立に確認した実技と採点の対応
+
+- 固定CASE-CART-001/002/003は、完成参照`cart-cases.spec.ts`に独立testとして存在。`resetScenario`によるdefault/low-stockの初期化と業務Assertionの配置を静的確認した。
+- 削除CASE-CART-004は`remove-item.spec.ts`、数量更新CASE-CART-005は`quantity-update.spec.ts`に別testで実装されている。演習の受講者提出先はこの2完成specの参照先ではなく、未完成`workspace/M06/new-case.spec.ts`であり、評価時に答えの転記だけで実行済みと認めない。
+- `scoring-tests/M06.json`の5つの評価基準（M06-CR-01〜05）と12件の校正Caseを確認。P01〜P06、004/005の再実行、Run/SHA、fallbackとPhase 1修了の分離、未実行の拒否が要求されていることを照合。各Caseの**実モデル判定は未実施**。
+
+### 検証範囲と未受入
+
+- 静的レビューは8/8問。M06クイズのJSON/正答値・各選択肢、関連Markdown、完成参照spec・Reset helperの読み取りを実施。実Playwright/Chromium・Codespaces・本人のP01〜P06・受入テストの直接実行ではない。
+- 変更後HEADの`pnpm format:check`、`pnpm lint:text:all`、`pnpm test:contracts`と全必須CIは未受入。開始時HEADのWeb CI #41603123632は失敗済み。Style Quality（2契約テストの整形）、Contracts（assessment cacheの期待エラー・supported-behaviorsのstatus期待）、required Chromium E2E、validate、verifyの未完は今回の教材修正では解決しない。
+
+累計の四択独立意味レビュー：**44/78問**（M02:8、M03:9、M05:12、M06:8、M09:7）。残り**34問**（M00:6、M01:5、M04:4、M07:7、M08:5、M10:7）。全51学習目標のID対応確認と、実技・採点・実ブラウザーでの達成判定は別に残す。製品SUT、正式仕様、既存Seed/Reset、既存製品テスト、分析台帳、定期実行Planは変更しない。
