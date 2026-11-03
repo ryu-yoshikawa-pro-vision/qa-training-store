@@ -653,8 +653,44 @@ function validateCalibrationOutput(output, expected) {
   };
 }
 
-function publishPassingCalibrationCache(calibration, calibrationPath, existingCalibration = null) {
+function verifySharedCalibrationCaseResults(calibration, expected = null) {
+  const caseResults = calibration?.case_results;
+  if (
+    !Array.isArray(caseResults) ||
+    caseResults.length === 0 ||
+    calibration.case_count !== caseResults.length ||
+    typeof calibration.case_results_sha256 !== "string" ||
+    calibration.case_results_sha256 !== sha256(JSON.stringify(caseResults))
+  )
+    fail("saved model calibration cache lacks verifiable case decisions");
+  // For a completed historical assessment, the case schema and digest remain
+  // checkable without loading external scoring files. On new cache reuse, verify
+  // every decision against the current pinned calibration fixtures as well.
+  const caseExpectations =
+    expected ?? new Map(caseResults.map((item) => [item?.case_id, [item?.decision]]));
+  const verified = validateCalibrationOutput({ case_results: caseResults }, caseExpectations);
+  if (
+    verified.status !== "passed" ||
+    verified.critical_false_passes !== calibration.critical_false_passes ||
+    !isDeepStrictEqual(verified.mismatches, calibration.mismatches)
+  )
+    fail("saved model calibration case decisions differ from pinned expected cases");
+}
+
+function publishPassingCalibrationCache(
+  calibration,
+  calibrationPath,
+  existingCalibration = null,
+  caseResults = null,
+) {
   if (!isPassingCalibration(calibration)) return;
+  const publishedRecord = Array.isArray(caseResults)
+    ? {
+        ...calibration,
+        case_results: caseResults,
+        case_results_sha256: sha256(JSON.stringify(caseResults)),
+      }
+    : calibration;
   const verifyIdentity = (published) => {
     if (
       published.id !== calibration.id ||
@@ -662,6 +698,14 @@ function publishPassingCalibrationCache(calibration, calibrationPath, existingCa
       !isDeepStrictEqual(published.identity, calibration.identity)
     )
       fail("concurrent model calibration differs from the verified attempt");
+    if (Array.isArray(published.case_results) && Array.isArray(caseResults)) {
+      const decisions = (items) =>
+        items.map(({ case_id, decision }) => ({ case_id, decision })).sort((a, b) =>
+          a.case_id.localeCompare(b.case_id),
+        );
+      if (!isDeepStrictEqual(decisions(published.case_results), decisions(caseResults)))
+        fail("concurrent model calibration case decisions differ from the verified attempt");
+    }
   };
   if (existingCalibration) {
     // Failed legacy records remain immutable, but only for the matching model,
@@ -676,7 +720,7 @@ function publishPassingCalibrationCache(calibration, calibrationPath, existingCa
       fail("concurrent model calibration differs from the verified attempt");
   };
   try {
-    atomicWriteJson(calibrationPath, calibration);
+    atomicWriteJson(calibrationPath, publishedRecord);
   } catch (error) {
     // Another process may have saved the same immutable successful cache.
     if (
@@ -685,7 +729,9 @@ function publishPassingCalibrationCache(calibration, calibrationPath, existingCa
       !fs.lstatSync(calibrationPath).isFile()
     )
       throw error;
-    verifyWinner(readJson(calibrationPath, "concurrent model calibration"));
+    const winner = readJson(calibrationPath, "concurrent model calibration");
+    verifyWinner(winner);
+    if (Array.isArray(caseResults)) verifySharedCalibrationCaseResults(winner);
   }
 }
 
@@ -707,7 +753,7 @@ export function persistCalibration({
   });
   atomicWriteJson(path.join(attemptDirectory, "calibration-result.json"), calibration);
   // Failed calibrations remain in their attempt only and do not block future attempts.
-  publishPassingCalibrationCache(calibration, calibrationPath, existingCalibration);
+  publishPassingCalibrationCache(calibration, calibrationPath, existingCalibration, caseResults);
 }
 
 export function readAttemptCalibration({
@@ -727,7 +773,7 @@ export function readAttemptCalibration({
       const existing = fs.existsSync(calibrationPath)
         ? readJson(calibrationPath, "saved model calibration")
         : null;
-      publishPassingCalibrationCache(saved, calibrationPath, existing);
+      publishPassingCalibrationCache(saved, calibrationPath, existing, candidate.case_results);
     }
     return saved;
   };
@@ -856,6 +902,7 @@ export async function obtainCalibration({
           typeof existingCalibration.candidate_session_id !== "string")
       )
         fail("saved model calibration cache metadata is invalid");
+      verifySharedCalibrationCaseResults(existingCalibration, calibrationPrompt.expected);
       return existingCalibration;
     }
     if (existingCalibration.status !== "failed") fail("saved model calibration cache metadata is invalid");
@@ -1176,6 +1223,7 @@ function verifyCompletedAssessmentResult(workspaceRoot, relative, result) {
     if (!fs.existsSync(sharedPath) || !fs.lstatSync(sharedPath).isFile())
       fail("saved completed assessment has no valid passing calibration");
     calibration = readJson(sharedPath, "saved model calibration");
+    verifySharedCalibrationCaseResults(calibration);
   }
   const objectiveIds = manifest.objective_ids;
   if (
