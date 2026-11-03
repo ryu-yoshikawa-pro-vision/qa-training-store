@@ -198,7 +198,10 @@ it("rebuilds a missing successful shared calibration from a verified saved attem
   expect(JSON.parse(fs.readFileSync(calibrationPath, "utf8"))).toEqual(calibration);
   expect(resume()).toEqual(calibration);
   // A different successful record under this cache key is not silently trusted.
-  fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, identity: { changed: true } }));
+  fs.writeFileSync(
+    calibrationPath,
+    JSON.stringify({ ...calibration, identity: { changed: true } }),
+  );
   expect(resume).toThrow(/concurrent model calibration differs/);
   fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
   expect(resume()).toEqual(calibration);
@@ -361,10 +364,11 @@ await withAttemptResumeLock(process.argv[1], async () => {
   if (process.platform === "win32") process.exit(87);
   process.kill(process.pid, "SIGKILL");
 });`;
-  const child = spawnSync(process.execPath, ["--input-type=module", "-e", script, attemptDirectory], {
-    encoding: "utf8",
-    timeout: 10_000,
-  });
+  const child = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script, attemptDirectory],
+    { encoding: "utf8", timeout: 10_000 },
+  );
   expect(child.error).toBeUndefined();
   if (process.platform === "win32") expect(child.status).toBe(87);
   else expect(child.signal).toBe("SIGKILL");
