@@ -381,7 +381,25 @@ describe("M10 GitHub Run evidence contract", () => {
         (report) => {
           report.suites[0].specs[0].tests[0].results[0].status = "failed";
         },
-        /unsuccessful tests/,
+        /unexpected project, retry, or unsuccessful test/,
+      ],
+      [
+        (report) => {
+          report.suites[0].specs[0].tests[0].projectName = "unrelated-project";
+        },
+        /unexpected project, retry, or unsuccessful test/,
+      ],
+      [
+        (report) => {
+          report.suites[0].specs[0].tests[0].results[0].retry = 1;
+        },
+        /unexpected project, retry, or unsuccessful test/,
+      ],
+      [
+        (report) => {
+          report.suites[0].specs[0].tests[0].results.push({ status: "passed", retry: 1 });
+        },
+        /unexpected project, retry, or unsuccessful test/,
       ],
       [
         (report) => {
