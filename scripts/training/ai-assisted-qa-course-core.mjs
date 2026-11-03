@@ -885,6 +885,15 @@ export function readVerifiedCourseSource({ root, sourcePath }) {
   return { bytes, targetPath: entry.target_path, metadata: entry };
 }
 
+function hasValidPublicStateDistribution(state) {
+  return (
+    state.distribution?.public_source === true &&
+    state.distribution?.includes_reference_solutions === false &&
+    state.distribution?.includes_scoring_tests === false &&
+    state.distribution?.includes_completed_states === false
+  );
+}
+
 export function verifySyncedCourseDistribution({ root }) {
   const targetRoot = path.resolve(root);
   const distribution = readDistribution(targetRoot);
@@ -921,7 +930,11 @@ export function verifySyncedCourseDistribution({ root }) {
         state.revision !== distribution.state_contract_revision
       )
         fail(`pinned module state SHA or revision does not match the distribution: ${statePath}`);
-      if (state.public_contract !== true || state.read_only !== true)
+      if (
+        state.public_contract !== true ||
+        state.read_only !== true ||
+        !hasValidPublicStateDistribution(state)
+      )
         fail(`pinned module state lacks public read-only contract: ${statePath}`);
     }
   }
@@ -1333,7 +1346,8 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     startState.source_sha !== distribution.source_sha ||
     startState.revision !== distribution.state_contract_revision ||
     startState.public_contract !== true ||
-    startState.read_only !== true
+    startState.read_only !== true ||
+    !hasValidPublicStateDistribution(startState)
   )
     fail(`pinned ${moduleId} start state does not match its distribution contract`);
   const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
@@ -1483,7 +1497,7 @@ export function checkState({ root, moduleId, stateName }) {
     reasons.push("状態のmodule_idまたはstateが一致しません");
   if (state.revision !== distribution.state_contract_revision)
     reasons.push("状態revisionと配布revisionが一致しません");
-  if (!state.public_contract || !state.read_only)
+  if (state.public_contract !== true || state.read_only !== true)
     reasons.push("公開・読み取り専用の状態契約がありません");
   if (state.source_sha !== distribution.source_sha)
     reasons.push("状態source_shaと配布source_shaが一致しません");
@@ -1530,12 +1544,7 @@ export function checkState({ root, moduleId, stateName }) {
     )
   )
     reasons.push("状態照合条件のID/mode/conditionが不正です");
-  if (
-    state.distribution?.public_source !== true ||
-    state.distribution?.includes_reference_solutions !== false ||
-    state.distribution?.includes_scoring_tests !== false ||
-    state.distribution?.includes_completed_states !== false
-  )
+  if (!hasValidPublicStateDistribution(state))
     reasons.push("状態契約の公開範囲または評価資料の分離設定が不正です");
   for (const reference of state.references ?? []) {
     if (!stateReferenceExists(targetRoot, moduleId, reference, distribution))

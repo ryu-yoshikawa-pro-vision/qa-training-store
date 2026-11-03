@@ -2175,7 +2175,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(true);
   });
 
-  it("rejects forged public or writable states during full distribution verification", async () => {
+  it("rejects forged public, writable, or leaky states during full distribution verification", async () => {
     const fixture = courseFixture();
     const sourceSha = "2".repeat(40);
     await syncCourse({
@@ -2192,10 +2192,19 @@ describe("AI-assisted QA distribution contract", () => {
     for (const stateName of ["start", "end"]) {
       const statePath = `course/states/M00/${stateName}.json`;
       const originalState = fs.readFileSync(path.join(fixture.target, statePath));
-      for (const change of [{ public_contract: false }, { read_only: false }]) {
-        const altered = Buffer.from(
-          JSON.stringify({ ...JSON.parse(originalState.toString("utf8")), ...change }),
-        );
+      const state = JSON.parse(originalState.toString("utf8"));
+      const changes = [
+        { public_contract: false },
+        { read_only: false },
+        ...[
+          ["public_source", false],
+          ["includes_reference_solutions", true],
+          ["includes_scoring_tests", true],
+          ["includes_completed_states", true],
+        ].map(([key, value]) => ({ distribution: { ...state.distribution, [key]: value } })),
+      ];
+      for (const change of changes) {
+        const altered = Buffer.from(JSON.stringify({ ...state, ...change }));
         writeFixtureFile(fixture.target, statePath, altered);
         const manifest = JSON.parse(originalManifest.toString("utf8"));
         const record = manifest.files.find((file) => file.target_path === statePath);
@@ -2213,6 +2222,49 @@ describe("AI-assisted QA distribution contract", () => {
     expect(verifySyncedCourseDistribution({ root: fixture.target })).toMatchObject({
       state_files_verified: 22,
     });
+  });
+
+  it("rejects altered start distribution boundaries before writing learner files", async () => {
+    const fixture = courseFixture();
+    const sourceSha = "3".repeat(40);
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const statePath = "course/states/M00/start.json";
+    const state = JSON.parse(fs.readFileSync(path.join(fixture.target, statePath), "utf8"));
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const originalManifest = fs.readFileSync(manifestPath, "utf8");
+    for (const [field, value] of [
+      ["public_source", false],
+      ["includes_reference_solutions", true],
+      ["includes_scoring_tests", true],
+      ["includes_completed_states", true],
+    ]) {
+      const altered = Buffer.from(
+        JSON.stringify({ ...state, distribution: { ...state.distribution, [field]: value } }),
+      );
+      writeFixtureFile(fixture.target, statePath, altered);
+      const manifest = JSON.parse(originalManifest);
+      const record = manifest.files.find((file) => file.target_path === statePath);
+      record.sha256 = createHash("sha256").update(altered).digest("hex");
+      record.bytes = altered.length;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+      expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+        "pinned M00 start state does not match its distribution contract",
+      );
+      expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "start" })).toMatchObject(
+        { status: "mismatch" },
+      );
+      expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+      expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
   });
 
   it("resumes a partial sync idempotently after a new-file write failure", async () => {
