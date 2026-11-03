@@ -58,22 +58,7 @@ describe("AI協働QAの反復実践と正式評価の契約", () => {
       for (let number = 1; number <= 6; number++) {
         const id = `P0${number}`;
         expect(exercise).toContain(`**${id}`);
-        expect(reference).toMatch(new RegExp(`^#{2,3} ${id}[^\\n]*it(`${moduleId}のP01〜P06が各模範資料に対応し、学習用配布から除外される`, () => {
-      const exercise = read(
-        `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`,
-      );
-      const reference = read(
-        `training/ai-assisted-qa-course/assessment/reference-solutions/${moduleId}.md`,
-      );
-      expect(
-        manifest.local_files.some((entry) =>
-          entry.target_path.includes(`assessment/reference-solutions/${moduleId}`),
-        ),
-      ).toBe(false);
-      for (let number = 1; number <= 6; number++) {
-        const id = `P0${number}`;
-        expect(exercise).toContain(`**${id}`);
-        expect(reference).toMatch(, "m"));
+        expect(reference).toMatch(new RegExp("^#{2,3} " + id + "[^\\n]*$", "m"));
       }
     });
   }
