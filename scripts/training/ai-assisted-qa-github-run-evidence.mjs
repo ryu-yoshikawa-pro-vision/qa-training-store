@@ -55,11 +55,22 @@ export function validateGitHubRunEvidence(value) {
   return value;
 }
 
+function requireOnlyWorkflowFields(value, allowed, description) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).some((key) => !allowed.includes(key))
+  )
+    fail(`M10 workflow contains unapproved ${description} fields`);
+}
+
 export function validateCourseWorkflow(document, workflowPath, target) {
   const parsed = parseDocument(document, { uniqueKeys: true, maxAliasCount: 20 });
   if (parsed.errors.length) fail(`M10 workflow YAML is invalid: ${parsed.errors[0].message}`);
   const workflow = parsed.toJS();
   if (!workflow || typeof workflow !== "object") fail("M10 workflow must be a YAML object");
+  requireOnlyWorkflowFields(workflow, ["name", "on", "permissions", "jobs"], "top-level");
   if (/\bsecrets\s*\./i.test(document) || /\bdeploy\b/i.test(document))
     fail("M10 workflow must not access repository Secrets or deploy application code");
   const triggers = workflow.on;
@@ -81,6 +92,7 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     fail("M10 workflow must use the standard GitHub-hosted Linux runner");
   if (job.name !== undefined && job.name !== "course-e2e")
     fail("M10 workflow job must retain the course-e2e Check name");
+  requireOnlyWorkflowFields(job, ["name", "runs-on", "steps"], "job");
   const steps = Array.isArray(job.steps) ? job.steps : [];
   const allowedActions = new Set([
     "actions/checkout@v4",
@@ -101,10 +113,61 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
     ...(requiredTestCommand ? [requiredTestCommand] : []),
   ]);
+  const actionOptions = new Map([
+    ["actions/checkout@v4", ["ref", "persist-credentials"]],
+    ["pnpm/action-setup@v4", ["version"]],
+    ["actions/setup-node@v4", ["node-version", "cache"]],
+    ["actions/upload-artifact@v4", ["name", "path", "if-no-files-found"]],
+  ]);
   for (const step of steps) {
-    if (typeof step.run !== "string") continue;
-    if (!allowedCommands.has(step.run)) fail("M10 workflow contains an unapproved shell command");
+    const isAction = step && typeof step === "object" && typeof step.uses === "string";
+    requireOnlyWorkflowFields(
+      step,
+      isAction
+        ? step.uses === "actions/upload-artifact@v4"
+          ? ["uses", "with", "if"]
+          : ["uses", "with"]
+        : ["run", "env"],
+      "step",
+    );
+    if (isAction) {
+      requireOnlyWorkflowFields(step.with, actionOptions.get(step.uses) ?? [], "action options");
+      continue;
+    }
+    if (typeof step.run !== "string" || !allowedCommands.has(step.run))
+      fail("M10 workflow contains an unapproved shell command");
+    if (step.run === 'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"') {
+      requireOnlyWorkflowFields(step.env, ["EXPECTED_HEAD_SHA"], "SHA step environment");
+      if (step.env.EXPECTED_HEAD_SHA !== "${{ github.event.pull_request.head.sha }}")
+        fail("M10 workflow must verify the PR head SHA against the same checkout");
+    } else if (step.run === requiredTestCommand) {
+      requireOnlyWorkflowFields(step.env, ["PLAYWRIGHT_TEST_ROOT"], "test step environment");
+    } else if (step.env !== undefined) {
+      fail("M10 workflow contains unapproved shell environment variables");
+    }
   }
+  const reviewedStepOrder = [
+    "actions/checkout@v4",
+    "pnpm/action-setup@v4",
+    "actions/setup-node@v4",
+    "pnpm install --frozen-lockfile",
+    "pnpm exec playwright install --with-deps chromium",
+    'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
+    "mkdir -p output/training/ai-assisted-qa",
+    "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
+    requiredTestCommand,
+    "actions/upload-artifact@v4",
+  ];
+  if (steps.some((step, index) => (step.uses ?? step.run) !== reviewedStepOrder[index]))
+    fail("M10 workflow steps must follow the reviewed checkout, SHA, test, and upload order");
+  const pnpmSetup = steps.find((step) => step.uses === "pnpm/action-setup@v4");
+  const nodeSetup = steps.find((step) => step.uses === "actions/setup-node@v4");
+  if (
+    pnpmSetup.with.version !== "10.34.5" ||
+    nodeSetup.with["node-version"] !== 24 ||
+    nodeSetup.with.cache !== "pnpm"
+  )
+    fail("M10 workflow must retain the reviewed Node and pnpm versions");
   if (
     steps.length !== 10 ||
     [...allowedActions].some(
