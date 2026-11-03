@@ -391,7 +391,7 @@ await withAttemptResumeLock(process.argv[1], async () => {
   );
 });
 
-it("blocks a calibration resend after the real Node process exits after its model response", async () => {
+it("blocks calibration resend after process death before saving its response", async () => {
   const workspaceRoot = path.join(tempRoot, "calibration-response-not-published");
   const attemptDirectory = path.join(workspaceRoot, "attempt");
   fs.mkdirSync(attemptDirectory, { recursive: true });
@@ -544,9 +544,7 @@ persistCalibration({
   try {
     let bothReady = false;
     for (let i = 0; i < 1_000; i++) {
-      bothReady = children.every(({ name }) =>
-        fs.existsSync(path.join(root, name, "ready")),
-      );
+      bothReady = children.every(({ name }) => fs.existsSync(path.join(root, name, "ready")));
       if (bothReady) break;
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
@@ -566,8 +564,9 @@ persistCalibration({
   expect(["first", "second"]).toContain(published.candidate_session_id);
   for (const name of ["first", "second"]) {
     const attempt = path.join(root, name);
-    expect(JSON.parse(fs.readFileSync(path.join(attempt, "calibration-result.json"), "utf8")))
-      .toMatchObject({ id: published.id, candidate_session_id: name });
+    expect(
+      JSON.parse(fs.readFileSync(path.join(attempt, "calibration-result.json"), "utf8")),
+    ).toMatchObject({ id: published.id, candidate_session_id: name });
     expect(fs.statSync(path.join(attempt, "calibration-candidate.json")).isFile()).toBe(true);
   }
 }, 20_000);
