@@ -292,6 +292,9 @@ it("keeps failed calibrations per attempt and only caches successful calibration
 
   const concurrent = {
     ...passed,
+    schema_version: 1,
+    created_at: "2026-11-03T00:00:00.000Z",
+    candidate_session_id: null,
     id: "same-id",
     identity: { model_id: "provider/model" },
     case_count: 1,
@@ -496,6 +499,23 @@ it("rejects a changed shared calibration rationale when resuming the same attemp
     JSON.stringify({ ...altered, case_results: undefined, case_results_sha256: undefined }),
   );
   expect(inspect).toThrow(/lacks verifiable case decisions/);
+  const originalRecord = JSON.parse(originalCache.toString("utf8"));
+  for (const change of [
+    { schema_version: 0 },
+    { created_at: "not-a-date" },
+    { candidate_session_id: { invalid: true } },
+    { status: "unknown" },
+    { status: "passed", critical_false_passes: 1 },
+  ]) {
+    fs.writeFileSync(calibrationPath, JSON.stringify({ ...originalRecord, ...change }));
+    expect(inspect).toThrow(
+      change.status && change.status !== "passed"
+        ? /concurrent model calibration differs/
+        : /saved model calibration cache metadata is invalid|concurrent model calibration differs/,
+    );
+    expect(fs.readFileSync(resultPath)).toEqual(originalResult);
+    expect(fs.readFileSync(candidatePath)).toEqual(originalCandidate);
+  }
   fs.writeFileSync(calibrationPath, originalCache);
   expect(inspect()).toEqual(calibration);
   expect(fs.readFileSync(calibrationPath)).toEqual(originalCache);

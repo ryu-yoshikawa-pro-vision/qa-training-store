@@ -654,6 +654,15 @@ function validateCalibrationOutput(output, expected) {
 }
 
 function verifySharedCalibrationCaseResults(calibration, expected = null) {
+  if (
+    !isPassingCalibration(calibration) ||
+    calibration.schema_version !== 1 ||
+    typeof calibration.created_at !== "string" ||
+    !Number.isFinite(Date.parse(calibration.created_at)) ||
+    (calibration.candidate_session_id !== null &&
+      typeof calibration.candidate_session_id !== "string")
+  )
+    fail("saved model calibration cache metadata is invalid");
   const caseResults = calibration?.case_results;
   if (
     !Array.isArray(caseResults) ||
@@ -760,7 +769,7 @@ function publishPassingCalibrationCache(
     // A matching failed legacy cache is retained for audit. A published success
     // must match the complete case evidence of this independently verified attempt.
     verifyIdentity(existingCalibration);
-    if (!isPassingCalibration(existingCalibration)) return;
+    if (existingCalibration.status === "failed") return;
     verifySuccessfulRecord(existingCalibration);
     return;
   }
@@ -931,17 +940,7 @@ export async function obtainCalibration({
     )
       fail("saved model calibration identity or case count is invalid");
     if (existingCalibration.status === "passed") {
-      // A forged or truncated cache must never authorize a completed assessment.
-      // Legacy failed caches are kept unchanged and can still trigger a new calibration.
-      if (
-        !isPassingCalibration(existingCalibration) ||
-        existingCalibration.schema_version !== 1 ||
-        typeof existingCalibration.created_at !== "string" ||
-        !Number.isFinite(Date.parse(existingCalibration.created_at)) ||
-        (existingCalibration.candidate_session_id !== null &&
-          typeof existingCalibration.candidate_session_id !== "string")
-      )
-        fail("saved model calibration cache metadata is invalid");
+      // Reuse the same metadata and case verification as shared-cache recovery.
       verifySharedCalibrationCaseResults(existingCalibration, calibrationPrompt.expected);
       return existingCalibration;
     }
