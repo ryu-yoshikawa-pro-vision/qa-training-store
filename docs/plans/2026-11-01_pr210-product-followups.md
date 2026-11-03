@@ -93,3 +93,15 @@ PR #210の作成時点で、製品実装9・正式仕様1・既存製品テス�
 - **Trace / screenshot**: Playwright artifact [#13125658755](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41411886158) shows navigation to `/checkout/confirm` and a 7,500 ms wait for the expected text. The screenshot instead shows title `購入手続きを続けられません`, body `カートまたは前のステップが更新されました。内容を確認してください。`, and `戻って確認する` linking to `/checkout/payment`. This confirms a UI / E2E contract mismatch, not a browser-start or seed-load failure. The test fails before checking the link target.
 - **Use Case / formal contract**: `CheckoutConfirmContent` calls `services.checkout.getConfirmation()`. A stale cart produces `CART_VERSION_CHANGED`; the error branch renders the generic `CheckoutLoadError` with `/checkout/payment`. It does not call `beginOrder`; the test does not take a database snapshot after this failure, so non-creation of Order/Payment is supported by the seed and call path rather than directly measured by this E2E. `BR-CHECKOUT-002` / `AC-CHECKOUT-002` require stale cart or price changes to block Order/Payment and return to the cart or an incomplete step; the `stale-cart` screen state also requires explaining the mismatch. Whether the current generic text and payment link violate the full recovery contract needs direct product acceptance, but the CI failure is repeatable and not consistent with an environment-only cause.
 - **PR #210 candidate / status**: Current PR #210 HEAD `58249dd52b6e2fddeeb033bc5715a5d6041b2c7d` already recognizes cart-review errors in `checkoutNeedsCartReview`, renders the specific cart-change message and `/cart` recovery link, and updates the existing E2E to assert them. In Web CI [#41362980277](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41362980277), `Chromium E2E (required)` succeeded, while Style Quality, Code Quality, and Vitest component failed. Treat the Checkout candidate as present on the branch, not as overall PR #210 acceptance. Keep PR #199's existing product E2E, product SUT, formal product specification, and Seed/Reset unchanged; re-evaluate the candidate against the BR/AC and current-head CI in PR #210.
+
+## 2026-11-03 PR #199に残っていた製品テスト・共通処理の追加移管
+
+PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用ではない共通処理が残っていた。これらはPR #199から除き、ユーザー指定に従って本PRで管理する。
+
+- `e2e/web/phase1-required.spec.ts`：CheckoutのCart version不一致時の表示と`/cart`復帰の期待値変更。既に本PRで同じ差分を保有しているため、重複追加しない。
+- 同ファイル：PR #199の学習用E2Eに含まれていた未知URLからのホーム復帰・Guest/Session維持、および深い未知URLとForbiddenの境界2 Caseを製品E2Eへ移した。
+- `scripts/serve-web-dist.ts`と`tests/contracts/serve-web-dist.test.ts`：faviconが存在しない場合のHTTP 204応答と回帰テスト。
+- `scripts/lib/codex-artifact-sanitizer.mjs`とCodex関連契約テスト3ファイル：実pathの正規化とWindows/WSLの検証期待値。
+- `scripts/pre-commit-quality-check.mjs`と`tests/contracts/pre-commit-quality.test.ts`：大きなstaged assetを読み取るための`maxBuffer`変更と回帰テスト。
+
+後半3件は製品業務ロジックではなく共通ツールの変更である。PR #199の教材・分析に必須であることを確認できない共通変更も、今回の明示指示に従って本PRへ集約した。製品テストの受入と共通ツールの互換性・セキュリティ検証はそれぞれ独立して行う。PR #199の教材ビルドやクイズ、学習用評価・分析の処理は移管対象としない。変更を移しただけではCI成功や製品受入完了を意味しない。

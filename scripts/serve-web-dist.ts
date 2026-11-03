@@ -97,6 +97,12 @@ function send404(response: ServerResponse): void {
   response.end("Not Found");
 }
 
+function send204(response: ServerResponse): void {
+  response.statusCode = 204;
+  response.setHeader("Cache-Control", "no-store");
+  response.end();
+}
+
 function send400(response: ServerResponse): void {
   response.statusCode = 400;
   response.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -195,6 +201,13 @@ const server = createServer((request, response) => {
       return;
     }
     send404(response);
+    return;
+  }
+
+  // Browsers request this path even when the page has no favicon link. An
+  // absent optional favicon is a valid no-content response, not an app error.
+  if (pathname === "/favicon.ico" && !existsSync(resolved)) {
+    send204(response);
     return;
   }
 
