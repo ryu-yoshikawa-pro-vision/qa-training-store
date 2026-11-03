@@ -444,6 +444,8 @@ export async function verifyGitHubRunEvidence({
     fail(
       "ungradable: Actions Run is not a successful pull_request Run for this repository, PR, and workflow",
     );
+  if (!Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1)
+    fail("ungradable: Actions Run attempt is missing or invalid");
 
   const checkResponse = await requestJson(
     `${apiRoot}/commits/${run.head_sha}/check-runs?check_name=${encodeURIComponent(source.check_name)}&per_page=100`,
@@ -460,6 +462,29 @@ export async function verifyGitHubRunEvidence({
   if (matchingChecks.length !== 1)
     fail("ungradable: a successful Check Run tied to this exact Actions Run was not found");
 
+  const attemptJobs = await requestJson(
+    `${apiRoot}/actions/runs/${source.run_id}/attempts/${run.run_attempt}/jobs?per_page=100`,
+    "M10 Actions attempt jobs",
+  );
+  if (
+    attemptJobs.total_count !== 1 ||
+    !Array.isArray(attemptJobs.jobs) ||
+    attemptJobs.jobs.length !== 1
+  )
+    fail("ungradable: M10 Run attempt must contain exactly one dedicated course-e2e job");
+  const attemptJob = attemptJobs.jobs[0];
+  if (
+    attemptJob.id !== matchingChecks[0].id ||
+    attemptJob.run_id !== source.run_id ||
+    attemptJob.run_attempt !== run.run_attempt ||
+    attemptJob.name !== source.check_name ||
+    attemptJob.head_sha !== run.head_sha ||
+    attemptJob.status !== "completed" ||
+    attemptJob.conclusion !== "success" ||
+    attemptJob.check_run_url !== `${apiRoot}/check-runs/${attemptJob.id}`
+  )
+    fail("ungradable: the successful Check does not belong to the current Run attempt");
+
   const artifactResponse = await requestJson(
     `${apiRoot}/actions/runs/${source.run_id}/artifacts?per_page=100`,
     "M10 Artifact list",
@@ -473,6 +498,18 @@ export async function verifyGitHubRunEvidence({
   );
   if (artifacts.length !== 1)
     fail("ungradable: the required non-expired Artifact for this Run was not found");
+  const artifactCreatedAt = Date.parse(artifacts[0].created_at);
+  const jobStartedAt = Date.parse(attemptJob.started_at);
+  const jobCompletedAt = Date.parse(attemptJob.completed_at);
+  if (
+    !Number.isFinite(artifactCreatedAt) ||
+    !Number.isFinite(jobStartedAt) ||
+    !Number.isFinite(jobCompletedAt) ||
+    jobStartedAt > jobCompletedAt ||
+    artifactCreatedAt < jobStartedAt ||
+    artifactCreatedAt > jobCompletedAt
+  )
+    fail("ungradable: Artifact creation time does not belong to the current Run attempt");
   let archiveResponse;
   try {
     archiveResponse = await fetchImpl(`${apiRoot}/actions/artifacts/${artifacts[0].id}/zip`, {
