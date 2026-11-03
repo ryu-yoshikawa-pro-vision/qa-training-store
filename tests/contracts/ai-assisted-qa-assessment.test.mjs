@@ -110,7 +110,12 @@ it("keeps failed calibrations per attempt and only caches successful calibration
   expect(read(legacy)).toEqual(failed);
   expect(read(path.join(third, "calibration-result.json"))).toEqual(passed);
 
-  const concurrent = { ...passed, id: "same-id", identity: { model_id: "provider/model" }, case_count: 1 };
+  const concurrent = {
+    ...passed,
+    id: "same-id",
+    identity: { model_id: "provider/model" },
+    case_count: 1,
+  };
   fs.writeFileSync(cache, JSON.stringify(concurrent));
   const fourth = makeAttempt("concurrent-match");
   expect(() =>
