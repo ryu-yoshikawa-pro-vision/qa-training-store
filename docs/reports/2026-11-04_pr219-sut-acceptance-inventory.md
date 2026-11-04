@@ -74,3 +74,10 @@
 - 既存必須E2E：同Runの`Chromium E2E (required)`がsuccess。Style Quality、Code Quality、verifyもsuccess。追加Case実行と既存必須CI維持のみをタスクリスト16番として完了する。
 - Trace/動画/画像：本追加2件はIntegration testでありブラウザ操作を伴わないため対象外。Console/Network：同様にブラウザ証拠なし。詳細な実行ログとテスト結果は上記GitHub Actions Runの`Vitest (integration)`ジョブログ。個別DB前後はassert結果で確認し、snapshotファイルは未生成。AndroidとWeb UIの直接証拠は未取得。
 - 制約：タスクリスト2番・4〜15番・18〜21番などに必要な全採用Case実Run・Trace/DB全表前後・Android証拠・独立レビューは未完了。CI成功は基本分析208動作の全件受入PASSを意味しない。
+
+## 隔離DBでの正常操作・障害注入（タスクリスト3番の検証準備）
+
+- 新規受入用テスト：`tests/integration/pr219-isolated-fixtures.test.ts`。固定Seed `out-of-stock` / `low-stock` / `checkout-resume`を、各テストで固有名のDexie DBへロードし、終了後にDBを削除する。
+- テストCase：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01`のstock0/3状態、`SCREEN-ADMIN-USER-DETAIL-A01-04`の顧客停止→Session削除・Checkout abandoned・Cart不変、障害注入後のUser/Session/Checkout/Cartロールバック。
+- Clockは`2026-07-15T03:00:00.000Z`の`TestClock`。障害注入は隔離DBの`checkout_sessions.hook("updating")`に限り、製品実装・既存Seed/Reset・既存テストに手を加えていない。
+- 追加テストの実行は最新HEADのVitest (integration) CIで確認するまで未実行扱い。DBスナップショットはassertionベースでありファイルとして保存していない。直接Web/Android実Runの代わりにはならない。
