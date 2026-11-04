@@ -2501,11 +2501,7 @@ describe("AI-assisted QA distribution contract", () => {
     const state = JSON.parse(fs.readFileSync(path.join(fixture.target, statePath), "utf8"));
     const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
     const manifestText = fs.readFileSync(manifestPath, "utf8");
-    for (const change of [
-      { public: false },
-      { path: "inputs/M01/start.md" },
-      { revision: "" },
-    ]) {
+    for (const change of [{ public: false }, { path: "inputs/M01/start.md" }, { revision: "" }]) {
       const altered = Buffer.from(
         JSON.stringify({ ...state, public_fallback: { ...state.public_fallback, ...change } }),
       );

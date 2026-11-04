@@ -1352,7 +1352,9 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     fail(`pinned ${moduleId} start state does not match its distribution contract`);
   const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
   if (!["module-public-sample", "learner-previous-artifact"].includes(selectedInput.source))
-    fail(`invalid ${moduleId} start input: ${selectedInput.source}; ${(selectedInput.reasons ?? []).join("; ")}`);
+    fail(
+      `invalid ${moduleId} start input: ${selectedInput.source}; ${(selectedInput.reasons ?? []).join("; ")}`,
+    );
   const receiptTime = now.toISOString();
   const receiptPath = `.course-load/${moduleId}-${receiptTime.replace(/[:.]/g, "-")}.json`;
   const receiptDestination = assertNoSymlinkPath(targetRoot, receiptPath, false);
