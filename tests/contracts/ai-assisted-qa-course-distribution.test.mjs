@@ -2604,6 +2604,41 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects missing or miswired predecessor input contracts before module load", async () => {
+    const fixture = courseFixture();
+    const cases = [
+      { moduleId: "M00", change: (state) => (state.inputs = [{ from_module: "M01" }]) },
+      { moduleId: "M01", change: (state) => (state.inputs = []) },
+      { moduleId: "M02", change: (state) => (state.inputs[0].from_module = "M00") },
+    ];
+    for (const { moduleId, change } of cases) {
+      const statePath = `training/ai-assisted-qa-course/states/${moduleId}/start.json`;
+      const state = JSON.parse(fs.readFileSync(path.join(fixture.source, statePath), "utf8"));
+      change(state);
+      writeFixtureFile(fixture.source, statePath, JSON.stringify(state));
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "b".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    for (const { moduleId } of cases) {
+      expect(() => loadModule({ root: fixture.target, moduleId })).toThrow(
+        /predecessor inputs must reference the immediately previous module/,
+      );
+      expect(checkState({ root: fixture.target, moduleId, stateName: "start" })).toMatchObject({
+        status: "mismatch",
+        reasons: [expect.stringContaining("immediately previous module")],
+      });
+      expect(fs.existsSync(path.join(fixture.target, `workspace/${moduleId}`))).toBe(false);
+    }
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("rejects predecessor ID, path, revision, and stale load-receipt mismatches", async () => {
     const fixture = courseFixture();
     const sourceSha = "9".repeat(40);

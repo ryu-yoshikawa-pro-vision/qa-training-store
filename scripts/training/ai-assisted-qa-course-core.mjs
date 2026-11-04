@@ -1193,7 +1193,14 @@ function detectPreviousInput(root, moduleId, state, distribution) {
       source: "invalid-previous-artifact-reference",
       reasons: ["start state inputs must be an array"],
     };
-  if (refs.length === 0) return publicInputSelection(root, moduleId, state, distribution);
+  if (moduleId === "M00" && refs.length === 0)
+    return publicInputSelection(root, moduleId, state, distribution);
+  const predecessor = MODULE_IDS[MODULE_IDS.indexOf(moduleId) - 1];
+  if (!predecessor || refs.length === 0 || refs.some((input) => input?.from_module !== predecessor))
+    return {
+      source: "invalid-previous-artifact-reference",
+      reasons: ["predecessor inputs must reference the immediately previous module"],
+    };
   const priorModules = new Set(refs.map((input) => input.from_module));
   if (
     priorModules.size !== 1 ||
