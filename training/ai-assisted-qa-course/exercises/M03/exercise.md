@@ -26,7 +26,7 @@ M02提出物またはこのモジュールの別ID公開サンプル、Cart仕�
 
    ```bash
    python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/condition-runtime-evidence.json
-   python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json
+   python3 .agents/skills/test-case-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json
    ```
 
    `course:assess M04`は配布元の固定revisionから同じhelperをPython 3.11で再実行し、request内のartifactが現在の提出物と一致することを検証します。JSON内のvalid=trueという自己申告だけでは通りません。モデル/技法runtimeの生成を実行していない場合は、決定論的helperの成功と分けて報告します。
