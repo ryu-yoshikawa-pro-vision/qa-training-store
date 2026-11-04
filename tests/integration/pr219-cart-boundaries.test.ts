@@ -191,4 +191,15 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
     });
     expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
   });
+  it("temporarily captures exact CI Prettier format", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const path = "tests/integration/pr219-cart-boundaries.test.ts";
+    const config = await prettier.resolveConfig(path);
+    const formatted = await prettier.format(await readFile(path, "utf8"), {
+      ...config,
+      filepath: path,
+    });
+    console.log("PR219_CART_CANONICAL_JSON=" + JSON.stringify(formatted));
+  });
 });
