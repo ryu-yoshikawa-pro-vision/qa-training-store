@@ -4,6 +4,12 @@
 >
 > 自分の所有ファイル以外（製品SUT、正式仕様、Seed/Reset、既存製品テストを含む）は直接変更しない。必要な変更はPR上で#199または#210へ引継ぎ。課金・外部公開・PRマージ・force push・branch削除は実施しない。
 
+## エージェント担当と実モデル校正の境界
+
+#217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
+
+確認済みは0/22件（HEAD `e026edb3e8bd`。現在の差分はタスクリストのみ）。古いCIのMarkdown lintは#199基点の既修正表記に起因し、評価器のテストが失敗した証拠ではない。各項目は実装・契約/異常系CI・#199への実受入手順の整備でチェックする。
+
 ## 変更範囲と受入の区別
 
 編集：`training/ai-assisted-qa-course/assessment/**`、`scripts/training/ai-assisted-qa-assessment*.mjs`、`scripts/training/ai-assisted-qa-run-evidence.mjs`、評価専用契約テスト・評価レポート。M00〜M10の教本・演習、`scripts/training/ai-assisted-qa-course.mjs`、manifest、共通Planは他ブランチ/統合先の所有。必要なAPI変更はPRコメントで依頼する。
@@ -20,16 +26,16 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 ## OpenCode実モデル・最小権限
 
-- [ ] 導入`@opencode/cli`の実版・`opencode run`の非対話/JSONイベント、終了コード、タイムアウト、stderrとモデルの回答Schema抽出を実環境で確認
-- [ ] 明示した無料モデルID・認証・費用条件を確認。名称だけで無料と判断しない。429、利用上限、認証・モデル欠落を`blocked`として扱い、有料モデルへ自動変更しない
-- [ ] 正式評価を学習用チャットから独立したセッション・プロセスとして起動。評価Agentに編集/Shell/Web/MCP/他Skill・子Agentの不要権限を与えず、実際の拒否を検証
+- [ ] `@opencode/cli`の対象版・`opencode run`の非対話/JSONイベント・stderr/終了コード/タイムアウトを仕様・既存コードと照合し、イベントを模擬したパーサ/異常系契約テストを追加。学習環境での認証付き実CLI接続は#199へ渡す
+- [ ] 無料モデルの選択・料金確認を起動前ガードとして実装/文書化し、認証欠落・429・上限/不明価格を`blocked`として拒否する負例テストを用意。本人の実契約/費用確認・モデル接続は#199へ渡す
+- [ ] 学習用セッションから分離した評価プロセス/権限設定を実装し、Shell/edit/Web/MCP/Skill/子Agent禁止の設定と模擬拒否を契約テストで検証。実モデル環境の権限拒否確認は#199へ渡す
 - [ ] 本人提出・ログ中のPrompt Injectionを命令として実行せず、許可した資料/節だけをサイズ上限・Secret除外後に外部モデルへ渡すこと
 
 ## 校正・誤PASS拒否
 
-- [ ] 正答・誤答・許容別解・部分達成・根拠不足・未実行の各校正例を**実モデル**とNode側の最終集計へ通す
-- [ ] 旧SHA/別Run、改ざん・架空Trace、重複/欠落ID、悪意ある指示、異常JSON、評価セッション失敗の負例を通し、重大な誤PASSが**0件**であることを検証
-- [ ] 校正結果をモデルID/版・CLI版・Prompt Hash・ルーブリックHash・資料source SHAで固定し、モデルまたは資料変更時は再校正する
+- [ ] 正答・誤答・許容別解・部分達成・根拠不足・未実行の固定校正fixtureと判定契約を整備し、Node集計・モデル応答異常/欠落の負例をCIで検証する。**実モデルでの最終校正は#199**
+- [ ] 旧SHA/別Run、改ざん・偽Trace、重複/欠落ID、Prompt Injection、異常JSON、タイムアウトの負例をCIへ追加。模擬評価器の重大誤PASSを0にし、**実モデルの重大誤PASS 0件は#199最終実受入**で別に確認
+- [ ] 校正記録へモデルID/版・CLI版・Prompt Hash・rubric Hash・資料SHAを保存する契約を実装し、不一致時の再校正要求をテスト。実モデル校正結果の確定は#199へ渡す
 - [ ] 不一致/校正不能時は合格へ繰り上げず`blocked`/`ungradable`等の正しい状態にし、再試行条件を提示
 
 ## 保存・再開・再評価
@@ -38,11 +44,19 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] 試行ID、排他`.resume.lock`、`.current-publish.lock`、中断→再開/競合を検証。古い正式結果を上書き/削除しない
 - [ ] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する
 - [ ] Phase 1/2はGit/PRを必須にせず結果の安全なエクスポートと復習後の再挑戦ができること
-- [ ] 評価関連の直接契約テスト、実モデル校正、必要なCIを固定HEADで証拠化し、未確認のPrivate Codespaces・本人モデル認証は後続受入として明示
+- [ ] 変更した評価器の直接契約/負例・モック実行・既存CIを固定HEADで検証し、実モデル校正/Private Codespaces/本人認証について#199向け実施手順・期待値・未実行理由を記録
 
 ## 実行証拠の真正性・チューターとの分離（補完）
 
-- [ ] M06の本人specについて、正式評価の決定論的処理が受入済みPlaywright Config・許可したspec/依存で**評価時に必要な新しいRunを実行/取得**し、Seed/Reset、Case・Assertion、spec/依存コードのハッシュ、test IDと実際の結果を対応付けることを正例/旧ログ・手入力PASS・別spec負例で検証。任意の既存ファイルのSHA-256一致を実行証明に代えない
-- [ ] M07の修正前後の**別Run**、Page Object/fixtureの実装とimport・業務Assertionの維持を、実行元/コード/結果の組で照合。評価器が実行権限を持つNode側と、Shell/edit/Web等を拒否されたAI意味評価の権限分離を実証
-- [ ] M10は本人非公開リポジトリの**実際のGitHub API**で最新PR head SHA、対象workflow、Run ID/attempt、Check、Artifactと対象spec/依存を取得・照合。merge ref/旧SHA/別workflow/偽ログ/取得不能Artifactを拒否し、TokenはAI入力・ログへ送らない。本人Private repo実操作は後続の本人作業であり、#199では実行経路・検証可能な範囲を校正
-- [ ] 通常のOpenCode AIチューターの回答・ヒント・学習セッションを正式評価の採点根拠/権限へ流用しないことを確認。Phase別の別条件課題、本人回答、未達時の復習・再挑戦/履歴の接続を教材担当・#218と照合
+- [ ] 評価器のNode側が許可したspec/Configで新しいPlaywright Runを要求・検証する処理と、旧Run/手入力PASS/別spec拒否のfixture・CIテストを整備。本人spec・実Codespacesでの新Runによる受入は#199へ渡す
+- [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
+- [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
+- [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## #199最後に実施する実受入（このPRのチェック対象外）
+
+- 本人の認証済みOpenCode実モデルを独立・制限権限で起動し、M04/M07/M10を未演習条件で採点
+- 実モデルの正答/誤答/別解/部分/旧Run/偽ログ/注入/異常の校正と重大な誤PASS 0件の確認
+- 本人Private 2コアCodespacesでの新規Playwright RunとPrivate GitHub APIのRun/Artifact照合、個人成績の保全・再評価
+
+ここでのモックCI成功は実モデル校正の代替にならない。実モデル校正未達は正式修了をBLOCKEDとする。
