@@ -17,6 +17,8 @@
    pnpm course:run M06 cart-cases.spec.ts --label main
    ```
 
+   **TODOの`throw new Error(...)`を削除しただけでは未完成です。** Playwrightが終了コード0を返しても、AssertionがなければCartの業務結果を検証できません。固定3件の`spec-snapshot.ts`に、Case IDごとの操作と次の業務Assertionが残っていることを確認してください。CASE-CART-001はMugの明細と数量1、CASE-CART-002は上限超過時の拒否と変更前数量1の保持、CASE-CART-003は`low-stock`のシャツMの上限3と拒否後数量3の保持です。対応する正式仕様は`BR-CART-001`/`AC-CART-001`です。単に実行数3件・PASSという表示のみを修了の証拠にはしません。
+
 5. 表示だけのAssertionが業務期待を証明するかレビューします。
 6. 別Case `CASE-CART-004`：defaultをResetし、ゲストとしてマグを1点追加し、カートの明細を削除します。削除前に対象商品と数量1を確認し、削除後は対象明細がなく、カートが空であることを確認します。Cart仕様の機能範囲と`empty`画面状態を読み、画面操作と期待結果を対応させます。`BR-CART-001`の数量0の規則と、画面の削除ボタンによる操作を同じ実行だと決めつけません。
 7. `new-case.spec.ts`のTODOを自分で実装し、P01の数量更新`CASE-CART-005`を削除`CASE-CART-004`とは**別のtest**として追加します。両方を実装した後、次のコマンドで単独実行と再実行を行います。出力先を分けることで前のRunの結果を上書きしません。Resetと各Runの結果・対象specを対応付けます。失敗時は最初のエラー、サーバー、Reset、LocatorとAssertionを順に確認し、期待を弱めず修正します。
