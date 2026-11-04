@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 export const COURSE_MANIFEST_PATH = "training/course-sync/manifest.json";
 export const DISTRIBUTION_MANIFEST_PATH = ".course/distribution-manifest.json";
 const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v3";
+const EXTERNAL_SKILL_REPOSITORY = "ryu-yoshikawa-pro-vision/qa-workflow-skills";
+const EXTERNAL_SKILL_COMMIT = "7cc6cba7772de549841a39d71694cbafbc783324";
 const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide"]);
 const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
@@ -205,8 +207,8 @@ export function validateCourseManifest(manifest) {
     );
   validateAssessmentAssetSet(manifest.assessment_asset_allowlist);
   if (
-    manifest.external_skill_source?.repository !== "ryu-yoshikawa-pro-vision/qa-workflow-skills" ||
-    manifest.external_skill_source?.commit !== "7cc6cba7772de549841a39d71694cbafbc783324"
+    manifest.external_skill_source?.repository !== EXTERNAL_SKILL_REPOSITORY ||
+    manifest.external_skill_source?.commit !== EXTERNAL_SKILL_COMMIT
   )
     fail("The external Skill source must remain pinned to the Plan revision");
   const destinations = new Set();
@@ -722,6 +724,11 @@ function readDistribution(root) {
     fail("course distribution manifest has an invalid source SHA");
   if (distribution.state_contract_revision !== STATE_CONTRACT_REVISION)
     fail("course distribution manifest has an unsupported state contract revision");
+  if (
+    distribution.external_skill_source?.repository !== EXTERNAL_SKILL_REPOSITORY ||
+    distribution.external_skill_source?.commit !== EXTERNAL_SKILL_COMMIT
+  )
+    fail("course distribution manifest has an unpinned external Skill source");
   if (!Array.isArray(distribution.files) || !Array.isArray(distribution.load_files))
     fail("course distribution manifest is incomplete");
   validateAssessmentAssetSet(distribution.assessment_assets, distribution.source_sha);

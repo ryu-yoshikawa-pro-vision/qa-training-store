@@ -1899,6 +1899,39 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
   });
 
+  it("rejects a forged external Skill source before loading learner files", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "6".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const original = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    for (const change of [
+      { repository: "another-owner/another-skill-repository" },
+      { commit: "f".repeat(40) },
+    ]) {
+      const forged = {
+        ...original,
+        external_skill_source: { ...original.external_skill_source, ...change },
+      };
+      fs.writeFileSync(manifestPath, JSON.stringify(forged));
+      expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+        "course distribution manifest has an unpinned external Skill source",
+      );
+      expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+        "course distribution manifest has an unpinned external Skill source",
+      );
+      expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+      expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
+  });
+
   it("rejects a start state with mismatched module, revision, or source before copying", async () => {
     for (const change of [
       { module_id: "M01" },
