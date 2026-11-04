@@ -225,4 +225,14 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
       summaries: await database.product_review_summaries.toArray(),
     }).toEqual(before);
   });
+  it("temporarily prints CI-standard order-review formatting", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const path = "tests/integration/pr219-order-review-boundaries.test.ts";
+    const formatted = await prettier.format(await readFile(path, "utf8"), {
+      ...(await prettier.resolveConfig(path)),
+      filepath: path,
+    });
+    console.log("PR219_ORDER_REVIEW_FORMAT_JSON=" + JSON.stringify(formatted));
+  });
 });
