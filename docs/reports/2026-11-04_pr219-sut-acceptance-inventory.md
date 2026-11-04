@@ -266,3 +266,10 @@
 - **active Checkout実レコード**：`checkout-resume`のregular customer、`session-checkout`、`checkout-active` status=activeとCart versionの一致を明示assert。数量6の拒否後にCart/Item/Checkoutの全レコードが完全一致することを検証。Clockは当該Checkout期限内。
 - 関連する既存Web E2E（別固定HEAD）：[Run #41792378802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802)、required Chromium job `126449277022`の`phase1-required.spec.ts`でGuest Cart数量・削除・購入上限、価格/在庫/Rank変更後のCheckout再確認がPASS。
 - **項目10番の列挙条件**は固定Seed・隔離DB Integrationと既存Web代表E2Eで実証したため完了とする。ただしCartの全採用Case/画面幅/Android・SQLite/成功時Trace/画像・ネットワーク/DB全表保存ファイルは別のタスク2・13〜15・20番として未受入。新しい製品修正や既存Seed変更なし。
+
+## Order/Shipment/Review状態・snapshot・rollbackの隔離受入（12番）
+
+- 新規`tests/integration/pr219-order-review-boundaries.test.ts`に3件追加。①`order-paid`をPaid→Preparing→Shipped→Deliveredへ遷移させ、途中の古い`orderActionVersion`でShipを拒否しOrder/Shipment/Historyの前後全レコードを比較。顧客Rankと商品価格を後から変更してもOrderのAddress/Rank/価格Snapshot、OrderItem、Paymentが不変であることをassert。
+- ②`reviewable-orders` Seedでregular顧客が配送済み商品へReviewを作成後、別gold顧客によるEligibility/作成を拒否し、古いReview versionの更新を`CONFLICT`で拒否。Review/History/Summaryの全レコード不変をassert。
+- ③Review新規作成時の`product_review_summaries.hook("updating")`に失敗を注入し、Review・Review Status History・Summaryの更新がtransaction rollbackで全て戻ることをassert。
+- 全ケースは新規隔離Dexie DBと固定Seed/Clockに限定。新規CIで実行確認するまで12番は未完了。WebのOrder/Shipment/Review実操作、Android/SQLite、実画像/Trace/全DB保存ファイルも別途未受入。
