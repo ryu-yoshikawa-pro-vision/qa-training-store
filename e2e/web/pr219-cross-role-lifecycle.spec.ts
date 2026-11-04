@@ -618,6 +618,7 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
     scenario,
   }, testInfo) => {
     await scenario("empty-catalog");
+    const before = await indexedDbTableDigests(page);
 
     // Isolate a catalog read failure inside the Playwright browser. No Seed,
     // Test API, production Repository, or shared fixture is modified.
@@ -692,6 +693,17 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
           }),
       );
     }
+    const after = await indexedDbTableDigests(page);
+    expect(after).toEqual(before);
+    console.log(
+      "PR219_CASE_EVIDENCE " +
+        JSON.stringify({
+          behavior: "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+          condition: "browser-catalog-read-failure-no-db-mutation",
+          tablesChecked: Object.keys(before).length,
+          allTablesUnchanged: true,
+        }),
+    );
   });
 
   test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: empty-catalog at responsive widths", async ({
