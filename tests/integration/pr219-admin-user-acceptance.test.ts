@@ -198,9 +198,7 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
 
   it("rejects stale rank and status versions before any User or Checkout mutation", async () => {
     const detail = await useCases.getDetail("user-customer-regular");
-    expect(
-      await database.users.update(detail.userId, { version: detail.version + 1 }),
-    ).toBe(1);
+    expect(await database.users.update(detail.userId, { version: detail.version + 1 })).toBe(1);
 
     const usersBefore = await database.users.toArray();
     const sessionsBefore = await database.sessions.toArray();
@@ -224,17 +222,5 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     expect(await database.users.toArray()).toEqual(usersBefore);
     expect(await database.sessions.toArray()).toEqual(sessionsBefore);
     expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
-  });
-
-  it("temporarily provides canonical Prettier output for the admin test", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const path = "tests/integration/pr219-admin-user-acceptance.test.ts";
-    const config = await prettier.resolveConfig(path);
-    const output = await prettier.format(await readFile(path, "utf8"), {
-      ...config,
-      filepath: path,
-    });
-    console.log("PR219_ADMIN_FORMAT_JSON=" + JSON.stringify(output));
   });
 });
