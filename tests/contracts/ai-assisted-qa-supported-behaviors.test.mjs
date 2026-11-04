@@ -819,9 +819,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
     }
     for (const id of ["SCREEN-AUTH-SIGNUP-A02-01"]) {
-      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "analyzed",
-      );
+      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe("analyzed");
     }
     const reviewEdit = data.behaviors.find((item) => item.id === "SCREEN-REVIEWS-EDITOR-A01-02");
     expect(reviewEdit?.analysis_status).toBe("analyzed");
