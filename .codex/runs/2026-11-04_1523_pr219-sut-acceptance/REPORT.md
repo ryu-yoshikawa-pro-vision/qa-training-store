@@ -45,3 +45,5 @@
 - 管理ユーザー受入タスク5・最後の管理者競合タスク6：固定HEAD e5fc6a5、Run #41802885428のIntegration 8+6+2件・Web関連Caseを照合し、actor失効競合は製品FAILとして区別。専用報告書 docs/reports/2026-11-04_pr219-admin-user-acceptance-completion.md に記録。タスク5/6は検証と結果分類の完了としてチェックし、製品合格を意味しない。
 
 - タスク12番完了：Run #41806200267（b37b603）Integration job 126493922493でOrder/Shipment/Review実3件PASS、全150件成功。配送CAS、Snapshot不変、他人Review拒否、Review transaction rollbackを実証。一時診断は削除。Web全画面/Android/SQLite/Traceは別タスク未受入。
+
+- 管理商品一覧：公式画面仕様、補助UI仕様、Web/UseCase/Repository、実Webの検索成功・表示外選択FAIL、既存bulk部分成功、SKUとinactive SKU0価格の静的差分を docs/reports/2026-11-04_pr219-admin-product-ui-repository-comparison.md に整理。Repository新規CaseのCI・many-products/視覚が未確認のためタスク8は保留。
