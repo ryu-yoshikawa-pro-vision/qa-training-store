@@ -14,8 +14,8 @@ const mutated = (edit) => {
   return next;
 };
 
-// #210へ製品差分を分離した項目は、現行mainでの再照合が済むまで
-// review_requiredを維持する。根拠の保持と基本分析完了は別に検証する。
+// 基本静的分析の完了は、製品適合・Web/Native実Runの受入を意味しない。
+// review_requiredのままの操作・状態と、分析済みだが実行未受入の操作を区別する。
 const expectAuditedOrAwaitingReanalysis = (entry) => {
   expect(entry).toBeDefined();
   if (entry.analysis_status === "analyzed") return;
@@ -24,6 +24,22 @@ const expectAuditedOrAwaitingReanalysis = (entry) => {
 };
 
 describe("サポート機能の仕様と実装の追跡", () => {
+  it("keeps #212 basic static analysis separate from runtime acceptance", () => {
+    for (const id of [
+      "SCREEN-CHECKOUT-ADDRESS-A01-01",
+      "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+      "SCREEN-STOREFRONT-SEARCH-A02-02",
+      "SCREEN-AUTH-LOGIN-A02-01",
+      "SCREEN-AUTH-SIGNUP-A02-01",
+      "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
+    ]) {
+      const entry = data.behaviors.find((item) => item.id === id);
+      expect(entry?.analysis_status).toBe("analyzed");
+      expect(entry?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
+      expect(entry?.analysis_progress).toMatch(/未受入|別受入/);
+    }
+  });
+
   it("separates supported behaviors from BR/AC and cross-cutting requirements", () => {
     const operations = data.behaviors.filter((entry) => entry.kind !== "state");
     const states = data.behaviors.filter((entry) => entry.kind === "state");
@@ -257,7 +273,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((entry) => entry.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")
         ?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits payment processing and persisted results without SUT changes", () => {
@@ -433,7 +449,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("preserves evidence-backed address analysis and unresolved boundaries", () => {
@@ -475,7 +491,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(setting?.audit_branch_refs?.length).toBeGreaterThan(0);
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("separately audits the four profile behaviors and Native benefits", () => {
@@ -513,7 +529,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(next?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
     expect(next?.audit_branch_refs?.length).toBeGreaterThan(0);
     const selection = data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01");
-    expect(selection?.analysis_status).toBe("review_required");
+    expect(selection?.analysis_status).toBe("analyzed");
   });
 
   it("audits session resume and replacement without certifying address selection policy", () => {
@@ -526,7 +542,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-CHECKOUT-ADDRESS-A01-01")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits payment selection and confirmation navigation", () => {
@@ -589,7 +605,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03")
         ?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits invalid Cart ownership and preserves unresolved inventory status", () => {
@@ -729,7 +745,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(searchAction?.audit_branch_refs?.length).toBeGreaterThan(8);
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-SEARCH-A02-02")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits credential and Role/Status login boundaries without Native runtime PASS", () => {
@@ -751,14 +767,14 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("keeps login refusal separate from the evidence-backed safe returnTo analysis", () => {
     const refusal = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01");
     const redirect = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-02");
     expect(refusal?.action).toBe("ログイン拒否理由の表示");
-    expect(refusal?.analysis_status).toBe("review_required");
+    expect(refusal?.analysis_status).toBe("analyzed");
     expect(redirect?.action).toBe("安全な内部リダイレクト");
     expect(redirect?.analysis_status).toBe("analyzed");
     expect(redirect?.reviewed_against).toEqual(["specification", "implementation", "seed"]);
@@ -788,7 +804,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.related_use_cases).toContain("AuthUseCases.login");
     expect(state?.audit_branch_refs?.length).toBeGreaterThan(5);
     const parent = data.behaviors.find((item) => item.id === "SCREEN-AUTH-LOGIN-A02-01");
-    expect(parent?.analysis_status).toBe("review_required");
+    expect(parent?.analysis_status).toBe("analyzed");
   });
 
   it("audits Signup validation and published review state", () => {
@@ -804,7 +820,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
     for (const id of ["SCREEN-AUTH-SIGNUP-A02-01"]) {
       expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "review_required",
+        "analyzed",
       );
     }
     const reviewEdit = data.behaviors.find((item) => item.id === "SCREEN-REVIEWS-EDITOR-A01-02");
@@ -925,7 +941,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01")
         ?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("detects changed implementation and Seed evidence", () => {
