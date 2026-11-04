@@ -979,7 +979,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "HomePage/StorefrontShellのguest表示と/login・/signupへのLinkだけが本動作。実際のAuthUseCases.login/registerは遷移先画面で実行し、このナビゲーション自身は直接呼び出さない。"
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-A02-02",
@@ -1126,7 +1127,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "HomePage/StorefrontShellから/account/profile、/orders、/cartへの顧客向けLinkとRole分岐を表示する。リンク先のAccount/Cart/Order Use Caseは別Behaviorに属する。"
     },
     {
       "id": "SCREEN-STOREFRONT-HOME-S-empty-catalog",
@@ -2307,7 +2309,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "無条件0件時のStatePanelとホームBreadcrumbs/解除Actionだけを分離した非default UI状態。CatalogUseCases.searchは親の一覧取得動作が担い、この状態では追加UseCaseを直接呼ばない。"
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products",
@@ -9703,7 +9706,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "住所0件のStatePanelと住所作成への導線を表示する非default UI状態。AccountUseCases.listAddressesの呼出しは親SCREEN-CHECKOUT-ADDRESSES-A02-01へ帰属し、状態表示用に再計上しない。"
     },
     {
       "id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
@@ -17698,7 +17702,8 @@
           "end_line": 151,
           "reason": "AdminShellの既存表示・logout component確認"
         }
-      ]
+      ],
+      "use_case_relation_review": "管理ダッシュボードのメニュー/Linkを表示するWeb UI動作。各管理操作Use Caseは遷移先の専用Behaviorに帰属し、リンク表示時点では未実行。"
     },
     {
       "id": "SCREEN-ADMIN-DASHBOARD-A02-01",
@@ -26172,7 +26177,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "GuidePageの公開静的説明とdictionaryからの固定アカウント案内。認証UseCaseは使わず、シードのメタデータ表示と学習用文章の責務。"
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A01-02",
@@ -26298,7 +26304,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "GuidePageのRole/Rank特典の静的説明とpricingドメイン定数を参照する表示。商品価格計算UseCaseの実行ではなく、購入時の検証は別Behaviorで扱う。"
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A02-01",
@@ -26424,7 +26431,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "GuideContentのSCENARIO_METADATA一覧・検証Flow・guide-routesの許可済みLink表示。本動作自体にアプリケーションUseCaseの直接呼出しはない。"
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A02-02",
@@ -26556,7 +26564,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "ガイド上のテスト制御へのLink表示をisTestApiBuild/currentUserで切替えるだけ。実際のResetは遷移先SCREEN-TEST-CONTROL-A01-04が担当。"
     },
     {
       "id": "SCREEN-SUPPORTING-TERMS-A01-01",
@@ -26684,7 +26693,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "LegalPageとapp/legal/terms・Native共通画面の固定利用規約本文表示。外部データ取得・注文・認証UseCaseを呼ばない。"
     },
     {
       "id": "SCREEN-SUPPORTING-TERMS-A02-01",
@@ -26806,7 +26816,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "Web LegalPageのホームLinkとNativeShellのブランド・下部ナビLinkだけ。遷移先のStorefront UseCaseは本操作では未呼出し。"
     },
     {
       "id": "SCREEN-SUPPORTING-PRIVACY-A01-01",
@@ -26940,7 +26951,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "LegalPageとapp/legal/privacy・Native共通画面の固定プライバシー本文表示。顧客Profile/認証UseCaseとは独立の静的コンテンツ。"
     },
     {
       "id": "SCREEN-SUPPORTING-PRIVACY-A02-01",
@@ -27062,7 +27074,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "Web LegalPageのホームLinkとNativeShellの共通ホームナビを表示する操作。対象はRoute遷移のみでUseCase未呼出し。"
     },
     {
       "id": "SCREEN-SUPPORTING-COMMERCE-A01-01",
@@ -27190,7 +27203,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "LegalPageとapp/legal/commerce・Native共通画面で模擬取引の注意文を表示する操作。決済・配送UseCaseの呼出し/実動作の検証ではない。"
     },
     {
       "id": "SCREEN-SUPPORTING-COMMERCE-A02-01",
@@ -27312,7 +27326,8 @@
           "end_line": 204,
           "reason": "Nativeのstaff遮断と共通ホーム導線"
         }
-      ]
+      ],
+      "use_case_relation_review": "Web LegalPageとNativeShellによるホーム復帰Linkの表示。遷移先のCatalogUseCase呼出しはこのLink操作の直接証拠としない。"
     },
     {
       "id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
@@ -27414,7 +27429,8 @@
           "end_line": 68,
           "reason": "forbiddenのデフォルトホーム導線が明示adminActionで置き換わる"
         }
-      ]
+      ],
+      "use_case_relation_review": "RouteGuardのRole/Session/Build判定とForbiddenRoute/StatePanelの拒否画面表示。アプリケーションUseCase直接呼出しではなく、各保護UseCaseの認可拒否は別Behaviorで検証する。"
     },
     {
       "id": "SCREEN-BOUNDARY-FORBIDDEN-A02-01",
@@ -27546,7 +27562,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "ForbiddenRoute/StatePanelのホームまたは/adminへの戻りLink表示。activeでないstaff向け/admin循環候補はUI/RouteGuardの問題でUseCaseを直接呼んだ結果ではない。"
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-01",
@@ -27789,7 +27806,8 @@
           "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
-      ]
+      ],
+      "use_case_relation_review": "AdminTestControlContentはTestControlServiceによるシナリオ選択/Seed設定を実行する。公開アプリケーションUseCase 76メソッドには該当せず、任意のAdmin UseCaseへ架空に関連付けない。"
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-02",
@@ -28038,7 +28056,8 @@
           "end_line": 29,
           "reason": "Sale start inclusive/end exclusive・Clock依存"
         }
-      ]
+      ],
+      "use_case_relation_review": "AdminTestControlContent→TestControlService.setClock/RuntimeClockを通るテスト制御。業務UseCaseとは責務が異なるのでrelated_use_casesへ追加しない。"
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-03",
@@ -28281,7 +28300,8 @@
           "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
-      ]
+      ],
+      "use_case_relation_review": "AdminTestControlContent→TestControlService.setPaymentDelay/MockPaymentGateway設定。決済UseCaseをここで直接実行しない。"
     },
     {
       "id": "SCREEN-TEST-CONTROL-A01-04",
@@ -28524,7 +28544,8 @@
           "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
-      ]
+      ],
+      "use_case_relation_review": "AdminTestControlContent→TestControlService.resetでSeed/Session等を復元する。正式公開業務UseCaseのメソッドではなく、TestControlServiceの権限・build境界で個別検証する。"
     },
     {
       "id": "SCREEN-TEST-CONTROL-A02-01",
@@ -28767,7 +28788,8 @@
           "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
-      ]
+      ],
+      "use_case_relation_review": "RouteGuard automation-admin/isTestApiBuild/Nativeガードでテスト制御を隔離する境界動作。対象画面の使用許可判定であり業務UseCase直接呼出しなし。"
     },
     {
       "id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
@@ -28883,7 +28905,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "Web app/+not-found→StatePanel/not-found、Native +not-found画面のルートフォールバック表示。業務UseCase直接呼出しなし。"
     },
     {
       "id": "SCREEN-BOUNDARY-NOT-FOUND-A01-02",
@@ -29005,7 +29028,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "Web StatePanelのホームLink、NativeShellの安全な復帰導線。未検出からのナビゲーションで業務UseCaseを呼ばない。"
     },
     {
       "id": "SCREEN-BOUNDARY-NOT-FOUND-A02-01",
@@ -29121,7 +29145,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "use_case_relation_review": "アプリのNot Found境界をWeb/Nativeルーティングで表示する。個別業務UseCaseに対するNOT_FOUND例外の契約とは別責務。"
     },
     {
       "id": "UC-ACCOUNT-UPDATE-PROFILE",

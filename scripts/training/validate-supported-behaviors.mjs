@@ -418,6 +418,13 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     semanticKeys.add(fingerprint);
     if (item.analysis_status === "analyzed") {
       assert(completeAnalysis(item), `analysis lacks verified evidence: ${item.id}`);
+      if (!item.related_use_cases?.length) {
+        assert(
+          typeof item.use_case_relation_review === "string" &&
+            item.use_case_relation_review.trim().length >= 40,
+          `missing Use Case relation review: ${item.id}`,
+        );
+      }
     }
   }
   equalSets(actionSources, new Set(spec.actions.keys()), "screen actions");

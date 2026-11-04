@@ -1139,4 +1139,24 @@ describe("サポート機能の仕様と実装の追跡", () => {
       entry.related_use_cases = [];
     });
   });
+  it("documents UI-only and test-control entries without inventing Use Case calls", () => {
+    const targets = data.behaviors.filter(
+      (entry) => entry.analysis_status === "analyzed" && !entry.related_use_cases?.length,
+    );
+    expect(targets).toHaveLength(25);
+    for (const entry of targets) {
+      expect(entry.use_case_relation_review?.length).toBeGreaterThanOrEqual(40);
+      expect(entry.use_case_evidence ?? []).toHaveLength(0);
+    }
+    const changed = mutated((next) => {
+      const entry = next.behaviors.find(
+        (item) => item.id === "SCREEN-SUPPORTING-GUIDE-A02-01",
+      );
+      delete entry.use_case_relation_review;
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /missing Use Case relation review/,
+    );
+  });
+
 });

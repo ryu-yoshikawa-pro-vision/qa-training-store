@@ -39,7 +39,7 @@
 - [x] 直接参照のない29横断要件（Native4、権限7、状態遷移10、UI2、範囲6）をBehavior個別または横断契約に割り当て、対応する検証方法・残リスクを記録。形式を揃えるためだけの架空の参照は追加しない
 - [ ] 分析済み全196 Behaviorの説明・Risk/TR/Condition/Case採否・参照根拠を監査し、形式的な空欄検査と意味上の十分性を区別
 - [ ] `use_case_evidence`の公開メソッドID/path/line/signatureを現在HEADの76メソッドと照合する継続validator/負例（誤ID・古い行・署名違い・別メソッド）を追加
-- [ ] 分析済みだが`related_use_cases`が空の23件をUI専用等として個別判定し、追加が必要なものだけ追跡。補助・準備用Use Caseを直接呼出しと誤記しない
+- [x] 分析済みだが`related_use_cases`が空の23件をUI専用等として個別判定し、追加が必要なものだけ追跡。補助・準備用Use Caseを直接呼出しと誤記しない
 - [ ] 分析台帳変更の直接validator/契約テストとWeb CIを確認し、9操作/3状態・79要件のbefore/afterを固定HEADで報告
 
 ## 完了条件
@@ -140,3 +140,9 @@
 - 対象：`8d4cbe9e77a8f813e225e7da71757c199702c3eb`。Web CI #41792962757 で `Vitest (contracts)` は `BR-STOREFRONT-001` の `requirement analysis lacks verified evidence` により失敗。原因は正式BR/ACの要件分析が `source.heading_line` と `source.expectation_line` を持つのに、Validatorが一律 `source.line` を参照していたこと。要件の期待文が誤っているとは判定しない。
 - 修正：BR/ACでは見出し行と期待本文の先頭行、横断規則では単一行を別検証。Native BR/ACの4件も同じ行形式に統一し、誤見出し行と誤期待行を拒否する負例を追加。仕様・製品SUTは変更なし。
 - 別要因：同Runの `Style Quality` はValidatorと契約テストのPrettier警告。後続コミットで専有2ファイルを整形する必要がある。CI再確認は別項目、完了待ちはしない。
+
+### Use Case関連が空の23件の個別判定（2026-11-04）
+
+- 固定HEAD：`bc425d9829584b19389e733636fd80d4b39f140e`。開始時点の196分析済Behaviorで`related_use_cases=[]`だった23件をIDごとに確認。新たに分析したUI-onlyの2件も併せて計25件へ`use_case_relation_review`を記録した。個別の用途・実装経路・関連動作への帰属は同台帳の各IDが正本。
+- 結果：ホーム/ガイド/規約/管理ダッシュボード/禁止・未検出/状態表示のリンク・表示だけを扱うもの、TestControlServiceの操作を扱うものを区別。いずれも当該動作自体が公開UseCaseを直接呼び出しておらず、`related_use_cases`へ架空の関連を付けない。親動作が呼ぶUseCaseと状態専用表示は二重にしない。
+- 検証：Validatorに「analyzedかつ`related_use_cases`空なら40字以上の個別判断理由必須」を追加し、欠落時の負例と25件の契約テストを追加。実Web/Nativeの動的受入は本チェックに含めない。CIの完了を待たず別途受け入れる。
