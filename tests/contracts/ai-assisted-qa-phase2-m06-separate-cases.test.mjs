@@ -56,6 +56,25 @@ describe("M06-01：削除004と数量更新005は別Case・別業務Assertion", 
     expect(exercise).toContain("Web UIから数量0へ変更できるというE2Eは作りません");
   });
 
+  it("course:runの4 outcomeと未実行を、終了コード・report・receiptで区別する", () => {
+    const runner = read("scripts/training/ai-assisted-qa-run-evidence.mjs");
+    expect(runner).toContain('const outcome = environmentFailure');
+    for (const status of ['"passed"', '"failed"', '"blocked"', '"ungradable"']) {
+      expect(runner).toContain(status);
+    }
+    expect(runner).toContain("exit_code: exitCode");
+    expect(runner).toContain("source_sha: sourceSha");
+    expect(runner).toContain("spec_sha256: sourceSha256");
+    expect(runner).toContain("report_sha256:");
+    expect(runner).toContain("tests: extracted.tests");
+
+    expect(exercise).toContain("**終了コード・outcome・未実行の区別**");
+    expect(exercise).toContain("receiptがない場合に架空のRun ID");
+    expect(exercise).toContain("別spec/古いRun/004・005の片方だけなら成功にしません");
+    expect(submission).toContain("PASS/FAIL/BLOCKED/未実行/判定不能");
+    expect(submission).toContain("receipt未生成の未実行と`ungradable`");
+  });
+
   it("初回と再実行の両方で004・005の結果・spec SHAを個別に照合する提出契約", () => {
     expect(exercise).toContain("pnpm course:run M06 new-case.spec.ts --label initial");
     expect(exercise).toContain("pnpm course:run M06 new-case.spec.ts --label repeat");
