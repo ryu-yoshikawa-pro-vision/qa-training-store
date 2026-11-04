@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 64% (21/33)**。現時点で未完了12件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。 M06-01の新規004/005の独立Case・数量0不可・initial/repeatの静的整合も専用テストで確認した。 M06-02のReset/Context独立性を既存Reset実装と隔離mock Page契約テストで確認し、実ブラウザ実受入は#199へ維持。本人実Runは#199最後に実施する。
+- **Progress: 67% (22/33)**。現時点で未完了11件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。 M06-01の新規004/005の独立Case・数量0不可・initial/repeatの静的整合も専用テストで確認した。 M06-02のReset/Context独立性を既存Reset実装と隔離mock Page契約テストで確認し、実ブラウザ実受入は#199へ維持。 M06-03は数量Assertionを削除した変異例を技術契約で拒否し、参考specの必要な数量Assertionは残した。本人実Runは#199最後に実施する。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -37,7 +37,8 @@
   - 004削除前数量1→削除後空と、005数量1→2→再読み込み保持を異なる参考testとして照合。Cart UIの数量selectは1以上・削除は別ボタン。未完成学習者入力はTODO004のみ、005追加は本人実技で行う。
 - [x] `M06-02`：test単位のReset、Browser Context、IndexedDBとSeedの境界、実行順序依存と再試行の誤判定を確認。隔離fixture/契約テストで再現できる不備は修正し、実Shopでの順序変更検証は#199最終受入へ渡す。
   - 既存Reset helper・TestControlServiceの契約テストを照合。新規隔離Page契約テストでResetの実行順序、metadata不一致、参考5testのtest別Reset、retry無効を確認。教材P04にもContextとSeedの責務の違いを明記。実Shop逆順Runは#199最終受入。
-- [ ] `M06-03`：無関係でもPASSする弱いAssertionの負例を特定し、正式BR/ACの業務結果を検証する期待へ修正。意図した失敗と修正後成功を、実行可能な技術テストまたは明示した再現条件で確認する。
+- [x] `M06-03`：無関係でもPASSする弱いAssertionの負例を特定し、正式BR/ACの業務結果を検証する期待へ修正。意図した失敗と修正後成功を、実行可能な技術テストまたは明示した再現条件で確認する。
+  - BR-CART-001/AC-CART-001と参考3 Caseの拒否後数量維持を照合。通知が成功しても数量Assertionを削除した参考specは契約不適合、元のspecは適合となる変異負例を追加（実ブラウザbefore/afterは#199最終受入）。
 - [ ] `M06-05`：終了コード、`outcome`、JSON report・ログからPASS/FAIL/BLOCKED/未実行を判定する教材と、旧Run・別spec・実行数の誤判定を拒否する契約テストを整合する。共有実行器の修正は#217へ渡す。
 - [ ] 公開参考specの固定3件と004/005を専用Config・実行可能な環境で技術的に検証し、Run/対象HEAD/初回・再実行の結果を記録。**本人の独立実装・初回/repeat達成の判定は行わない**。
 
