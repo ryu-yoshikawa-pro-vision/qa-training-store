@@ -35,3 +35,9 @@
 - `e2e/web/pr219-cross-role-lifecycle.spec.ts:522`の停止operator旧Sessionの独立Caseはjobログで**1回目成功**を確認。隔離IndexedDBの`user-operator`をsuspendedへ変更後、Forbidden→`/admin`リンク→ForbiddenをFocus/Enterで再現。表別SHA-256のbefore/after一致assert成功。これは**製品不具合再現の成功**であり、正式Role導線の適合PASSではない。実データとdigest本体は保存していない。
 - 実行Runのworkflow全体は**failure**。原因は#219新規Nativeコンポーネントテストの`render()`未awaitによるTypeScript TS2339、およびNativeRuntimeProvider経由での`QuickBase64`ロード失敗。Code Quality job `126546893944`、Vitest (component) job `126546894146`のログで確定。#219専用`tests/component/native/pr219-forbidden-native.test.tsx`に`await render()`と、既存Native componentテストと同じ`useNativeRuntime`モックを適用（コミット `895280d4769d7e8bf4d6d797d7f70884c11d3e90`）。この修正HEADでの再CI成功は未確認。
 - 最新Web証拠表に`PR219-WEB-024`を追加し、208動作一覧の`SCREEN-BOUNDARY-FORBIDDEN-A01-01`へ接続した。Android実機・Native拒否の実Navigation・SQLite前後不変・成功時Trace/動画のArtifact保存は引き続き未実施。従ってタスク7・15は未チェック。
+
+## Nativeコンポーネント修正のCI実証とログ追加
+
+- #219のNative専用テストを修正したHEAD `46ce4d917436f104a9810d9e3e18d4e5a8ce318c`の[CI #41823487692](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41823487692)で、Native component job `126552593835`は**success**。ログで`PASS tests/component/native/pr219-forbidden-native.test.tsx`、全14 suite/65 test成功を確認した。Code Quality job `126552594453`もsuccess（typecheck含む）。旧`QuickBase64`/TS2339の再発なし。
+- この成功はJest Nativeコンポーネントの表示・ホーム戻り先を確認するものであり、**Android実機/エミュレータのNavigation、停止/再開、SQLiteの証拠ではない**。正式な権限不足文言との差分（`この操作はNative前半の対象外です`）は製品修正対象の判断待ち。
+- 禁止リンク循環のWeb E2Eは表別SHA-256一致を引き続き確認し、成功時Artifactが保存されないため、新HEAD `c0821559`以降では条件・表数・不変判定・製品不適合のみをActionsジョブログへ書き出す。**新HEADでの再実行は未確認**。個人情報、Session ID、ハッシュ値をログ出力しない。
