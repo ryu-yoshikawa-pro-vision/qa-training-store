@@ -685,8 +685,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
     } finally {
       await blocker
         .evaluate(() =>
-          (window as Window & { __pr219ReleaseCatalogLock?: () => void })
-            .__pr219ReleaseCatalogLock?.(),
+          (
+            window as Window & { __pr219ReleaseCatalogLock?: () => void }
+          ).__pr219ReleaseCatalogLock?.(),
         )
         .catch(() => undefined);
       await blocker.close();

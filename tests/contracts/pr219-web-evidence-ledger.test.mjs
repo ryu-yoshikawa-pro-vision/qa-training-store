@@ -165,20 +165,3 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     expect(() => parseCsv("case,key\none\n")).toThrow("Inconsistent CSV column count");
   });
 });
-
-// Temporary Prettier-diff diagnostic. Remove after matching formatter output.
-it("TEMP reports exact Prettier formatting for PR219 Loading E2E", async () => {
-  const prettier = await import("prettier");
-  const path = join(process.cwd(), "e2e/web/pr219-cross-role-lifecycle.spec.ts");
-  const source = readFileSync(path, "utf8");
-  const configuration = await prettier.resolveConfig(path);
-  const formatted = await prettier.format(source, { ...configuration, filepath: path });
-  const begin = '  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: browser Loading stays accessible';
-  const end = '  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: browser IndexedDB failure';
-  const from = formatted.indexOf(begin);
-  const to = formatted.indexOf(end, from);
-  expect(from).toBeGreaterThanOrEqual(0);
-  expect(to).toBeGreaterThan(from);
-  console.log("PR219_FORMATTED_LOADING_START\\n" + formatted.slice(from, to));
-  expect(formatted.length).toBeGreaterThan(0);
-});
