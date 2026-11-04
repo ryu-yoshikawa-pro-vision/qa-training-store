@@ -39,20 +39,30 @@ function runNode(script) {
 
 describe("M05-01：教材コードの動作とspec変更の境界", () => {
   it("教材の関数・async・awaitサンプルの期待出力をNode.jsで実行確認する", () => {
-    for (const [heading, expected] of [
-      ["#### 実習A：関数を呼び出して結果の流れを追う", ["false", "true"]],
-      ["#### 実習B：非同期処理の実行順序を確認する", [
-        "1. 処理を開始します",
-        "2. データを準備しました",
-        "3. すべての処理が終了しました",
-      ]],
-      ["### 6.3 実験：`await`を忘れたとき、なぜ判断が間違うのか", [
-        "awaitなしの値はPromise（引換券）か: true",
-        "誤った判断: 購入できる",
-        "awaitありの判定値: false",
-        "正しい判断: 購入できない",
-      ]],
-    ]) {
+    const cases = [
+      {
+        heading: "#### 実習A：関数を呼び出して結果の流れを追う",
+        expected: ["false", "true"],
+      },
+      {
+        heading: "#### 実習B：非同期処理の実行順序を確認する",
+        expected: [
+          "1. 処理を開始します",
+          "2. データを準備しました",
+          "3. すべての処理が終了しました",
+        ],
+      },
+      {
+        heading: "### 6.3 実験：`await`を忘れたとき、なぜ判断が間違うのか",
+        expected: [
+          "awaitなしの値はPromise（引換券）か: true",
+          "誤った判断: 購入できる",
+          "awaitありの判定値: false",
+          "正しい判断: 購入できない",
+        ],
+      },
+    ];
+    for (const { heading, expected } of cases) {{
       const script = exampleAfter(lesson, heading, "js");
       const result = runNode(script);
       expect(result.status, heading + "\n" + result.stderr).toBe(0);
@@ -89,9 +99,13 @@ describe("M05-01：教材コードの動作とspec変更の境界", () => {
     const correct = 'name: "セラミックマグ", exact: true';
     expect(starter.split(wrong)).toHaveLength(2);
     expect(starter).toContain('await page.goto("/products")');
-    expect(starter).toContain('await expect(mugLink).toHaveAttribute("href", "/products/product-mug")');
+    expect(starter).toContain(
+      'await expect(mugLink).toHaveAttribute("href", "/products/product-mug")',
+    );
     expect(reference).toContain(correct);
-    expect(reference).toContain('await expect(mugLink).toHaveAttribute("href", "/products/product-mug")');
+    expect(reference).toContain(
+      'await expect(mugLink).toHaveAttribute("href", "/products/product-mug")',
+    );
     expect(starter.replace(wrong, correct)).toContain(correct);
     expect(exercise).toContain("pnpm course:run M05 product-link.spec.ts --label before");
     expect(exercise).toContain("pnpm course:run M05 product-link.spec.ts --label after");
