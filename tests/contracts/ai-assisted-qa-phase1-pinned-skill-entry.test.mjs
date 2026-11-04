@@ -66,7 +66,7 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m03).toContain("SCOPE-101");
     expect(m03).toContain("在庫20");
     expect(m03).toContain("購入上限5");
-    expect(m03).toContain("Scope Entityではありません");
+    expect(m03).toContain("独立したMachine Entityではありません");
     expect(m03).toContain("Riskの出典は");
   });
 
