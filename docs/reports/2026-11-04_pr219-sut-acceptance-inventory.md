@@ -105,3 +105,23 @@
 - 障害注入は隔離Dexie DBの`checkout_sessions.hook("updating")`が書込み中に例外を投げる方法。変更を試みたUser/Session/CheckoutとCartの操作前後が一致することをassert。先行するrole変更のstale CAS fixtureも対象者・Session不変をassertしている。
 - 成功証拠はVitestのassertとCIログ。ブラウザTrace/Video/NetworkはIntegration検証には該当せず、Android/実Web・全表snapshotは別項目の未実行条件。成功Run全体では、新コミットによるキャンセルで一部jobがcancelledとなり`verify`/`validate`もfailure。**IntegrationのPASSをRun全体の合格と呼ばない**。
 - 変更範囲は新規受入専用テスト・調査レポート・タスクリストに限定。`src/**`、`app/**`、`docs/spec/**`、既存Seed/Reset・既存製品テストは不変更。#199側と#210側の製品差分は混ぜていない。
+
+## Web Role・認可境界の実ブラウザ受入（タスクリスト4番完了）
+
+- 実行SUT/Test SHA：`b27c77fec49f758f4ba1110ea9863cfea6bc5875`、Web CI [#41790967187](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41790967187)、Chromium E2E (cross-role) Job `126444779774`。
+- コマンド：`pnpm run test:e2e:cross-role`（`playwright test --project=cross-role-chromium`）。ジョブsuccess（exit 0）。`e2e/web/pr219-cross-role-lifecycle.spec.ts`の**8/8件PASS**、既存4件含む**12/12件PASS**。
+- ケース・Seed・期待/観測：
+
+| Case/関連要件 | Seed / Role・Session | 期待・観測（Chromium実行） |
+| --- | --- | --- |
+| `SCREEN-BOUNDARY-FORBIDDEN-A01-01` Guest | `default` / guest（Sessionなし） | `/checkout/address`→`/login?returnTo=...`、`/admin/users`→`/login`。保護画面のheadingなし（PASS） |
+| 同 Customer | `regular-member` / active customer | 本人Order `order-paid`は表示、`/admin/users`は`/forbidden`へ遷移し管理画面非露出（PASS） |
+| 同 Operator | `default` / active operator login | 在庫管理は閲覧可、ユーザー管理とCheckoutは`/forbidden`で非露出（PASS） |
+| 同 Admin | `default` / active admin login | 管理ユーザーは表示、Checkoutは`/forbidden`で非露出（PASS） |
+| `BR-AUTH-001` Suspended | `suspended-user` / suspended Session Seed | Checkout直URLはlogin/forbiddenへ遷移しCheckout heading非露出（PASS） |
+| `BR-AUTH-001` Withdrawn | `withdrawn-user` / withdrawn Session Seed | Checkout直URLはlogin/forbiddenへ遷移しCheckout heading非露出（PASS） |
+| `BR-AUTH-002` 所有権 | `default` / gold customer login | regular customerの`order-paid`を開くとnot-foundでOrder heading非露出（PASS） |
+| `SCREEN-ADMIN-USER-DETAIL-A01-02` Session | `default` / operator→admin login | adminがoperatorをadminへ変更後、操作前のoperator Session IDを復元して再読込しても管理Routeはloginへ移動（PASS） |
+
+- テストの開始は`e2e/web/fixtures.ts`の`scenario()`で固定Seed/Clock・Resetを確認。実行条件はChromiumデスクトップ。成功時のTrace/動画/画像は既存`playwright.config.ts`が失敗時保持のため常設Artifactとして保存されていない。証拠は上記jobログとテスト名、固定SHA、検証assertion。
+- 本項目のWeb Roleマトリクス・Session失効・他人情報非露出は実証済み。**Android拒否文言/停止staffの循環（タスクリスト7番）、全表DB Snapshot（15番）、独立レビュー（19番）は未受入**であり流用しない。

@@ -18,7 +18,7 @@ Scenario Shopは読み取り専用のSUT。変更可能なのは**新規の学�
 
 ## 認証・認可・管理ユーザー
 
-- [ ] guest/customer/operator/adminとsuspended/withdrawnの権限マトリクス、直URL、Role変更後Session失効、他人データの非露出を実Webで確認
+- [x] guest/customer/operator/adminとsuspended/withdrawnの権限マトリクス、直URL、Role変更後Session失効、他人データの非露出を実Webで確認
 - [ ] `SCREEN-ADMIN-USERS-A01-02`と`SCREEN-ADMIN-USER-DETAIL-A01-02/A01-03/A01-04/A02-01/A02-02/A02-03`の検索/Role/Rank/Status変更・自己拒否・withdrawn拒否・stale CAS/Session/rollbackを新規独立Caseで検証
 - [ ] 最後の管理者について2→1の許可、自己変更拒否とactor失効/並行競合を区別。通常の有効actor同士では成立しない非self最後のadmin拒否を作為的にPASSさせない
 - [ ] `SCREEN-BOUNDARY-FORBIDDEN-A01-01`で停止staffの戻りリンク循環、Android拒否文言、実画面情報/DB非変更を確認

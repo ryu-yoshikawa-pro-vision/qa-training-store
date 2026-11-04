@@ -17,3 +17,5 @@
 - Web認可受入：`e2e/web/pr219-cross-role-lifecycle.spec.ts`に8Case定義。直接Web実行証拠は次回`cross-role-chromium` CIで確認。
 
 - タスク3番完了：Web CI Run #41790169454（SUT SHA `b8798bb`）Vitest integration 117件成功、新規fixture4件と既存専用2件が成功。隔離DBで通常操作・stock固定値・transaction失敗注入・stale versionを検証。実ブラウザ、Android、全ケース証拠とは区別。
+
+- タスク4番完了：PR #219 SUT SHA `b27c77f`、Web CI Run #41790967187 cross-role Chromium Job 126444779774で新規8ケース＋既存4ケースすべてPASS。guest/customer/operator/admin/suspended/withdrawn直URL、他人注文非露出、Role変更後旧Session失効を実画面で確認。AndroidとDB全表は別未受入。
