@@ -2,7 +2,7 @@
 
 対象：[#219](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219)。作業ブランチは`work/pr199-sut-acceptance`、統合先は[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。開始時にルートの`AGENTS.md`、[分担Plan](./2026-11-04_pr199-parallel-branches.md)、対象HEAD、既存テストとCIを確認する。
 
-**責任変更（2026-11-05）**：旧リストの21項目中14項目は部分検証・引継ぎとして実施済み。旧未完7項目に含まれる**最終実受入**は、#213〜#219の作業内容と必要な#210の製品修正を統合した後、**#199の最後に実施する**。旧未完7項目の対応先は末尾に記す。#219には代わりに、AIエージェントがこのブランチで実施できる準備・検証・引継ぎ7項目を設ける。この変更時点の進捗は`20/21`であり、**新しい#219専用リストの進捗**であり、Scenario Shopの受入率を表さない。
+**責任変更（2026-11-05）**：旧リストの21項目中14項目は部分検証・引継ぎとして実施済み。旧未完7項目に含まれる**最終実受入**は、#213〜#219の作業内容と必要な#210の製品修正を統合した後、**#199の最後に実施する**。旧未完7項目の対応先は末尾に記す。#219には代わりに、AIエージェントがこのブランチで実施できる準備・検証・引継ぎ7項目を設ける。現在の進捗は**20/21件**。これは新しい#219専用リストの準備・検証の進捗であり、Scenario Shopの受入率ではない。
 
 ## 担当と変更範囲
 
@@ -53,7 +53,7 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 ## 2026-11-05 未完項目の状況
 
 - **品質ゲート**：以前のStyle MD018/MD012は修正済み。固定HEAD `21c943fa` のRun [41930249981](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41930249981)でStyle、Contracts、Integration、Component、cross-role等の個別jobとworkflow全体のsuccessを確認。共有E2Eの`getByRole("status")`はretryで通過した1 flakyであり、製品の正式受入PASSとは区別する。**レビュー指摘でこの後変更するHEADのCI結果は別に確認する**。
-- **差分・引継ぎ・独立レビュー**：#199最新baseに対する#219差分は34ファイルで、専用テスト/レポート/タスクリスト/Run記録以外の変更0。#199への[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6635695670)、#219への[独立レビュー依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6635693303)を投稿済み。**指摘・独立判定・再検証は未実施**のためチェックしない。
+- **差分・引継ぎ・独立レビュー**：#199 base `166412cf` と比較した#219の34変更ファイルは専用テスト・レポート・タスクリスト・Run記録に限定。#213はHEAD `111061fb`で正式Case採否待ち、#210製品修正は別HEAD `4a53efbc`のままで未統合。#199への[初回引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6635695670)、#219への[レビュー依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6644375020)は投稿済み。CodeRabbitの**独立レビューは実施済みでCHANGES_REQUESTED 3件**。進捗表記（`34b5f393`）、actor競合の旧`it.fails`記述（`9233af39`・`1051ef51`）、競合画面の視覚Caseでの復帰先URL固定（`ae08f251`・`631479f6`）を修正し、各threadへ回答済み。修正後HEAD `631479f6`の[Web CI #41932273873](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41932273873)は確認時点で実行中。**再レビュー・新HEADの検証結果が確定するまで、最終チェックは未完了とする**。
 
 ## #199の最後に移した最終実受入（このリストでは完了チェックしない）
 
