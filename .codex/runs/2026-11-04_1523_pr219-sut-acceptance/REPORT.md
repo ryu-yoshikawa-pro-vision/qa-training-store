@@ -37,3 +37,5 @@
 - タスク10番の補完：新規Cart隔離DBテスト7件（stock 0/1/5/6、stale Cart/Item CAS、guest Rank/公開、Gold/Sale）。CI未実行のため未チェック。
 
 - Cart受入7件：Run #41800985878のIntegration jobで7件成功/全134件成功。Style Quality違反はRun #41801523862で得た公式Prettier出力を適用し一時診断削除。新HEADのCI未確認。
+
+- Checkout Case別証拠：CI #41802885428（e5fc6a5）のIntegration jobで新規5件と既存10件が成功、CI #41792378802でWeb Notice Flow C実行PASS。未受入は別認証SessionでのWeb Noticeとconfirm-ready stale画面/Cart復帰、Android/SQLite。docs/reports/2026-11-04_pr219-checkout-case-evidence.mdへ記録。11番は未チェック。
