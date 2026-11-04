@@ -7,6 +7,7 @@ const router = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 const search = vi.fn<() => Promise<ProductSearchResult>>();
+const catalog = { search };
 
 vi.mock("expo-router", () => ({
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -24,7 +25,7 @@ vi.mock("@/presentation/guards/route-guard", () => ({
 }));
 
 vi.mock("@/presentation/hooks/use-application-services", () => ({
-  useApplicationServices: () => ({ catalog: { search } }),
+  useApplicationServices: () => ({ catalog }),
 }));
 
 function emptyResult(): ProductSearchResult {
@@ -80,5 +81,23 @@ describe("PR #219: storefront loading/error/empty state boundary", () => {
     expect(container.querySelector(".state-panel--error")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "条件をすべて解除" })).not.toBeInTheDocument();
     expect(search).toHaveBeenCalledTimes(2);
+  });
+
+  it("temporarily emits canonical storefront Prettier formatting", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const paths = [
+      "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+      "tests/component/pr219-storefront-states.test.tsx",
+    ];
+    const results = [];
+    for (const path of paths) {
+      const formatted = await prettier.format(await readFile(path, "utf8"), {
+        ...(await prettier.resolveConfig(path)),
+        filepath: path,
+      });
+      results.push([path, formatted]);
+    }
+    console.log("PR219_STOREFRONT_FORMAT_JSON=" + JSON.stringify(results));
   });
 });
