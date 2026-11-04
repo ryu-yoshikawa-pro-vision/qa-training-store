@@ -30,6 +30,8 @@
 
    `course:run`は毎回異なる`run_id`と出力先を使い、検証済み配布manifestの`source_sha`と実行したspecの`spec_sha256`をreceiptに記録します。`run-evidence.json`の`module_id`・`spec_path`・`label`・`run_id`・`exit_code`・`outcome`・`spec_unchanged_during_run`・`tests`（各Caseのtest名と結果）を、同じRun directoryの`spec-snapshot.ts`と`playwright-result.json`へ照合してください。**`tests`の件数だけではCASE-CART-004/005の実行を保証しない**ため、両Caseのtest名、失敗/成功、spec snapshotにあるResetと業務Assertionを確認します。前のRunのreceiptや別specの結果を流用しません。終了コード非0で`outcome`が`blocked`なら、起動・Reset・配布状態を確認し、業務FAILと区別します。失敗や`ungradable`をPASSにしません。再挑戦する場合も以前の結果を保全し、実行時の両SHA・結果を記録します。実行していない内容を補いません。
 
+   **終了コード・outcome・未実行の区別**：`run-evidence.json`の`outcome`は`passed`・`failed`・`blocked`・`ungradable`のいずれかです。`failed`はTest/Locator/Assertionなどテスト実行失敗であり、製品不具合と即断しません。`blocked`はブラウザ未導入や接続不可などの環境障害、`ungradable`は対象testが得られないなど成功を判定できない状態です。**未実行**はreceiptの`outcome`ではなく、コマンド未実施や対象Case未実行を別途記録する区分です。receiptがない場合に架空のRun IDや`passed`を作りません。Playwright側の`status`と`course:run`の`outcome`は別に確認し、同じRunの`module_id`・`spec_path`・`source_sha`・`spec_sha256`・report SHA、test名・件数と照合します。出力されていても別spec/古いRun/004・005の片方だけなら成功にしません。
+
 ## 提出物
 
 `workspace/M06/submission.md`、固定Caseのspec、削除004と数量更新005を含む`workspace/M06/new-case.spec.ts`、各Runの実行証拠。各テストを入力元・revision・Case ID・BR/AC・Role/State/Data・spec/test・期待結果・業務Assertion・Seed/Reset・Runまで追跡できるようにします。本人Caseと固定Caseが一致しない場合は差と非対応理由を記録し、fallback使用時はPhase 1修了を主張しません。
