@@ -30,13 +30,39 @@ function fixture() {
   fs.writeFileSync(specPath, "/* learner-authored placeholder for command testing only */\n");
   const binDir = path.join(root, "bin");
   fs.mkdirSync(binDir);
+  const report = (file, actual, expected = "passed") =>
+    JSON.stringify({
+      suites: [
+        {
+          specs: [
+            {
+              file,
+              title: "M05 P05: 2明細の数量と削除操作対象を識別する",
+              tests: [{ expectedStatus: expected, results: [{ status: actual }] }],
+            },
+          ],
+        },
+      ],
+    });
+  const reports = {
+    pass: report("workspace/M05/p05-cart-locator.spec.ts", "passed"),
+    empty: JSON.stringify({ suites: [] }),
+    wrongSpec: report("workspace/M05/product-link.spec.ts", "passed"),
+    skipped: report("workspace/M05/p05-cart-locator.spec.ts", "skipped"),
+    wrongExpectation: report("workspace/M05/p05-cart-locator.spec.ts", "failed", "failed"),
+  };
   const stub = [
     "#!/bin/sh",
     'printf "%s\\n" "$*" > "$AI_QA_OUTPUT_ROOT/args.txt"',
     'printf "%s\\n" "$PLAYWRIGHT_TEST_ROOT" > "$AI_QA_OUTPUT_ROOT/test-root.txt"',
-    'if [ "$P05_TEST_MODE" != "no-report" ]; then',
-    '  printf \'{"suites":[]}\\n\' > "$AI_QA_OUTPUT_ROOT/playwright-result.json"',
-    "fi",
+    'case "$P05_TEST_MODE" in',
+    "  no-report) ;;",
+    `  empty) printf '%s\\n' '${reports.empty}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
+    `  wrong-spec) printf '%s\\n' '${reports.wrongSpec}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
+    `  skipped) printf '%s\\n' '${reports.skipped}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
+    `  wrong-expectation) printf '%s\\n' '${reports.wrongExpectation}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
+    `  *) printf '%s\\n' '${reports.pass}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
+    "esac",
     'if [ "$P05_TEST_MODE" = "mutate" ]; then',
     "  printf '\\n// changed during execution\\n' >> workspace/M05/p05-cart-locator.spec.ts",
     "fi",
@@ -117,6 +143,14 @@ describe("M05 P05の直接Playwright実行コマンド（隔離stub検証）", (
     const failedPlaywright = run(data.root, data.binDir, "fail");
     expect(failedPlaywright.status).not.toBe(0);
     expect(failedPlaywright.stdout).toContain("exit_code=9");
+  });
+
+  linuxIt("JSON reportの対象testなし・別spec・skip・期待失敗の偽PASSを拒否する", () => {
+    const data = fixture();
+    for (const mode of ["empty", "wrong-spec", "skipped", "wrong-expectation"]) {
+      const result = run(data.root, data.binDir, mode);
+      expect(result.status, `mode=${mode} ${result.stderr}`).not.toBe(0);
+    }
   });
 
   linuxIt("specのsymlinkを拒否する", () => {
