@@ -65,7 +65,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
   it("preserves valid CSV syntax and immutable per-run references", () => {
     const cases = readCsv(WEB_CASES);
     expect(cases.header).toHaveLength(34);
-    expect(cases.rows.length).toBeGreaterThanOrEqual(49);
+    expect(cases.rows.length).toBeGreaterThanOrEqual(50);
 
     for (const item of cases.rows) {
       for (const field of [
@@ -126,7 +126,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       // silently change which Behavior it represents.
       expect(new Set(previous.map((entry) => entry.behavior_id)).size).toBe(1);
     }
-    expect(byKey.size).toBeGreaterThanOrEqual(26);
+    expect(byKey.size).toBeGreaterThanOrEqual(27);
 
     let linkedBehaviors = 0;
     const behaviorIds = new Set(behaviorLedger.rows.map((row) => row.behavior_id));
