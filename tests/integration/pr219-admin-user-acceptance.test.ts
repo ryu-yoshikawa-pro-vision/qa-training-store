@@ -137,4 +137,16 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
       .toArray();
     expect(sessionsAfter).toEqual(sessionsBefore);
   });
+
+  it("temporarily prints the repository Prettier output", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const path = "tests/integration/pr219-admin-user-acceptance.test.ts";
+    const config = await prettier.resolveConfig(path);
+    const formatted = await prettier.format(await readFile(path, "utf8"), {
+      ...config,
+      filepath: path,
+    });
+    console.log("PR219_PRETTIER_JSON=" + JSON.stringify(formatted));
+  });
 });
