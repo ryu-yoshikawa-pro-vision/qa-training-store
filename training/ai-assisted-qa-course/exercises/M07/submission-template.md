@@ -19,7 +19,8 @@ A/B/Cを混ぜず、対象資料の種類と最初の事実を記録します。
 - Trace / Screenshot / logが示すこと・示さないこと:
 - AI提案と最小修正差分:
 - Retry/Timeoutを原因修正にしなかった理由:
-- 重複した操作と、Page Object・標準fixtureへ移した責務:
+- 重複した操作と、Page Object・標準fixtureへ移した責務（`maintenance.spec.ts`内に定義した箇所、別ファイルなら各依存ファイルのSHA・保全先）:
+- 3番目のtestでCart以外へ移動し、Cartへ戻って数量2を確認した**実操作**（同一ページの`reload()`だけでは不可）:
 - 保守演習の変更前後の別Run・対象spec・結果:
 - 抽象化を採用しない別例と、その根拠:
 - 未解決事項:
