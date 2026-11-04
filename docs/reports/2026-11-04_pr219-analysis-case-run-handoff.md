@@ -59,3 +59,10 @@
 - Web実行表は39→41履歴行、34列、既存39行は全列不変。208動作一覧は208行を維持、既存17列不変で上記2証拠キーを追記。CSV parser照合で不正列幅0を確認。これらの一意キーは正式Case IDではない。
 - ワークフローは**failure**：Code Quality job `126546893944`で`tests/component/native/pr219-forbidden-native.test.tsx`にTS2339、Native component job `126546894146`で`QuickBase64`のNative実装未ロード。修正 `895280d4769d7e8bf4d6d797d7f70884c11d3e90`にて、Native `render`のawait・Providerモックを追加したが、修正後CIの成功はまだ検証していない。
 - #213から正式Case採否が確定しておらず、直接参照なし29要件、成功時Artifact、各CaseのDB/実画面/Android・SQLiteの証拠が不足する。タスクリスト2・7・13・14・15・19・20は未チェック。
+
+## Native CI修復とDB10表Caseの追加
+
+- #219 HEAD `46ce4d917436f104a9810d9e3e18d4e5a8ce318c`のCI #41823487692では、Native Component job `126552593835`が**14 suite/65 test成功**、Code Quality job `126552594453`もsuccess。前Run #41821726873のTS2339/`QuickBase64`原因に対する修正が有効なことを確認した。**workflow全体の成功とは区別**する。
+- #219専用E2Eへ`SCREEN-CHECKOUT-CONFIRM-S-stale-cart: rejected confirmation preserves DB transaction tables`を追加。Web `regular-member` Seed（固定Clock期待値`2026-07-01T03:00:00.000Z`）、Cart数量変更でconfirm-ready Checkoutをstaleにした後、拒否画面表示だけで10表（Cart/Checkout/Order/Payment/Shipment/各History）のdigestが変わらないことをassertする。変更範囲は受入用Webテストのみ。
+- 既存のCheckout競合画面・停止staff循環についても、成功時のPlaywright添付ArtifactをCIが保持しないため、**結果の真偽だけ**を含む`PR219_CASE_EVIDENCE`ログを追加。実テーブル値・hash値・Session IDを出力しない。`c0821559ea3cc776f945893e7e45cad3cc54c807`以降の新E2EはCI未実行扱いとする。
+- 208動作・41行の過去のWeb証拠、#213の分析台帳は変更していない。採用Case確定・全件DB前後・成功時Trace/動画/画面画像保存・Android/SQLiteは保留。タスクリストのチェックは14/21のまま。
