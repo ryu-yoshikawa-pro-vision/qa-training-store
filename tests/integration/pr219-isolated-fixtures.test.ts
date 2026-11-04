@@ -180,4 +180,37 @@ describe("PR #219: isolated Seed and failure-injection acceptance", () => {
     expect(await database.checkout_sessions.get(checkoutBefore!.id)).toEqual(checkoutBefore);
     expect(await database.carts.get(checkoutBefore!.cartId)).toEqual(cartBefore);
   });
+
+  it("rolls back User role when target Session deletion fails", async () => {
+    await seed("default");
+    const service = await adminUseCases();
+    await database.sessions.put({
+      id: "pr219-target-session",
+      userId: "user-operator",
+      createdAt: "2026-07-01T03:00:00.000Z",
+    });
+    const target = await service.getDetail("user-operator");
+    const userBefore = await database.users.get(target.userId);
+    const sessionsBefore = await database.sessions.where("userId").equals(target.userId).toArray();
+    let deleted = 0;
+
+    database.sessions.hook("deleting", () => {
+      deleted += 1;
+      throw new Error("PR219_INJECTED_SESSION_DELETE_FAILURE");
+    });
+
+    await expect(
+      service.changeRole({
+        userId: target.userId,
+        role: "admin",
+        expectedVersion: target.version,
+      }),
+    ).rejects.toThrow();
+
+    expect(deleted).toBeGreaterThan(0);
+    expect(await database.users.get(target.userId)).toEqual(userBefore);
+    expect(await database.sessions.where("userId").equals(target.userId).toArray()).toEqual(
+      sessionsBefore,
+    );
+  });
 });

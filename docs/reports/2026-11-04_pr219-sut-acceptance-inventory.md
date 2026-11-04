@@ -147,3 +147,9 @@
 - #199 HEADの`AdminUserUseCases`は`requireAdmin()`をtransactionの外で1度行うだけで、開始時の再認可が存在しない。#210の`product/scenario-shop-maintenance` HEAD `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79`には`assertActorStillAuthorized`があるが、別HEADで未マージ。
 - 旧実装に対するテストは`it.fails`で**期待した拒否が成立しないことを検知する既知不具合再現用**。テストランナーのgreenには含まれても、製品適合PASSに絶対に換算しない。#210で修正された製品HEADを独立検証するとき、`it.fails`を通常の`it`へ変更し、拒否コード・全表不変・同時更新の証拠で受入する。実CI前は現象の動的再現は未確認。
 - このテストは固定Seedを書き換えず、隔離DBでのみactor権限とSessionを変更する。DB全表の網羅や、実ブラウザ・Androidの動的判定とは別。
+
+## Role変更後のSession削除失敗の隔離検証
+
+- `tests/integration/pr219-isolated-fixtures.test.ts`に、`changeRole(user-operator→admin)`でUser更新後のSession削除が失敗する注入Caseを追加。
+- 隔離DB内に対象者Sessionを用意し、`sessions.hook("deleting")`で例外を発生させてUser・Sessionが実行前と一致することをassertする。テスト対象は`change-user-access` transaction rollback。既存Seedや製品実装には変更なし。
+- このCaseはまだ実行成否未確認のため、管理ユーザー全受入（5番）のチェックは付けない。
