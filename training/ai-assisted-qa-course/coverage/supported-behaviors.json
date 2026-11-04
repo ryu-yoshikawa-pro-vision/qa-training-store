@@ -30449,12 +30449,48 @@
         "BR-STOREFRONT-001"
       ],
       "route": null,
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "test_responsibility": "閲覧者条件を満たす公開商品だけを表示する：商品の公開状態、会員ランク制限、閲覧者種別に応じた閲覧条件を適用し、権限のない商品を商品一覧、ホーム、詳細、ファセット（絞り込み条件）に含めないようにします。。公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "非公開・Rank制限情報の漏出",
+      "test_condition": "採用Case：guest・regular/gold/platinumでdraft/unpublished/discontinuedとRank不足商品をホーム・一覧・詳細・ファセットから除外し、閲覧可能商品と在庫0商品を区別する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-STOREFRONT-001を対象とし、代表Behavior SCREEN-STOREFRONT-HOME-A01-01 / SCREEN-STOREFRONT-PRODUCT-LIST-A01-01 / SCREEN-STOREFRONT-CATEGORY-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：guest・regular/gold/platinumでdraft/unpublished/discontinuedとRank不足商品をホーム・一覧・詳細・ファセットから除外し、閲覧可能商品と在庫0商品を区別する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "非公開・Rank制限情報の漏出を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/storefront.md:9/11 のBR-STOREFRONT-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/storefront.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-HOME-A01-01",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+          "SCREEN-STOREFRONT-CATEGORY-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-HOME-A01-01",
+            "path": "src/presentation/pages/home-page.tsx",
+            "line": 13
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CATEGORY-A02-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-STOREFRONT-002",
@@ -30473,12 +30509,48 @@
         "BR-STOREFRONT-002"
       ],
       "route": null,
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "test_responsibility": "検索とファセットは同じ閲覧者条件で決定的に絞り込む：キーワード、カテゴリー、ブランド、価格、在庫状況、セール有無、最低評価を適用し、同一ファセット内はOR条件、異なるファセット間はAND条件として合計件数およびページ情報を算出します。。公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "検索条件による対象漏れ・総件数とソートの不整合",
+      "test_condition": "採用Case：同一Category/Brand内ORと異なる軸AND、Keyword・価格・在庫・セール・評価を組合せ、件数/ページ/決定順をSeedで突合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-STOREFRONT-002を対象とし、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-A01-03 / SCREEN-STOREFRONT-PRODUCT-LIST-A01-02 / SCREEN-STOREFRONT-SEARCH-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：同一Category/Brand内ORと異なる軸AND、Keyword・価格・在庫・セール・評価を組合せ、件数/ページ/決定順をSeedで突合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "検索条件による対象漏れ・総件数とソートの不整合を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/storefront.md:13/15 のBR-STOREFRONT-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/storefront.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+          "SCREEN-STOREFRONT-SEARCH-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-STOREFRONT-003",
@@ -30497,12 +30569,48 @@
         "BR-STOREFRONT-003"
       ],
       "route": null,
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "test_responsibility": "バリエーションと価格を現在時刻・閲覧者に合わせて表示する：セール期間、会員割引、在庫数、購入上限数を現在時刻および閲覧者情報に合わせて表示し、バリエーションが未選択の状態や在庫切れとなっているバリエーションをカートに追加する操作は許可しません。。公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "旧価格・在庫不足・未選択SKUの誤購入",
+      "test_condition": "採用Case：固定Clockを境にSale期間の前中後、Rank別価格、SKU選択なし・Stock0/上限1/5/99の操作可否を突合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-STOREFRONT-003を対象とし、代表Behavior SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02 / SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05 / SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：固定Clockを境にSale期間の前中後、Rank別価格、SKU選択なし・Stock0/上限1/5/99の操作可否を突合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "旧価格・在庫不足・未選択SKUの誤購入を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/storefront.md:17/19 のBR-STOREFRONT-003原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/storefront.md",
+          "heading_line": 17,
+          "expectation_line": 19
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-STOREFRONT-001",
@@ -30516,17 +30624,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "公開条件を満たさない商品を除外する",
-      "expected": "関連ビジネスルール: `BR-STOREFRONT-001`",
+      "expected": "ゲスト、顧客、または会員ランク制限の異なる各閲覧者において、商品一覧・ホーム・商品詳細画面の表示結果が仕様通りに一致すること。",
       "rule_refs": [
         "AC-STOREFRONT-001"
       ],
       "route": null,
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "test_responsibility": "公開条件を満たさない商品を除外する：関連ビジネスルール: `BR-STOREFRONT-001`。公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "画面間の権限判定差による公開漏れ",
+      "test_condition": "採用Case：ゲストと3 Rankで一覧・ホーム・詳細の公開可否を同じProduct ID集合で比較し、隠すべき商品を表示しない。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-STOREFRONT-001を対象とし、代表Behavior SCREEN-STOREFRONT-HOME-A01-01 / SCREEN-STOREFRONT-PRODUCT-LIST-A01-01 / SCREEN-STOREFRONT-CATEGORY-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：ゲストと3 Rankで一覧・ホーム・詳細の公開可否を同じProduct ID集合で比較し、隠すべき商品を表示しない。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "画面間の権限判定差による公開漏れを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/storefront.md:206/210 のAC-STOREFRONT-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/storefront.md",
+          "heading_line": 206,
+          "expectation_line": 210
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-HOME-A01-01",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+          "SCREEN-STOREFRONT-CATEGORY-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-HOME-A01-01",
+            "path": "src/presentation/pages/home-page.tsx",
+            "line": 13
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CATEGORY-A02-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-STOREFRONT-002",
@@ -30540,17 +30684,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "ファセットとページネーションが一貫する",
-      "expected": "関連ビジネスルール: `BR-STOREFRONT-002`",
+      "expected": "閲覧者条件および選択されたフィルターを適用した際の、総件数、ページ番号、ファセット件数、および決定的なソート順の整合性が保たれていること。",
       "rule_refs": [
         "AC-STOREFRONT-002"
       ],
       "route": null,
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "test_responsibility": "ファセットとページネーションが一貫する：関連ビジネスルール: `BR-STOREFRONT-002`。公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "UIと検索DTOのページ/件数不一致",
+      "test_condition": "採用Case：フィルター組合せ後の総件数・ページ境界・ファセット件数・ソートのタイブレークを同じ固定Seedで比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-STOREFRONT-002を対象とし、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-A01-02 / SCREEN-STOREFRONT-PRODUCT-LIST-A01-03 / SCREEN-STOREFRONT-SEARCH-A01-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：フィルター組合せ後の総件数・ページ境界・ファセット件数・ソートのタイブレークを同じ固定Seedで比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "UIと検索DTOのページ/件数不一致を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/storefront.md:212/216 のAC-STOREFRONT-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/storefront.md",
+          "heading_line": 212,
+          "expectation_line": 216
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+          "SCREEN-STOREFRONT-SEARCH-A01-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-03",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-STOREFRONT-003",
@@ -30564,17 +30744,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "バリエーションと価格の境界値を表示する",
-      "expected": "関連ビジネスルール: `BR-STOREFRONT-003`",
+      "expected": "セール期間外、在庫数0、バリエーション未選択、会員ランク別価格について、操作可否（活性／非活性）およびその理由の表示を含めて正しく確認できること。",
       "rule_refs": [
         "AC-STOREFRONT-003"
       ],
       "route": null,
-      "risk": "未公開・ランク制限商品の露出、絞り込み結果の誤り",
-      "test_condition": "公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "test_responsibility": "バリエーションと価格の境界値を表示する：関連ビジネスルール: `BR-STOREFRONT-003`。公開状態/ロール/ランクと価格・在庫の境界で、対象・除外・並び順を確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "購入不能条件でカート追加が有効になる",
+      "test_condition": "採用Case：Sale期間外、0在庫、未選択バリエーション、Rank別価格で有効/無効と拒否理由の表示を検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-STOREFRONT-003を対象とし、代表Behavior SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02 / SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01 / SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Sale期間外、0在庫、未選択バリエーション、Rank別価格で有効/無効と拒否理由の表示を検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "購入不能条件でカート追加が有効になるを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/storefront.md:218/222 のAC-STOREFRONT-003原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/storefront.md",
+          "heading_line": 218,
+          "expectation_line": 222
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-AUTH-001",
@@ -30593,12 +30809,48 @@
         "BR-AUTH-001"
       ],
       "route": null,
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "test_responsibility": "ログイン時はアカウント状態とロールを検証してセッションを生成する：有効（`active`）なアカウントのみがログインできます。これにはサインアップによって作成された有効なアカウントも含まれます。停止中（`suspended`）または退会済み（`withdrawn`）のアカウントからのログインは拒否し、セッションを作成しません。。active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "停止/退会アカウントのSession作成",
+      "test_condition": "採用Case：active/suspended/withdrawn・未登録・新規登録直後を比較し、ログイン可否とSession生成/未生成をDB前後で検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-AUTH-001を対象とし、代表Behavior SCREEN-AUTH-LOGIN-A01-02 / SCREEN-AUTH-LOGIN-A02-01 / SCREEN-AUTH-SIGNUP-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：active/suspended/withdrawn・未登録・新規登録直後を比較し、ログイン可否とSession生成/未生成をDB前後で検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "停止/退会アカウントのSession作成を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/authentication.md:9/11 のBR-AUTH-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/authentication.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-AUTH-LOGIN-A01-02",
+          "SCREEN-AUTH-LOGIN-A02-01",
+          "SCREEN-AUTH-SIGNUP-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A01-02",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          },
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A02-01",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          },
+          {
+            "behavior_id": "SCREEN-AUTH-SIGNUP-A01-01",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 220
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-AUTH-002",
@@ -30617,12 +30869,48 @@
         "BR-AUTH-002"
       ],
       "route": null,
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "test_responsibility": "顧客以外の権限を購入導線へ渡さない：顧客（`customer`）のみがチェックアウトおよび顧客データを利用し、オペレーター（`operator`）や管理者（`admin`）はストア管理のみを行います。ログイン成功時も、各ロールに応じた専用画面へ遷移します。。active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "Role越境による顧客/管理データの露出",
+      "test_condition": "採用Case：customer/operator/adminのログイン先、管理/Checkout URL直アクセス・戻り先の許可を比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-AUTH-002を対象とし、代表Behavior SCREEN-AUTH-LOGIN-A02-02 / SCREEN-AUTH-ACCOUNT-PROFILE-A02-01 / SCREEN-AUTH-LOGIN-A01-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：customer/operator/adminのログイン先、管理/Checkout URL直アクセス・戻り先の許可を比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "Role越境による顧客/管理データの露出を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/authentication.md:13/15 のBR-AUTH-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/authentication.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-AUTH-LOGIN-A02-02",
+          "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
+          "SCREEN-AUTH-LOGIN-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A02-02",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          },
+          {
+            "behavior_id": "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
+            "path": "src/presentation/pages/profile-page.tsx",
+            "line": 20
+          },
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A01-02",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-AUTH-001",
@@ -30636,17 +30924,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "ログイン拒否時にセッションを作成しない",
-      "expected": "関連ビジネスルール: `BR-AUTH-001`",
+      "expected": "`active`、`suspended`、`withdrawn` の各アカウント状態において、ログインの成功・拒否、セッション作成の有無、および画面上のエラー表示が正しく行われることを確認できます。",
       "rule_refs": [
         "AC-AUTH-001"
       ],
       "route": null,
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "test_responsibility": "ログイン拒否時にセッションを作成しない：関連ビジネスルール: `BR-AUTH-001`。active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "拒否してもSessionが残る",
+      "test_condition": "採用Case：active/suspended/withdrawnで成功・エラー文言・Session件数・既存Sessionの扱いを検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-AUTH-001を対象とし、代表Behavior SCREEN-AUTH-LOGIN-A01-02 / SCREEN-AUTH-LOGIN-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：active/suspended/withdrawnで成功・エラー文言・Session件数・既存Sessionの扱いを検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "拒否してもSessionが残るを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/authentication.md:116/120 のAC-AUTH-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/authentication.md",
+          "heading_line": 116,
+          "expectation_line": 120
+        },
+        "representative_behaviors": [
+          "SCREEN-AUTH-LOGIN-A01-02",
+          "SCREEN-AUTH-LOGIN-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A01-02",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          },
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A02-01",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-AUTH-002",
@@ -30660,17 +30978,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "ロール境界と安全なリダイレクト先を保護する",
-      "expected": "関連ビジネスルール: `BR-AUTH-002`",
+      "expected": "顧客（`customer`）、オペレーター（`operator`）、管理者（`admin`）の間で表示される権限機能と遷移先が厳密に分離され、外部URLや不正なリダイレクト先が採用されないことを確認できます。",
       "rule_refs": [
         "AC-AUTH-002"
       ],
       "route": null,
-      "risk": "認証突破、誤セッション作成、危険なリダイレクト",
-      "test_condition": "active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "test_responsibility": "ロール境界と安全なリダイレクト先を保護する：関連ビジネスルール: `BR-AUTH-002`。active/suspended/withdrawn、Roleと入力不正・外部URLで許可/拒否を比較",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "open redirectと管理権限横断",
+      "test_condition": "採用Case：Role別リダイレクト・returnTo外部URL拒否・権限外画面の非描画と直接Use Case拒否を比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-AUTH-002を対象とし、代表Behavior SCREEN-AUTH-LOGIN-A02-02 / SCREEN-AUTH-ACCOUNT-PROFILE-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Role別リダイレクト・returnTo外部URL拒否・権限外画面の非描画と直接Use Case拒否を比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "open redirectと管理権限横断を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/authentication.md:122/126 のAC-AUTH-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/authentication.md",
+          "heading_line": 122,
+          "expectation_line": 126
+        },
+        "representative_behaviors": [
+          "SCREEN-AUTH-LOGIN-A02-02",
+          "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-AUTH-LOGIN-A02-02",
+            "path": "src/presentation/pages/auth-pages.tsx",
+            "line": 101
+          },
+          {
+            "behavior_id": "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
+            "path": "src/presentation/pages/profile-page.tsx",
+            "line": 20
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-CART-001",
@@ -30689,12 +31037,42 @@
         "BR-CART-001"
       ],
       "route": null,
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "test_responsibility": "カート内の数量は「在庫数」「購入上限数」「99」のうち最小値を超えない：同一SKUの商品は合算して判定します。上限を超える指定があった場合は数量の自動補正を行わずに操作全体を拒否し、変更前の数量を維持します。数量を0に指定した場合は該当明細をカートから削除します。。初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "超過数量の暗黙補正・不正Version更新",
+      "test_condition": "採用Case：同一SKU合算、Stock/PurchaseLimit/99の下限/上限±1、0削除、超過拒否後のCart数量・Version不変を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-CART-001を対象とし、代表Behavior SCREEN-STOREFRONT-CART-A02-02 / SCREEN-STOREFRONT-CART-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：同一SKU合算、Stock/PurchaseLimit/99の下限/上限±1、0削除、超過拒否後のCart数量・Version不変を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "超過数量の暗黙補正・不正Version更新を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/cart.md:9/11 のBR-CART-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/cart.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-CART-A02-02",
+          "SCREEN-STOREFRONT-CART-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-02",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-03",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-CART-002",
@@ -30713,12 +31091,42 @@
         "BR-CART-002"
       ],
       "route": null,
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "test_responsibility": "ログイン時は会員カートを基準としてゲストカートを統合する：SKU単位で数量を合算します。許容上限を超える数量分、非公開商品、会員ランク不足の商品、無効なSKU、在庫0の商品は統合対象から除外し、その理由を明示します。統合元のゲストカートは破棄済み（abandoned）状態へ遷移します。。初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "ログイン統合で超過商品流入・Guest Cart残存",
+      "test_condition": "採用Case：guestと既存customerで重複SKU・上限超過・公開/Rank/有効性/在庫不足を統合し、除外理由・件数・Guest Cart abandonedをDB照合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-CART-002を対象とし、代表Behavior UC-CART-MERGE / SCREEN-STOREFRONT-CART-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：guestと既存customerで重複SKU・上限超過・公開/Rank/有効性/在庫不足を統合し、除外理由・件数・Guest Cart abandonedをDB照合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "ログイン統合で超過商品流入・Guest Cart残存を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/cart.md:13/15 のBR-CART-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/cart.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "UC-CART-MERGE",
+          "SCREEN-STOREFRONT-CART-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "UC-CART-MERGE",
+            "path": "src/application/use-cases/auth-use-cases.ts",
+            "line": 52
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-CART-003",
@@ -30737,12 +31145,48 @@
         "BR-CART-003"
       ],
       "route": null,
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "test_responsibility": "カート画面の表示時およびチェックアウト開始時に商品状態を再検証する：商品の公開状態、購入権限、価格、在庫数を再検証します。価格変更が発生している場合は、会員の承認が得られるまでチェックアウト手続きへ進めません。。初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "価格差・公開停止を飛ばした購入確定",
+      "test_condition": "採用Case：Cart読取とCheckout開始の間に価格/公開状態/Rank/Stockを変え、承認前のCheckout禁止と修正後の再開を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-CART-003を対象とし、代表Behavior SCREEN-STOREFRONT-CART-A02-01 / SCREEN-STOREFRONT-CART-A01-03 / UC-CART-ACCEPT-PRICES の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Cart読取とCheckout開始の間に価格/公開状態/Rank/Stockを変え、承認前のCheckout禁止と修正後の再開を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "価格差・公開停止を飛ばした購入確定を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/cart.md:17/19 のBR-CART-003原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/cart.md",
+          "heading_line": 17,
+          "expectation_line": 19
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-CART-A02-01",
+          "SCREEN-STOREFRONT-CART-A01-03",
+          "UC-CART-ACCEPT-PRICES"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-01",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A01-03",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          },
+          {
+            "behavior_id": "UC-CART-ACCEPT-PRICES",
+            "path": "src/application/use-cases/cart-use-cases.ts",
+            "line": 220
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-CART-001",
@@ -30756,17 +31200,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "上限超過時の操作を拒否すること",
-      "expected": "関連ビジネスルール: `BR-CART-001`",
+      "expected": "在庫数、購入上限数、99の各境界値において、上限を超える指定があった場合に数量が自動補正されず、現在の数量が維持されること。",
       "rule_refs": [
         "AC-CART-001"
       ],
       "route": null,
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "test_responsibility": "上限超過時の操作を拒否すること：関連ビジネスルール: `BR-CART-001`。初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "上限超過時に数量が変化する",
+      "test_condition": "採用Case：Stock・購入制限・99の境界超過で更新拒否し旧明細数/Cart Versionが保持されることを検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-CART-001を対象とし、代表Behavior SCREEN-STOREFRONT-CART-A02-02 / SCREEN-STOREFRONT-CART-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Stock・購入制限・99の境界超過で更新拒否し旧明細数/Cart Versionが保持されることを検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "上限超過時に数量が変化するを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/cart.md:70/74 のAC-CART-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/cart.md",
+          "heading_line": 70,
+          "expectation_line": 74
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-CART-A02-02",
+          "SCREEN-STOREFRONT-CART-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-02",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-03",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-CART-002",
@@ -30780,17 +31254,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "ゲストカートを会員カートへ統合できること",
-      "expected": "関連ビジネスルール: `BR-CART-002`",
+      "expected": "ゲストカートの明細と会員カートの明細の統合結果、除外理由、カートバージョン、およびゲストカートの状態が仕様どおり一致すること。",
       "rule_refs": [
         "AC-CART-002"
       ],
       "route": null,
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "test_responsibility": "ゲストカートを会員カートへ統合できること：関連ビジネスルール: `BR-CART-002`。初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "部分統合・除外理由漏れ",
+      "test_condition": "採用Case：SKU重複・除外ごとのGuest/Member Cart明細、Version、abandonedの一致と例外時rollbackを確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-CART-002を対象とし、代表Behavior UC-CART-MERGE / SCREEN-STOREFRONT-CART-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：SKU重複・除外ごとのGuest/Member Cart明細、Version、abandonedの一致と例外時rollbackを確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "部分統合・除外理由漏れを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/cart.md:76/80 のAC-CART-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/cart.md",
+          "heading_line": 76,
+          "expectation_line": 80
+        },
+        "representative_behaviors": [
+          "UC-CART-MERGE",
+          "SCREEN-STOREFRONT-CART-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "UC-CART-MERGE",
+            "path": "src/application/use-cases/auth-use-cases.ts",
+            "line": 52
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-CART-003",
@@ -30804,17 +31308,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "問題のある明細が含まれる場合はチェックアウトへ進めないこと",
-      "expected": "関連ビジネスルール: `BR-CART-003`",
+      "expected": "価格変更、在庫切れ、公開停止、会員ランク不足が正しく再検証され、ユーザーによる承認または明細の修正が行われない限りチェックアウトへ進めないこと。",
       "rule_refs": [
         "AC-CART-003"
       ],
       "route": null,
-      "risk": "在庫・購入上限の突破、変更前数量喪失、統合不整合",
-      "test_condition": "初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "test_responsibility": "問題のある明細が含まれる場合はチェックアウトへ進めないこと：関連ビジネスルール: `BR-CART-003`。初期カート、SKU、在庫/購入上限、現在価格を固定し操作前後の数量・状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "未承認変更商品のCheckout通過",
+      "test_condition": "採用Case：価格変更・在庫切れ・非公開・Rank不足でCheckout禁止、価格承認/明細修正後のみ進めることを確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-CART-003を対象とし、代表Behavior UC-CART-ACCEPT-PRICES / SCREEN-STOREFRONT-CART-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：価格変更・在庫切れ・非公開・Rank不足でCheckout禁止、価格承認/明細修正後のみ進めることを確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "未承認変更商品のCheckout通過を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/cart.md:82/86 のAC-CART-003原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/cart.md",
+          "heading_line": 82,
+          "expectation_line": 86
+        },
+        "representative_behaviors": [
+          "UC-CART-ACCEPT-PRICES",
+          "SCREEN-STOREFRONT-CART-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "UC-CART-ACCEPT-PRICES",
+            "path": "src/application/use-cases/cart-use-cases.ts",
+            "line": 220
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-01",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-CHECKOUT-001",
@@ -30833,12 +31367,48 @@
         "BR-CHECKOUT-001"
       ],
       "route": null,
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "test_responsibility": "顧客ごとのチェックアウトセッションを再開または置換する：同一のユーザー、カート、カートバージョンに紐づく有効なセッションは再開し、カートやバージョンが異なる場合は旧セッションを破棄扱いにして新しいセッションを作成します。なお、セッションは24時間で有効期限切れとなります。。顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "古いCheckoutの誤再利用",
+      "test_condition": "採用Case：本人/同Cart/同Version/有効期限内は同Sessionを再開、版差・期限24h・別本人は旧破棄/新規へ分岐しSession IDと復帰を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-CHECKOUT-001を対象とし、代表Behavior SCREEN-CHECKOUT-ADDRESS-A02-01 / SCREEN-CHECKOUT-ADDRESS-A02-03 / SCREEN-CHECKOUT-ADDRESS-S-resume-notice の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：本人/同Cart/同Version/有効期限内は同Sessionを再開、版差・期限24h・別本人は旧破棄/新規へ分岐しSession IDと復帰を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "古いCheckoutの誤再利用を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/checkout-and-payment.md:9/11 のBR-CHECKOUT-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-ADDRESS-A02-01",
+          "SCREEN-CHECKOUT-ADDRESS-A02-03",
+          "SCREEN-CHECKOUT-ADDRESS-S-resume-notice"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-03",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-CHECKOUT-002",
@@ -30857,12 +31427,48 @@
         "BR-CHECKOUT-002"
       ],
       "route": null,
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "test_responsibility": "カートバージョンと価格を注文作成直前に再検証する：カートバージョンの不一致または価格の差異がある場合、注文および決済は作成せずカート画面へ戻します。URLへ直接アクセスした場合は、未完了のステップへ戻します。。顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "古い価格で注文・決済を作成",
+      "test_condition": "採用Case：confirm-ready到達後Cart.version・商品価格だけ変え、注文/決済/履歴非作成とCart/未完Stepへの復帰先を検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-CHECKOUT-002を対象とし、代表Behavior SCREEN-CHECKOUT-CONFIRM-A02-01 / SCREEN-CHECKOUT-CONFIRM-A02-02 / SCREEN-CHECKOUT-CONFIRM-S-stale-cart の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：confirm-ready到達後Cart.version・商品価格だけ変え、注文/決済/履歴非作成とCart/未完Stepへの復帰先を検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "古い価格で注文・決済を作成を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/checkout-and-payment.md:13/15 のBR-CHECKOUT-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-CONFIRM-A02-01",
+          "SCREEN-CHECKOUT-CONFIRM-A02-02",
+          "SCREEN-CHECKOUT-CONFIRM-S-stale-cart"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-CHECKOUT-003",
@@ -30881,12 +31487,48 @@
         "BR-CHECKOUT-003"
       ],
       "route": null,
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "test_responsibility": "モック決済結果を注文・在庫と一貫して確定する：TEST-SUCCESSの場合のみ在庫を再検証し、決済完了、注文支払い済み、在庫の減算を確定します。明確に失敗した場合はpayment_failedとし、在庫は変更しません。処理中の状態では再試行およびキャンセルを禁止します。。顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "決済状態と在庫・注文履歴の二重更新",
+      "test_condition": "採用Case：TEST-SUCCESS/明確な失敗/processing/最終在庫不足の各結果でOrder/Payment/Stock/Historyと二重確定・再試行制御をDB比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-CHECKOUT-003を対象とし、代表Behavior SCREEN-CHECKOUT-PROCESSING-A02-01 / SCREEN-CHECKOUT-FAILED-A02-01 / SCREEN-CHECKOUT-COMPLETE-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：TEST-SUCCESS/明確な失敗/processing/最終在庫不足の各結果でOrder/Payment/Stock/Historyと二重確定・再試行制御をDB比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "決済状態と在庫・注文履歴の二重更新を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/checkout-and-payment.md:17/19 のBR-CHECKOUT-003原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "heading_line": 17,
+          "expectation_line": 19
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-PROCESSING-A02-01",
+          "SCREEN-CHECKOUT-FAILED-A02-01",
+          "SCREEN-CHECKOUT-COMPLETE-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 457
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-FAILED-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 508
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-COMPLETE-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 504
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-CHECKOUT-001",
@@ -30900,17 +31542,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "セッションを再開・置換する",
-      "expected": "関連BR: `BR-CHECKOUT-001`",
+      "expected": "同一のカートおよびバージョンにおける再開、異なるバージョンでの置換、有効期限切れ時の処理、ならびにログアウト後の再ログインによる復帰が確認できること。",
       "rule_refs": [
         "AC-CHECKOUT-001"
       ],
       "route": null,
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "test_responsibility": "セッションを再開・置換する：関連BR: `BR-CHECKOUT-001`。顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "古いSession復帰と通知不整合",
+      "test_condition": "採用Case：同Cart/版の再開、版差の置換、期限切れ、logout/login後の復帰をCheckout IDで比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-CHECKOUT-001を対象とし、代表Behavior SCREEN-CHECKOUT-ADDRESS-A02-01 / SCREEN-CHECKOUT-ADDRESS-A02-03 / SCREEN-CHECKOUT-ADDRESS-A02-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：同Cart/版の再開、版差の置換、期限切れ、logout/login後の復帰をCheckout IDで比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "古いSession復帰と通知不整合を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/checkout-and-payment.md:238/242 のAC-CHECKOUT-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "heading_line": 238,
+          "expectation_line": 242
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-ADDRESS-A02-01",
+          "SCREEN-CHECKOUT-ADDRESS-A02-03",
+          "SCREEN-CHECKOUT-ADDRESS-A02-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-03",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-CHECKOUT-002",
@@ -30924,17 +31602,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "古いカート情報を確定しない",
-      "expected": "関連BR: `BR-CHECKOUT-002`",
+      "expected": "カートバージョンまたは価格が変更された状態において、注文や決済が作成されず、必要なステップまたはカートへ戻ること。",
       "rule_refs": [
         "AC-CHECKOUT-002"
       ],
       "route": null,
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "test_responsibility": "古いカート情報を確定しない：関連BR: `BR-CHECKOUT-002`。顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "画面拒否だけでDBに注文が残る",
+      "test_condition": "採用Case：Cart版差・価格差でOrder/Payment非作成、確認画面のerrorとCart/未完Stepへの復帰を検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-CHECKOUT-002を対象とし、代表Behavior SCREEN-CHECKOUT-CONFIRM-A02-01 / SCREEN-CHECKOUT-CONFIRM-A02-02 / SCREEN-CHECKOUT-CONFIRM-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Cart版差・価格差でOrder/Payment非作成、確認画面のerrorとCart/未完Stepへの復帰を検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "画面拒否だけでDBに注文が残るを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/checkout-and-payment.md:244/248 のAC-CHECKOUT-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "heading_line": 244,
+          "expectation_line": 248
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-CONFIRM-A02-01",
+          "SCREEN-CHECKOUT-CONFIRM-A02-02",
+          "SCREEN-CHECKOUT-CONFIRM-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-03",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-CHECKOUT-003",
@@ -30948,17 +31662,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "決済結果を一度だけ確定する",
-      "expected": "関連BR: `BR-CHECKOUT-003`",
+      "expected": "成功、明確な拒否、処理中（`processing`）からの再開、最終的な在庫不足のいずれのケースにおいても、注文、決済、在庫、注文履歴の整合性が保たれること。",
       "rule_refs": [
         "AC-CHECKOUT-003"
       ],
       "route": null,
-      "risk": "二重注文、不正な決済成功、在庫・価格の不整合",
-      "test_condition": "顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "test_responsibility": "決済結果を一度だけ確定する：関連BR: `BR-CHECKOUT-003`。顧客/カートversion/配送先/モック決済結果を分離し拒否と確定状態を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "再試行時の決済二重計上",
+      "test_condition": "採用Case：成功/失敗/処理中復帰/決済直前の在庫欠品で注文・決済・在庫・Historyを1回だけ確定する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-CHECKOUT-003を対象とし、代表Behavior SCREEN-CHECKOUT-PROCESSING-A02-01 / SCREEN-CHECKOUT-FAILED-A02-01 / SCREEN-CHECKOUT-FAILED-A01-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：成功/失敗/処理中復帰/決済直前の在庫欠品で注文・決済・在庫・Historyを1回だけ確定する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "再試行時の決済二重計上を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/checkout-and-payment.md:250/254 のAC-CHECKOUT-003原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/checkout-and-payment.md",
+          "heading_line": 250,
+          "expectation_line": 254
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-PROCESSING-A02-01",
+          "SCREEN-CHECKOUT-FAILED-A02-01",
+          "SCREEN-CHECKOUT-FAILED-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 457
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-FAILED-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 508
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-FAILED-A01-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 508
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ORDER-001",
@@ -30977,12 +31727,42 @@
         "BR-ORDER-001"
       ],
       "route": null,
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "test_responsibility": "注文は作成時点の購入情報をスナップショット保存する：商品、SKU、価格、ランク、配送先、画像、注文明細番号を作成時点で保存し、その後に商品やユーザー情報が変更されても過去の注文履歴は変更しません。。注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "過去注文表示が現商品/会員データで変化",
+      "test_condition": "採用Case：注文生成後Product/SKU/Rank/配送先/画像/価格を変更し、注文明細行・値・順序が不変であることをDB照合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ORDER-001を対象とし、代表Behavior SCREEN-ORDERS-DETAIL-A02-02 / SCREEN-ORDERS-DETAIL-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：注文生成後Product/SKU/Rank/配送先/画像/価格を変更し、注文明細行・値・順序が不変であることをDB照合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "過去注文表示が現商品/会員データで変化を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/orders.md:9/11 のBR-ORDER-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/orders.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-ORDERS-DETAIL-A02-02",
+          "SCREEN-ORDERS-DETAIL-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A02-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ORDER-002",
@@ -31001,12 +31781,42 @@
         "BR-ORDER-002"
       ],
       "route": null,
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "test_responsibility": "注文と配送は許可された順序に従い同一トランザクションで更新する：paid → preparing → shipped → delivered の順序を遵守し、発送および配送完了の処理では、注文と配送を同一トランザクション内で更新します。。注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "OrderとShipmentの状態不一致",
+      "test_condition": "採用Case：paid→preparing→shipped→deliveredのみ許可、直接shipped・逆遷移/重複とVersion競合を拒否しShipment/History原子性を検証する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ORDER-002を対象とし、代表Behavior SCREEN-ADMIN-ORDER-DETAIL-A02-01 / SCREEN-ADMIN-ORDER-DETAIL-A01-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：paid→preparing→shipped→deliveredのみ許可、直接shipped・逆遷移/重複とVersion競合を拒否しShipment/History原子性を検証する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "OrderとShipmentの状態不一致を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/orders.md:13/15 のBR-ORDER-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/orders.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+          "SCREEN-ADMIN-ORDER-DETAIL-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A01-02",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ORDER-001",
@@ -31020,17 +31830,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "注文履歴をスナップショットとして表示する",
-      "expected": "関連ビジネスルール: `BR-ORDER-001`",
+      "expected": "商品、価格、ランク、配送先住所を後から変更しても、注文詳細のスナップショットおよび明細行の表示順は保持され、変更されません。",
       "rule_refs": [
         "AC-ORDER-001"
       ],
       "route": null,
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "test_responsibility": "注文履歴をスナップショットとして表示する：関連ビジネスルール: `BR-ORDER-001`。注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "履歴スナップショットが編集で改変",
+      "test_condition": "採用Case：作成後のProduct/Price/Rank/Address変化を加え、注文Snapshot・明細番号/順を再表示・DBで比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ORDER-001を対象とし、代表Behavior SCREEN-ORDERS-DETAIL-A02-02 / SCREEN-ORDERS-DETAIL-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：作成後のProduct/Price/Rank/Address変化を加え、注文Snapshot・明細番号/順を再表示・DBで比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "履歴スナップショットが編集で改変を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/orders.md:93/97 のAC-ORDER-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/orders.md",
+          "heading_line": 93,
+          "expectation_line": 97
+        },
+        "representative_behaviors": [
+          "SCREEN-ORDERS-DETAIL-A02-02",
+          "SCREEN-ORDERS-DETAIL-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A02-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ORDER-002",
@@ -31044,17 +31884,41 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "配送ステータス遷移を飛び越さない",
-      "expected": "関連ビジネスルール: `BR-ORDER-002`",
+      "expected": "paid から直接 shipped へ進めることはできず、注文と配送のステータスは preparing、shipped、delivered の各段階で常に一致します。",
       "rule_refs": [
         "AC-ORDER-002"
       ],
       "route": null,
-      "risk": "注文スナップショットの改変、他人の注文参照、状態飛び越し",
-      "test_condition": "注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "test_responsibility": "配送ステータス遷移を飛び越さない：関連ビジネスルール: `BR-ORDER-002`。注文所有者、作成時点の明細、許可/禁止の状態遷移を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "飛び越し・部分更新",
+      "test_condition": "採用Case：paidからshippedへ飛ばせないことと各段階のOrder/Shipment/History/Version一致を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ORDER-002を対象とし、代表Behavior SCREEN-ADMIN-ORDER-DETAIL-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：paidからshippedへ飛ばせないことと各段階のOrder/Shipment/History/Version一致を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "飛び越し・部分更新を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/orders.md:99/103 のAC-ORDER-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/orders.md",
+          "heading_line": 99,
+          "expectation_line": 103
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-ORDER-DETAIL-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-REVIEW-001",
@@ -31073,12 +31937,48 @@
         "BR-REVIEW-001"
       ],
       "route": null,
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "test_responsibility": "配達完了注文の本人明細のみがレビュー対象となる：カスタマー本人の配達完了となった注文明細に対して1件のみ作成でき、削除後も同一の注文明細へ再投稿することはできません。。注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "所有権突破と削除後の再投稿",
+      "test_condition": "採用Case：本人delivered明細1回だけ投稿、未配達/他人/既存/削除後の再投稿を拒否しOrderItemとReviewを突合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-REVIEW-001を対象とし、代表Behavior SCREEN-REVIEWS-EDITOR-A01-01 / SCREEN-REVIEWS-EDITOR-A02-02 / SCREEN-ORDERS-DETAIL-A01-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：本人delivered明細1回だけ投稿、未配達/他人/既存/削除後の再投稿を拒否しOrderItemとReviewを突合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "所有権突破と削除後の再投稿を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/reviews.md:9/11 のBR-REVIEW-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/reviews.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-REVIEWS-EDITOR-A01-01",
+          "SCREEN-REVIEWS-EDITOR-A02-02",
+          "SCREEN-ORDERS-DETAIL-A01-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 57
+          },
+          {
+            "behavior_id": "SCREEN-REVIEWS-EDITOR-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 57
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-03",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-REVIEW-002",
@@ -31097,12 +31997,48 @@
         "BR-REVIEW-002"
       ],
       "route": null,
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "test_responsibility": "レビュー状態と商品サマリーを一貫して更新する：公開中（published）のレビューのみを商品表示の集計対象とし、非公開（hidden）は再公開操作が行われるまで非表示、削除済み（deleted）は終端状態とします。レビューの編集によって状態が自動変更されることはありません。。注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "hidden/deletedが公開集計へ混入",
+      "test_condition": "採用Case：published/hidden/deleted遷移と編集時Status不変、公開サマリー件数/平均/評価分布の再計算を比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-REVIEW-002を対象とし、代表Behavior SCREEN-ADMIN-REVIEWS-A02-01 / SCREEN-ADMIN-REVIEWS-A02-02 / UC-REVIEW-DELETE の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：published/hidden/deleted遷移と編集時Status不変、公開サマリー件数/平均/評価分布の再計算を比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "hidden/deletedが公開集計へ混入を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/reviews.md:13/15 のBR-REVIEW-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/reviews.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-REVIEWS-A02-01",
+          "SCREEN-ADMIN-REVIEWS-A02-02",
+          "UC-REVIEW-DELETE"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          },
+          {
+            "behavior_id": "UC-REVIEW-DELETE",
+            "path": "src/application/use-cases/review-user-use-cases.ts",
+            "line": 193
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-REVIEW-001",
@@ -31116,17 +32052,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "レビュー投稿資格を制限する",
-      "expected": "関連ビジネスルール: `BR-REVIEW-001`",
+      "expected": "未配達の注文、他人の注文、既存レビューが存在する明細、および削除済みの明細は投稿対象外となり、配達完了となった本人明細のみが一度だけ投稿できます。",
       "rule_refs": [
         "AC-REVIEW-001"
       ],
       "route": null,
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "test_responsibility": "レビュー投稿資格を制限する：関連ビジネスルール: `BR-REVIEW-001`。注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "重複・他人明細への投稿",
+      "test_condition": "採用Case：未配達・別所有者・既レビュー・削除済みを拒否し本人delivered明細のみ投稿できることを確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-REVIEW-001を対象とし、代表Behavior SCREEN-REVIEWS-EDITOR-A01-01 / SCREEN-REVIEWS-EDITOR-A02-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：未配達・別所有者・既レビュー・削除済みを拒否し本人delivered明細のみ投稿できることを確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "重複・他人明細への投稿を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/reviews.md:86/90 のAC-REVIEW-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/reviews.md",
+          "heading_line": 86,
+          "expectation_line": 90
+        },
+        "representative_behaviors": [
+          "SCREEN-REVIEWS-EDITOR-A01-01",
+          "SCREEN-REVIEWS-EDITOR-A02-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 57
+          },
+          {
+            "behavior_id": "SCREEN-REVIEWS-EDITOR-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 57
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-REVIEW-002",
@@ -31140,17 +32106,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "公開集計と状態遷移を分ける",
-      "expected": "関連ビジネスルール: `BR-REVIEW-002`",
+      "expected": "published／hidden／deletedの表示、編集、管理者操作と、商品サマリーにおける件数・平均評価・評価分布の集計結果が一致します。",
       "rule_refs": [
         "AC-REVIEW-002"
       ],
       "route": null,
-      "risk": "他人または未配達注文の投稿、不正な再投稿、公開集計誤り",
-      "test_condition": "注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "test_responsibility": "公開集計と状態遷移を分ける：関連ビジネスルール: `BR-REVIEW-002`。注文所有者/配達済/レビュー状態とバージョンを組合せて確認",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "レビュー状態と集計の食い違い",
+      "test_condition": "採用Case：公開/非公開/削除後のUI表示・編集可否・集計（件数/平均/分布）と履歴を一致させる。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-REVIEW-002を対象とし、代表Behavior SCREEN-ADMIN-REVIEWS-A02-01 / SCREEN-ADMIN-REVIEWS-A02-02 / SCREEN-ADMIN-REVIEWS-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：公開/非公開/削除後のUI表示・編集可否・集計（件数/平均/分布）と履歴を一致させる。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "レビュー状態と集計の食い違いを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/reviews.md:92/96 のAC-REVIEW-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/reviews.md",
+          "heading_line": 92,
+          "expectation_line": 96
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-REVIEWS-A02-01",
+          "SCREEN-ADMIN-REVIEWS-A02-02",
+          "SCREEN-ADMIN-REVIEWS-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-03",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ADMINCAT-001",
@@ -31169,12 +32171,42 @@
         "BR-ADMINCAT-001"
       ],
       "route": null,
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "test_responsibility": "商品の公開可否と状態遷移を検証する：公開するには、有効（active）なカテゴリー、有効なブランド、有効なSKU、画像、およびプライマリ画像が必須です。通常の商品集約の編集処理ではステータスを変更せず、専用の状態変更処理のみが状態遷移を実行します。。商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "不完全商品の公開と編集による無断Status遷移",
+      "test_condition": "採用Case：公開前にactive Category/Brand/SKU/画像/Primary欠落を各1条件で作り、専用Status操作以外は状態不変にする。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ADMINCAT-001を対象とし、代表Behavior SCREEN-ADMIN-PRODUCT-DETAIL-A01-05 / SCREEN-ADMIN-PRODUCT-DETAIL-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：公開前にactive Category/Brand/SKU/画像/Primary欠落を各1条件で作り、専用Status操作以外は状態不変にする。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "不完全商品の公開と編集による無断Status遷移を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-catalog.md:9/11 のBR-ADMINCAT-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-catalog.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ADMINCAT-002",
@@ -31193,12 +32225,48 @@
         "BR-ADMINCAT-002"
       ],
       "route": null,
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "test_responsibility": "商品集約とアセット関連をトランザクションで更新する：商品、バリアント、画像関連、初期在庫履歴、およびレビューサマリーを同一トランザクション内で一貫性を保って保存し、商品編集処理によって既存在庫やリリース済みのアセットバイナリが損なわれないようにします。。商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "集約の部分保存と画像・在庫破壊",
+      "test_condition": "採用Case：商品/Variant/画像/Inventory History/ReviewSummaryを同時保存し障害注入でrollback、Previewのみ書込なし、既存在庫/Asset binary不変を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ADMINCAT-002を対象とし、代表Behavior SCREEN-ADMIN-PRODUCT-DETAIL-A01-01 / SCREEN-ADMIN-PRODUCT-DETAIL-A01-03 / SCREEN-ADMIN-PRODUCT-NEW-A02-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：商品/Variant/画像/Inventory History/ReviewSummaryを同時保存し障害注入でrollback、Previewのみ書込なし、既存在庫/Asset binary不変を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "集約の部分保存と画像・在庫破壊を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-catalog.md:13/15 のBR-ADMINCAT-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-catalog.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01",
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A01-03",
+          "SCREEN-ADMIN-PRODUCT-NEW-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-03",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-NEW-A02-01",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 337
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ADMINCAT-001",
@@ -31212,17 +32280,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "不完全な商品を公開しない",
-      "expected": "関連ビジネスルール: `BR-ADMINCAT-001`",
+      "expected": "必須となるカテゴリー、ブランド、SKU、画像、プライマリ画像の条件を満たさない商品は公開されず、許可された状態遷移のみが正常に完了すること。",
       "rule_refs": [
         "AC-ADMINCAT-001"
       ],
       "route": null,
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "test_responsibility": "不完全な商品を公開しない：関連ビジネスルール: `BR-ADMINCAT-001`。商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "Publishability判定抜け",
+      "test_condition": "採用Case：Category/Brand/有効SKU/Primary画像の各欠損で公開拒否し許可Status遷移のみ成功する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ADMINCAT-001を対象とし、代表Behavior SCREEN-ADMIN-PRODUCT-DETAIL-A01-05 / SCREEN-ADMIN-PRODUCT-NEW-A01-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Category/Brand/有効SKU/Primary画像の各欠損で公開拒否し許可Status遷移のみ成功する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "Publishability判定抜けを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-catalog.md:210/214 のAC-ADMINCAT-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-catalog.md",
+          "heading_line": 210,
+          "expectation_line": 214
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+          "SCREEN-ADMIN-PRODUCT-NEW-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-NEW-A01-02",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 337
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ADMINCAT-002",
@@ -31236,17 +32334,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "プレビューと保存の責務を分離する",
-      "expected": "関連ビジネスルール: `BR-ADMINCAT-002`",
+      "expected": "プレビュー、保存、初期在庫、レビューサマリー、アセット関連の各処理がトランザクション規約を満たし、プレビューの実行のみではデータベースが変更されないこと。",
       "rule_refs": [
         "AC-ADMINCAT-002"
       ],
       "route": null,
-      "risk": "不正な商品公開、関連データ破損、プレビューの副作用",
-      "test_condition": "商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "test_responsibility": "プレビューと保存の責務を分離する：関連ビジネスルール: `BR-ADMINCAT-002`。商品公開条件/保存・非保存/バリアント・画像の境界を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "Previewの副作用とデータ部分書込み",
+      "test_condition": "採用Case：Previewは全表不変、SaveはProduct/Variant/Image/初期Stock/ReviewSummary原子的更新、失敗時rollbackを確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ADMINCAT-002を対象とし、代表Behavior SCREEN-ADMIN-PRODUCT-NEW-A02-01 / SCREEN-ADMIN-PRODUCT-DETAIL-A02-02 / SCREEN-ADMIN-PRODUCT-DETAIL-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Previewは全表不変、SaveはProduct/Variant/Image/初期Stock/ReviewSummary原子的更新、失敗時rollbackを確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "Previewの副作用とデータ部分書込みを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-catalog.md:216/220 のAC-ADMINCAT-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-catalog.md",
+          "heading_line": 216,
+          "expectation_line": 220
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCT-NEW-A02-01",
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A02-02",
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-NEW-A02-01",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 337
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-02",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ADMININV-001",
@@ -31265,12 +32399,42 @@
         "BR-ADMININV-001"
       ],
       "route": null,
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "test_responsibility": "在庫はSKU単位の非負整数として調整する：在庫数0は `out_of_stock`、1〜5は `low_stock`、6以上は `available` として扱い、在庫数0を `low_stock` へ二重計上しません。。SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "0の低在庫二重計上・負在庫",
+      "test_condition": "採用Case：SKU別Stockの0,1,5,6と負/非整数を与え、out_of_stock/low_stock/availableの重複なしと全件数を比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ADMININV-001を対象とし、代表Behavior SCREEN-ADMIN-INVENTORIES-A02-01 / SCREEN-ADMIN-INVENTORIES-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：SKU別Stockの0,1,5,6と負/非整数を与え、out_of_stock/low_stock/availableの重複なしと全件数を比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "0の低在庫二重計上・負在庫を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-inventory.md:9/11 のBR-ADMININV-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-inventory.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-INVENTORIES-A02-01",
+          "SCREEN-ADMIN-INVENTORIES-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ADMININV-002",
@@ -31289,12 +32453,42 @@
         "BR-ADMININV-002"
       ],
       "route": null,
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "test_responsibility": "すべての在庫変更を履歴と一緒に保存する：手動調整および決済成功時の購入による減算は、変更前後の値、理由、実行者、注文を含む履歴とともに、同一トランザクション内で保存します。。SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "在庫数量と履歴の不一致",
+      "test_condition": "採用Case：管理者調整と購入確定の双方でStock前後・理由/actor/orderID履歴とtransaction失敗時rollbackをDB照合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ADMININV-002を対象とし、代表Behavior SCREEN-ADMIN-INVENTORIES-A01-03 / SCREEN-ADMIN-INVENTORIES-A01-04 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：管理者調整と購入確定の双方でStock前後・理由/actor/orderID履歴とtransaction失敗時rollbackをDB照合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "在庫数量と履歴の不一致を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-inventory.md:13/15 のBR-ADMININV-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-inventory.md",
+          "heading_line": 13,
+          "expectation_line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-INVENTORIES-A01-03",
+          "SCREEN-ADMIN-INVENTORIES-A01-04"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-03",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-04",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ADMININV-001",
@@ -31308,17 +32502,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "在庫状態を正しく分類する",
-      "expected": "関連ビジネスルール: `BR-ADMININV-001`",
+      "expected": "0、1、5、6の各境界値において、SKU一覧と商品概要の表示内容および件数が分類規約と一致します。",
       "rule_refs": [
         "AC-ADMININV-001"
       ],
       "route": null,
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "test_responsibility": "在庫状態を正しく分類する：関連ビジネスルール: `BR-ADMININV-001`。SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "在庫区分の境界ミス",
+      "test_condition": "採用Case：SKU Stock=0/1/5/6で一覧状態表示とカテゴリー別件数を実DTO/DBで比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ADMININV-001を対象とし、代表Behavior SCREEN-ADMIN-INVENTORIES-A02-01 / SCREEN-ADMIN-INVENTORIES-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：SKU Stock=0/1/5/6で一覧状態表示とカテゴリー別件数を実DTO/DBで比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "在庫区分の境界ミスを検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-inventory.md:59/63 のAC-ADMININV-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-inventory.md",
+          "heading_line": 59,
+          "expectation_line": 63
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-INVENTORIES-A02-01",
+          "SCREEN-ADMIN-INVENTORIES-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ADMININV-002",
@@ -31332,17 +32556,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "在庫履歴をアトミックに保存する",
-      "expected": "関連ビジネスルール: `BR-ADMININV-002`",
+      "expected": "在庫調整または購入成功時に在庫数と履歴の内容が一致し、処理失敗時は双方が変更されず元の状態を維持します。",
       "rule_refs": [
         "AC-ADMININV-002"
       ],
       "route": null,
-      "risk": "在庫マイナス、競合による更新ロスト、監査履歴欠落",
-      "test_condition": "SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "test_responsibility": "在庫履歴をアトミックに保存する：関連ビジネスルール: `BR-ADMININV-002`。SKU、0/1～5/6以上、同時更新、履歴の前後値・理由を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "部分commitで在庫監査が欠損",
+      "test_condition": "採用Case：調整/決済成功時の在庫・History原子更新、Version競合・失敗注入後の双方不変を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ADMININV-002を対象とし、代表Behavior SCREEN-ADMIN-INVENTORIES-A01-03 / SCREEN-ADMIN-INVENTORIES-A02-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：調整/決済成功時の在庫・History原子更新、Version競合・失敗注入後の双方不変を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "部分commitで在庫監査が欠損を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-inventory.md:65/69 のAC-ADMININV-002原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-inventory.md",
+          "heading_line": 65,
+          "expectation_line": 69
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-INVENTORIES-A01-03",
+          "SCREEN-ADMIN-INVENTORIES-A02-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-03",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A02-02",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ADMINORD-001",
@@ -31361,12 +32615,42 @@
         "BR-ADMINORD-001"
       ],
       "route": null,
-      "risk": "配送遷移の飛び越しと注文・配送不一致",
-      "test_condition": "許可/禁止の遷移、注文versionと配送更新の原子性を検証",
-      "test_responsibility": "注文と配送情報を同じ状態順で進める：「paid → preparing」「preparing → shipped」「shipped → delivered」の遷移のみを許可し、対応する配送情報も同一トランザクションで更新します。。許可/禁止の遷移、注文versionと配送更新の原子性を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "注文と配送状態の乖離",
+      "test_condition": "採用Case：paid→preparing→shipped→deliveredを順に実行し、飛び越し/逆遷移拒否とShipment同一transactionを確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ADMINORD-001を対象とし、代表Behavior SCREEN-ADMIN-ORDER-DETAIL-A02-01 / SCREEN-ADMIN-ORDERS-A01-01 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：paid→preparing→shipped→deliveredを順に実行し、飛び越し/逆遷移拒否とShipment同一transactionを確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "注文と配送状態の乖離を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-orders.md:9/11 のBR-ADMINORD-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-orders.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+          "SCREEN-ADMIN-ORDERS-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDERS-A01-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 293
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ADMINORD-001",
@@ -31380,17 +32664,47 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "配送操作をバージョン付きで実行する",
-      "expected": "関連ビジネスルール: `BR-ADMINORD-001`",
+      "expected": "準備、発送、配送完了が正しい順序とバージョンに従って実行され、注文のみ、または配送情報のみが単独で更新される不整合な状態を発生させません。",
       "rule_refs": [
         "AC-ADMINORD-001"
       ],
       "route": null,
-      "risk": "配送遷移の飛び越しと注文・配送不一致",
-      "test_condition": "許可/禁止の遷移、注文versionと配送更新の原子性を検証",
-      "test_responsibility": "配送操作をバージョン付きで実行する：関連ビジネスルール: `BR-ADMINORD-001`。許可/禁止の遷移、注文versionと配送更新の原子性を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "旧Version承認と部分更新",
+      "test_condition": "採用Case：Order actionVersionとShipment versionの旧値・新値で正常遷移/CONFLICT、同時更新時のDB/History原子性を確認する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ADMINORD-001を対象とし、代表Behavior SCREEN-ADMIN-ORDER-DETAIL-A02-01 / SCREEN-ADMIN-ORDER-DETAIL-A01-02 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Order actionVersionとShipment versionの旧値・新値で正常遷移/CONFLICT、同時更新時のDB/History原子性を確認する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "旧Version承認と部分更新を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-orders.md:75/79 のAC-ADMINORD-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-orders.md",
+          "heading_line": 75,
+          "expectation_line": 79
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+          "SCREEN-ADMIN-ORDER-DETAIL-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A01-02",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-ADMINUSER-001",
@@ -31409,12 +32723,54 @@
         "BR-ADMINUSER-001"
       ],
       "route": null,
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "操作者Role、対象状態、最後のadmin、許可変更と拒否を検証",
-      "test_responsibility": "ユーザー変更はロール、ステータス、最終管理者保護を守る：会員ランクはカスタマー内のみ、ロールはoperator／admin間のみ、ステータスはactive／suspended間のみ変更可能です。最後の管理者の変更、自身の権限を失わせる自己破壊的変更、退会済み（withdrawn）ユーザーに対する変更操作は拒否します。。操作者Role、対象状態、最後のadmin、許可変更と拒否を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "権限失効競合による管理者ゼロ・無許可変更",
+      "test_condition": "採用Case：Rank=customerのみ、Role=operator/admin間、Status=active↔suspended、自己/withdrawn/最後admin保護・Version/Session rollbackを照合する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式BR-ADMINUSER-001を対象とし、代表Behavior SCREEN-ADMIN-USER-DETAIL-A01-02 / SCREEN-ADMIN-USER-DETAIL-A01-03 / SCREEN-ADMIN-USER-DETAIL-A01-04 / SCREEN-ADMIN-USER-DETAIL-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Rank=customerのみ、Role=operator/admin間、Status=active↔suspended、自己/withdrawn/最後admin保護・Version/Session rollbackを照合する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "権限失効競合による管理者ゼロ・無許可変更を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-users.md:9/11 のBR-ADMINUSER-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-users.md",
+          "heading_line": 9,
+          "expectation_line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-USER-DETAIL-A01-02",
+          "SCREEN-ADMIN-USER-DETAIL-A01-03",
+          "SCREEN-ADMIN-USER-DETAIL-A01-04",
+          "SCREEN-ADMIN-USER-DETAIL-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-03",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-03",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "AC-ADMINUSER-001",
@@ -31428,17 +32784,53 @@
       "scenario": "正常/境界/異常",
       "data": "正式BR/ACの入力条件",
       "action": "ユーザー変更の境界を守る",
-      "expected": "関連ビジネスルール: `BR-ADMINUSER-001`",
+      "expected": "許可されたランク／ロール／ステータスの変更のみが成功し、最後の管理者の変更、自身に対する変更、退会済み（withdrawn）ユーザーの変更、ロールの不整合は拒否されます。",
       "rule_refs": [
         "AC-ADMINUSER-001"
       ],
       "route": null,
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "操作者Role、対象状態、最後のadmin、許可変更と拒否を検証",
-      "test_responsibility": "ユーザー変更の境界を守る：関連ビジネスルール: `BR-ADMINUSER-001`。操作者Role、対象状態、最後のadmin、許可変更と拒否を検証",
-      "case_policy": "境界値/正常/異常Caseを選定",
-      "case_selection_reason": "業務上の異常結果または権限外の操作を見逃さないため",
-      "analysis_status": "needs_content_review"
+      "risk": "自己変更・最後の管理者喪失",
+      "test_condition": "採用Case：Rank/Role/Statusの許可/拒否・最後admin2→1許可と自己禁止、withdrawn/旧Version/Session不変を比較する。拒否時は対象データの前後不変・認可とVariant/Session/Versionの境界を必要に応じ確認し、動的受入は別判定。",
+      "test_responsibility": "正式AC-ADMINUSER-001を対象とし、代表Behavior SCREEN-ADMIN-USER-DETAIL-A02-01 / SCREEN-ADMIN-USER-DETAIL-A02-02 / SCREEN-ADMIN-USER-DETAIL-A02-03 の既存静的分析とUse Case/Repository/Seed証拠に照合する。基本分析と実Web/Native/DB受入を区別する。",
+      "case_policy": "採用：Rank/Role/Statusの許可/拒否・最後admin2→1許可と自己禁止、withdrawn/旧Version/Session不変を比較する。単に同一画面にあるだけの別動作・仕様対象外のPlatformは重複Caseに数えない。",
+      "case_selection_reason": "自己変更・最後の管理者喪失を検出するため、正式な期待値と関連する代表動作を別々に確認する。",
+      "analysis_status": "analyzed",
+      "analysis_progress": "2026-11-04 docs/spec/features/admin-users.md:75/79 のAC-ADMINUSER-001原文・受入文を直接照合。代表動作の静的分析・Use Case/Seed証拠とRisk/TR/Condition/Caseの採否を確定。実Run未実施、製品適合・CIとは別判定。",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/features/admin-users.md",
+          "heading_line": 75,
+          "expectation_line": 79
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-USER-DETAIL-A02-01",
+          "SCREEN-ADMIN-USER-DETAIL-A02-02",
+          "SCREEN-ADMIN-USER-DETAIL-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-03",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          }
+        ],
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+      }
     },
     {
       "id": "BR-NATIVE-001",
