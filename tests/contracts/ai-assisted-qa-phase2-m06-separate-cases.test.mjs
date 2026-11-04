@@ -4,8 +4,12 @@ import { describe, expect, it } from "vitest";
 
 const read = (name) => fs.readFileSync(path.join(process.cwd(), name), "utf8");
 const starter = read("training/ai-assisted-qa-course/inputs/M06/new-case.spec.ts");
-const removal = read("training/ai-assisted-qa-course/assessment/playwright/M06/remove-item.spec.ts");
-const update = read("training/ai-assisted-qa-course/assessment/playwright/M06/quantity-update.spec.ts");
+const removal = read(
+  "training/ai-assisted-qa-course/assessment/playwright/M06/remove-item.spec.ts",
+);
+const update = read(
+  "training/ai-assisted-qa-course/assessment/playwright/M06/quantity-update.spec.ts",
+);
 const cart = read("src/presentation/pages/cart-page.tsx");
 const exercise = read("training/ai-assisted-qa-course/exercises/M06/exercise.md");
 const submission = read("training/ai-assisted-qa-course/exercises/M06/submission-template.md");
@@ -26,7 +30,9 @@ describe("M06-01：削除004と数量更新005は別Case・別業務Assertion", 
     expect(removal).toContain('page.goto("/products/product-mug")');
     expect(removal).toContain('getByLabel("数量")).toHaveValue("1")');
     expect(removal).toContain('getByRole("button", { name: "削除", exact: true }).click()');
-    expect(removal).toContain('getByRole("heading", { name: "セラミックマグ", exact: true })).toHaveCount(0)');
+    expect(removal).toContain(
+      'getByRole("heading", { name: "セラミックマグ", exact: true })).toHaveCount(0)',
+    );
     expect(removal).toContain('getByText("カートは空です", { exact: true })).toBeVisible()');
   });
 
