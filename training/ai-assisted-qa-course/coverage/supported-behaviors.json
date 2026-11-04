@@ -18611,25 +18611,25 @@
           "id": "AdminProductUseCases.search",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 80,
-          "signature": "  async search("
+          "signature": "async search("
         },
         {
           "id": "AdminProductUseCases.getEdit",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 104,
-          "signature": "  async getEdit(productId: string): Promise<ProductEditDto> {"
+          "signature": "async getEdit(productId: string): Promise<ProductEditDto> {"
         },
         {
           "id": "AdminProductUseCases.searchImageAssets",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 111,
-          "signature": "  async searchImageAssets("
+          "signature": "async searchImageAssets("
         },
         {
           "id": "AdminProductUseCases.update",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 157,
-          "signature": "  async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
+          "signature": "async update(request: UpdateProductRequest): Promise<ProductEditDto> {"
         }
       ],
       "reviewed_against": [
@@ -18873,19 +18873,19 @@
           "id": "AdminProductUseCases.searchImageAssets",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 111,
-          "signature": "  async searchImageAssets("
+          "signature": "async searchImageAssets("
         },
         {
           "id": "AdminProductUseCases.preview",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 285,
-          "signature": "  async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+          "signature": "async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
         },
         {
           "id": "AdminProductUseCases.create",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 127,
-          "signature": "  async create(request: CreateProductRequest): Promise<ProductEditDto> {"
+          "signature": "async create(request: CreateProductRequest): Promise<ProductEditDto> {"
         }
       ],
       "reviewed_against": [
@@ -18982,31 +18982,31 @@
           "id": "AdminMasterUseCases.searchCategories",
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 63,
-          "signature": "  async searchCategories("
+          "signature": "async searchCategories("
         },
         {
           "id": "AdminMasterUseCases.searchBrands",
           "path": "src/application/use-cases/admin-master-use-cases.ts",
           "line": 155,
-          "signature": "  async searchBrands("
+          "signature": "async searchBrands("
         },
         {
           "id": "AdminProductUseCases.searchImageAssets",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 111,
-          "signature": "  async searchImageAssets("
+          "signature": "async searchImageAssets("
         },
         {
           "id": "AdminProductUseCases.create",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 127,
-          "signature": "  async create(request: CreateProductRequest): Promise<ProductEditDto> {"
+          "signature": "async create(request: CreateProductRequest): Promise<ProductEditDto> {"
         },
         {
           "id": "AdminProductUseCases.preview",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 285,
-          "signature": "  async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+          "signature": "async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
         }
       ],
       "reviewed_against": [
@@ -19198,7 +19198,7 @@
           "id": "AdminProductUseCases.preview",
           "path": "src/application/use-cases/admin-product-use-cases.ts",
           "line": 285,
-          "signature": "  async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
+          "signature": "async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {"
         }
       ],
       "reviewed_against": [

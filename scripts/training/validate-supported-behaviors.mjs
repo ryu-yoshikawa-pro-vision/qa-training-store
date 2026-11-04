@@ -276,6 +276,26 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     behaviorIds.add(item.id);
     checkSource(item, root, allowedPaths);
     verifyAuditSource(item, root);
+    if (item.use_case_evidence !== undefined) {
+      assert(Array.isArray(item.use_case_evidence), `invalid Use Case evidence: ${item.id}`);
+      const seenUseCases = new Set();
+      for (const evidence of item.use_case_evidence) {
+        const method = methods.get(evidence?.id);
+        assert(
+          method !== undefined &&
+            evidence.path === method.source_path &&
+            evidence.line === method.source_line &&
+            evidence.signature === method.signature,
+          `Use Case evidence changed: ${item.id} -> ${evidence?.id}`,
+        );
+        assert(
+          item.related_use_cases?.includes(evidence.id),
+          `Use Case evidence missing relation: ${item.id} -> ${evidence.id}`,
+        );
+        assert(!seenUseCases.has(evidence.id), `duplicate Use Case evidence: ${item.id}`);
+        seenUseCases.add(evidence.id);
+      }
+    }
     assert(
       ["review_required", "analyzed", "blocked"].includes(item.analysis_status),
       `invalid analysis state: ${item.id}`,

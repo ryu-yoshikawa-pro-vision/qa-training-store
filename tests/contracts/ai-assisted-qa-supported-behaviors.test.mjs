@@ -1040,4 +1040,46 @@ describe("サポート機能の仕様と実装の追跡", () => {
     });
     expect(() => validateCoverage({ root, data: role })).toThrow(/missing platform-specific role/);
   });
+  it("checks each behavior's Use Case evidence against the current public method registry", () => {
+    const method = data.use_case_methods.find((item) => item.id === "AdminUserUseCases.search");
+    const behavior = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
+    expect(method).toBeDefined();
+    expect(behavior?.use_case_evidence?.[0]).toMatchObject({
+      id: method.id,
+      path: method.source_path,
+      line: method.source_line,
+      signature: method.signature,
+    });
+    const wrongReference = (update) => {
+      const changed = mutated((next) => {
+        const entry = next.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
+        update(entry);
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /Use Case evidence/,
+      );
+    };
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].id = "NotAUseCase.method";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].id = "AdminUserUseCases.changeRole";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].path = "src/application/use-cases/account-use-cases.ts";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].line += 1;
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].signature = "async wrongMethod() {";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence.push(structuredClone(entry.use_case_evidence[0]));
+    });
+    wrongReference((entry) => {
+      entry.related_use_cases = [];
+    });
+  });
+
 });
