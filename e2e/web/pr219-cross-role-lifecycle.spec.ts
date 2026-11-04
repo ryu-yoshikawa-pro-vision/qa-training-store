@@ -657,9 +657,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
         await expect(loading).toHaveText("商品一覧を読み込んでいます。");
         await expect(page.locator('.catalog-results[aria-busy="true"]')).toBeVisible();
         await expect(page.locator(".state-panel--error")).toHaveCount(0);
-        expect(
-          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-        ).toBe(true);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+          true,
+        );
         await testInfo.attach(`pr219-catalog-loading-${viewport.width}`, {
           body: await page.screenshot({ fullPage: true }),
           contentType: "image/png",
