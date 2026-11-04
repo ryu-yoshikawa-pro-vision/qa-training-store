@@ -183,3 +183,42 @@
 - [Web CI #41807455738](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41807455738)：対象HEAD `d213e5b1`、workflow全体`completed/success`。Style Quality、Code Quality、`Vitest (contracts)`、Chromium E2E (required)、`verify`、`validate`が成功。契約テストは74ファイル成功・1102件PASS・1件expected fail・15件skipped。専用`ai-assisted-qa-supported-behaviors.test.mjs`は58件PASS。正常系・負例から`validateCoverage({ root })`を実行し、分母/79要件/Use Case参照の整合を検査。
 - 直前の失敗Run #41803626336（HEAD `8e90a369`）は専用Validator/契約テストのPrettier不一致と37要件の`dynamic_acceptance`表記不一致が独立原因。後続の`4d95aee`で37件の動的受入未完を明記し、`d213e5b`で短い式を整形。上記最新固定HEADの成功により両方の回帰を解消。
 - 検証の限界：この作業環境での単独`node scripts/training/validate-supported-behaviors.mjs --require-complete`とローカル`pnpm`コマンドは未実施。CIの契約テストが直接`validateCoverage`を呼び出した事実と区別する。CI成功は全採用Caseの実Web/Android/DB/Trace/Visual受入または#210の製品修正受入を意味しない。本チェックを付けた文書のみの後続コミットの新CI結果を過去HEADの成功から推認しない。
+
+### 29件の横断要件と既存テストの内容監査（2026-11-04）
+
+- 対象固定HEAD：`d08be6415d124d1f34a6c1e4c8a2230e741cc1ab`（変更前）。直接要件参照のない29件はNative 4・Role 7・Transition/State 10・UI 2・Scope/Platform 6。静的分析の正本は`training/ai-assisted-qa-course/coverage/supported-behaviors.json`の各`requirement_analysis`・`test_condition`・`case_policy`・`sut_case_trace`。下記は既存テストを読んだ確認範囲と未受入条件の**引継ぎ索引**であり、第二の正本ではない。
+- 各行の既存テストは、上記正本の`cross_cutting_contract`にある同名ファイル（`tests/contracts/`、`tests/component/`、`tests/integration/`、`e2e/web/`）に対応する。テスト名・コードを静的確認した。**ファイルが存在するだけで要件の全条件を検証したことにはしない**。既存CIで通過したテストも、そのassertionに含まれない条件までPASSへ拡張しない。
+
+- `BR-NATIVE-001` — `native-runtime-service-surface.test.ts`。既存の静的確認範囲：顧客サービスAPI/非管理Roleの静的契約。#219へ依頼する未受入条件：WebとAndroidのLogin〜ReviewのDTO・Error・State同等実Run。
+- `BR-NATIVE-002` — `native-sqlite-transactions.test.ts`。既存の静的確認範囲：排他transaction・失敗時rollback等の契約。#219へ依頼する未受入条件：Production bundleへのTest Control混入、実端末SQLite制約。
+- `AC-NATIVE-001` — `native-runtime-service-surface.test.ts`。既存の静的確認範囲：Native顧客サービス提供範囲と非顧客Role拒否。#219へ依頼する未受入条件：Cart→Checkout→Payment→Order→ReviewのWeb/Android実行同等性。
+- `AC-NATIVE-002` — `native-ci-workflow.test.ts`。既存の静的確認範囲：Automation/ProductionとAndroid/iOSのworkflow契約。#219へ依頼する未受入条件：成果物の本番汚染検査・Android実行/iOS build証拠。
+- `ROLE-01` — `route-guard.test.tsx`。既存の静的確認範囲：未認証Route・本番Test Control拒否。#219へ依頼する未受入条件：Guest Cart許可、顧客/管理Use Case・Routeの拒否とDB不変。
+- `ROLE-02` — `auth-account.test.ts`。既存の静的確認範囲：顧客本人のProfile操作・管理Role排除。#219へ依頼する未受入条件：Checkout許可、他人Order/住所と管理Routeの拒否。
+- `ROLE-03` — `auth-account.test.ts`。既存の静的確認範囲：認証・Session関連契約。#219へ依頼する未受入条件：停止/退会の新旧Session・Checkout拒否をWeb/Androidで区別。
+- `ROLE-04` — `ai-assisted-qa-admin-users-list.test.mjs`。既存の静的確認範囲：operatorのUser DTO拒否・DB不変。#219へ依頼する未受入条件：Store管理許可、User管理/CheckoutのRouteとUse Case拒否。
+- `ROLE-05` — `review-user-use-cases.test.ts`。既存の静的確認範囲：admin Role/Rank/Status変更の統合契約。#219へ依頼する未受入条件：Store/User管理許可、Checkout拒否と競合・自己変更境界。
+- `ROLE-RANK` — `checkout-order-use-cases.test.ts`。既存の静的確認範囲：金額/Rank再検証・Checkout拒否。#219へ依頼する未受入条件：regular/gold/platinum閲覧制限と送料・Discount、表示金額との一致。
+- `ROLE-STATUS` — `review-user-use-cases.test.ts`。既存の静的確認範囲：Status変更・Session失効。#219へ依頼する未受入条件：active↔suspended/withdrawn、再開後旧Session不復活・DB不変。
+- `TRANSITION-PRODUCT` — `admin-product-use-cases.test.ts`。既存の静的確認範囲：下書き生成・公開可否/削除の境界。#219へ依頼する未受入条件：draft/published/unpublished/discontinued全辺・拒否/終端とversion。
+- `TRANSITION-ACCOUNT` — `review-user-use-cases.test.ts`。既存の静的確認範囲：Status変更と自己/withdrawn拒否。#219へ依頼する未受入条件：双方向許可・同値/旧version/actor失効拒否、Session/DB不変。
+- `TRANSITION-CHECKOUT` — `checkout-order-use-cases.test.ts`。既存の静的確認範囲：開始/再開・Cart version整合。#219へ依頼する未受入条件：active→converted/abandoned/expiredと24h期限/再利用禁止。
+- `TRANSITION-ORDER` — `admin-operations-use-cases.test.ts`。既存の静的確認範囲：paid→delivered操作・version更新。#219へ依頼する未受入条件：pending_payment/payment_failed含む全辺・逆遷移拒否/History不変。
+- `TRANSITION-SHIPMENT` — `admin-operations-use-cases.test.ts`。既存の静的確認範囲：Order/Shipment同時更新。#219へ依頼する未受入条件：pending→shipped→delivered各辺・逆転/旧version/rollback。
+- `TRANSITION-REVIEW` — `review-user-use-cases.test.ts`。既存の静的確認範囲：Review公開/削除とsummary。#219へ依頼する未受入条件：published↔hidden→deletedの全許可/拒否と再投稿/rollback。
+- `TRANSITION-CART` — `cart-use-cases.test.ts`。既存の静的確認範囲：Guest abandon/Cart更新・上限境界。#219へ依頼する未受入条件：consumed/abandoned終端・Cart統合・旧Cart/重複購入の拒否。
+- `STATE-TERMINAL` — `review-user-use-cases.test.ts`。既存の静的確認範囲：Review deleted・withdrawn保護の一部。#219へ依頼する未受入条件：Product/Order/Review/Checkout/Cartの6終端を個別に逆遷移拒否。
+- `STATE-BOUNDARY` — `ai-assisted-qa-checkout-confirmation.test.mjs`。既存の静的確認範囲：stale Cart・価格/Rankなど確認境界。#219へ依頼する未受入条件：Loading/Empty/Error/Conflict/NotFound・processing中取消/再試行。
+- `STATE-NATIVE` — `native-runtime-service-surface.test.ts`。既存の静的確認範囲：Native顧客サービス範囲。#219へ依頼する未受入条件：NATIVE_CUSTOMER_SCENARIOSのAndroid/SQLite/Navigationの実Run。
+- `UI-BREAKPOINT` — `mobile-boundary.spec.ts`。既存の静的確認範囲：320px・900px filter同期/管理Route警告。#219へ依頼する未受入条件：767/768/1023/1024px・390×844と320×700、焦点/管理操作禁止。
+- `UI-DESIGN` — `native-visual-contract.test.ts`。既存の静的確認範囲：共通Tokenと44pxタッチ規約の静的契約。#219へ依頼する未受入条件：Web/Android実画面・正本画像の配色/余白/タッチ寸法比較。
+- `SCOPE-SUPPORTED-1` — `catalog-use-cases.test.ts`。既存の静的確認範囲：Catalog閲覧者/固定Clock/検索の一部。#219へ依頼する未受入条件：Facet・Sale・在庫・Variation・Review要約をWeb/Androidで実行。
+- `SCOPE-SUPPORTED-2` — `checkout-order-use-cases.test.ts`。既存の静的確認範囲：Checkout/Payment・Snapshot。#219へ依頼する未受入条件：Guest→Customer Cart統合からCustomer購入・決済、Guest Checkout拒否。
+- `SCOPE-SUPPORTED-3` — `review-user-use-cases.test.ts`。既存の静的確認範囲：Review/集計・管理操作。#219へ依頼する未受入条件：Order/Address/Rank/価格Snapshotと決済・配送・本人Review接続。
+- `SCOPE-SUPPORTED-4` — `admin-operations-use-cases.test.ts`。既存の静的確認範囲：在庫/Order/Shipment管理操作。#219へ依頼する未受入条件：Category/Brand/Product/Review/Userをoperator/adminで権限別受入。
+- `SCOPE-SUPPORTED-6` — `accessibility.spec.ts`。既存の静的確認範囲：WebのGuest/Customer/Admin代表a11yとFocus。#219へ依頼する未受入条件：全対象状態・幅別のKeyboard/ScreenReader/Empty/Loading/Conflict/NotFound。
+- `PLATFORM-NATIVE` — `native-ci-workflow.test.ts`。既存の静的確認範囲：Android/iOS workflow・本番/Test構成。#219へ依頼する未受入条件：Native顧客機能Android実行、Native管理/Guest Checkout非提供確認、iOS Build-only。
+
+- 採用判断：記載した不足条件は`test_condition`に従う実行候補。仕様対象外のNative管理機能・Guest Checkout・iOS実機検証、成立しない状態遷移や同一Caseの二重計上は不要。その他の不足条件は「未受入」であり「未テスト確定」ではない。必要な既存Caseを再利用し、足りない観測だけを#219が追加・実行する。証拠のないPASSやテスト作成済みだけのPASSを採用しない。
+- #219への依頼：29の要件IDそれぞれに採用/既存兼用/不要/保留を判断し、独立Case ID（`behavior_id`・`condition_ref`だけでない）と既存テスト名・具体的assertion、Platform/Role/Seed/Clock、#199側か#210側か識別できる固定SUT/Test HEAD、期待・観測・Run/job/exit・DB前後・Trace/Visual/Androidの実在する証拠、未実施なら再開条件を返す。#219の953条件参照CSV（blob `7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea`）には`case_id`列がなく、受入状態は全件「未受入」。実行Case IDを**創作しない**。
+- **未チェックの理由**：#219から29要件別の正式Case IDと採否・Run対応がまだ届かない。上記は静的な照合・依頼条件の整理まで。Case ID確定後、実行済み/未実行/製品FAIL/TEST ERRORを要件別に台帳へ反映してから最終チェックする。CIの完了待ちは行わない。
