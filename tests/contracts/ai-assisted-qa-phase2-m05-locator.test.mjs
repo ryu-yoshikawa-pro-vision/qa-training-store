@@ -18,7 +18,7 @@ describe("M05-02：2明細のLocatorを実装と参照specで照合する", () =
     expect(cart).toContain("{item.productName}</Link>");
     expect(cart).toMatch(/<label>\s*数量\s*<select/);
     expect(cart).toMatch(/<button[\s\S]*?>\s*削除\s*<\/button>/);
-    expect(cart).toContain("{item.optionValue ?? \"単一SKU\"}・{item.sku}");
+    expect(cart).toContain('{item.optionValue ?? "単一SKU"}・{item.sku}');
   });
 
   it("参照specは2明細の曖昧さを数え、Mug行でscopeした数量と削除対象だけを確認する", () => {
@@ -43,9 +43,7 @@ describe("M05-02：2明細のLocatorを実装と参照specで照合する", () =
     );
     expect(reference).toContain("await expect(mugRemove).toHaveCount(1)");
     expect(reference).toContain("await expect(mugRemove).toBeEnabled()");
-    expect(reference).toContain(
-      'await expect(page.locator("article.cart-item")).toHaveCount(2)',
-    );
+    expect(reference).toContain('await expect(page.locator("article.cart-item")).toHaveCount(2)');
     expect(reference).not.toMatch(/mugRemove\.click\(/);
   });
 
