@@ -61,7 +61,7 @@
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
 - [x] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
 - [ ] 通常のOpenCode AIチューターについて、初学者が説明→段階ヒント→別条件練習→誤解別の復習→再挑戦を進められる内容と実操作を検証。学習側Agentの正しい説明だけで本人の達成にせず、M04の独立正式AI採点と混同しない
-- [ ] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
+- [x] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
 
 ## 2026-11-04 M00-01〜M00-04の再照合・実行制約
 
@@ -136,3 +136,11 @@ GitHubから再取得した教材・P課題・提出・評価条件・クイズ�
 `knowledge-graph.json@1333e120e8f97af85961701563309f04a82ae3e6`の`type=knowledge`・M00〜M04の33ノード（M00=8/M01=5/M02=8/M03=8/M04=4）をIDごとに確認。全件で固有ID・意味を持つ`can_do`・教材`teaches`・目標`requires_knowledge`・教材の復習見出しがある。復習リンクは既存`scripts/spec/slug-heading.ts`と同じ規則で検査し33/33で存在。クイズ未対応の`K-M00-01/04`、`K-M02-03`、`K-M03-05`は別の実技/採点確認対象であり、クイズがないだけで欠陥と断定しない。
 
 意味上の修正候補は#199へ[コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6628359908)で引継ぎ済み。`K-M01-04`の四層復習先はM01第5章、`K-M04-03`の自動化選定復習先はM04第5章が適切。`M03-04`の`applies_to: F-CHECKOUT`のみという関係は、現行M03 Cart事例との整合判断が必要。**グラフ正本そのものはこのPRで変更せず、33ノードとも`draft_requires_content_review`のまま**。修正完了・学習者の理解度・AI採点PASSとは宣言しない。
+
+## 2026-11-04 M04→M05契約・Git/PR不要のMarkdown取り出し
+
+M04終了`states/M04/end.json@bc54b5f494525f9654b9e0ab808653a324fa1597`とM05開始`states/M05/start.json@73c22e32a507a4e3fcf22cdf6e1c005c74c3ea2e`を相互照合。`ai-assisted-qa-course-v3`のもと`M04-result-01=workspace/M04/review.md`と`M04-result-02=workspace/M04/submission.md`が`M04-result-v1`/`M04-to-M05-handoff-v1`で一致し、M05では両入力ともoptionalかつ`same_input_contract=true`。M05の別ID公開fallback`M05-public-start-01`を本人の成果物と混同しない。
+
+M04演習と提出テンプレートに、承認Caseの元ID、Risk/TR・Scope・BR/AC、revision、Role/State/Data/Seed・Reset・不変条件・未決事項と、M05へ渡す2 Markdownの保存確認を明記。M02分析・M03設計・Skill runtime証拠をM05の2ファイル契約で検査したという誤認を避ける。M04教材へM00〜M04の本人MarkdownをGit/PRなしでCodespaceからDownload（表示されない環境ではUTF-8全文コピー）し、PCで開き直して照合する手順を追加。M03 runtime JSONは別に保持する。契約の回帰防止として`tests/contracts/ai-assisted-qa-phase1-handoff.test.mjs`を追加（**Vitest未実行**）。
+
+配布・取り出し・M00再ロード保護/2-core Private Codespacesの**実行不足**を[PR #218](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/218#issuecomment-6628409789)に、本人の**正式AI評価未受入**を[PR #217](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6628410571)に引継ぎ済み。Markdown持ち帰りや正式M04評価を実施済みと報告しない。学習配布/評価の完了判定と最終CIは担当PR側で別に確認する。
