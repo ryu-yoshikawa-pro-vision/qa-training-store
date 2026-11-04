@@ -84,7 +84,7 @@
 - 実行コマンド、`PLAYWRIGHT_TEST_ROOT`、8082、`AI_QA_OUTPUT_ROOT`:
 - 終了コード、実行時刻、標準出力/エラー（`console.log`）:
 - 実行前に保存した`spec-snapshot.ts`と、実行直前・直後のspec SHA-256一致確認（不一致なら受入不可）:
-- 出力ディレクトリと`playwright-result.json`のtest名・件数・結果（report不在や対象spec不一致はPASSとしない）:
+- 出力ディレクトリと`playwright-result.json`のtest名・件数・結果（0件・別spec・skip・想定FAIL・JSON不正はPASSとしない）:
 - 商品追加前のResetと2明細の観測、全体で2件・商品単位で1件のLocator判定:
 - 削除ボタンを押していないことと、数量の業務Assertion:
 - 直接実行（正式な`course:run` receiptではない）と、その制限:
