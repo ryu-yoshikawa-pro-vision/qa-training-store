@@ -128,9 +128,7 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
   });
 
   it("rolls back Shipment and Order when history persistence fails", async () => {
-    const operations = new AdminOperationsUseCases(
-      dependencies(await session("user-operator")),
-    );
+    const operations = new AdminOperationsUseCases(dependencies(await session("user-operator")));
     const initial = await operations.getOrder("order-paid");
     const preparing = await operations.startPreparation({
       orderId: initial.orderId,
@@ -258,15 +256,5 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
       histories: await database.review_status_histories.toArray(),
       summaries: await database.product_review_summaries.toArray(),
     }).toEqual(before);
-  });
-  it("temporarily reports exact Prettier output for review test", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const path = "tests/integration/pr219-order-review-boundaries.test.ts";
-    const formatted = await prettier.format(await readFile(path, "utf8"), {
-      ...(await prettier.resolveConfig(path)),
-      filepath: path,
-    });
-    console.log("PR219_ORDER_PRETTIER_JSON=" + JSON.stringify(formatted));
   });
 });
