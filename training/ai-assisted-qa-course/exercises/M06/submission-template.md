@@ -14,7 +14,7 @@
 - 本人Caseがある場合の固定3 Caseとの対応、条件差、非対応理由:
 - fallback使用時: M06の実技評価とPhase 1本人修了は別であることを確認:
 - spec差分と実行コマンド:
-- 独立したRun ID、対象revision、PASS/FAIL/未実行（`exit_code`・`outcome`・`spec_unchanged_during_run`）:
+- 独立したRun ID、対象revision、PASS/FAIL/BLOCKED/未実行/判定不能（`exit_code`・`outcome`・`spec_unchanged_during_run`）。receipt未生成の未実行と`ungradable`、Playwright reportの個別test状態を区別:
 - CASE-CART-004/005の**各test名**・両Runの件数と個別結果・BR/ACに対応する業務Assertionの所在:
 - 別Caseの単独実行と再実行のコマンド・別Run・結果（`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`の相互照合）:
 - log / Trace / Screenshotの保存先:
