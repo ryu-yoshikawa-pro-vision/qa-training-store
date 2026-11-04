@@ -64,7 +64,7 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     await Dexie.delete(databaseName);
   });
 
-  it("allows a valid actor to reduce two active admins to one, then rejects self-demotion", async () => {
+  it("permits two-to-one admin demotion and rejects self-demotion", async () => {
     // Arrange a second active admin in the isolated test database; never alter product Seed.
     expect(await database.users.update("user-operator", { role: "admin" })).toBe(1);
     await database.sessions.put({
@@ -88,13 +88,8 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
       version: targetBefore.version + 1,
     });
     expect(await database.sessions.where("userId").equals("user-operator").count()).toBe(0);
-    expect(
-      await database.users
-        .where("role")
-        .equals("admin")
-        .and((user) => user.accountStatus === "active")
-        .count(),
-    ).toBe(1);
+    const admins = await database.users.where("role").equals("admin").toArray();
+    expect(admins.filter((user) => user.accountStatus === "active")).toHaveLength(1);
 
     const actorDetail = await useCases.getDetail("user-admin");
     await expect(
@@ -107,7 +102,7 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     expect(await database.users.get("user-admin")).toEqual(actorBefore);
   });
 
-  it("rejects a stale role-change version without changing user or session state", async () => {
+  it("rejects stale role version without changing user or session", async () => {
     expect(await database.users.update("user-operator", { role: "admin" })).toBe(1);
     await database.sessions.put({
       id: "pr219-target-session",
@@ -117,9 +112,10 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
 
     const detail = await useCases.getDetail("user-operator");
     // Simulate an intervening version change without applying any product-side workaround.
-    expect(
-      await database.users.update("user-operator", { version: detail.version + 1 }),
-    ).toBe(1);
+    const writes = await database.users.update("user-operator", {
+      version: detail.version + 1,
+    });
+    expect(writes).toBe(1);
     const userBefore = await database.users.get("user-operator");
     const sessionsBefore = await database.sessions
       .where("userId")
@@ -135,8 +131,10 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     ).rejects.toMatchObject({ code: "CONFLICT" });
 
     expect(await database.users.get("user-operator")).toEqual(userBefore);
-    expect(
-      await database.sessions.where("userId").equals("user-operator").toArray(),
-    ).toEqual(sessionsBefore);
+    const sessionsAfter = await database.sessions
+      .where("userId")
+      .equals("user-operator")
+      .toArray();
+    expect(sessionsAfter).toEqual(sessionsBefore);
   });
 });
