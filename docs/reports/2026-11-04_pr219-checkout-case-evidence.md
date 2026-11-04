@@ -52,3 +52,9 @@
 - 同ジョブでは7幅/axe/KeyboardのCheckout競合表示もPASSしたが、実際の戻り先は依然`/checkout/payment`（既知の製品不具合）。Forbidden停止staff循環は全23表ハッシュ不変を再確認したが、誘導ループ自体は製品不具合のまま。
 - 当該Runは**workflow全体failure**。Style Quality job `126556819280`が専用E2EのPrettier違反でfailure、既存cross-role E2Eに2件の初回失敗→retry成功がある。Prettier整形修正コミット `6455a4df31190e00cfff0d2f3cce795170d579a0`の別Run #41826050155ではStyle Quality job `126560935572`が**success**。後続RunをDB Caseの再実行実績と混同しない。
 - 今回の証拠キーは`PR219-WEB-025`。Web証拠表は42履歴行、208動作一覧の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`へ連携。キーは正式採用Case IDではなく、#213側のBR/AC/Condition/Case判断待ち。成功時TestInfo添付のハッシュ本体・Trace・動画はCI Artifactに公開されておらず、ジョブログには結果真偽のみを残している。
+
+## 全CI成功の再実行 #41826786410（2026-11-04）
+
+- #199 SUT `46cd014e`、PR #219テストHEAD `c1ff77fbfaaf56bb2292da53ab1b8f2cb3748c5e`。workflow [#41826786410](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41826786410)は**success**。cross-role job `126564385617`の`e2e/web/pr219-cross-role-lifecycle.spec.ts:365`でstale Checkout拒否によるDB10表不変が個別PASS。ジョブログの`PR219_CASE_EVIDENCE`は`tableCount=10`、`allTablesUnchanged=true`。
+- 同HEADの`413`行では幅7条件・axe2幅・キーボードによる復帰のassertが個別PASS。ただし`/checkout/payment`に戻る製品不具合を再現している。全CI成功をその製品不具合の解消と誤解しない。
+- 上記2条件は従来の`PR219-WEB-023/025`の**Run履歴追加**であり、正式なCase IDの採用ではない。実行前後digest本体、画像、Trace/動画は成功時Artifactに保存されず、実測ClockはTestInfo添付を取得できていない。正式要件の全Case受入、Android SQLite、失敗注入やrollback全条件は未完。
