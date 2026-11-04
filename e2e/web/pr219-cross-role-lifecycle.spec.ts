@@ -451,6 +451,19 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     await expect(recovery).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/checkout\/payment$/);
+
+    // The current recovery destination is a known product defect.
+    console.log(
+      "PR219_CASE_EVIDENCE " +
+        JSON.stringify({
+          behavior: "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+          condition: "conflict-responsive-keyboard",
+          widthsChecked: [320, 390, 767, 768, 1023, 1024, 1440],
+          axeWidthsChecked: [320, 1024],
+          observedRecoveryPath: "/checkout/payment",
+          productAcceptance: "FAIL",
+        }),
+    );
   });
 });
 
@@ -670,5 +683,16 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
       contentType: "application/json",
     });
     expect(after).toEqual(before);
+    console.log(
+      "PR219_CASE_EVIDENCE " +
+        JSON.stringify({
+          behavior: "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+          condition: "suspended-operator-surviving-session",
+          tablesChecked: Object.keys(before).length,
+          allTablesUnchanged: true,
+          observedReturnPath: "/admin",
+          productAcceptance: "FAIL",
+        }),
+    );
   });
 });
