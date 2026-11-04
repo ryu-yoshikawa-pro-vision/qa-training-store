@@ -2,7 +2,7 @@
 
 対象：[#219](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219)。作業ブランチは`work/pr199-sut-acceptance`、統合先は[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。開始時にルートの`AGENTS.md`、[分担Plan](./2026-11-04_pr199-parallel-branches.md)、対象HEAD、既存テストとCIを確認する。
 
-**責任変更（2026-11-05）**：旧リストの21項目中14項目は部分検証・引継ぎとして実施済み。旧未完7項目に含まれる**最終実受入**は、#213〜#219の作業内容と必要な#210の製品修正を統合した後、**#199の最後に実施する**。旧未完7項目の対応先は末尾に記す。#219には代わりに、AIエージェントがこのブランチで実施できる準備・検証・引継ぎ7項目を設ける。以後の`14/21`は**新しい#219専用リストの進捗**であり、Scenario Shopの受入率を表さない。
+**責任変更（2026-11-05）**：旧リストの21項目中14項目は部分検証・引継ぎとして実施済み。旧未完7項目に含まれる**最終実受入**は、#213〜#219の作業内容と必要な#210の製品修正を統合した後、**#199の最後に実施する**。旧未完7項目の対応先は末尾に記す。#219には代わりに、AIエージェントがこのブランチで実施できる準備・検証・引継ぎ7項目を設ける。この変更時点の進捗は`20/21`であり、**新しい#219専用リストの進捗**であり、Scenario Shopの受入率を表さない。
 
 ## 担当と変更範囲
 
@@ -40,9 +40,9 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 - [x] Web/Android/DBのRisk別部分証拠、実行不能条件・必要機材/権限・再開方法を専用レポートへ記録した
 - [x] #213へ分析IDと固定Run/暫定Webキーの対応、不足根拠を引き渡し、製品修正前後のHEADを混同しなかった
 
-## 未完了：#219で実施する準備・検証・引継ぎ（7件）
+## #219の準備・検証・引継ぎ（全7項目・残り1件）
 
-- [ ] **専用ファイルの品質ゲートを整える。** 最新HEADのStyle Qualityで失敗した`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md:116`のMD012など、#219所有ファイルに起因するlint/formatter/契約テストを修正し、固定HEAD・該当job・結果を記録する。共有既存テストのflakyは原因と再現Runを#199へ渡し、独断で編集しない。
+- [x] **専用ファイルの品質ゲートを整える。** 最新HEADのStyle Qualityで失敗した`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md:116`のMD012など、#219所有ファイルに起因するlint/formatter/契約テストを修正し、固定HEAD・該当job・結果を記録する。共有既存テストのflakyは原因と再現Runを#199へ渡し、独断で編集しない。 証拠：[Web CI #41930249981](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41930249981)（テストHEAD `21c943fa91d1bd401b82ff29fb3f9925b1a18f64`）でStyle Quality job `126925018349`、Contracts `126925018638`、Integration `126925019067`、Component `126925018907`、Code Quality `126925018738`、cross-role Chromium `126925517349`、verify/validateが成功しworkflow全体success。cross-roleは30 passed/既存共有テスト1 flakyで、`getByRole("status")`の二重一致は#199へ引継ぎ済み。後続のレビュー修正が入るHEADは別途CI確認対象とする。
 - [x] **分析台帳とCase候補を突き合わせる。** #213の79要件（直接参照のない29横断要件を含む）、188操作＋20状態、Risk/TR/Condition/Case候補、既存テストの実assertion/Role/State/Platformを照合。既存Case再利用・追加が必要・正式判断待ち・不要候補と根拠を列挙する。正式Case ID・採否は#213/#199の決定待ちとして明記する。 証拠：[29横断要件・実assertionの静的照合](../reports/2026-11-05_pr219-static-case-assertion-handoff.md)。正式Case採否・IDと残197動作の動的受入は#213/#199へ移管。
 - [x] **利用可能なCase実行証拠を完成させる。** #219の専用CSVと固定GitHub Run/job/attempt、実測Clock、SUT/test HEAD、期待/観測、DB前後の実行済みassertion、存在するArtifactだけを照合・追記する。欠落したRole/Session/Trace/画像/動画/Networkを「収集済み」にせず、#199での取得条件・再実行Caseを残す。 証拠：[50履歴/8 Runの参照と保存Artifact監査](../reports/2026-11-05_pr219-web-evidence-run-audit.md)。保存されていないTrace/動画/Network/DB実物は未取得として#199へ移管。
 - [x] **自動化できる境界Caseを再確認する。** Web/Component/Integration/Contractsの既存Caseで必要な拒否・失効・stale・競合・rollbackのassertionを照合し、不足を#219専用テストで補完する。固定HEADで実行可能なCI結果と既知製品FAIL/TEST ERROR/未実行を切り分ける。製品修正後の最終再実行は#199へ渡す。 証拠：[境界・視覚・Android準備レポート](../reports/2026-11-05_pr219-boundary-visual-android-final-handoff.md)。境界テストと既知不具合をassertion単位で点検。追加の重複テストは不要、修正後の再実行は#199へ。
@@ -52,7 +52,7 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 
 ## 2026-11-05 未完項目の状況
 
-- **品質ゲート**：Run [41858991758](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41858991758)はStyle QualityのMD018（旧タスクリスト見出し）とMD012（分析レポート末尾の空行）でfailure。MD018は後続HEADですでに修正済み、MD012は`a568f9b`で修正。Contractsの別件は`codex-hook-contract.test.ts`の`SubagentStop: spawnSync sh EPIPE`であり#219専有外の失敗。後続の最新HEAD Web CIはqueuedで未確認。**全体successが未確認のためチェックしない**。
+- **品質ゲート**：以前のStyle MD018/MD012は修正済み。固定HEAD `21c943fa` のRun [41930249981](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41930249981)でStyle、Contracts、Integration、Component、cross-role等の個別jobとworkflow全体のsuccessを確認。共有E2Eの`getByRole("status")`はretryで通過した1 flakyであり、製品の正式受入PASSとは区別する。**レビュー指摘でこの後変更するHEADのCI結果は別に確認する**。
 - **差分・引継ぎ・独立レビュー**：#199最新baseに対する#219差分は34ファイルで、専用テスト/レポート/タスクリスト/Run記録以外の変更0。#199への[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6635695670)、#219への[独立レビュー依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6635693303)を投稿済み。**指摘・独立判定・再検証は未実施**のためチェックしない。
 
 ## #199の最後に移した最終実受入（このリストでは完了チェックしない）
