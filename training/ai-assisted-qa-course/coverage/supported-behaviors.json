@@ -8701,6 +8701,12 @@
           "path": "src/application/use-cases/cart-use-cases.ts",
           "line": 195,
           "signature": "async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {"
+        },
+        {
+          "id": "CartUseCases.getCart",
+          "path": "src/application/use-cases/cart-use-cases.ts",
+          "line": 82,
+          "signature": "async getCart(): Promise<CartDto> {"
         }
       ],
       "reviewed_against": [
@@ -9927,6 +9933,12 @@
       },
       "use_case_evidence": [
         {
+          "id": "CheckoutOrderUseCases.start",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 108,
+          "signature": "async start(request: StartCheckoutRequest): Promise<CheckoutStartResult> {"
+        },
+        {
           "id": "CheckoutOrderUseCases.getActive",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "line": 141,
@@ -10429,6 +10441,12 @@
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
       "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getActive",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 141,
+          "signature": "async getActive(requiredStep: CheckoutStep = \"address\"): Promise<CheckoutSession> {"
+        },
         {
           "id": "CheckoutOrderUseCases.setPayment",
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
@@ -21807,6 +21825,12 @@
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
           "line": 91,
           "signature": "async adjustInventory(request: AdjustInventoryRequest): Promise<InventoryDetail> {"
+        },
+        {
+          "id": "AdminOperationsUseCases.getInventoryDetail",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 73,
+          "signature": "async getInventoryDetail(variantId: string): Promise<InventoryDetail> {"
         }
       ],
       "reviewed_against": [
@@ -22928,6 +22952,12 @@
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
       "use_case_evidence": [
+        {
+          "id": "AdminOperationsUseCases.searchOrders",
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "line": 115,
+          "signature": "async searchOrders(query: Partial<OrderSearchQuery> = {}): Promise<Page<AdminOrderListItem>> {"
+        },
         {
           "id": "AdminOperationsUseCases.getOrder",
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
