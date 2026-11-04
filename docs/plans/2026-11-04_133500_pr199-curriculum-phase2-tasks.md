@@ -99,3 +99,10 @@
 - M05 P05の直接Playwright実行を、実行前のspec snapshotと直前・直後SHA-256の一致、JSON report存在、非0終了の伝播に対応。M05提出欄、M07へのGit不要の保全例・handoff欄も同じ証拠を保存する形に修正。新規固有の契約テスト`tests/contracts/ai-assisted-qa-phase2-direct-run.test.mjs`を追加した。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に隔離Bash/stub検証と制約を記録。
 - **未完了**：CIでの新規契約テスト・Style Quality、本人の8082専用Configでの実Chromium、`course:run`による正式receipt、M06/M07の別Run、Codespaces保全。実行済みのstub検証を学習者の実Runと取り違えず、チェックを変更しない。
 - **Progress: 28% (7/25)**。未完了18項目。
+
+## 2026-11-04 継続確認：回帰修正と実Runの境界
+
+- [Phase 2受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に、前HEAD `653a92deb041dfb5a9b71018ec92bb7aae77034d` のWeb CI失敗（保全契約テストの古い期待パス、Markdown末尾空行）と修正Blob SHAを記録。修正後の[Web CI #41841463720](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41841463720)は確認時`in_progress`であり成功とは扱わない。
+- M05専用Configの8082/出力先と既存のCI `training-web-baseline`のConfigを照合し、両者の実行対象が異なることを確認。M05公開参考specと正式採点の本人証拠要件を区別。M05-01/02/05および横断の実Chromium項目は引き続き未チェック。
+- M04 end→M05 startの2入力はID/path/revision/contractが一致。M07 endは4出力、M08 startはうち3入力を参照しており、保守specはM07のhandoffテンプレートで別記録。M08側の必要出力全件を4件と断定せず、実ファイルがない状態で本人成果物の引継ぎ完了を主張しない。
+- **進捗：28% (7/25)**。既存チェック7件は維持。今回のCI回帰修正は25件の独立した受入項目ではないため、見かけの進捗を増やさない。
