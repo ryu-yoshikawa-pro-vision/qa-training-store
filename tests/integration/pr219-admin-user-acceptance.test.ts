@@ -135,6 +135,54 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     ).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
   });
 
+  it("keeps one admin active during concurrent cross-suspensions", async () => {
+    expect(await database.users.update("user-operator", { role: "admin" })).toBe(1);
+    await database.sessions.put({
+      id: "pr219-other-actor-session",
+      userId: "user-operator",
+      createdAt: SESSION_CREATED_AT,
+    });
+    const secondActor = new AdminUserUseCases({
+      ...createDexieApplicationRepositories(database),
+      transactionRunner: new DexieApplicationTransactionRunner(database),
+      currentSessionStore: new ActorSessionStore("pr219-other-actor-session"),
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new Ids(),
+    });
+    const first = await useCases.getDetail("user-admin");
+    const second = await secondActor.getDetail("user-operator");
+
+    const outcomes = await Promise.allSettled([
+      useCases.changeSuspension({
+        userId: second.userId,
+        accountStatus: "suspended",
+        expectedVersion: second.version,
+      }),
+      secondActor.changeSuspension({
+        userId: first.userId,
+        accountStatus: "suspended",
+        expectedVersion: first.version,
+      }),
+    ]);
+
+    expect(outcomes.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = outcomes.find((result) => result.status === "rejected");
+    expect(rejected?.status).toBe("rejected");
+    if (rejected?.status === "rejected") {
+      expect(rejected.reason).toMatchObject({
+        code: expect.stringMatching(
+          /^(LAST_ADMIN_PROTECTED|ACCOUNT_SUSPENDED|AUTHENTICATION_REQUIRED|CONFLICT)$/,
+        ),
+      });
+    }
+
+    const admins = await database.users.where("role").equals("admin").toArray();
+    expect(admins.filter((user) => user.accountStatus === "active")).toHaveLength(1);
+    const sessions = await database.sessions.toArray();
+    const survivingAdmin = admins.find((user) => user.accountStatus === "active");
+    expect(sessions.some((session) => session.userId === survivingAdmin?.id)).toBe(true);
+  });
+
   it("rejects stale role version without changing user or session", async () => {
     expect(await database.users.update("user-operator", { role: "admin" })).toBe(1);
     await database.sessions.put({

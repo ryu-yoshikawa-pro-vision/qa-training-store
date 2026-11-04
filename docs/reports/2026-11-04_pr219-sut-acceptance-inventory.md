@@ -187,3 +187,9 @@
 - 受入専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`に2件追加。`SCREEN-ADMIN-USER-DETAIL-A02-01`（本人のRole・停止ボタンdisabled、Dialogなし）と`A02-02`（退会済み顧客の読取専用表示と変更操作なし）。
 - `tests/integration/pr219-admin-user-acceptance.test.ts`に2人のactive adminから対象の別adminを停止し、active adminを1名残す正常系・対象Session消去・actor Session保持と、最後の本人の停止拒否を1件追加。
 - 上記3件の実CIは追加時点で未確認。#199のactor失効競合は別受入Caseの既知不具合として継続。タスクリスト5/6番を安易にPASSにしない。
+
+## 2管理者の並行停止（タスクリスト6番・正常経路の追加）
+
+- `tests/integration/pr219-admin-user-acceptance.test.ts`へ、actor A/Bともにactive admin＋Sessionを持つ隔離DBで、互いを同時に停止しようとする`Promise.allSettled`のCaseを追加。正常なactorを2名持つ一方、単一DBのtransactionにより最終的にactive adminが1名残り、成功1件・拒否1件となることを検証する。
+- 拒否理由は`LAST_ADMIN_PROTECTED`、`ACCOUNT_SUSPENDED`、`AUTHENTICATION_REQUIRED`、`CONFLICT`のいずれかとし、失敗したactorの認可時点によって取り得る差を許容する。ただし**active admin 0名、成功2件は失敗扱い**。actor失効後の別対象更新の不具合再現とは別Caseである。
+- 実CIが成功するまでは未実行扱い。製品#199側のactor再認可不備は直さず#210の修正受入に引き継ぐ。
