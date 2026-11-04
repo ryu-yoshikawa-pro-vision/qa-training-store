@@ -420,6 +420,17 @@ AIにテストケースのレビューを依頼したところ、「このテス
 5. 仕様が読み取れない項目について、引継ぎメモ（質問事項、影響範囲、保留理由）をまとめます。
 6. 公開されている評価基準（ルーブリック）と照らし合わせ、自分の回答に不足がないかを自己点検します。
 
+### 学習成果物をGit/PRなしで持ち帰る
+
+Phase 1の作業用MarkdownはCodespace内の`workspace/`に保存します。**保存しただけでは自分のPCやGitHubのRemoteには移りません。** 受講者自身が必要な提出ファイルを取り出し、内容を確認してください。
+
+1. VS CodeのExplorerで、各ファイルを開いて`Ctrl+S`（Macは`Cmd+S`）で保存します。対象は`workspace/M00/submission.md`、`workspace/M01/submission.md`、`workspace/M02/analysis.md`、`workspace/M03/condition-design.md`、`workspace/M03/cases.md`、`workspace/M04/review.md`、`workspace/M04/submission.md`です。実際に存在するものだけを選び、未作成を「提出済み」にしないでください。
+2. Explorerのファイルメニューに`Download`がある場合は、本人のPCに`.md`を保存します。表示されない場合は、ファイル全文を選択してコピーし、PC側のテキストエディタで**同名のUTF-8 Markdownファイル**として保存してください。どちらも`git commit`やPull Requestの操作は不要です。
+3. PC側に保存したファイルを開き直し、冒頭・末尾・Case ID・BR/AC・Risk/TR・未決事項がCodespaceの内容と一致することを確認します。ファイル名、元の`workspace/`パス、取得日、参照revisionを控えます。Secret・個人情報・公開不要なログは移さないでください。
+4. M03のSkill実行を後から再現する場合、Markdownだけでは不十分です。`workspace/M03/condition-runtime-evidence.json`と`workspace/M03/case-runtime-evidence.json`、実行ログ・fingerprint等の必要な機械証拠も、安全な保存先へ別途保管します。**保存・ダウンロードの手順が書いてあることは、実Codespacesからの取り出し成功や正式評価の合格を保証しません。**
+
+M04終了の`end.json`とM05開始の`start.json`は`M04-to-M05-handoff-v1`で、`M04-result-01`=`workspace/M04/review.md`、`M04-result-02`=`workspace/M04/submission.md`（いずれも`M04-result-v1`）を引き継ぐ契約です。M05には公開開始サンプルもあり、**公開サンプルを本人のM04合格成果物と混同しないでください。** M03の設計CaseやM02分析の引継ぎはM05の2ファイル契約に含まれないため、必要なら出典と本人の元ファイルを参照します。
+
 > **正式修了評価（Assessment）の注意**：
 >
 > - Phase 1の正式な修了評価は、受講者本人がターミナルから `pnpm course:assess M04 --model provider/model-id` コマンドを実行して起動します。
