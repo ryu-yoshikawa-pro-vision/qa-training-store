@@ -13,11 +13,10 @@ const backupSection = exercise
   .split("### Git/PRを使わないPhase 2成果物の保全")[1]
   ?.split("### 固定Skillとの協働")[0];
 const fence = String.fromCharCode(96).repeat(3);
-const commandBlocks = [
-  ...(backupSection ?? "").matchAll(
-    new RegExp(fence + "bash\\n([\\s\\S]*?)\\n\\s*" + fence, "g"),
-  ),
-].map((match) => match[1].replace(/^ {3}/gm, ""));
+const codeBlockPattern = new RegExp(fence + "bash\\n([\\s\\S]*?)\\n\\s*" + fence, "g");
+const commandBlocks = Array.from((backupSection ?? "").matchAll(codeBlockPattern), (match) =>
+  match[1].replace(/^ {3}/gm, ""),
+);
 const guardAndArchive = commandBlocks.find((block) =>
   block.includes("tar --create --gzip --file=workspace/M07/exports/phase2.tgz"),
 );
@@ -93,9 +92,8 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
     const run = runGuard(fixture, ["workspace/M05/../outside.txt"]);
     expect(run.status).not.toBe(0);
     expect(run.stdout).toMatch(/workspace外|相対移動/);
-    expect(fs.existsSync(path.join(fixture.root, "workspace/M07/exports/phase2.tgz"))).toBe(
-      false,
-    );
+    const archive = path.join(fixture.root, "workspace/M07/exports/phase2.tgz");
+    expect(fs.existsSync(archive)).toBe(false);
   });
 
   linuxIt("最終ファイルと親ディレクトリのsymlinkを拒否する", () => {
