@@ -152,3 +152,15 @@ M04演習と提出テンプレートに、承認Caseの元ID、Risk/TR・Scope�
 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のソース104/104はGitツリーとのblob SHA・サイズ・パス一致を直接照合。ただし、実受講環境のSkillコピー・helper実行は未検証。M00再ロードの競合拒否は既存`loadModule`と関連テストに実装されていることを読取確認したが、Ports/費用/本人再ロードの**実行証拠はなし**。これらの未完項目はチェックしない。
 
 **この22目標横断照合項目のチェックは対応付けのレビュー完了のみを指す。** M00-04単独の本人実環境受入、M02→M03固定Skill統合、OpenCodeチューター、正式AI評価のLevel 2まで一括で完了としない。評価基準の独立性不足は[PR #217のコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6628709053)に引継ぎ済み。
+
+## 2026-11-04 続行：残る実環境ゲートの状況
+
+残る5項目は**未チェック**。検証済みのソースと、未実施の実行を区別する。
+
+- **M00-04**：`loadModule`の再ロード競合拒否実装と既存テストを確認。編集済み`submission.md`の実Codespacesでの非0終了・前後不変、Ports 6080 Private、支払者/利用枠/モデル条件の実画面は未確認。**架空の危険提案を判断できたことは実操作の代わりにならない**。
+- **M02固定Skill実Run**：配布元の指定commitとmanifestのSHA・サイズは104/104一致。実在のCart/Scope/RiskのAuthorityと出典・revisionを、`spec-analysis/test-analysis`で生成したモデル実行ログは未取得。
+- **M03固定Skill連続実Run**：`condition_structure(direct)`、技法runtime、`materialize_coverage(artifact)`、`case_structure`、`verify_runtime_evidence`の同一入力連鎖を起動できていない。既存`workspace/M03/*-runtime-evidence.json`のplaceholderを正しい実行証拠として扱わない。
+- **Skill-local/Helper**：GitHub上で104ファイルの存在・SHA・sizeを確認。受講者環境に配布された13入口・43 scripts・28 assets・20 referencesの存在と、Python helperの実返却値は未確認。配布担当[#218](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/218#issuecomment-6628809934)へ実受入を引継ぎ。
+- **OpenCodeチューター**：`tutor-core.mjs`と既存契約テストを読み、モデル明示・読み取り専用・先行同意・正式評価分離の設計は確認。実OpenCode 2.0.22とプロバイダモデルが利用できないため対話は未実施。V2設定の`autoupdate`とネストした教材への`read`範囲、および説明→段階ヒント→別条件練習→復習→再挑戦の実受入を[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6628775876)へ引継ぎ。AIの正答と本人Level 2は別に評価する。
+
+確認はソース照合によるもの。Vitest、OpenCode、Codespaces、CI PASSを実行済みとして記録しない。
