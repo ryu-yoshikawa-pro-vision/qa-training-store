@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 76% (25/33)**。現時点で未完了8件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。 M06-01の新規004/005の独立Case・数量0不可・initial/repeatの静的整合も専用テストで確認した。 M06-02のReset/Context独立性を既存Reset実装と隔離mock Page契約テストで確認し、実ブラウザ実受入は#199へ維持。 M06-03は数量Assertionを削除した変異例を技術契約で拒否し、参考specの必要な数量Assertionは残した。 M06-05はrunnerの結果区分と本人提出欄の意味のずれを修正し、旧Run/別spec/初回・再実行の検証条件を既存契約に照合した。 M07-02/04は診断A・合成B/Cと修正対象のTODO before・業務Assertion afterを分離して専用契約テストへ追加した。本人実Runは#199最後に実施する。
+- **Progress: 79% (26/33)**。現時点で未完了7件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。 M06-01の新規004/005の独立Case・数量0不可・initial/repeatの静的整合も専用テストで確認した。 M06-02のReset/Context独立性を既存Reset実装と隔離mock Page契約テストで確認し、実ブラウザ実受入は#199へ維持。 M06-03は数量Assertionを削除した変異例を技術契約で拒否し、参考specの必要な数量Assertionは残した。 M06-05はrunnerの結果区分と本人提出欄の意味のずれを修正し、旧Run/別spec/初回・再実行の検証条件を既存契約に照合した。 M07-02/04は診断A・合成B/Cと修正対象のTODO before・業務Assertion afterを分離して専用契約テストへ追加した。 M07通常OpenCodeは本人先行の段階ヒント・失敗後復習・秘密情報除去を教材と契約テストに固定した。本人実Runは#199最後に実施する。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -54,7 +54,8 @@
 - [x] `M07-04`：`failure-assertion.spec.ts`と`repaired-assertion.spec.ts`の役割、TODO由来のbefore失敗、業務Assertionを維持したafter修正を照合。参考コードで検証可能なbefore/after実行を区別する。
   - 診断Aの誤Assertionと修正対象beforeのTODO例外を分離。参考afterはMug見出し+数量1を検証し、元の業務Assertionを削除しないこと、main/before/after別Runを専用契約テストに固定。
 - [ ] `M07-05`：公開参考の保守前2件・保守後3件、test単位Reset、Page Object/fixture、各test内Assertion、別ページを経由する3件目の実装契約をテストする。参考実装の相違は#217で修正されるまで未解決として扱う。
-- [ ] 通常OpenCodeの段階ヒント・失敗後の復習、AI案の採否を本人の判断から奪わない教材上の制約を確認。チューター共通実装・実モデルの動作検証は#217/#199へ渡す。
+- [x] 通常OpenCodeの段階ヒント・失敗後の復習、AI案の採否を本人の判断から奪わない教材上の制約を確認。チューター共通実装・実モデルの動作検証は#217/#199へ渡す。
+  - 本人の初期診断→追加証拠に限定したAIヒント→本人の再実行→復習、完成答案の自動編集禁止、秘密情報除去、通常Tutorと正式Assessの分離をM07教材・契約テストへ追加。実モデル結果は未確認。
 
 ## 横断：教材・テスト・引継ぎ
 
