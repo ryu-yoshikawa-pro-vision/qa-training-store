@@ -1247,6 +1247,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       );
     }
   });
+
   it("traces 29 cross-cutting requirements to existing tests without claiming runtime acceptance", () => {
     const linked = new Set(data.behaviors.flatMap((entry) => entry.requirement_refs ?? []));
     const crossCutting = data.requirements.filter((entry) => !linked.has(entry.id));
@@ -1277,5 +1278,4 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(requirement.requirement_analysis.sut_case_trace.acceptance_status).toBe("未受入");
     }
   });
-
 });
