@@ -29,3 +29,10 @@
 - 専用E2E `e2e/web/pr219-cross-role-lifecycle.spec.ts`で、`regular-member`のCheckoutがconfirm-readyとなった後、Cart数量を更新して`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`の競合表示を作る。製品の既知不具合（戻り先が`/checkout/payment`）の再現Caseと、視覚/a11yのCaseは独立したテストに分けた。
 - 追加の視覚Caseは320/390/767/768/1023/1024/1440pxで競合見出し・戻りリンクの表示、横スクロールなし、各幅のPNG添付を確認する。320/1024pxではaxe重大違反をassertし、Focus→Enterで戻る導線を確認する。
 - 更新SHA `84d3a455acc831efb3b3d24c1a950a9734e8ec1e`。**当該HEADの実ブラウザCIは未確認でありPASSではない。** 成功時のTestInfo添付がCI Artifactに保持されない点は#199へ報告済み。正式競合画面の正本画像との比較、Loading/Error・他画面の視覚とa11y、Android、実Viewportの固定ナビ操作阻害は未受入で、タスクリスト13番は未チェック。
+
+## 固定Run #41821726873のCheckout競合UI結果（2026-11-04）
+
+- テストHEAD `0599c516374710d4144c126a2c0c388e60c1c22c`、#199 SUT `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、cross-role Chromium job `126547309356`。専用E2E `e2e/web/pr219-cross-role-lifecycle.spec.ts:321`が**1回目PASS**。320/390/767/768/1023/1024/1440pxでCheckout競合見出し・戻りリンク表示、横スクロールなし、320/1024pxのaxe serious/criticalなし、Focus→Enterの戻りをassertした。
+- 戻り先は実際に`/checkout/payment`であり、確認ready→stale Cartから安全な復帰先を期待する製品契約とは別の**既知製品不具合**として扱う。前段の専用「KNOWN DEFECT REPRO」Caseも同一jobで成功した。合格したのは表示・操作の当該assertionだけ。
+- `testInfo.attach`した7幅画像と2幅のaxe結果は、成功時にGitHub Actions Artifactへ保存されていない。**PNG本体と正式画像のピクセル比較は未実施**。今回のworkflow全体はNative component/typecheck失敗だが、上記cross-role jobはsuccess。Web全画面・Loading/Error/Conflict網羅、Android実機、実画像比較は残るため、タスク13は未チェック。
+- Web実行証拠表に`PR219-WEB-023`を追加し、208動作一覧の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`に関連付けた。
