@@ -142,6 +142,11 @@ printf 'exit_code=%s\noutput_root=%s\nspec_sha256=%s\n' \
 test "$p05_before_sha" = "$p05_after_sha" || {
   echo "実行中にspecが変更されました。この結果は採用できません"; exit 1;
 }
+test -s "$p05_output/playwright-result.json" && \
+  test ! -L "$p05_output/playwright-result.json" || {
+    echo "Playwright JSON reportがありません、または不正です"; exit 1;
+  }
+test "$p05_exit" -eq 0
 ```
 
 `$p05_output/spec-snapshot.ts`は実行前に保存した本人specのコピーです。実行直前と直後のspec SHA-256がそのコピーと一致することを確認します。不一致なら、そのJSON reportを該当specの成功証拠として採用しません。`$p05_output/playwright-result.json`の対象test名・件数・結果、実行前後の画面、必要なTrace/画像、spec SHA-256、終了コードを提出欄へ記録します。Playwrightの終了コードが非0、reportがない、対象testが一致しない場合はPASS扱いしません。成功した場合でも、これは`course:run`が生成する`run-evidence.json`（Run ID、`source_sha`等）とは**別の直接実行**です。後で正式なRunが必要な項目の代用にせず、受入側では取得方法の違いを明示します。
