@@ -39,7 +39,7 @@
 
 - [ ] #217の評価器が必要なM06/M07の新しいPlaywright Runを限定実行/取得して証拠を照合し、M10では本人の実GitHub APIから最新PR HEAD・Run/attempt・Check・Artifact・対象specを検証することを受け入れる。単なる自己申告/旧Run/作成済みログのハッシュ一致では合格にしない。
 - [ ] #218配布manifest・固定Shop・Skill-local依存・`course:load/check`・正式採点資料の固定SHA取得・非破壊性が、#214〜#217の教材/状態/評価器と結合して機能するか検証。Phase 1/2の成果物・評価履歴をGit/PR不要で安全にエクスポート・保全できる条件を確認。
-- [ ] #213の79要件・188操作・20状態の確定分母/基本分析率と、#219が採用したCaseごとのWeb/Android/DBの実Run・未実行を突合。#210の製品修正は未マージなら#199に反映済みと扱わず、対象commitを記録。
+- [ ] #213の79要件・188操作・20状態の確定分母/基本分析率と、#219が準備したCase候補・既存テスト・固定Run/未実行・既知製品FAILを突合。正式Caseの採否・IDと最終Web/Android/DB実Runは本リスト末尾の最終実受入で判定する。#210の製品修正は未マージなら#199に反映済みと扱わず、対象commitを記録。
 - [ ] 第三者由来Skill/依存物のライセンス・NOTICE、Secret/個人データ非漏洩、静的Web/Template/Artifactの除外を#218の証拠で最終確認。出典未確認・実機未実施をPASSへ変更しない。
 
 ## 最終CI・レビュー・完了
@@ -48,3 +48,21 @@
 - [ ] 同じ**最終HEAD**でWebの必要なStyle/Type/Contracts/Unit/Integration/Component/required Chromium E2E/Build等と、Android/iOSの所定の必須Build・Static・Maestroなどを検証。成功・失敗・スキップ・未実行を分けて記録し、古いHEADを根拠にしない。
 - [ ] 各個別PRと統合差分の独立レビューを行い、指摘の根拠・対応・再検証、要件の未決、公開前の権利とデータ保護、成果物の再現性を確認する。
 - [ ] 残件・要承認・マージ後作業を区別して#199本文とPlanへ反映。全受入を満たすまで#199を完了・mainへマージしたと扱わない。
+
+## Scenario Shopの最終実受入（#199の最後に実施）
+
+[#219専用タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-sut-acceptance/docs/plans/2026-11-04_133500_pr199-sut-acceptance-tasks.md)から、旧未完7項目の**実受入責任**を引き継ぐ。#219の14/21件などはテスト準備・部分証拠の進捗であり、本節の受入率ではない。
+
+**実施時点**：#213〜#219を必要な範囲で統合し、#210の製品修正について反映済み・未反映を確定し、共有workflowの調停と**同じ最終HEAD**の必須CI/独立したPR差分レビューを終えた後。必要な実機/エミュレータ・SDK・権限と成功時Artifact保存経路を用意する。#219で追加したTest/Componentや旧SUTの過去Runだけを根拠に受入しない。
+
+**判定責任**：#199統合・最終受入担当が正式採用CaseごとにPASS/FAIL/BLOCKED/未実行/TEST ERRORを記録し、端末操作・権限付き実行・独立レビューは実施可能な担当者が行う。#213のCase採否が未確定なら未確定とし、製品不具合再現テストの成功、flakyのretry成功、既知の視覚差分、未保存Artifactを製品適合PASSにしない。Android実機を操作できない環境では実行したと報告しない。
+
+- [ ] **旧#219-2：採用Caseの最終実行証拠。** #213が正式に採用した全Caseについて、正式Case ID、79要件・Behavior/Condition、SUT/test最終SHA、Role/Session、Platform、Seed/Reset/Clock、操作、期待/観測、DB前後、コマンド/exit、Run/job/attempt、実在するTrace/動画/画像・Console/Network/Reportを照合。保存・実行できなかった証拠は未取得理由と再開条件を記す。
+- [ ] **旧#219-7：停止staffのForbidden。** Webの戻りリンク循環と権限・旧Session、Android上の拒否文言/戻る/Navigation、前後DB・Sessionの不変性を最終SUTで実証し、既知不具合の修正有無とFAILを判定する。
+- [ ] **旧#219-13：Web視覚・a11y。** Desktop/Tablet/Mobileの320/390/767/768/1023/1024/1440px、Empty/Loading/Error/Conflict、Keyboard/Focus/axe、正式正本画像との比較を最終HEADの保存証拠で判定する。#219の過去UI Review画像差分や成功時Artifact未保存を未判定のまま残さない。
+- [ ] **旧#219-14：Android端末実証。** 実機または妥当なエミュレータで、Maestro等によるNavigation、停止/再開、Role/Session、SQLite、Forbidden、戻る、画面状態のCaseを実行し、端末/OS/アプリSHA・Run/動画/画面と実行不可条件を記録する。Native Component jobの成功だけで代替しない。
+- [ ] **旧#219-15：DBとrollback。** Web IndexedDB/DexieとAndroid SQLite、Session、Cart/Checkout/Order/Payment/Shipment/History等の採用Case別before/after、失敗注入/競合、transaction rollback、機密非露出を確認し、テーブル全数や実行範囲を偽らない。
+- [ ] **旧#219-19：採用Caseの独立レビュー。** 正式Case全件の期待・観測・PASS/FAIL/BLOCKED・修正先（#210等）・証拠の実在と残リスクを、実施者とは独立に確認し、判断者・指摘・再検証結果を残す。レビュー未実施は完了にしない。
+- [ ] **旧#219-20：正式採用Caseの対応・最終判定。** #213のBR/AC/Risk/TR/Condition/Case採否、79要件・188操作＋20状態・29横断要件、既存テストのassertionと新規Caseを突合し、採用/既存再利用/不要/保留を確定。208動作に一律新規E2Eを課さず、未受入条件と製品FAIL・環境BLOCKEDを含めて#199の最終受入結果へ反映する。
+
+本節の実受入はScenario Shopの対象機能についての判定であり、本文冒頭に記載した**#199マージ後のPublic Template公開や本人Private repo/2コアCodespaces実受入**とは別工程。ここに未完了・FAIL・BLOCKEDが残る場合、全受入が完了したとは記載せず、#199の完了/マージ可否を別途判断する。
