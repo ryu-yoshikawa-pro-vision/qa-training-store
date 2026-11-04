@@ -225,3 +225,10 @@
 - `tests/integration/pr219-checkout-boundaries.test.ts`に`regular`顧客が`start→setAddress→setPayment`を終えてconfirm-readyになった状態でCart versionを+1してから、`getConfirmation`と`beginOrder`が両方`CART_VERSION_CHANGED`を返すことを検証するCaseを追加。
 - 固定Seed`cart-version-invalidates-checkout`の`unlockedStep=address`をそのまま確認画面の代用にせず、**実際に確認画面到達後にCartだけ変更**する。Cart/Checkout/Order/Payment/Inventory/Historyを操作前後で比較して拒否後の不変性をassert。
 - 既存の確認画面エラーからCartへ戻る導線・視覚正本/a11yと、Web上の二重押下は別に実行証拠が必要。追加CaseのCI結果と併せて確認するまで11番は保留。
+
+## Confirm-ready CheckoutでCartを更新した実Webのエラー導線
+
+- 受入用`e2e/web/pr219-cross-role-lifecycle.spec.ts`に`regular-member`→住所登録→`/checkout/address`→`/checkout/payment`→`/checkout/confirm`へ通常UIだけで到達した後、Cart画面で数量変更してから`/checkout/confirm`を開くCaseを追加。
+- 期待する安全性：古い確認画面と確定ボタンを表示せず、更新されたCartを確認してやり直す導線を用意する。現SUTの`CheckoutLoadError href="/checkout/payment"`を画面で検証し、`戻って確認する`が`/checkout/payment`を指す**既知仕様不適合候補の再現テスト**として扱う。テストが成功しても製品適合PASSには計上しない。
+- このCaseは既存`cart-version-invalidates-checkout`の`unlockedStep=address`を確認完了と誤認しない。実際にconfirm-ready後に数量を変更し、IntegrationのCart version拒否・DB不変と別Runで紐付ける。
+- Web実行・a11y・Trace/動画/DB前後の証拠は最新CIで確認するまで未受入。#210への不具合連絡は再現後に行う。

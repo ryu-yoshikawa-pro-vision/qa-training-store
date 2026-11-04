@@ -1,4 +1,4 @@
-import { expect, login, test } from "./fixtures";
+import { addDefaultAddress, expect, login, test } from "./fixtures";
 
 test.describe("PR #219: WEB Role and direct-route acceptance", () => {
   test("SCREEN-BOUNDARY-FORBIDDEN-A01-01: guest direct routes do not expose protected UI", async ({
@@ -276,5 +276,41 @@ test.describe("PR #219: admin product list and selected-filter boundary", () => 
     await page.locator('.admin-page input[type="search"]').fill("PR219-NO-MATCH");
     await expect(page.getByText("0件選択")).toBeVisible();
     await expect(page.getByRole("button", { name: "選択を公開" })).toBeDisabled();
+  });
+});
+
+test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
+  test("KNOWN DEFECT REPRO: confirmed Checkout returns to payment instead of Cart", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("regular-member");
+    await addDefaultAddress(page);
+    await page.goto("/checkout/address");
+    await page.locator('input[name="address"]').check();
+    await page.getByRole("button", { name: "この配送先を使用" }).click();
+    await expect(page).toHaveURL(/\/checkout\/payment$/);
+    await page
+      .getByRole("radio", {
+        name: "テスト決済（成功） 支払い完了を再現します。",
+      })
+      .check();
+    await page.getByRole("button", { name: /を確認する$/ }).click();
+    await expect(page).toHaveURL(/\/checkout\/confirm$/);
+    await expect(page.getByRole("heading", { name: "注文内容を確認" })).toBeVisible();
+
+    // The Checkout was confirm-ready before Cart was updated.
+    await page.goto("/cart");
+    const quantity = page.getByLabel("数量").first();
+    await quantity.selectOption("3");
+    await expect(quantity).toHaveValue("3");
+
+    await page.goto("/checkout/confirm");
+    await expect(
+      page.getByRole("heading", { name: "購入手続きを続けられません" }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "注文内容を確認" })).toHaveCount(0);
+    const recovery = page.getByRole("link", { name: "戻って確認する" });
+    await expect(recovery).toHaveAttribute("href", "/checkout/payment");
   });
 });
