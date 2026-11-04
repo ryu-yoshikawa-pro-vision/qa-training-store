@@ -44,15 +44,17 @@ function parseCsv(source) {
   const [header, ...rows] = records;
   if (!header?.length) throw new Error("Missing CSV header");
   if (new Set(header).size !== header.length) throw new Error("Duplicate CSV column");
-  return {
-    header,
-    rows: rows
-      .filter((values) => values.some(Boolean))
-      .map((values) => {
-        if (values.length !== header.length) throw new Error("Inconsistent CSV column count");
-        return Object.fromEntries(header.map((column, index) => [column, values[index]]));
-      }),
-  };
+  const entries = [];
+  for (const values of rows) {
+    if (!values.some(Boolean)) continue;
+    if (values.length !== header.length) throw new Error("Inconsistent CSV column count");
+    const entry = {};
+    for (const [index, column] of header.entries()) {
+      entry[column] = values[index];
+    }
+    entries.push(entry);
+  }
+  return { header, rows: entries };
 }
 
 function readCsv(path) {
@@ -94,7 +96,8 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       // An expected Seed clock is not evidence of an observed runtime clock.
       expect(item.clock_basis).toMatch(/(実測ではない|実測値は未取得)/);
       if (item.case_id.startsWith("KNOWN DEFECT REPRO:")) {
-        expect(`${item.case_result} ${item.note}`).toMatch(/(製品FAIL|製品不具合|不具合の期待失敗)/);
+        const classification = `${item.case_result} ${item.note}`;
+        expect(classification).toMatch(/(製品FAIL|製品不具合|不具合の期待失敗)/);
       }
     }
   });
@@ -126,9 +129,10 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       const keys = refs.split(";");
       expect(new Set(keys).size).toBe(keys.length);
       for (const key of keys) {
-        expect(byKey.get(key)?.some((item) => item.behavior_id === behavior.behavior_id)).toBe(
-          true,
+        const matchingEvidence = byKey.get(key)?.some(
+          (item) => item.behavior_id === behavior.behavior_id,
         );
+        expect(matchingEvidence).toBe(true);
       }
     }
     expect(linkedBehaviors).toBeGreaterThanOrEqual(11);
@@ -136,11 +140,11 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       if (behaviorIds.has(item.behavior_id)) continue;
       expect(item.behavior_id).toMatch(/^(BR|AC)-/);
       // Requirement-only names do not prove any particular Behavior.
-      expect(
-        behaviorLedger.rows.some((behavior) =>
-          behavior.matched_web_evidence_case_keys.split(";").includes(item.evidence_case_key),
-        ),
-      ).toBe(false);
+      const incorrectlyLinked = behaviorLedger.rows.some((behavior) => {
+        const refs = behavior.matched_web_evidence_case_keys.split(";");
+        return refs.includes(item.evidence_case_key);
+      });
+      expect(incorrectlyLinked).toBe(false);
     }
   });
 
