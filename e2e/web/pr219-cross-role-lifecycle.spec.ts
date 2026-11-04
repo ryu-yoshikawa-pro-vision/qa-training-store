@@ -571,6 +571,37 @@ test.describe("PR #219: many-products filter and pagination boundary", () => {
   });
 });
 
+// Full-page images can show the fixed navigation over the footer even when
+// the viewport's final scroll position keeps footer content reachable.
+async function assertMobileCatalogPageEndReachable(
+  page: Page,
+  state: "empty-catalog" | "filter-empty",
+  width: number,
+) {
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const navigation = page.getByRole("navigation", { name: "モバイルナビゲーション" });
+  const pageEnd = page.getByText("実際の注文・決済・配送は行われません。").last();
+  const [navigationBox, pageEndBox] = await Promise.all([
+    navigation.boundingBox(),
+    pageEnd.boundingBox(),
+  ]);
+  expect(navigationBox).not.toBeNull();
+  expect(pageEndBox).not.toBeNull();
+  expect((pageEndBox?.y ?? 0) + (pageEndBox?.height ?? 0)).toBeLessThanOrEqual(
+    navigationBox?.y ?? 0,
+  );
+  console.log(
+    "PR219_CASE_EVIDENCE " +
+      JSON.stringify({
+        behavior: "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+        condition: "mobile-footer-not-obscured-by-fixed-navigation",
+        state,
+        width,
+        pageEndReachable: true,
+      }),
+  );
+}
+
 test.describe("PR #219: storefront empty responsive and accessibility evidence", () => {
   const viewports = [
     { width: 320, height: 700 },
@@ -622,6 +653,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
         });
         expect(violations).toEqual([]);
       }
+      if (viewport.width === 320 || viewport.width === 390) {
+        await assertMobileCatalogPageEndReachable(page, "empty-catalog", viewport.width);
+      }
     }
 
     await page
@@ -651,6 +685,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
         body: await page.screenshot({ fullPage: true }),
         contentType: "image/png",
       });
+      if (viewport.width === 320 || viewport.width === 390) {
+        await assertMobileCatalogPageEndReachable(page, "filter-empty", viewport.width);
+      }
     }
     const reset = page
       .locator(".state-panel--filter-empty")
