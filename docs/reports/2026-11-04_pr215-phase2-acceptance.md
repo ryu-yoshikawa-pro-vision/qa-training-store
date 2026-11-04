@@ -204,3 +204,13 @@
 - **判定**：`M05-04`のチェックは「Web-first/自動待機・エラーの区別を演習と負例へ反映し、隔離実行で動作を検証した」範囲で完了。**受講者の習得・実ShopのPASSを意味しない**。`M05-01/02/03/05`と横断Chromium項目は未完了を維持。
 
 **Progress: 24% (6/25)**。残り19項目は必要な専用Chromium実Run、固定配布Shop・受講者成果物/環境の証拠が不足。
+
+## 2026-11-04 継続作業：M05-03の保証範囲
+
+- **確認対象HEAD**：`94fda6d52c49cd8e4c1bf111b060be6d8a5f113f`。M05教本 Blob `00c9ae45b267884a49d73ea8ea944aa87ac5df7b`、M05演習 Blob `aff22b4943d323fdcff8fe8e7a9969edf7646685`、M05提出テンプレート Blob `353d38605497bc73a29f2728d980660920f62b8c`。
+- 読み取り専用で照合した**製品実装**：`src/presentation/pages/cart-page.tsx` Blob `2718f5e23af7bc6362652969771ce15b9931d1f5`（`getCart`・`updateQuantity`とUI表示更新）、`src/application/use-cases/cart-use-cases.ts` Blob `222bdaa3568fc11bdbc3f0e8bab0e0bf13e02fa6`（Cart Use Case）、`src/infrastructure/database/dexie/database.ts` Blob `fb0e65aaaf16a4ce0c42f6c33be43d13b9f0eb54`（ブラウザ内Dexieの`carts`/`cart_items`テーブル）。実装を読んだだけで保存の実行成功を確認したとは言わない。
+- M05教本§7.2・演習P05/P06・提出欄に、(1)ボタン可視/クリック、(2)追加通知、(3)Cartの対象行と数量、(4)同一Contextの再読み込み後の状態、(5)IndexedDB直接照合を分けた判断表を追加。UI表示・再読み込みと、DBへの直接保存・他Context/サーバー・注文作成の保証範囲を区別した。P05の削除ボタンは押さない。
+- 前節の隔離Chromiumで「操作可能になったボタンのクリックは成功したが、`status`に数量0が残り、期待数量1のAssertionは失敗する」という現象を確認した。実際のScenario Shopの数量更新失敗を再現したわけではない。
+- **判定**：`M05-03`は弱いAssertionと業務結果・保存を分ける**教材の判断基準**として完了。本人の8082 Run、Cartの業務テスト、IndexedDBへの書込み・再読み込み・別Contextの実証は未実施。`M05-01/02/05`、横断Playwright項目は未チェック。
+
+**Progress: 28% (7/25)**。残り18件。
