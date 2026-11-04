@@ -116,8 +116,18 @@ test("M05 P05: 2明細の数量と削除操作対象を識別する", async ({ p
 ```
 
 ```bash
+p05_spec=workspace/M05/p05-cart-locator.spec.ts
+test -f "$p05_spec" && test ! -L "$p05_spec" || {
+  echo "本人のP05 specがありません、またはsymlinkです: $p05_spec"; exit 1;
+}
 mkdir -p workspace/M05/evidence
-p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)"
+p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)" || exit 1
+cp -- "$p05_spec" "$p05_output/spec-snapshot.ts" || exit 1
+p05_before_sha="$(sha256sum "$p05_output/spec-snapshot.ts" | cut -d ' ' -f 1)"
+p05_current_sha="$(sha256sum "$p05_spec" | cut -d ' ' -f 1)"
+test "$p05_before_sha" = "$p05_current_sha" || {
+  echo "実行前にspecが変更されました。再取得してください"; exit 1;
+}
 p05_exit=0
 PLAYWRIGHT_TEST_ROOT=workspace/M05 \
   AI_QA_OUTPUT_ROOT="$p05_output" \
@@ -125,12 +135,16 @@ PLAYWRIGHT_TEST_ROOT=workspace/M05 \
     --config=playwright.ai-assisted-qa.config.ts \
     --project=ai-assisted-qa-chromium --retries=0 \
     > "$p05_output/console.log" 2>&1 || p05_exit=$?
+p05_after_sha="$(sha256sum "$p05_spec" | cut -d ' ' -f 1)"
 cat "$p05_output/console.log"
-printf 'exit_code=%s\noutput_root=%s\n' "$p05_exit" "$p05_output"
-sha256sum workspace/M05/p05-cart-locator.spec.ts
+printf 'exit_code=%s\noutput_root=%s\nspec_sha256=%s\n' \
+  "$p05_exit" "$p05_output" "$p05_before_sha"
+test "$p05_before_sha" = "$p05_after_sha" || {
+  echo "実行中にspecが変更されました。この結果は採用できません"; exit 1;
+}
 ```
 
-`$p05_output/playwright-result.json`の対象test名・件数・結果、実行前後の画面、同じ出力ディレクトリの必要なTrace/画像、spec SHA-256、終了コードを提出欄へ記録します。実行後のspec変更は同じ結果として扱いません。成功した場合でも、これは`course:run`が生成する`run-evidence.json`（Run ID、`source_sha`等）とは**別の直接実行**です。後で正式なRunが必要な項目の代用にせず、受入側では取得方法の違いを明示します。
+`$p05_output/spec-snapshot.ts`は実行前に保存した本人specのコピーです。実行直前と直後のspec SHA-256がそのコピーと一致することを確認します。不一致なら、そのJSON reportを該当specの成功証拠として採用しません。`$p05_output/playwright-result.json`の対象test名・件数・結果、実行前後の画面、必要なTrace/画像、spec SHA-256、終了コードを提出欄へ記録します。Playwrightの終了コードが非0、reportがない、対象testが一致しない場合はPASS扱いしません。成功した場合でも、これは`course:run`が生成する`run-evidence.json`（Run ID、`source_sha`等）とは**別の直接実行**です。後で正式なRunが必要な項目の代用にせず、受入側では取得方法の違いを明示します。
 
 **完了確認**：P01〜P04は実行した新規スクリプトの出力を残し、P05/P06は既存Locator修正の再掲ではなく別の要素・別の判断を記録します。練習用短コードの出力をPlaywrightの`course:run`と混同しません。
 
