@@ -52,3 +52,13 @@
 
 - 1件目の静的調査は、上記固定HEADのソースと既存資産を確認したため完了。
 - 2件目以降はCase単位の実Run・DB前後・証拠パスが未収集であり、完了としない。今後の実Runはこのレポートと混同せず実行時の固定HEADと証拠を追記する。
+
+## 新規受入用Integrationテスト（動的なWeb受入とは別判定）
+
+- 追加対象：`tests/integration/pr219-admin-user-acceptance.test.ts`（新規ファイル。既存製品テストは変更しない）。
+- Case ID：`SCREEN-ADMIN-USER-DETAIL-A02-03`。関連：`BR-ADMINUSER-001`、`AC-ADMINUSER-001`。
+- 条件1：isolated Dexieでactive adminを2人にセットし、有効actorからもう1人をoperatorへ変更する。2→1の許可、対象者のSession削除、最後に残ったadminの自己変更拒否と不変を検証。
+- 条件2：対象者のversionが読み取り後に変わった状態で、古いexpectedVersionのRole変更を実行する。`CONFLICT`拒否、ユーザーとSessionの不変を検証。
+- Seed：`default`、固定時刻：`2026-07-15T03:00:00.000Z`。Roleとversionの競合fixtureはテスト専用Dexie DB内でのみ作成する。
+- 実行入口：`pnpm run test:integration`（`vitest run tests/integration`）。現時点では**CI結果・終了コード・実Run証拠は未確認**。追加ソースを実行済みPASSとしない。
+- 制限：Web UI、Android、真正の同時actor競合、非self最終admin拒否はこのIntegrationテストで検証していない。チェックリストの認証/管理ユーザー実証項目は未完了のまま。

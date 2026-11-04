@@ -5,3 +5,5 @@
 - 結果：タスクリスト1件目のみ完了。実行環境でのテストとCase証拠は未実施。
 - 詳細・再開条件：`docs/reports/2026-11-04_pr219-sut-acceptance-inventory.md`。
 - 制限：GitHub接続による作業のためローカル`scripts/new-run.sh`は実行できない。直接作成が禁止された`run.json`は作らず、マニフェストなしの作業記録とする。
+
+- 次の採用Caseの準備：`tests/integration/pr219-admin-user-acceptance.test.ts`を新規に追加し、管理者2→1とstale CAS・状態不変の独立Integrationケースを定義。CI実行の成否は未確認、タスクリストの追加チェックなし。
