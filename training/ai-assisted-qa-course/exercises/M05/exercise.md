@@ -123,4 +123,4 @@ sha256sum workspace/M05/p05-cart-locator.spec.ts
 
 ### 固定Skillと本人の判断
 
-固定Skillの`e2e-test-inspection`を使える場合は、P05のLocator候補と実画面・失敗Runを入力して検査し、修正の必要性を本人が判断します。`e2e-test-implementation`に変更案を依頼するときは`workspace/M05/product-link.spec.ts`以外の書込みを禁止し、差分・前後のRunで検証します。起動していないSkillやAIの自己申告を実行証拠に含めません。
+固定Skillの`e2e-test-inspection`を使える場合は、P05のLocator候補と実画面・失敗Runを入力して検査し、修正の必要性を本人が判断します。`e2e-test-implementation`に変更案を依頼するときは、既存Locatorの課題では`workspace/M05/product-link.spec.ts`だけ、P05の新規Cart明細課題では`workspace/M05/p05-cart-locator.spec.ts`だけを編集対象に指定します。両方の依頼で他方のspec・製品コード・Configの変更を禁止し、提案を本人が実画面と仕様で確認した後、実行結果と差分を検証します。起動していないSkillやAIの自己申告を実行証拠に含めません。
