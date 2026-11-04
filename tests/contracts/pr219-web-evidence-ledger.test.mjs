@@ -92,7 +92,9 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       // An expected Seed clock is not evidence of an observed runtime clock.
       expect(item.clock_basis).toMatch(/(実測ではない|実測値は未取得)/);
       if (item.case_id.startsWith("KNOWN DEFECT REPRO:")) {
-        expect(`${item.case_result} ${item.note}`).toMatch(/(製品FAIL|製品不具合|不具合の期待失敗)/);
+        expect(`${item.case_result} ${item.note}`).toMatch(
+          /(製品FAIL|製品不具合|不具合の期待失敗)/,
+        );
       }
     }
   });
