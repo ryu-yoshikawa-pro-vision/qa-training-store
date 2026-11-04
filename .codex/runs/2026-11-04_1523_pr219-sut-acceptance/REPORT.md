@@ -57,3 +57,6 @@
 - 2026-11-04 Web証拠行の識別を補完：`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`の39実行行に22種類の暫定証拠キー・既知要件参照・対応状況を追加。既存結果は維持し、要件IDだけでBehavior未確定の6行を明示。正式Case採用と29横断要件は#213判断待ち。詳細：`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md`。タスクリスト14/21（残7）のまま。
 
 - 停止staffのWeb Caseで表別IndexedDB SHA-256の前後比較とFocus→EnterによるForbidden戻りを専用E2Eへ追加（`a2f0ea9`）。CI未実行・Android/SQLiteはBLOCKED。専用レポート `docs/reports/2026-11-04_pr219-forbidden-staff-web-native.md` に再開条件を記録。タスク7・15は未チェック。
+
+- Web証拠にSeed Clock期待値を付与：39実行行に`BASE_CLOCK`由来の期待時刻を実測と分けて追記。208動作表の11動作に19種のWeb証拠キーを接続（197動作・要件IDのみの6実行行は未確定）。前の全列・行数不変を確認。
+- Checkout stale-cartの既知不具合再現と、7幅・axe・Focus/Enterの視覚E2Eを分離（`84d3a45`）。新テストのCI成功は未確認。#199の共有CIで成功時Artifactが保存されない問題、Android/SQLiteや正式Case採否を未受入とし、チェックは14/21のまま。対象レポート：`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md`、`docs/reports/2026-11-04_pr219-web-responsive-visual-a11y.md`。
