@@ -268,3 +268,17 @@
 - **実行環境の制約**：現在の作業環境から受講者のPrivate Codespaces、配布済み`course/shop`と`.course/distribution-manifest.json`、`workspace/M05`〜`M07`の本人作成ファイルは実行・取得できていない。GitHub Actions内で専用`course:run`が起動された証拠もない。従ってM05 P03/P05・M06 initial/repeat・M07 before/after・OpenCode協働・Git/PR不要の本人バックアップは`未実行`。これらをチェック済みにするには固定配布SHAの専用8082環境でRun ID、spec snapshot、report、Trace/終了コード等を採取して同じrevisionと照合する必要がある。Private 2コアCodespacesでの実受入は並行作業Plan上、PR #199のマージおよび公開配布後の工程に指定されており、本PR内での実施を偽らない。
 
 **Progress: 28% (7/25)**。今回修正した2つのCI回帰は25受入項目外。学習者実Run・正式評価の達成チェックは追加しない。
+
+## 2026-11-04 M06/M07点検と固定HEAD別のテスト・CI報告
+
+- **今回の調査対象HEAD**：`37e8493524a20eb381757f215207542d3b3322d9`（PR #215の当該作業時点、baseはPR #199の`docs/plan-ai-agent-qa-curriculum-redesign`）。前HEAD `a538b5d75a756f7b2ae2c2d431facf3df63ae424` の[Web CI #41842768500](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41842768500)は`success`。**今回の追加変更後HEAD** `37e8493524a20eb381757f215207542d3b3322d9` の[Web CI #41845768521](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41845768521)は確認時`pending`であり、そのテスト結果をPASSとみなさない。
+- **M05（技術的確認）**：`exercises/M05/exercise.md`（Blob `78c89553296a0a079e640493db294c2961b77fc5`）のP05直接実行は、既存のspec snapshot SHA前後照合・JSON report存在・非0終了拒否に加え、**report内に対象spec以外のtestが混入しないこと、対象testが1件以上あり、最後の結果と期待結果がともに`passed`であること**をNode.jsで確認するよう変更。空`suites`だけのJSONやskip、期待失敗、別specをPASSとしない。専用契約テスト`tests/contracts/ai-assisted-qa-phase2-direct-run.test.mjs`（Blob `190f470e72de2e350cc33a9aebc4fac4d3c33504`）に負例を追加した。ただし**追加後のVitest PASSは新CIで未確認**。実ShopのP05専用Chromium、本人作成spec、2明細の実行は未実施。
+- **M06（技術的確認）**：`exercises/M06/exercise.md`（Blob `d38f1882030e4ab4fd2629a2925574e8e80e2e39`）に、`run-evidence.json`の`module_id/spec_path/label/run_id/exit_code/outcome/spec_unchanged_during_run/tests`を同一Runの`spec-snapshot.ts`とJSON reportに対応付ける指示を追加。**2件という数だけでなく**CASE-CART-004/005の各test名と業務Assertionを両Runで確認するよう提出テンプレートも修正。固定3 Caseの参考spec、削除004参考spec、数量更新005参考specの存在はGitHub上で確認済みだが、実Playwrightのinitial/repeatによる2件以上PASSや本人の独立Case構成は未確認。
+- **M07（技術的確認）**：`exercises/M07/exercise.md`（Blob `a80b1459c5e58b06a97814a424ab5fa47cee3f47`）に、3番目のtestは**数量2への更新→Cart外へ移動→Cartへ再入場→数量2確認**が必要であり、`page.reload()`だけでは不足することを明記。Page Objectとfixtureを同じ`maintenance.spec.ts`へ置く指示を追加。`course:run`がsnapshot・SHAを取るのは対象spec単体であるため、外部helperファイルへ分割する場合はimport・別ファイルのSHAとbefore/after時点の保存が別途必要とした。提出・引継ぎテンプレートへ記録欄を追加。**M07本人の2件before／3件afterの別Runは未実施**。
+- **担当境界の不整合**：`assessment/playwright/M07/maintenance-after/cart.spec.ts`（Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`）の3番目の参考testは`page.reload()`のみで、教材が要求する別ページ経由のCart再入場を検証していない。#217所有の`assessment/**`は本ブランチで変更せず、[PR #217への引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6632850727)に正本の仕様差と修正・実Run検証条件を記載。
+- **Playwright実Runの実施状況**：本人M05 `product-link` before/after＝未実行、M05 P05直接＝未実行、M06固定3 Case＝未実行、M06 004/005 initial/repeat＝未実行、M07失敗診断A＝未実行、M07 repaired before/after＝未実行、M07 maintenance 2件before/3件after＝未実行。専用8082配布Shop／学習者Private Codespaces／固定配布manifestの実環境を、この作業環境では操作できていない。前回の隔離Linux stubは**Playwrightや受講者の実Runではない**。
+- **残リスクと再開条件**：教材・参考specの意味的整合だけでは目標達成とは判定できない。固定配布SHA・専用8082のChromiumで、実行された本人spec snapshot、`source_sha`、`spec_sha256`、対象test名・業務Assertion、別`run_id`、`exit_code/outcome`、JSON reportと必要なTraceを収集し、参照specや合成ログを本人の過去学習へ転用しないこと。正式AI評価は#217、配布機構は#218の範囲で調停する。
+
+**報告項目の判定**：対象テスト、CIの確定結果と未確定結果、Playwright実Runの未実施範囲、必要な再開条件を固定HEADで報告した。**受入チェック25件のうち「対象テスト、Playwrightの実Run、CI、証拠/残リスクを固定HEADで報告。実行環境がない項目は未実行として残す」は報告業務として完了**。M05/M06/M07の実Run・本人技能達成を完了に変更しない。
+
+**Progress: 32% (8/25)**。未完了17件。
