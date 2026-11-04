@@ -61,9 +61,7 @@ describe("PR #219: storefront loading/error/empty state boundary", () => {
       .mockResolvedValueOnce(emptyResult());
 
     const { container } = render(<CatalogListPage mode="products" />);
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "商品一覧を読み込んでいます。",
-    );
+    expect(await screen.findByRole("status")).toHaveTextContent("商品一覧を読み込んでいます。");
     expect(rejectFirst).toBeDefined();
     await act(async () => {
       rejectFirst!(new Error("PR219_INJECTED_DATABASE_FAILURE"));
@@ -75,29 +73,13 @@ describe("PR #219: storefront loading/error/empty state boundary", () => {
     expect(screen.queryByText("現在、表示できる商品はありません")).not.toBeInTheDocument();
 
     fireEvent.click(retry);
-    expect(await screen.findByRole("heading", {
-      name: "現在、表示できる商品はありません",
-    })).toBeVisible();
+    expect(
+      await screen.findByRole("heading", {
+        name: "現在、表示できる商品はありません",
+      }),
+    ).toBeVisible();
     expect(container.querySelector(".state-panel--error")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "条件をすべて解除" })).not.toBeInTheDocument();
     expect(search).toHaveBeenCalledTimes(2);
-  });
-
-  it("temporarily emits canonical storefront Prettier formatting", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const paths = [
-      "e2e/web/pr219-cross-role-lifecycle.spec.ts",
-      "tests/component/pr219-storefront-states.test.tsx",
-    ];
-    const results = [];
-    for (const path of paths) {
-      const formatted = await prettier.format(await readFile(path, "utf8"), {
-        ...(await prettier.resolveConfig(path)),
-        filepath: path,
-      });
-      results.push([path, formatted]);
-    }
-    console.log("PR219_STOREFRONT_FORMAT_JSON=" + JSON.stringify(results));
   });
 });
