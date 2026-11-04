@@ -138,8 +138,8 @@ describe("サポート機能の仕様と実装の追跡", () => {
       );
     }
     const crossCutting = mutated((next) => {
-      next.requirements.find((item) => item.id === "ROLE-01")
-        .requirement_analysis.cross_cutting_contract = "tests/contracts/not-found.ts";
+      const item = next.requirements.find((entry) => entry.id === "ROLE-01");
+      item.requirement_analysis.cross_cutting_contract = "tests/contracts/not-found.ts";
     });
     expect(() => validateCoverage({ root, data: crossCutting })).toThrow(
       /requirement analysis lacks verified evidence/,
@@ -1202,11 +1202,13 @@ describe("サポート機能の仕様と実装の追跡", () => {
       "SCREEN-REVIEWS-EDITOR-A02-01",
       "SCREEN-ADMIN-ORDERS-A02-01",
     ]) {
-      expect(data.behaviors.find((entry) => entry.id === id)?.indirect_use_case_review).toBeTruthy();
+      expect(
+        data.behaviors.find((entry) => entry.id === id)?.indirect_use_case_review,
+      ).toBeTruthy();
     }
     const changed = mutated((next) => {
-      next.behaviors.find((entry) => entry.id === "SCREEN-ADMIN-USERS-A01-02")
-        .related_use_cases.push("UnknownUseCase.list");
+      const item = next.behaviors.find((entry) => entry.id === "SCREEN-ADMIN-USERS-A01-02");
+      item.related_use_cases.push("UnknownUseCase.list");
     });
     expect(() => validateCoverage({ root, data: changed })).toThrow(
       /unknown related Use Case/,
