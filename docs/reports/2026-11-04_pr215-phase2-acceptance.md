@@ -405,3 +405,13 @@
 - **未修正3：M07 P05の参照3件目**：参照`maintenance-after/cart.spec.ts`は2件→3件でtest/fixture/業務Assertionはあるが、3件目は`page.reload()`のみ。教材と提出欄が求める「Cart以外へ移動してCartへ戻る」に一致しない。報告済み：[#217コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6632850727)。#215のM07-05完了チェックは付けない。
 - **追加の正式採点境界**：M06固定3件のTODO例外削除だけでPlaywright 0終了となり得ること、004/005の独立test・初回/repeatの両Run・業務Assertionを確認する必要性も[#217へ連絡済み](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6635799444)。
 - **今回の判定**：#217への引継ぎ内容・固定HEAD・未修正状態の照合という#215技術タスクは完了。#217の実装修正、正式評価、参考specのM07-05適合、実Playwrightの証拠は**未完了**。#215で共有scriptや採点資産を変更せず、後続#199最終受入で#217の採用HEADを再照合する。
+
+## 2026-11-05 CI書式修復と担当範囲の最終差分レビュー
+
+- **前HEADのCI**：`9d5c02f640961f97890c9d8a72829899e124bae4`の[Web CI #41932914294](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41932914294)は`failure`。すべての`Vitest (contracts)`・`Training runtime contracts`・`Code Quality`・既存`Chromium E2E (training-web-baseline)`等は成功し、`Style Quality`のみ失敗。これは新課程の8082専用Chromium実証ではない。
+- **フォーマット修復**：`tests/contracts/ai-assisted-qa-phase2-export-guard.test.mjs`、`...-m05-locator.test.mjs`、`...-m06-reset-isolation.test.mjs`、`...-m06-separate-cases.test.mjs`の4件を、リポジトリが使用するPrettier 3.8.1の実際の`format`出力に揃えた。診断用の一時テストは削除済み。前回のM05型検査とM07保全fixtureの修正は`Vitest (contracts)`の成功で裏付けられるが、この新しい整形HEADでの`Style Quality`は確認時点で未完了。
+- **差分レビュー**：#215 PRの変更パス25件を列挙して、M05〜M07の教材・演習・提出/クイズ・担当固有`tests/contracts/ai-assisted-qa-phase2-*`・受入報告・タスクリスト内に収まることを確認した。製品`src/**`、`app/**`、正式`docs/spec/**`、共通Reset/Run/CI、`assessment/**`、配布manifestに変更はない。本人用未完成specを参考答案で置換していない。
+- **残る仕様差**：#217の`run-evidence.mjs`のPlaywright reporter相対パスとM05 P05直接実行receiptの扱い、M07保守後3件目が`page.reload()`のみで別ページ再入場を満たさない点は未解決。#218は教材の配布対応のみ静的照合済み。#215では担当外実装を修正しない。
+- **未実行**：M06参考固定3件と004/005の8082専用Chromium実Run、M07保守前2件/保守後3件の実Run、本人Private Codespaces/OpenCodeの修了実受入、独立した正式AI評価は未取得。再開コマンド・ポート・必要なreport/Trace/SHAは先行節と#199受入表に記録し、未実行をPASSへ変更しない。
+- **新HEAD/CI**：整形修復と一時テスト削除時のHEAD `b6e72bb18fea269204257d463fec6876e261af5b`に対する[Web CI #41936747958](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41936747958)は確認時点`pending`。CIが成功するまで「最新HEADのCI確認」のチェックを付けない。後続の報告・Plan更新commitはさらに新しいHEADとなるため、最新CIの判定は引き続き未確認。
+- **判定**：PR #215の担当範囲・教材/参考/Config/Resetの最終差分**レビュー作業**は完了。M07-05の参考実装整合、専用実Chromium、最新CIの品質ゲート、および#199実受入は完了と判断しない。
