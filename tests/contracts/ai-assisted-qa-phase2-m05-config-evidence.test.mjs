@@ -31,7 +31,7 @@ describe("M05-05：専用Config、ポート、証拠の入口を照合する", (
 
   it("指定testDirと専用reporter/trace/出力先は同じConfigから解決する", () => {
     expect(config).toContain("testDir: settings.testDir");
-    expect(config).toContain('testMatch: /.*\\.spec\\.ts$/');
+    expect(config).toContain("testMatch: /.*\\.spec\\.ts$/");
     expect(config).toContain(
       'const outputRoot = process.env.AI_QA_OUTPUT_ROOT ?? "output/training/ai-assisted-qa"',
     );
@@ -44,7 +44,7 @@ describe("M05-05：専用Config、ポート、証拠の入口を照合する", (
     expect(config).toContain('trace: "retain-on-failure"');
     expect(config).toContain('screenshot: "only-on-failure"');
     expect(config).toContain('name: "ai-assisted-qa-chromium"');
-    expect(config).toContain('process.env.PLAYWRIGHT_TEST_ROOT');
+    expect(config).toContain("process.env.PLAYWRIGHT_TEST_ROOT");
     expect(config).toContain('"verify-distribution"');
     expect(packageJson.scripts["training:ai-assisted-qa:test"]).toContain(
       "--config=playwright.ai-assisted-qa.config.ts",
