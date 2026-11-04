@@ -383,3 +383,9 @@
 - **Trace・ログの境界**：専用Configは`trace: retain-on-failure`と`screenshot: only-on-failure`。失敗時の添付が生成される条件を示すが、実際のTrace/Screenshot/JSON reportは**未取得**。B/CのログをAの実RunやTraceとして提出しない。`training/ai-assisted-qa-course/exercises/M07/submission-template.md`にはA/B/Cの素材区分、Run・失敗行・仕様/Reset・否定証拠とTrace/logの示す範囲を記録する欄がある。
 - **契約テスト**：`tests/contracts/ai-assisted-qa-phase2-m07-diagnostics.test.mjs`（新規）へAの対象商品/Reset/誤Assertion識別子、B/Cの合成扱い、修正対象TODOの失敗と参考afterの業務Assertion、専用ConfigのTrace・Screenshot・reportと3つの別Runを照合する回帰条件を追加。実Chromiumによるbefore/after各Runは#199の最後に検証する。
 - **判定**：M07-02とM07-04のPR #215で対応可能な技術的照合を完了。実Trace・失敗行・学習者によるAIパッチ採否・実Playwright比較までは確認していない。正式実受入と混同しない。
+
+## 2026-11-05 M07 OpenCodeと保守参考specの境界
+
+- **通常OpenCodeの学習用制約**：`exercises/M07/exercise.md`に、本人の最初の失敗診断→追加証拠を一つ示すヒント→本人がコード変更と別Runを取得→実結果に基づく復習、の手順を追記。AIが完成答案を実装したり、Assertion削除やRetry/Timeout延長を無検証で採用したりしないこと、M07の`course:tutor`と正式`course:assess`が異なること、入力するログ/TraceからSecret・認証状態・個人情報を除くことを明記。`tests/contracts/ai-assisted-qa-phase2-m07-diagnostics.test.mjs`へ、この教材上の境界の回帰条件を追加した。**実モデルで段階ヒントの応答を実測したわけではない**。共通Tutorは#217、最終受入は#199の担当。
+- **M07-05参考specの未解決**：#217 branch`work/pr199-formal-assessment`（確認HEAD `5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`）と#215 branchの`assessment/playwright/M07/maintenance-after/cart.spec.ts`は同じBlob`32ae928733c440daaf7a9cc294c68a03e6b9a604`。保守前2件・保守後3件、各testのfixture Reset・Page Objectは存在するが、3件目が`page.reload()`だけで**Cart以外のページへの移動と再入場を実施しない**。#215の演習・提出欄では実際の別ページ経由を必須としている。既存の[PR #217引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6632850727)は未解決のため、M07-05の技術タスクは未チェック。所有外の参考specを#215で変更しない。
+
