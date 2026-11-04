@@ -209,17 +209,4 @@ describe("PR #219: Checkout Session isolation and 24-hour expiry", () => {
       status: "expired",
     });
   });
-
-  // Temporary formatting diagnostics are never kept in the final PR.
-  it("temporarily reports canonical Checkout formatting", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const path = "tests/integration/pr219-checkout-boundaries.test.ts";
-    const config = await prettier.resolveConfig(path);
-    const formatted = await prettier.format(await readFile(path, "utf8"), {
-      ...config,
-      filepath: path,
-    });
-    console.log("PR219_CHECKOUT_PRETTIER_JSON=" + JSON.stringify(formatted));
-  });
 });
