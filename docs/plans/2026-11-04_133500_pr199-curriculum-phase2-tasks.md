@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 52% (17/33)**。現時点で未完了16件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テストを完了したため3件増えた。本人実Runは#199最後に実施する。
+- **Progress: 55% (18/33)**。現時点で未完了15件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。本人実Runは#199最後に実施する。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -25,7 +25,8 @@
   - 製品Cart画面を読み取り、記事・SKU・数量select・削除buttonと参照specの全体各2件/商品行各1件・数量1の照合を契約テストへ固定。削除は非実行（実画面Runは#199最終受入）。
 - [x] `M05-05`：`playwright.ai-assisted-qa.config.ts`、8081/8082/6080、`PLAYWRIGHT_TEST_ROOT`、対象spec、`AI_QA_OUTPUT_ROOT`、Trace/JSON report・`course:run` receiptを読み取りで追跡。M05 P05直接実行と`course:run`の異なる証拠契約を教材/専用テストで確認し、共通実行器の不足は#217に引き継ぐ。
   - 専用Configの8082/testDir/report/Trace、8081/6080転送、配布検証とP05直接実行・`course:run` receiptの差をソースで照合。固有の契約テストを追加。JSON reporter相対パスの共有実行器不具合は#217へ引継ぎ済み。
-- [ ] 公開M05参照specの2明細Locatorを、実行可能な既存の学習用環境/CIで技術検証する。実行できない場合は必要なサーバー・Config・コマンド・期待/未取得証拠を記録し、受講者が実行したとは報告しない。
+- [x] 公開M05参照specの2明細Locatorを、実行可能な既存の学習用環境/CIで技術検証する。実行できない場合は必要なサーバー・Config・コマンド・期待/未取得証拠を記録し、受講者が実行したとは報告しない。
+  - 現作業環境にcheckout/pnpm/専用8082がないため実ChromiumはBLOCKED。参考specのBlob SHA、専用Config/port、正確な実行コマンド、取得すべきreport/Trace/終了コードと再開条件を受入レポートへ記録した。**実行成功のチェックではない**。
 
 ## M06：別条件からのWeb E2E実装
 
