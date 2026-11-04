@@ -44,10 +44,10 @@
 
 ## M04：Phase 1総合演習（4目標）
 
-- [ ] `M04-01`：正しいAI案は採用し、誤りだけを仕様根拠付きで修正する演習と採否理由
-- [ ] `M04-02`：事例の動作/リスク/費用からUnit/Integration/Component/Web E2Eを選び理由を説明
-- [ ] `M04-03`：Automate/Later/Do not automateを頻度・再現性・保守費用・リスクで判断
-- [ ] `M04-04`：仕様未決・製品不具合・環境障害・AI推測を区別し、確認事項を保持。正式Phase修了は評価ブランチへ引継ぎ
+- [x] `M04-01`：正しいAI案は採用し、誤りだけを仕様根拠付きで修正する演習と採否理由
+- [x] `M04-02`：事例の動作/リスク/費用からUnit/Integration/Component/Web E2Eを選び理由を説明
+- [x] `M04-03`：Automate/Later/Do not automateを頻度・再現性・保守費用・リスクで判断
+- [x] `M04-04`：仕様未決・製品不具合・環境障害・AI推測を区別し、確認事項を保持。正式Phase修了は評価ブランチへ引継ぎ
 
 ## 固定Skillの通し確認・横断受入
 
@@ -110,3 +110,15 @@ GitHubの最新ファイルを再取得し、M02の5目標すべてについて�
 - 新しい専用契約テスト`tests/contracts/ai-assisted-qa-phase1-m03-design.test.mjs`を追加した。
 
 各目標について演習・提出・採点・state・クイズの参照をGitHubの最新ファイルで静的に確認。**Vitestの実行、実Shop操作、固定Skillの実Run、本人のLevel 2、CIは未実施・未受入**。教材対応をこれらのPASSに読み替えない。
+
+## 2026-11-04 M04-01〜M04-04の教材整合確認
+
+対象：`M04/README.md@afd06cd3cda7296813f1ed4da05b6b2f96a9b614`、演習`M04/exercise.md@d17900feb00926d146105b4a0753f519df696abd`、提出`M04/submission-template.md@50fecc438bb58a973d0ffc5a0df88e824ea4d78d`、`M04-CR-01〜04`・`M04-Q01〜04`・start/end revision `ai-assisted-qa-course-v3`を照合。
+
+- `M04-01`：P01〜P03は検索facetのAND/OR誤読、承認ラベルの未決、在庫0と非公開の重複判断を、仕様根拠に基づき採否・修正する。
+- `M04-02`：P04はUnit計算/Integration Dexie保存/Component数量select/Web E2E導線の**4層を独立**に比較するよう修正。検出できない欠陥と費用、全件E2E案の棄却を提出欄に要求。
+- `M04-03`：P05の確定仕様・データ準備の変化からAutomate/Later/Do not automateを再判定し、再開条件と費用の出典を示す。
+- `M04-04`：P06は本人の別Case、Role/State/Data/Seed・BR/AC・拒否後不変・実Shopでの実行可能性と代替候補を要求。未決の確認先、影響Case、次の担当者への引継ぎを残す。**実Shop上の可否と本人採点は未実行**。
+- 本文中の存在しない「カート更新API」をUse Case→Dexie/IndexedDBへ訂正。別システムのメール再設定例は架空と明記。専用`tests/contracts/ai-assisted-qa-phase1-m04-review.test.mjs`を追加。
+
+GitHubから再取得した教材・P課題・提出・評価条件・クイズ・start/endの静的照合に限る。**Vitest、実M06入力Caseの実行可能性、本人の正式Phase 1評価、CIは未受入**。実行なしでPhase修了とはしない。
