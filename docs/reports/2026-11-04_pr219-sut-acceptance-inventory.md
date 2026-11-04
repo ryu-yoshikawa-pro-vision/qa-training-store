@@ -145,7 +145,7 @@
 - 新規`tests/integration/pr219-actor-revocation.test.ts`はPR #199旧SUTで予想される認可時点差を隔離Dexie DBで再現する。actor=`user-admin`が`requireAdmin()`を通過した後、`change-user-access` transaction開始直前にactorをoperatorまたはsuspendedにしてSessionを削除する。
 - `changeRole(user-operator→admin)`と`changeSuspension(user-customer-regular→suspended)`の両方で**拒否と対象User不変**を正しい受入期待値とする。
 - #199 HEADの`AdminUserUseCases`は`requireAdmin()`をtransactionの外で1度行うだけで、開始時の再認可が存在しない。#210の`product/scenario-shop-maintenance` HEAD `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79`には`assertActorStillAuthorized`があるが、別HEADで未マージ。
-- 旧実装に対するテストは`it.fails`で**期待した拒否が成立しないことを検知する既知不具合再現用**。テストランナーのgreenには含まれても、製品適合PASSに絶対に換算しない。#210で修正された製品HEADを独立検証するとき、`it.fails`を通常の`it`へ変更し、拒否コード・全表不変・同時更新の証拠で受入する。実CI前は現象の動的再現は未確認。
+- 旧#199 SUTに対する現行テストは通常の`it`2件（`KNOWN DEFECT REPRO`）で、**失効済みactorの更新が不正に成功し対象Userを変更すること**をassertする。現在のIntegration job成功は既知不具合の再現であり、製品適合PASSに換算しない。#210の修正HEADでは別の正しい拒否テストに切り替え、拒否コード、User/Session全表不変、並行更新時のrollbackを固定Runで検証する。
 - このテストは固定Seedを書き換えず、隔離DBでのみactor権限とSessionを変更する。DB全表の網羅や、実ブラウザ・Androidの動的判定とは別。
 
 ## Role変更後のSession削除失敗の隔離検証
@@ -157,7 +157,7 @@
 ## ForbiddenRoute 停止staffの戻りリンク（タスクリスト7番は未完了）
 
 - 静的差分：`src/presentation/guards/route-guard.tsx`は管理Routeへ入る際`accountStatus === "active"`を要求。一方`app/forbidden.tsx`の戻りリンク表示条件は`role === "operator" || role === "admin"`のみで、statusを検査しない。停止staffの`currentUser`が残った場合、Forbidden→admin→Forbiddenへ戻る導線が成立する可能性がある。
-- 新規`tests/component/pr219-forbidden-route.test.tsx`はactive operator/customerの基準Caseと停止operatorの期待失敗Case（`it.fails`）で差分を証明する。後者は**製品不具合候補であって製品適合PASSではない**。実CIで旧SUTに対する動的証拠を取得するまでは未再現扱い。
+- 新規`tests/component/pr219-forbidden-route.test.tsx`はactive operator/customerの基準Caseと、停止operatorに管理画面リンクが**誤って表示されること**を確認する通常の`it`（`KNOWN DEFECT REPRO`）で差分を検証する。後者は**製品FAILの再現であって受入PASSではない**。修正後HEADでは安全な戻り先への遷移を別途検証する。
 - `app/forbidden.native.tsx`は`NativeUnsupportedScreen title="この操作はNative前半の対象外です"`を返す一方、正式`docs/spec/roles-and-permissions.md`は権限不足の説明と安全な戻り先を要求する。Androidの見た目・操作は未実行であり、仕様との関係を#210へ引継ぎ、独断で修正しない。
 - DB変更なし、機密children非表示、実ブラウザでの停止staff再現とAndroid実機確認が不足するため7番のチェックは保留する。
 
