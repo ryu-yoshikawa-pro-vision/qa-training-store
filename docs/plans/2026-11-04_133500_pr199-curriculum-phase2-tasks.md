@@ -85,3 +85,10 @@
 - 固定HEAD `94fda6d52c49cd8e4c1bf111b060be6d8a5f113f`で製品Web Cart画面・Cart Use Case・Dexie（`carts`/`cart_items`）と教材の判断表を照合。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に対象Blob SHA、保証できること/できないことを記録。
 - 隔離Chromiumではクリック成功でも数量0のままなら業務AssertionがFAILすることを確認。**Scenario Shopの実Runではない**ので、専用ConfigのChromium受入やCart DBの保存実証には流用せず、M05-02/05および横断項目は未チェック。
 - **Progress: 28% (7/25)**。残り18件。
+
+## 2026-11-04 続き：M05 P05と保全の引継ぎ漏れ
+
+- 前HEAD `9d13270637a49005cd121230f5fc7f9da4d9ab04`の[Web CI #41831786673](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41831786673)は成功。既存の`Vitest (contracts)`・`Style Quality`・Training runtime契約は成功したが、学習者のM05〜M07専用実Runは含まない。
+- M05 P05で本人が新規作成する`p05-cart-locator.spec.ts`、直接Playwright実行の`console.log`・`playwright-result.json`とP03型検査ファイルが、M07のGit/PR不要の保全例から漏れていたため、教材・引継ぎテンプレート・Linux専用の保全回帰テストへ追記。M05 P05にTODOで確実に失敗する最小spec入口を追加し、既存`product-link.spec.ts`と編集対象を分離した。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に根拠を記録。
+- **未完了**：本人の8082実Chromium、正式`course:run`、通常OpenCodeでの段階ヒント、Codespacesでの保全・復元、追加後のCI成功は確認していない。複合チェックは実施証拠が揃うまで変更しない。
+- **Progress: 28% (7/25)**。未完了18項目。
