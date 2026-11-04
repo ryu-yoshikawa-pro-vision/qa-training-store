@@ -68,6 +68,59 @@ pnpm course:run M07 maintenance.spec.ts --label after
 
 **完了条件**：P05は説明だけでなく新しいtestのコードと実行結果を提出します。P02/P03の合成ログは診断計画であり、再現性を実証した結果ではありません。
 
+### Git/PRを使わないPhase 2成果物の保全
+
+Phase 1/2の提出物やTraceを公開リポジトリへpushしません。M08へ移る前に、本人が保管先を決め、**必要なファイルを個別に選び、機密情報を確認してから**手元に保存してください。GitHubのcommit/PRや正式AI評価の実行は、この保全作業の前提ではありません。
+
+1. `workspace/M05/`〜`workspace/M07/`にある本人の提出物とspecを確認します。Runの記録は各モジュールの`evidence/runs/<実際のrun_id>/`内にあり、`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`、必要に応じてTrace・画像等のattachmentを選びます。修正前後の**別Run**と`source_sha`・`spec_sha256`を取り違えないよう、まず`phase2-handoff.md`へ実際の識別子を記録します。
+2. Run内のJSON、Trace、画像、標準出力にはURL、認証状態、個人情報等が含まれる可能性があります。内容を確認できないものは外部へ持ち出さず、**未保全と理由**を記録します。`.env*`、トークン、ブラウザの認証プロファイル、`workspace/.course-assessments/`、非公開採点資料、無関係な生成物を含めません。
+3. Codespacesのターミナルで、リポジトリルートから次のように、本人の成果物**だけ**を一覧にします。ファイルが未作成なら原因を確認し、架空の出力や空のファイルを作って完了扱いにしません。
+
+   ```bash
+   mkdir -p workspace/exports
+   cat > workspace/exports/phase2-files.txt <<'EOF'
+   workspace/M05/submission.md
+   workspace/M05/product-link.spec.ts
+   workspace/M06/submission.md
+   workspace/M06/cart-cases.spec.ts
+   workspace/M06/new-case.spec.ts
+   workspace/M07/diagnosis.md
+   workspace/M07/repaired-assertion.spec.ts
+   workspace/M07/maintenance.spec.ts
+   workspace/M07/phase2-handoff.md
+   EOF
+   ```
+
+4. 実際に採用したRunについて、`workspace/Mxx/evidence/runs/<run_id>/run-evidence.json`・`spec-snapshot.ts`・`playwright-result.json`と、必要なTrace・画像の**実在する相対パス**を`phase2-files.txt`の末尾へ一行ずつ追記します。Runの出力ディレクトリを丸ごと指定せず、対象と内容を確認したファイルだけ追加します。
+5. 下記で対象パス・通常ファイルであることを確認し、アーカイブを作成してチェックサムを検証します。エラーになったら途中のアーカイブを成功証拠として使いません。
+
+   ```bash
+   while IFS= read -r file; do
+     case "$file" in
+       workspace/M05/*|workspace/M06/*|workspace/M07/*) ;;
+       *) echo "対象外のパス: $file"; exit 1 ;;
+     esac
+     test -f "$file" && test ! -L "$file" || {
+       echo "存在しないか、symlinkです: $file"; exit 1;
+     }
+   done < workspace/exports/phase2-files.txt
+
+   tar -czf workspace/exports/phase2.tgz -T workspace/exports/phase2-files.txt
+   sha256sum workspace/exports/phase2.tgz > workspace/exports/phase2.tgz.sha256
+   sha256sum -c workspace/exports/phase2.tgz.sha256
+   tar -tzf workspace/exports/phase2.tgz
+   ```
+
+6. `phase2.tgz`と`phase2.tgz.sha256`をCodespacesから本人だけがアクセスできるローカル保管先へダウンロードします。実際に保管したアーカイブのSHA-256を照合し、信頼できる**空の非公開ディレクトリ**で解凍して提出物・Run記録を読み取れることを確認します。公開URLやGitHub PRへ貼り付けず、`phase2-handoff.md`に保存先（個人情報・秘密情報を含まない表記）、SHA、復元確認の結果を記録します。
+
+   ```bash
+   mkdir -p workspace/exports/restore-check
+   tar -xzf workspace/exports/phase2.tgz \
+     -C workspace/exports/restore-check --no-same-owner --no-same-permissions
+   ```
+
+この手順の確認項目は**ファイルの保全・同一性・読取り**です。コピーしたRun記録だけで未実施のテストをPASSにしたり、実際の製品や本人の修了を証明したりはできません。Codespacesでアーカイブ作成・ダウンロード・復元が行えなかった場合は未実施/BLOCKEDと書き、手順を実施したと偽らないでください。
+
 ### 固定Skillとの協働
 
 `e2e-test-inspection`・`e2e-test-result-analysis`に実失敗AのspecとTraceを提示し、原因仮説を本人が仕様・前後Runで確認してください。`adversarial-review`で「Assertionを弱める」「Retryだけ追加」の提案を検査し、`e2e-test-reporting`で合成B/Cを実行済みと誤記していないか確認します。利用できないSkillは未実行/BLOCKEDと記録し、モデル未接続を本人の失敗診断成功へ読み替えません。
