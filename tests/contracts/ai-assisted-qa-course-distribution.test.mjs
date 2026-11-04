@@ -2364,6 +2364,61 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(true);
   });
 
+  it("rejects a forged cross-module state handoff during full distribution verification", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const originalManifest = fs.readFileSync(manifestPath, "utf8");
+    const scenarios = [
+      { moduleId: "M01", stateName: "start", change: (state) => ({ ...state, inputs: [] }) },
+      {
+        moduleId: "M02",
+        stateName: "start",
+        change: (state) => ({
+          ...state,
+          inputs: [{ ...state.inputs[0], artifact_id: "wrong-artifact-id" }],
+        }),
+      },
+      {
+        moduleId: "M04",
+        stateName: "start",
+        change: (state) => ({
+          ...state,
+          public_fallback: { ...state.public_fallback, path: "inputs/M04/missing.md" },
+        }),
+      },
+      { moduleId: "M06", stateName: "end", change: (state) => ({ ...state, outputs: [] }) },
+    ];
+    for (const { moduleId, stateName, change } of scenarios) {
+      const statePath = `course/states/${moduleId}/${stateName}.json`;
+      const originalState = fs.readFileSync(path.join(fixture.target, statePath));
+      const altered = Buffer.from(JSON.stringify(change(JSON.parse(originalState.toString("utf8")))));
+      writeFixtureFile(fixture.target, statePath, altered);
+      const manifest = JSON.parse(originalManifest);
+      const entry = manifest.files.find((file) => file.target_path === statePath);
+      entry.sha256 = createHash("sha256").update(altered).digest("hex");
+      entry.bytes = altered.length;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+      expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+        /pinned M0[0-9] (start input contract|public fallback contract|end state outputs)/,
+      );
+      writeFixtureFile(fixture.target, statePath, originalState);
+    }
+    fs.writeFileSync(manifestPath, originalManifest);
+    expect(verifySyncedCourseDistribution({ root: fixture.target })).toMatchObject({
+      state_files_verified: 22,
+    });
+  });
+
   it("rejects forged public, writable, or leaky states during full distribution verification", async () => {
     const fixture = courseFixture();
     const sourceSha = "2".repeat(40);

@@ -943,6 +943,7 @@ export function verifySyncedCourseDistribution({ root }) {
     filesByTarget.set(targetPath, { entry, bytes });
   }
 
+  const pinnedStates = new Map();
   for (const moduleId of MODULE_IDS) {
     for (const stateName of ["start", "end"]) {
       const statePath = `course/states/${moduleId}/${stateName}.json`;
@@ -967,7 +968,65 @@ export function verifySyncedCourseDistribution({ root }) {
         !hasValidPublicStateDistribution(state)
       )
         fail(`pinned module state lacks public read-only contract: ${statePath}`);
+      pinnedStates.set(`${moduleId}/${stateName}`, state);
     }
+  }
+
+  // Verify the pinned handoff contracts without relying on mutable learner artifacts.
+  for (const [index, moduleId] of MODULE_IDS.entries()) {
+    const start = pinnedStates.get(`${moduleId}/start`);
+    const end = pinnedStates.get(`${moduleId}/end`);
+    if (!Array.isArray(end.outputs) || end.outputs.length === 0)
+      fail(`pinned ${moduleId} end state outputs are invalid`);
+    const previousId = MODULE_IDS[index - 1];
+    const refs = start.inputs;
+    if (
+      !Array.isArray(refs) ||
+      (previousId === undefined && refs.length !== 0) ||
+      (previousId !== undefined &&
+        (refs.length === 0 ||
+          refs.some((input) => {
+            if (
+              input?.from_module !== previousId ||
+              input.optional !== true ||
+              input.same_input_contract !== true
+            )
+              return true;
+            const previousEnd = pinnedStates.get(`${previousId}/end`);
+            const output = previousEnd.outputs.find(
+              (item) => item.artifact_id === input.artifact_id,
+            );
+            return (
+              !output ||
+              input.path !== output.path ||
+              input.revision !== output.revision ||
+              input.contract_id !== output.contract_id
+            );
+          })))
+    )
+      fail(`pinned ${moduleId} start input contract does not match its predecessor`);
+
+    const fallback = start.public_fallback;
+    const fallbackPath =
+      typeof fallback?.path === "string" ? mapModuleInputPath(moduleId, fallback.path) : null;
+    const fallbackEntry = fallbackPath ? filesByTarget.get(fallbackPath)?.entry : null;
+    if (
+      fallback?.public !== true ||
+      !fallback.artifact_id ||
+      !fallback.contract_id ||
+      !fallback.revision ||
+      !fallbackPath ||
+      fallbackEntry?.module_id !== moduleId ||
+      fallbackEntry?.role !== "input" ||
+      !start.expected?.required_paths?.includes(fallback.path) ||
+      refs.some(
+        (input) =>
+          input.artifact_id === fallback.artifact_id ||
+          input.contract_id !== fallback.contract_id ||
+          input.revision === fallback.revision,
+      )
+    )
+      fail(`pinned ${moduleId} public fallback contract is invalid`);
   }
 
   const shopFiles = new Set(
