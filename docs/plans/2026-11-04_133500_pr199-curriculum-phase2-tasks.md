@@ -38,7 +38,7 @@
 - [ ] M06の`CASE-CART-004`（削除）・`CASE-CART-005`（数量1→2、再読込保持）を新specの独立Caseとして初回・再実行それぞれ2件以上の実Runで確認。Web数量UIはselectであり、Web数量0変更を架空の操作にしない
 - [ ] M07保守前の2件以上・保守後の独立3件以上を別Runで実証。学習者固有の変更と公開参照spec・完成状態の用途を分ける
 - [ ] 8082配布Shop Serve/Reset、report/Trace/fixtureの独立性・新旧テスト混入を検証。配布元ファイル/manifestの不備は配布ブランチへ証拠を引継ぐ
-- [ ] 全15目標の教本・P01〜P06・提出欄・start/end・評価基準・復習先を個別照合。M07正式AI評価は評価ブランチへ引継ぎ、本人Private 2コアCodespaces実行は決定済みの後続時期に回す
+- [x] 全15目標の教本・P01〜P06・提出欄・start/end・評価基準・復習先を個別照合。M07正式AI評価は評価ブランチへ引継ぎ、本人Private 2コアCodespaces実行は決定済みの後続時期に回す
 - [ ] 対象テスト、Playwrightの実Run、CI、証拠/残リスクを固定HEADで報告。実行環境がない項目は未実行として残す
 
 ## クイズ・理解事項・自習・Phase間引継ぎ（補完）
@@ -59,3 +59,9 @@
 - 知識ノード30件の教材参照、`can_do`、採点基準、クイズ・実技、前提関係を[Phase 2受入記録](../reports/2026-11-04_pr215-phase2-acceptance.md)へ記録。Graph本体の変更要否は#199の[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6629751490)へ記載。`draft_requires_content_review`は変更していない。
 - M05 P03の型エラー/修正の`tsc`結果は隔離コンテナによる補助検証であり、本人Codespaces・専用Config・Chromiumの実Runを示さないため関連する学習目標・横断実行項目は保留。
 - **Progress: 12% (3/25)**。実行環境に依存する項目と全15目標の完全受入は未完了。
+
+## 2026-11-04 15目標の個別照合
+
+- [Phase 2受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に15目標ごとの教材、P01〜P06、提出、start/end、公開評価基準、クイズ復習先を固定HEAD `d260c1a29f98b4684780dbe9340e18f6ed058f7e`で照合した結果を記録。
+- 人間の正式なPhase修了、実Chromium・TypeScript受講者実行、配布後の本人証拠は未確認。共有参照とM07正式AI評価は#199/#217の境界内で調停。
+- **Progress: 16% (4/25)**。
