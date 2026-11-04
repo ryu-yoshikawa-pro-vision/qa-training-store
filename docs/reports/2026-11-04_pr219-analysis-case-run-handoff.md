@@ -83,3 +83,10 @@
 - 証拠と分析台帳の対応を継続検証する#219専用`tests/contracts/pr219-web-evidence-ledger.test.mjs`を追加（`de1c54f`）。CSV引用符・列整合、HEAD/Run/Clock根拠、同一証拠キーのBehavior不変、208動作への参照整合、要件IDだけの誤割当て、製品不具合の判定誤記を検査する。新規テストの初回Run #41830058305はStyle QualityでPrettier違反（`tests/contracts/pr219-web-evidence-ledger.test.mjs`）を検出。書式を`6ea26c4`で修正した。**修正後の契約テストとCI全体の成功はまだ未確認**。この追加テストを旧CI #41826786410で実行済みと誤記しない。
 - 最新全CI成功RunのArtifact一覧はUI Review 4サイズ・Web build等で、**cross-roleの成功時添付PNG/JSON/Trace/動画は含まれていない**。ジョブログの成功と画像の独立比較、正式Caseの全条件受入は別。実行環境にはAndroid SDK、ADB、Emulator、Maestroがなく、Android実機/SQLiteの検証は未実施。既存`docs/native/README.md`のDoctor→Prepare→Build→Install→Smoke→Test→RuntimeSuite→BoundarySuiteが実行できるWindows端末等を必要とする。
 - タスクリストの未完7項目（2、7、13、14、15、19、20）は維持。とくに2/20は全採用Caseの正式ID・Clock実測・成功時Artifact・DB/Network/Console等が不足し、#213の正式Case採否と#199の共有CIの証拠保存判断が必要。
+
+## 契約テストの固定CI成功と実測Clockログ追加（2026-11-04）
+
+- #219 `2ad05de61a89197d32d23772aacb68a3b633e04c` のCI [#41830747741](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41830747741)で、**Vitest contracts job `126577007220`がsuccess**。新規`tests/contracts/pr219-web-evidence-ledger.test.mjs`の3件も個別PASSし、CSVの列・固定Run/HEAD・証拠キーとBehavior参照・欠落値と製品不具合分類の検査が実行できた。契約全体は75ファイルpass、1098 tests pass、1 expected fail、15 skipped。
+- 同Runの**workflow全体はfailure**で、主因はStyle Quality job `126577006913`の新規契約テストPrettier違反。verify/validate failureはこのゲート失敗の派生。`cc5e008`の整形後Run #41831922016もStyle failureが残り、後続更新でcancelled。`10fb7c2`で複雑な改行を伴う式を逐次処理へリファクタリングしたが、**修正後のStyle/Contracts CI成功は未確認**。
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`の暫定証拠キー`PR219-WEB-023/024/025`に、FixtureのTestMetadataから**Reset時のClock実測**・buildSha・app/schema/seedバージョンだけを出す`PR219_RUNTIME_METADATA`ログを追加。個人情報・認証情報・Session IDは出力しない。`4327ad1`以降のCIで値が確認できるまで実測とは書かず、Web45履歴行の既存clock_basisを変更しない。
+- 14/21の未完7項目を維持。WebのCase別証拠は一部揃っているが、全採用Case・正式Case ID、Android実機SQLite、成功時Trace/画像/Networkなどの保存と独立レビューは未達。
