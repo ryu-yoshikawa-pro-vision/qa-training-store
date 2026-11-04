@@ -44,7 +44,7 @@
 ## クイズ・理解事項・自習・Phase間引継ぎ（補完）
 
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`の設問/正答/誤答理由/復習先を15目標と理解事項に照合。コードを読む・書く・実Runする技能を定義問題やAI自己報告だけで達成扱いにしない
-- [ ] `knowledge-graph.json`のM05〜M07の理解事項ごとに、前提の飛躍、教材節、`can_do`、実技の観測、評価基準を意味的に確認。未レビューの`draft_requires_content_review`は承認済みに変更せず、必要な関係/ノード更新を#199に引継ぐ
+- [x] `knowledge-graph.json`のM05〜M07の理解事項ごとに、前提の飛躍、教材節、`can_do`、実技の観測、評価基準を意味的に確認。未レビューの`draft_requires_content_review`は承認済みに変更せず、必要な関係/ノード更新を#199に引継ぐ
 - [ ] M04→M05の確定Case・初期Role/State/Data・BR/ACと、M07→M08の本人spec・Config・Reset・Trace/Run/成果物のID/revisionを実ファイルで照合し、別の公開開始サンプルを本人の過去修了証拠とみなさない
 - [ ] 通常のOpenCodeの段階ヒント・失敗後の復習が本人の実装/診断を奪わないか確認。Phase 2のspec、Trace、Run記録をGit/PRなしで安全にエクスポートする手順を教材に記載・検証。共通配布機構は#218、正式評価時の再実行は#217へ引継ぐ
 
@@ -53,3 +53,9 @@
 - [PR #215 Phase 2受入記録](../reports/2026-11-04_pr215-phase2-acceptance.md)に、固定HEAD `268d06236e5b068b924f1d71e296a6ad6b0bb4f1`で照合した内容、各ファイルのBlob SHA、未実行の条件、共有領域への引継ぎを記録した。
 - 上記でチェックしたのはM07-03の**判断基準**とM05〜M07の**クイズ内容照合**だけであり、実RunやPhase 2の学習到達・正式AI評価をPASSとしたものではない。
 - 8082 Chromium、M05型検査、M06 004/005 initial/repeat、M07 before/after、配布ShopやGit不要の成果物保全は未実施。実際のRun IDとreport等が揃うまで該当チェックを保持する。
+
+## 2026-11-04 追加レビュー（PR #215継続）
+
+- 知識ノード30件の教材参照、`can_do`、採点基準、クイズ・実技、前提関係を[Phase 2受入記録](../reports/2026-11-04_pr215-phase2-acceptance.md)へ記録。Graph本体の変更要否は#199の[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6629751490)へ記載。`draft_requires_content_review`は変更していない。
+- M05 P03の型エラー/修正の`tsc`結果は隔離コンテナによる補助検証であり、本人Codespaces・専用Config・Chromiumの実Runを示さないため関連する学習目標・横断実行項目は保留。
+- **Progress: 12% (3/25)**。実行環境に依存する項目と全15目標の完全受入は未完了。
