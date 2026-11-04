@@ -14,15 +14,14 @@ const backupSection = exercise
   ?.split("### 固定Skillとの協働")[0];
 const fence = String.fromCharCode(96).repeat(3);
 const codeBlockPattern = new RegExp(fence + "bash\\n([\\s\\S]*?)\\n\\s*" + fence, "g");
-const commandBlocks = Array.from((backupSection ?? "").matchAll(codeBlockPattern), (match) =>
-  match[1].replace(/^ {3}/gm, ""),
+const commandBlocks = Array.from(
+  (backupSection ?? "").matchAll(codeBlockPattern),
+  (match) => match[1].replace(/^ {3}/gm, ""),
 );
 const initializeManifest = commandBlocks.find(
   (block) => block.includes("phase2-files.txt <<'EOF'") && block.includes("set -C"),
 );
-const guardAndArchive = commandBlocks.find((block) =>
-  block.includes("tar --create --gzip --file=-"),
-);
+const guardAndArchive = commandBlocks.find((block) => block.includes("tar --create --gzip --file=-"));
 
 const temporaryDirectories = [];
 afterEach(() => {
