@@ -209,7 +209,9 @@ test.describe("PR #219: storefront empty result boundaries", () => {
   }) => {
     await scenario("empty-catalog");
     await page.goto("/products");
-    await expect(page.getByRole("heading", { name: "現在、表示できる商品はありません" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "現在、表示できる商品はありません" }),
+    ).toBeVisible();
     const empty = page.locator(".state-panel--empty");
     await expect(empty).toBeVisible();
     await expect(empty.locator("a, button")).toHaveCount(0);
@@ -250,7 +252,7 @@ test.describe("PR #219: admin product list and selected-filter boundary", () => 
     await scenario("default");
     await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/products");
-    await page.locator(".admin-page input[type=\"search\"]").fill("P-0006");
+    await page.locator('.admin-page input[type="search"]').fill("P-0006");
     await expect(page.getByRole("row").filter({ hasText: "P-0006" })).toHaveCount(1);
     await page.getByLabel("在庫").selectOption("out_of_stock");
     await expect(page.getByRole("row").filter({ hasText: "スポーツボトル" })).toHaveCount(1);
@@ -271,7 +273,7 @@ test.describe("PR #219: admin product list and selected-filter boundary", () => 
     await page.getByRole("checkbox", { name: "ベーシックTシャツを選択" }).check();
     await expect(page.getByText("1件選択")).toBeVisible();
 
-    await page.locator(".admin-page input[type=\"search\"]").fill("PR219-NO-MATCH");
+    await page.locator('.admin-page input[type="search"]').fill("PR219-NO-MATCH");
     await expect(page.getByText("0件選択")).toBeVisible();
     await expect(page.getByRole("button", { name: "選択を公開" })).toBeDisabled();
   });
