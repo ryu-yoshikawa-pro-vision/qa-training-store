@@ -9,10 +9,18 @@ import { loadSeedDataset } from "../../src/seeds/load-seed";
 import { createScenarioDataset } from "../../src/seeds/scenarios";
 
 class SessionStore {
-  constructor(id) { this.id = id; }
-  async getSessionId() { return this.id; }
-  async setSessionId(id) { this.id = id; }
-  async clear() { this.id = null; }
+  constructor(id) {
+    this.id = id;
+  }
+  async getSessionId() {
+    return this.id;
+  }
+  async setSessionId(id) {
+    this.id = id;
+  }
+  async clear() {
+    this.id = null;
+  }
 }
 
 describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
@@ -21,8 +29,16 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     database = new ScenarioShopDatabase(`training-admin-users-${crypto.randomUUID()}`);
     await loadSeedDataset(database, createScenarioDataset("default"), "default");
     await database.sessions.bulkPut(
-      ["user-admin", "user-operator", "user-customer-regular", "user-customer-suspended", "user-customer-withdrawn"].map((userId) => ({
-        id: `training-${userId}`, userId, createdAt: "2026-07-01T03:00:00.000Z",
+      [
+        "user-admin",
+        "user-operator",
+        "user-customer-regular",
+        "user-customer-suspended",
+        "user-customer-withdrawn",
+      ].map((userId) => ({
+        id: `training-${userId}`,
+        userId,
+        createdAt: "2026-07-01T03:00:00.000Z",
       })),
     );
   });
@@ -44,7 +60,10 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     return { useCases, store };
   }
   async function snapshot() {
-    return { users: await database.users.toArray(), sessions: await database.sessions.toArray() };
+    return {
+      users: await database.users.toArray(),
+      sessions: await database.sessions.toArray(),
+    };
   }
   it("returns seven default users with exact role/rank/status/version without writing", async () => {
     const before = await snapshot();
@@ -62,7 +81,11 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
       ["user-admin", "admin", null, "active"],
     ]) {
       expect(byId.get(id)).toMatchObject({
-        userId: id, role, membershipRank: rank, accountStatus: status, version: 1,
+        userId: id,
+        role,
+        membershipRank: rank,
+        accountStatus: status,
+        version: 1,
       });
     }
     expect(await snapshot()).toEqual(before);
@@ -78,10 +101,12 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
   });
   it("rejects suspended/withdrawn and clears only a missing local session", async () => {
     const before = await snapshot();
-    await expect(forSession("training-user-customer-suspended").useCases.search())
-      .rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
-    await expect(forSession("training-user-customer-withdrawn").useCases.search())
-      .rejects.toMatchObject({ code: "ACCOUNT_WITHDRAWN" });
+    await expect(
+      forSession("training-user-customer-suspended").useCases.search(),
+    ).rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
+    await expect(
+      forSession("training-user-customer-withdrawn").useCases.search(),
+    ).rejects.toMatchObject({ code: "ACCOUNT_WITHDRAWN" });
     const missing = forSession("missing-session-id");
     await expect(missing.useCases.search()).rejects.toMatchObject({
       code: "AUTHENTICATION_REQUIRED",
@@ -106,7 +131,11 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
     ]) {
       const detail = await admin.getDetail(id);
       expect(detail).toMatchObject({
-        userId: id, role, membershipRank: rank, accountStatus: status, version: 1,
+        userId: id,
+        role,
+        membershipRank: rank,
+        accountStatus: status,
+        version: 1,
       });
       expect(detail.email).toContain("@");
       expect(detail.displayName).not.toBe("");
@@ -117,23 +146,28 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
   it("rejects operator and nonactive actors from admin detail without database writes", async () => {
     const before = await fullDatabaseSnapshot();
     for (const id of ["user-operator", "user-customer-regular"]) {
-      await expect(forSession(`training-${id}`).useCases.getDetail("user-admin"))
-        .rejects.toMatchObject({ code: "PERMISSION_DENIED" });
+      await expect(
+        forSession(`training-${id}`).useCases.getDetail("user-admin"),
+      ).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
     }
-    await expect(forSession("training-user-customer-suspended").useCases.getDetail("user-admin"))
-      .rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
-    await expect(forSession("training-user-customer-withdrawn").useCases.getDetail("user-admin"))
-      .rejects.toMatchObject({ code: "ACCOUNT_WITHDRAWN" });
+    await expect(
+      forSession("training-user-customer-suspended").useCases.getDetail("user-admin"),
+    ).rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
+    await expect(
+      forSession("training-user-customer-withdrawn").useCases.getDetail("user-admin"),
+    ).rejects.toMatchObject({ code: "ACCOUNT_WITHDRAWN" });
     const missing = forSession("training-missing-session");
-    await expect(missing.useCases.getDetail("user-admin"))
-      .rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+    await expect(missing.useCases.getDetail("user-admin")).rejects.toMatchObject({
+      code: "AUTHENTICATION_REQUIRED",
+    });
     expect(await missing.store.getSessionId()).toBeNull();
     expect(await fullDatabaseSnapshot()).toEqual(before);
   });
   it("rejects a nonexistent detail target without database writes", async () => {
     const before = await fullDatabaseSnapshot();
-    await expect(forSession("training-user-admin").useCases.getDetail("missing-user"))
-      .rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      forSession("training-user-admin").useCases.getDetail("missing-user"),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await fullDatabaseSnapshot()).toEqual(before);
   });
 
@@ -203,8 +237,9 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
       createdAt: "2026-07-01T03:00:00.000Z",
     });
     const before = await fullDatabaseSnapshot();
-    expect(before.users.filter((user) => user.role === "admin" && user.accountStatus === "active"))
-      .toHaveLength(2);
+    expect(
+      before.users.filter((user) => user.role === "admin" && user.accountStatus === "active"),
+    ).toHaveLength(2);
 
     const demoted = await forSession("training-user-admin").useCases.changeRole({
       userId: "user-operator",
@@ -219,8 +254,9 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
       version: 3,
     });
     const after = await fullDatabaseSnapshot();
-    expect(after.users.filter((user) => user.role === "admin" && user.accountStatus === "active"))
-      .toHaveLength(1);
+    expect(
+      after.users.filter((user) => user.role === "admin" && user.accountStatus === "active"),
+    ).toHaveLength(1);
     expect(after.users.filter((user) => user.id !== "user-operator")).toEqual(
       before.users.filter((user) => user.id !== "user-operator"),
     );
@@ -253,11 +289,13 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
   it("rejects an active admin changing their own role without modifying any Dexie table", async () => {
     const before = await fullDatabaseSnapshot();
     const actor = forSession("training-user-admin");
-    await expect(actor.useCases.changeRole({
-      userId: "user-admin",
-      role: "operator",
-      expectedVersion: 1,
-    })).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
+    await expect(
+      actor.useCases.changeRole({
+        userId: "user-admin",
+        role: "operator",
+        expectedVersion: 1,
+      }),
+    ).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
     expect(await actor.store.getSessionId()).toBe("training-user-admin");
     expect(await fullDatabaseSnapshot()).toEqual(before);
   });
@@ -265,11 +303,13 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
   it("rejects an active operator changing another user's role without any Dexie writes", async () => {
     const before = await fullDatabaseSnapshot();
     const actor = forSession("training-user-operator");
-    await expect(actor.useCases.changeRole({
-      userId: "user-admin",
-      role: "operator",
-      expectedVersion: 1,
-    })).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
+    await expect(
+      actor.useCases.changeRole({
+        userId: "user-admin",
+        role: "operator",
+        expectedVersion: 1,
+      }),
+    ).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
     expect(await actor.store.getSessionId()).toBe("training-user-operator");
     expect(await fullDatabaseSnapshot()).toEqual(before);
   });
@@ -277,13 +317,14 @@ describe("AI-assisted QA SCREEN-ADMIN-USERS-A01-01 admin list", () => {
   it("rejects changeRole from an expired actor session, clears local session, and preserves every Dexie table", async () => {
     const before = await fullDatabaseSnapshot();
     const expired = forSession("training-missing-session");
-    await expect(expired.useCases.changeRole({
-      userId: "user-operator",
-      role: "admin",
-      expectedVersion: 1,
-    })).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+    await expect(
+      expired.useCases.changeRole({
+        userId: "user-operator",
+        role: "admin",
+        expectedVersion: 1,
+      }),
+    ).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
     expect(await expired.store.getSessionId()).toBeNull();
     expect(await fullDatabaseSnapshot()).toEqual(before);
   });
-
 });
