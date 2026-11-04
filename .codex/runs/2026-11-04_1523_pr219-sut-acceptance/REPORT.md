@@ -55,3 +55,5 @@
 - タスク9完了：#41811366480（83fb032）のcross-roleでEmpty/FilterEmpty×7画面幅・Breadcrumbs/CTAとaxe2幅の成功、Component jobでError→Retry成功。正式empty WebP（1440×1465、blob 0eb913f）とUI Review Desktop artifact #13311589417のproducts-empty.png（1440×1436）を直接比較し、配置差を残リスクとして記録。視覚適合PASSではなく比較完了。詳細docs/reports/2026-11-04_pr219-storefront-empty-error-accessibility.md。
 
 - 2026-11-04 Web証拠行の識別を補完：`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`の39実行行に22種類の暫定証拠キー・既知要件参照・対応状況を追加。既存結果は維持し、要件IDだけでBehavior未確定の6行を明示。正式Case採用と29横断要件は#213判断待ち。詳細：`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md`。タスクリスト14/21（残7）のまま。
+
+- 停止staffのWeb Caseで表別IndexedDB SHA-256の前後比較とFocus→EnterによるForbidden戻りを専用E2Eへ追加（`a2f0ea9`）。CI未実行・Android/SQLiteはBLOCKED。専用レポート `docs/reports/2026-11-04_pr219-forbidden-staff-web-native.md` に再開条件を記録。タスク7・15は未チェック。
