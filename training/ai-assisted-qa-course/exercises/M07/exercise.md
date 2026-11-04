@@ -95,19 +95,36 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
 5. 下記で対象パス・通常ファイルであることを確認し、アーカイブを作成してチェックサムを検証します。エラーになったら途中のアーカイブを成功証拠として使いません。
 
    ```bash
-   while IFS= read -r file; do
+   workspace_root=$(realpath -e workspace)
+   manifest=workspace/M07/exports/phase2-files.txt
+   test -s "$manifest" || { echo "ファイル一覧が空です"; exit 1; }
+
+   while IFS= read -r file || test -n "$file"; do
      case "$file" in
        workspace/M05/*|workspace/M06/*|workspace/M07/*) ;;
        *) echo "対象外のパス: $file"; exit 1 ;;
      esac
      test -f "$file" && test ! -L "$file" || {
-       echo "存在しないか、symlinkです: $file"; exit 1;
+       echo "存在しないファイル、通常ファイル以外、またはsymlinkです: $file"; exit 1;
      }
-   done < workspace/M07/exports/phase2-files.txt
+     resolved=$(realpath -e -- "$file") || exit 1
+     case "$resolved" in
+       "$workspace_root"/M05/*|"$workspace_root"/M06/*|"$workspace_root"/M07/*) ;;
+       *) echo "workspace外のパスです: $file"; exit 1 ;;
+     esac
+     test "$file" = "workspace/$(realpath --relative-to="$workspace_root" -- "$file")" || {
+       echo "相対移動（../）やsymlinkを含むパスです: $file"; exit 1;
+     }
+     case "$resolved" in
+       "$workspace_root"/M07/exports/*)
+         echo "保全用ファイルを入力へ混ぜられません: $file"; exit 1 ;;
+     esac
+   done < "$manifest"
 
-   tar -czf workspace/M07/exports/phase2.tgz -T workspace/M07/exports/phase2-files.txt
+   tar --create --gzip --file=workspace/M07/exports/phase2.tgz \
+     --verbatim-files-from --no-recursion --files-from="$manifest" || exit 1
    sha256sum workspace/M07/exports/phase2.tgz > workspace/M07/exports/phase2.tgz.sha256
-   sha256sum -c workspace/M07/exports/phase2.tgz.sha256
+   sha256sum -c workspace/M07/exports/phase2.tgz.sha256 || exit 1
    tar -tzf workspace/M07/exports/phase2.tgz
    ```
 
