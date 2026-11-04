@@ -49,3 +49,5 @@
 - 管理商品一覧：公式画面仕様、補助UI仕様、Web/UseCase/Repository、実Webの検索成功・表示外選択FAIL、既存bulk部分成功、SKUとinactive SKU0価格の静的差分を docs/reports/2026-11-04_pr219-admin-product-ui-repository-comparison.md に整理。Repository新規CaseのCI・many-products/視覚が未確認のためタスク8は保留。
 
 - タスク8完了：CI #41808161478で管理商品の代表検索PASS・選択残留/1,000商品の非keyword filter後page残留を製品期待失敗として観測。#41806506482のRepository4ケースが成功し、SKU検索欠落・active SKU0価格Infinityは製品FAIL再現、空bulkはVALIDATION/DB不変。仕様/UI/Repository比較をレポートへ固定HEAD・jobとともに記録。製品修正・視覚/a11y/Androidは未受入。
+
+- タスク11完了：#41811366480（83fb032）の全CI成功、cross-role job 126512596197で再Login後の新SessionのCheckout通知・復帰成功。既存Web同一Session Reload/Reset、Integration 5+10件により24h/stale Cart/4決済/再試行/在庫競合を照合。confirm-ready stale Cartの戻り先が/paymentとなる製品FAILを再現し、SUT適合PASSとして扱わない。詳細：docs/reports/2026-11-04_pr219-checkout-case-evidence.md。
