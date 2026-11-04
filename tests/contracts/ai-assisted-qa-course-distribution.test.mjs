@@ -2396,6 +2396,30 @@ describe("AI-assisted QA distribution contract", () => {
         }),
       },
       { moduleId: "M06", stateName: "end", change: (state) => ({ ...state, outputs: [] }) },
+      {
+        moduleId: "M06",
+        stateName: "end",
+        change: (state) => ({
+          ...state,
+          outputs: [{ ...state.outputs[0], path: "workspace/M06/not-required.md" }],
+        }),
+      },
+      {
+        moduleId: "M10",
+        stateName: "end",
+        change: (state) => ({
+          ...state,
+          outputs: [...state.outputs, { ...state.outputs[0] }],
+        }),
+      },
+      {
+        moduleId: "M10",
+        stateName: "end",
+        change: (state) => ({
+          ...state,
+          outputs: [{ ...state.outputs[0], revision: "" }],
+        }),
+      },
     ];
     for (const { moduleId, stateName, change } of scenarios) {
       const statePath = `course/states/${moduleId}/${stateName}.json`;
@@ -2411,7 +2435,7 @@ describe("AI-assisted QA distribution contract", () => {
       fs.writeFileSync(manifestPath, JSON.stringify(manifest));
 
       expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
-        /pinned M0[0-9] (start input contract|public fallback contract|end state outputs)/,
+        /pinned M(?:0[0-9]|10) (start input contract|public fallback contract|end state outputs|end state output contract)/,
       );
       writeFixtureFile(fixture.target, statePath, originalState);
     }

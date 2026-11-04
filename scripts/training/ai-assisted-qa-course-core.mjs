@@ -978,6 +978,28 @@ export function verifySyncedCourseDistribution({ root }) {
     const end = pinnedStates.get(`${moduleId}/end`);
     if (!Array.isArray(end.outputs) || end.outputs.length === 0)
       fail(`pinned ${moduleId} end state outputs are invalid`);
+    const outputIds = new Set();
+    const outputPaths = new Set();
+    for (const output of end.outputs) {
+      if (
+        typeof output?.artifact_id !== "string" ||
+        !output.artifact_id.trim() ||
+        typeof output.path !== "string" ||
+        !output.path.startsWith(`workspace/${moduleId}/`) ||
+        !Array.isArray(end.expected?.required_paths) ||
+        !end.expected.required_paths.includes(output.path) ||
+        typeof output.revision !== "string" ||
+        !output.revision.trim() ||
+        typeof output.contract_id !== "string" ||
+        !output.contract_id.trim() ||
+        outputIds.has(output.artifact_id) ||
+        outputPaths.has(output.path)
+      )
+        fail(`pinned ${moduleId} end state output contract is invalid`);
+      normalizeRelativePath(output.path, "end output path");
+      outputIds.add(output.artifact_id);
+      outputPaths.add(output.path);
+    }
     const previousId = MODULE_IDS[index - 1];
     const refs = start.inputs;
     if (
