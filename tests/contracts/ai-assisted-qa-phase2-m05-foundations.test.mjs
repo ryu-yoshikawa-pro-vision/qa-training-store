@@ -10,7 +10,9 @@ const lesson = read("docs/curriculum/ai-assisted-qa/modules/M05/README.md");
 const exercise = read("training/ai-assisted-qa-course/exercises/M05/exercise.md");
 const submission = read("training/ai-assisted-qa-course/exercises/M05/submission-template.md");
 const starter = read("workspace/M05/product-link.spec.ts");
-const reference = read("training/ai-assisted-qa-course/assessment/playwright/M05/product-link.spec.ts");
+const reference = read(
+  "training/ai-assisted-qa-course/assessment/playwright/M05/product-link.spec.ts",
+);
 const runs = [];
 
 afterEach(() => {
