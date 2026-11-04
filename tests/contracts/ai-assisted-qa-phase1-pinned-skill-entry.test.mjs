@@ -68,7 +68,7 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m03).toContain("購入上限5");
     expect(m03).toContain("独立したMachine Entityではありません");
     expect(m03).toContain("Riskの出典は");
-    const requestBlock = m03.match(/```json\\n([\\s\\S]*?)\\n```/);
+    const requestBlock = m03.match(/```json\n([\s\S]*?)\n```/);
     expect(requestBlock, "M03 should include the pinned Authority input, not a fake result").not.toBeNull();
     const request = JSON.parse(requestBlock[1]);
     expect(Object.keys(request)).toEqual(["authorities"]);
