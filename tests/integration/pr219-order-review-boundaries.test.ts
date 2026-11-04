@@ -127,6 +127,42 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
     );
   });
 
+  it("rolls back Shipment and Order when history persistence fails", async () => {
+    const operations = new AdminOperationsUseCases(
+      dependencies(await session("user-operator")),
+    );
+    const initial = await operations.getOrder("order-paid");
+    const preparing = await operations.startPreparation({
+      orderId: initial.orderId,
+      orderActionVersion: initial.orderActionVersion,
+    });
+    const before = {
+      orders: await database.orders.toArray(),
+      shipments: await database.shipments.toArray(),
+      histories: await database.order_status_histories.toArray(),
+    };
+    let injected = 0;
+    database.order_status_histories.hook("creating", () => {
+      injected += 1;
+      throw new Error("PR219_INJECTED_SHIPMENT_HISTORY_FAILURE");
+    });
+
+    await expect(
+      operations.ship({
+        orderId: preparing.orderId,
+        orderActionVersion: preparing.orderActionVersion,
+        carrierName: "テスト運輸",
+        trackingNumber: "PR219-ROLLBACK",
+      }),
+    ).rejects.toThrow("PR219_INJECTED_SHIPMENT_HISTORY_FAILURE");
+    expect(injected).toBeGreaterThan(0);
+    expect({
+      orders: await database.orders.toArray(),
+      shipments: await database.shipments.toArray(),
+      histories: await database.order_status_histories.toArray(),
+    }).toEqual(before);
+  });
+
   it("rejects another customer and stale version Review updates without changing DB", async () => {
     await loadSeedDataset(
       database,
