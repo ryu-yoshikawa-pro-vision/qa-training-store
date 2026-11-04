@@ -19,6 +19,14 @@
 ## 固定HEAD・Run
 
 - 実行済み：PR #219 Web受入ケースを含むHEAD `4f5c93877bac76190c10adbc300d1cb977bb352b`、[Web CI #41808161478](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41808161478)。Chromium E2E cross-role job `126501615404`は既存`e2e/web/cross-role-lifecycle.spec.ts`の`getByRole("status")` strict違反で**job failure**。空状態2Caseの個別PASSとjob全体失敗は分ける。
-- 新規のComponentエラー復旧とWeb画面幅/a11y/画像添付は、専用テストを追加しただけで**固定Runが未取得**。最新HEADでStyle Quality、Component、cross-role Chromiumを確認してから結果を更新する。
+- 新規Componentエラー復旧とWeb画面幅/a11yの固定Runは下記に追記した。撮影した全ての幅別画像の永続保存は未達。
 - 成功時Trace/動画/画像は従来のPlaywright標準設定では保持されない。新規Web受入CaseのPNGとaxe JSONは`testInfo.attach`により当該実RunのPlaywright HTML Reportへ保存する設計。Artifact名とRun/jobが判明してからリンクを追記する。
-- タスクリスト9番は、取得失敗・幅別の実Run・**正本画像との比較**の証拠がそろうまでチェックしない。その他の採用CaseやAndroid受入に結果を流用しない。
+- タスクリスト9番は、下記のRunと正本画像の差分確認を根拠に**検証済み**。視覚差分の適合判定、Android/全Case受入は未完了。
+
+## 実Runと正式画像の照合（タスク9の検証結果）
+
+- **SUT/テスト固定HEAD：** `83fb0325d6efc7d2a517561e52f32bfe793f5986`、[Web CI #41811366480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)は**workflow全体success**。[cross-role Chromium job 126512596197](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480/job/126512596197)で、無条件0件と価格フィルター0件の既存2Caseに加え、各々7画面幅（320/390/767/768/1023/1024/1440px）の追加2Caseが**個別成功**。BreadcrumbsのHome Link→Enter、フィルター解除CTA→Enter、横はみ出しなし、空状態の320/1024pxでaxe-coreのcritical/serious違反なしをassert。意図した別製品不具合のexpected failureと全体成功を混同しない。
+- **ErrorとRetry：** [Component job 126512202338](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480/job/126512202338)成功。`tests/component/pr219-storefront-states.test.tsx`1件：検索Promiseを初回で拒否し、loading status→エラーパネル（内部例外文字列は非露出）→「再試行」→無条件0件に復帰。既存Componentは無条件0件と絞り込み0件を分けた表示を検証。実ブラウザでのDB障害再現とは区別。
+- **正式Web画像の確認：** [正式画像 `SCREEN-STOREFRONT-PRODUCT-LIST/empty/web-desktop.webp`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/spec/assets/screens/SCREEN-STOREFRONT-PRODUCT-LIST/empty/web-desktop.webp)（Git Blob `0eb913fbc0ac9bcd673b329c24df8b38617e2fb8`、**1440×1465px**）と、[同RunのUI Review Desktop artifact `13311589417`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480/artifacts/13311589417)内`products-empty.png`（**1440×1436px**）を画像として直接確認。空パネルの見出し・説明、左側の絞り込み、Breadcrumbs・並び順、0件数・Footerの主要構成は共通。ただし**全体高さ29pxの差**と、最低評価のラベル/Selectの配置に差がある。**ピクセル一致や正式視覚正本への完全適合は未判定**。本差分は#213による仕様・視覚受入判断が必要。
+- **証拠の限界：** cross-role新規TestInfoへの幅別PNG/axe JSON添付は、CIログ上のCase成功で生成を確認した。ただし[同RunのArtifact一覧](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)にcross-role Reportがアップロードされていないため、幅別画像の永続保存・独立目視の完了とは扱わない。固定HEADのUI-review Desktop `products-empty.png`のみ取得済み。フィルター0件の正本画像との直接比較、Android、全採用Caseの保存済みTrace/DBはタスク13〜15、20で継続。
+- **タスク9の判定：** 無条件0件・絞込0件・取得失敗を独立実行し、Breadcrumbs/CTAの戻りと7画面幅・axeと正式Web画像の差を確認したため「**検証と差分の分類完了**」としてチェック。これは視覚差分の解消や全Platformの合格ではない。
