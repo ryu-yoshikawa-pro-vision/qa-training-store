@@ -53,3 +53,5 @@
 - タスク11完了：#41811366480（83fb032）の全CI成功、cross-role job 126512596197で再Login後の新SessionのCheckout通知・復帰成功。既存Web同一Session Reload/Reset、Integration 5+10件により24h/stale Cart/4決済/再試行/在庫競合を照合。confirm-ready stale Cartの戻り先が/paymentとなる製品FAILを再現し、SUT適合PASSとして扱わない。詳細：docs/reports/2026-11-04_pr219-checkout-case-evidence.md。
 
 - タスク9完了：#41811366480（83fb032）のcross-roleでEmpty/FilterEmpty×7画面幅・Breadcrumbs/CTAとaxe2幅の成功、Component jobでError→Retry成功。正式empty WebP（1440×1465、blob 0eb913f）とUI Review Desktop artifact #13311589417のproducts-empty.png（1440×1436）を直接比較し、配置差を残リスクとして記録。視覚適合PASSではなく比較完了。詳細docs/reports/2026-11-04_pr219-storefront-empty-error-accessibility.md。
+
+- 2026-11-04 Web証拠行の識別を補完：`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`の39実行行に22種類の暫定証拠キー・既知要件参照・対応状況を追加。既存結果は維持し、要件IDだけでBehavior未確定の6行を明示。正式Case採用と29横断要件は#213判断待ち。詳細：`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md`。タスクリスト14/21（残7）のまま。
