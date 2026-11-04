@@ -63,3 +63,6 @@
 
 - #41821726873の失敗原因をNative専用テストに特定：Code Qualityは`render`のPromise未await（TS2339）、Native componentはProviderの実Bootstrap経由で`QuickBase64`未ロード。#219新規テストのみ`await render`とProvider mockへ修正（`895280d`）。新HEADの全CIは未確認。
 - 同Runのcross-role job `126547309356`はsuccessで、停止staff旧SessionのForbidden循環（表別IndexedDB SHA-256不変）とCheckout競合7幅/axe/Keyboardを初回PASSとして実証。ただし後者の戻り先は製品不具合の`/checkout/payment`、前者も誘導ループの製品FAIL再現。成功時Artifactの画像/Trace本体は保存されない。Web履歴にCase証拠キー`PR219-WEB-023`/`024`を2件追加、41行/34列。208動作との接続を更新、旧行不変を検証。全受入条件ではないので14/21のまま。
+
+- Native Forbiddenテスト修正後の固定CIを再確認：#41823487692（`46ce4d9`）Native Component job `126552593835`が14 suite/65 testでsuccess、Code Quality job `126552594453`もsuccess。旧`QuickBase64`とTS2339の再発なし。workflow全体の最終結果とは分ける。
+- DB受入の次Case：Webのconfirm-ready stale Cartから拒否画面表示へ遷移する前後で、Cart/Checkout/Order/Payment/Shipment/HistoryのIndexedDB10表をSHA-256で比較する独立E2Eを追加。Forbiddenと共通の読み取り専用digest関数を使用。testInfo.attachにはdigest、CIの成功jobログには真偽・表数・条件のみ（個人情報やhash実値なし）。コード `c0821559`、CIはまだ未確認。残タスク2/7/13/14/15/19/20を未チェックとして維持。
