@@ -732,7 +732,7 @@ AIの提案や本章の解説を参考にしながら、必要な範囲で小さ
 
 #### 手順4：数量2への変更後の再表示を確認するtestを追加する
 
-既存の2件の操作をPage Object/fixtureへ整理したら、[M07演習ページ](../../../../../training/ai-assisted-qa-course/exercises/M07/exercise.md)のP05に従い、**3件目**としてマグの数量を1→2へ変更し、Cartを開き直しても数量2が保持されることを検証します。各testのResetは独立させ、業務Assertionをテスト本体に残します。変更前に存在しない3件目のtestを`before` Runの合格件数へ含めません。
+既存の2件の操作をPage Object/fixtureへ整理したら、[M07演習ページ](../../../../../training/ai-assisted-qa-course/exercises/M07/exercise.md)のP05に従い、**3件目**としてマグの数量を1→2へ変更し、いったん別ページへ移動してからCartを開き直しても数量2が保持されることを検証します。単なるCartページの再読み込みでは別ページからの再訪を確認できません。各testのResetは独立させ、業務Assertionをテスト本体に残します。変更前に存在しない3件目のtestを`before` Runの合格件数へ含めません。
 
 #### 手順5：修正後のafter Runを実行する
 
