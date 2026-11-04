@@ -367,3 +367,11 @@
 - **今回の回帰条件**：`tests/contracts/ai-assisted-qa-phase2-m06-fixed-cases.test.mjs`に、固定3 Caseそれぞれの参考specから数量Assertionを意図的に削除した場合は、そのCaseの契約上の必須Assertionを満たさなくなる負例を追加。元の参考specは同条件を満たすことを同じテストで確認する。通知・クリックだけの偽PASSを形式的に受け入れない。公開参考specと製品SUTは変更しない。
 - **限界**：この負例は**ソース契約の変異検証**であり、Chromium上で不具合を再現した証拠でも、実際の製品が誤数量を返したという発見でもない。学習者のbefore/afterと正式AI評価は#199最後の実受入に残す。CIの実行完了はまだ確認していない。
 
+## 2026-11-05 M06-05の結果区分とM06参考spec実行の制約
+
+- **実装との対応**：共有`scripts/training/ai-assisted-qa-run-evidence.mjs`では、環境障害を`blocked`、正常終了かつ対象test1件以上・全件passedを`passed`、対象test failedを`failed`、判定不能を`ungradable`とする。`exit_code`、`run_id`、`source_sha`、`spec_sha256`、reportと各test結果をreceiptに格納する。**未実行は`outcome`の値ではない**。receiptが生成されていない場合や対象Caseが含まれない場合に`passed`を作らない。
+- **今回の教材修正**：`exercises/M06/exercise.md`と`submission-template.md`へ、Playwright結果のstatusと`course:run`のoutcome、環境BLOCKED、Test/AssertionのFAIL、未実行、判定不能を分ける条件を追加した。`tests/contracts/ai-assisted-qa-phase2-m06-separate-cases.test.mjs`にrunnerの4 outcome/receiptフィールドと教材記述の照合を追加した。
+- **既存検証**：`tests/contracts/ai-assisted-qa-assessment.test.mjs`に、同一Runのreportとspec snapshot照合、initial/repeatの時間順序逆転拒否、配布source SHA不一致の拒否が実装されている。これらは共有評価器に属するテストの**コード確認**であり、この作業において新しい実Runを取得したものではない。対象Case IDとAssertionの意味まで妥当かは正式評価で別途検証し、#217へ引き継いだ。
+- **共有実行器の未修正事項**：`reportSpecs()`がJSON reporterの`config.rootDir`相対パスをリポジトリルート基準で解決する問題は、[PR #217の指摘](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)へ引継ぎ済み。正常な参考specでも`ungradable`へ誤判定されるおそれがある。#215で共有scriptを修正しない。
+- **M06参考specの実行未確認**：M06固定3件と004・005の公開参考specを、`PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M06`・専用Config`playwright.ai-assisted-qa.config.ts`・8082で実Chromium実行したRunは未取得。現在のGitHub connector環境にはpnpm依存を導入した作業用checkoutと稼働Shopがなく、通常`training-web-baseline`は別Configである。参考specの個別実行は同Configで`cart-cases.spec.ts`、`remove-item.spec.ts`、`quantity-update.spec.ts`を指定する。固定3件と新規2件は現在**別ファイル**であり、参考ファイル2本の成功を学習者の`new-case.spec.ts`の同一Run 004/005成功と読み替えない。対象HEAD・SHA、JSON reportの対象test名/件数/結果、終了コードとRun時刻、失敗時Traceを後続で確認する。これは実受入完了ではない。
+- **完了判定**：M06-05のPR #215担当である結果区分と技術的な証拠契約の照合は完了。ただしM06公開参考spec実Chromium項目は未チェックのまま維持し、実行可能な環境が必要な旨を残す。本人実受入は#199の最後。
