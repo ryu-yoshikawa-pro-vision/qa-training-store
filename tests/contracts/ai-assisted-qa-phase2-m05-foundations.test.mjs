@@ -20,9 +20,13 @@ afterEach(() => {
 function exampleAfter(markdown, heading, language) {
   const section = markdown.split(heading);
   expect(section).toHaveLength(2);
-  const match = section[1].match(new RegExp("^(?:[\\s\\S]*?)\\x60\\x60\\x60" + language + "\\n([\\s\\S]*?)\\n\\x60\\x60\\x60", "m"));
-  expect(match, heading).not.toBeNull();
-  return match[1];
+  const opening = ["```", language, "\n"].join("");
+  const start = section[1].indexOf(opening);
+  expect(start, heading).toBeGreaterThanOrEqual(0);
+  const rest = section[1].slice(start + opening.length);
+  const end = rest.indexOf("\n```");
+  expect(end, heading).toBeGreaterThanOrEqual(0);
+  return rest.slice(0, end);
 }
 
 function runNode(script) {
