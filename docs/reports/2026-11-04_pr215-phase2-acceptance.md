@@ -102,3 +102,36 @@
 - 実際の配布`workspace/M05`ではなく、Chromiumも起動していないため、`M05-01`・横断P03/P05の完了とはしない。次は配布済みShop上の同じ手順で別Runとreceiptを取得する。
 
 **この段階のProgress: 12% (3/25)**。知識グラフ30ノードの内容レビューと更新要否の引継ぎを1項目追加。実Runの必要な項目は未チェック。
+
+## 再開後の確認：15学習目標の教材・演習・状態・公開評価基準
+
+- 確認対象HEAD：`d260c1a29f98b4684780dbe9340e18f6ed058f7e`。M05〜M07各`README.md`、`exercise.md`、`submission-template.md`、`start.json`、`end.json`、`assessment/scoring-tests/Mxx.json`（読み取り専用）、`quizzes/Mxx.json`を照合した。
+- 3モジュールともP01〜P06が演習/提出欄にあり、start/endの`revision`は`ai-assisted-qa-course-v3`で一致する。15目標すべてで教本記載、開始/終了の目標ID、単一の公開評価基準、少なくとも1つのクイズ復習先を確認した。
+- 目標ごとの静的対応は以下の通り。**クイズでの正解は該当実技の達成ではない**。未実行の状態で`course:check`・`course:assess`・Playwright実RunをPASSとは判定しない。
+
+| 学習目標 | 公開評価基準 | 復習先のクイズID | 演習・状態の確認 |
+| --- | --- | --- | --- |
+| M05-01 | M05-CR-01 | M05-Q01/Q02/Q07/Q08/Q09/Q10 | P01〜P04、M05 start/end |
+| M05-02 | M05-CR-02 | M05-Q03/Q11 | P05、M05 start/end |
+| M05-03 | M05-CR-03 | M05-Q04 | P05/P06、M05 start/end |
+| M05-04 | M05-CR-04 | M05-Q02/Q05/Q12 | P03/P04/P06、M05 start/end |
+| M05-05 | M05-CR-05 | M05-Q06 | P05/P06、M05 start/end |
+| M06-01 | M06-CR-01 | M06-Q03/Q06/Q07 | P01/P05、M06 start/end |
+| M06-02 | M06-CR-02 | M06-Q01 | P04/P06、M06 start/end |
+| M06-03 | M06-CR-03 | M06-Q02/Q03/Q08 | P01〜P03、M06 start/end |
+| M06-04 | M06-CR-04 | M06-Q04 | P04/P06、M06 start/end |
+| M06-05 | M06-CR-05 | M06-Q05/Q06 | P05/P06、M06 start/end |
+| M07-01 | M07-CR-01 | M07-Q01 | P01〜P03、M07 start/end |
+| M07-02 | M07-CR-02 | M07-Q02 | P01〜P03/P06、M07 start/end |
+| M07-03 | M07-CR-03 | M07-Q03 | P03、M07 start/end |
+| M07-04 | M07-CR-04 | M07-Q04 | P04〜P06、M07 start/end |
+| M07-05 | M07-CR-05 | M07-Q05/Q06/Q07 | P04〜P06、M07 start/end |
+
+### 状態の引継ぎ確認
+
+- M05 start：`M04-result-01/02`を参照。M05 end：`M05-result-01/02`を出力し、M06 startは`M05-result-01`を参照する。
+- M06 end：`M06-result-01/02/03`を出力。M07 startは`M06-result-01/02`を参照する。
+- M07 end：`M07-result-01/02/03/04`を出力。M08 startは`M07-result-01/02/03`のみを参照する。この非対称性が意図した引継ぎかは#216/#199へ報告済み。
+- 完成見本から本人の修了証拠を作らず、本人固有の`source_sha`・spec・Run ID・初期Role/State/Dataについては実ファイル未入手のため**未確認**のままとする。M07正式AI評価の受入は#217の責務。本人Private 2コアCodespaces受入は決定済みの後続工程とする。
+
+**この段階のProgress: 16% (4/25)**。上記の確認で完了とするのは教材/提出欄/状態/評価基準/復習先の**静的な個別照合**だけ。残り21件は必要な実Runなどを取得するまで未完了。
