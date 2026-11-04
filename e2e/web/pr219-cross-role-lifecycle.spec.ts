@@ -114,4 +114,59 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("heading", { name: "ユーザー管理" })).toHaveCount(0);
   });
+
+  test("SCREEN-ADMIN-USERS-A01-02: keyword, role and account status filters combine", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/users");
+    await page.getByLabel("メール・表示名").fill("regular@example.com");
+    await page.getByLabel("役割").selectOption("customer");
+    await page.getByLabel("状態").selectOption("active");
+
+    await expect(page.getByRole("row").filter({ hasText: "regular@example.com" })).toHaveCount(1);
+    await expect(page.getByRole("row").filter({ hasText: "admin@example.com" })).toHaveCount(0);
+
+    await page.getByLabel("役割").selectOption("operator");
+    await expect(page.locator(".state-panel--filter-empty")).toBeVisible();
+  });
+
+  test("SCREEN-ADMIN-USER-DETAIL-A01-03: rank update persists after a new page load", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("checkout-resume");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/users/user-customer-regular");
+    await page.getByLabel("ランク").selectOption("gold");
+    await page.getByRole("button", { name: "ランクを変更" }).click();
+    await expect(page.getByRole("status")).toContainText("ランクを変更しました");
+
+    await page.goto("/admin/users/user-customer-regular");
+    await expect(page.getByLabel("ランク")).toHaveValue("gold");
+  });
+
+  test("SCREEN-ADMIN-USER-DETAIL-A01-04: suspension is confirmed and login is rejected", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/users/user-customer-regular");
+    await page.getByRole("button", { name: "利用停止" }).click();
+    const dialog = page.getByRole("alertdialog", {
+      name: "このユーザーを利用停止にしますか",
+    });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "利用停止にする" }).click();
+    await expect(page.getByRole("status")).toContainText("利用停止にしました");
+
+    await page.goto("/login");
+    await page.getByLabel("メールアドレス").fill("regular@example.com");
+    await page.getByLabel("パスワード").fill("testpass1");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await expect(page.getByRole("alert")).toContainText("このアカウントは利用停止中です");
+  });
 });

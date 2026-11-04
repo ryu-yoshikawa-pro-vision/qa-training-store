@@ -125,3 +125,10 @@
 
 - テストの開始は`e2e/web/fixtures.ts`の`scenario()`で固定Seed/Clock・Resetを確認。実行条件はChromiumデスクトップ。成功時のTrace/動画/画像は既存`playwright.config.ts`が失敗時保持のため常設Artifactとして保存されていない。証拠は上記jobログとテスト名、固定SHA、検証assertion。
 - 本項目のWeb Roleマトリクス・Session失効・他人情報非露出は実証済み。**Android拒否文言/停止staffの循環（タスクリスト7番）、全表DB Snapshot（15番）、独立レビュー（19番）は未受入**であり流用しない。
+
+## 管理ユーザー検索・Rank・Statusの追加Web E2E（タスクリスト5番の継続）
+
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`に検索語×Role×StatusのAND絞り込み、顧客Rank変更後の画面再読込、顧客停止の確認Dialogと再ログイン拒否の3テストを追加。従来の8件に追加するため、このファイルは11件の新規ケースになる。
+- `SCREEN-ADMIN-USERS-A01-02`、`SCREEN-ADMIN-USER-DETAIL-A01-03/A01-04`へ紐付ける。既存IntegrationはRank変更・Checkout abandoned、Role/StatusでのSession失効と競合、自己/withdrawn拒否の一部を実証済み。
+- `src/presentation/pages/review-user-pages.tsx`の管理一覧はキーワード・Role・Statusを扱うが、Rank絞り込みやcreated/updatedによるsort UIはこの実装で見つからなかった。補助UI仕様との関係は#213/#210の仕様判断待ちとして扱い、製品側の修正は行わない。
+- 新規3件の実ブラウザCI結果は未確認。全対象操作・例外/rollback・画面/DB照合が揃うまで5番は未完了。
