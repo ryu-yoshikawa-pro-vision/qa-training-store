@@ -30,8 +30,9 @@ function fixture() {
   fs.writeFileSync(specPath, "/* learner-authored placeholder for command testing only */\n");
   const binDir = path.join(root, "bin");
   fs.mkdirSync(binDir);
-  const report = (file, actual, expected = "passed") =>
+  const report = (file, actual, expected = "passed", reportRoot = path.join(root, "workspace/M05")) =>
     JSON.stringify({
+      config: { rootDir: reportRoot },
       suites: [
         {
           specs: [
@@ -45,11 +46,12 @@ function fixture() {
       ],
     });
   const reports = {
-    pass: report("workspace/M05/p05-cart-locator.spec.ts", "passed"),
+    pass: report("p05-cart-locator.spec.ts", "passed"),
     empty: JSON.stringify({ suites: [] }),
-    wrongSpec: report("workspace/M05/product-link.spec.ts", "passed"),
-    skipped: report("workspace/M05/p05-cart-locator.spec.ts", "skipped"),
-    wrongExpectation: report("workspace/M05/p05-cart-locator.spec.ts", "failed", "failed"),
+    wrongSpec: report("product-link.spec.ts", "passed"),
+    skipped: report("p05-cart-locator.spec.ts", "skipped"),
+    wrongExpectation: report("p05-cart-locator.spec.ts", "failed", "failed"),
+    wrongRoot: report("p05-cart-locator.spec.ts", "passed", "passed", root),
   };
   const stub = [
     "#!/bin/sh",
@@ -59,6 +61,7 @@ function fixture() {
     "  no-report) ;;",
     `  empty) printf '%s\\n' '${reports.empty}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
     `  wrong-spec) printf '%s\\n' '${reports.wrongSpec}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
+    `  wrong-root) printf '%s\\n' '${reports.wrongRoot}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
     `  skipped) printf '%s\\n' '${reports.skipped}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
     `  wrong-expectation) printf '%s\\n' '${reports.wrongExpectation}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
     `  *) printf '%s\\n' '${reports.pass}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
@@ -145,9 +148,9 @@ describe("M05 P05の直接Playwright実行コマンド（隔離stub検証）", (
     expect(failedPlaywright.stdout).toContain("exit_code=9");
   });
 
-  linuxIt("JSON reportの対象testなし・別spec・skip・期待失敗の偽PASSを拒否する", () => {
+  linuxIt("JSON reportの対象testなし・別spec・rootDir違い・skip・期待失敗を拒否する", () => {
     const data = fixture();
-    for (const mode of ["empty", "wrong-spec", "skipped", "wrong-expectation"]) {
+    for (const mode of ["empty", "wrong-spec", "wrong-root", "skipped", "wrong-expectation"]) {
       const result = run(data.root, data.binDir, mode);
       expect(result.status, `mode=${mode} ${result.stderr}`).not.toBe(0);
     }
