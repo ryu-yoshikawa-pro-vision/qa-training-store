@@ -2,6 +2,12 @@
 
 対象PR：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。作業ブランチは`docs/plan-ai-agent-qa-curriculum-redesign`。個別PR #213〜#219の専用タスクリストと[分担Plan](./2026-11-04_pr199-parallel-branches.md)を参照する。**このファイルは#199本体だけで編集する**。以前の共通逐次Planの時刻別キューや当時のHEAD/進捗を現行のタスクとして流用しない。
 
+## 個別PRの作業完了と実受入の扱い（2026-11-05）
+
+個別#213〜#219は**GitHub接続エージェントができる調査・教材/コード修正・契約/負例テスト・既存GitHub Actionsでの検証・固定SHAの証拠整理**を担当する。本人のPrivate Codespaces・OpenCode認証済み実モデル・Private GitHub repo・料金/権限の判断、実機/ブラウザ・個人成果物操作、第三者再配布権利の最終判断は**#199の最後の実受入**として扱う。CIでテストを実行した証拠は保存するが、実利用者の学習・実受入のPASSへ自動変換しない。
+
+個別PRのタスクリストのチェック済み項目は当該PRのコード/教材/自動テストの進捗として引き継ぎ、#199実受入が終わるまでチェックを取り消す必要はない。実受入のためのfixture、実行手順・期待結果・必要な権限/費用・対象SHA・未実行理由は、各PRの成果物から受領する。個別PRの実行可能なCI/契約テストの修正を#199へ先送りしない。
+
 ## 作業境界と完了判定
 
 - このリストは個別PRの作業を重複実装するためではなく、複数PR間に残る**共有実装・意味的な対応・最終検証**を受け入れるためのもの。
@@ -66,3 +72,16 @@
 - [ ] **旧#219-20：正式採用Caseの対応・最終判定。** #213のBR/AC/Risk/TR/Condition/Case採否、79要件・188操作＋20状態・29横断要件、既存テストのassertionと新規Caseを突合し、採用/既存再利用/不要/保留を確定。208動作に一律新規E2Eを課さず、未受入条件と製品FAIL・環境BLOCKEDを含めて#199の最終受入結果へ反映する。
 
 本節の実受入はScenario Shopの対象機能についての判定であり、本文冒頭に記載した**#199マージ後のPublic Template公開や本人Private repo/2コアCodespaces実受入**とは別工程。ここに未完了・FAIL・BLOCKEDが残る場合、全受入が完了したとは記載せず、#199の完了/マージ可否を別途判断する。
+
+## 学習・評価・配布の最終実受入（#199の最後に実施）
+
+この節は#214〜#218から引き継ぐ。上記のScenario Shop実受入と同じく、**個別PRの技術準備・共有ファイルの調停・最終HEADのCIが整った後**に実施する。Public Template公開は従来どおり#199マージ後の本人作業。Private 2コアCodespacesも他のPR作業完了後に本人が実施し、許可・環境が未準備ならBLOCKEDとして後続条件を残す。実受講者の学習効果試行は本PRの対象外。
+
+- [ ] **#214 Phase 1の実動作**：本人がM00をロードしてファイル/差分/保存、Private Port、無料枠・Secret/Agent権限を確認。認証可能な通常OpenCodeで段階ヒント・別条件・復習・再挑戦を実行し、実本人判断とAI案の違いを記録
+- [ ] **#214/#218 固定Skillの実行**：学習環境に固定`qa-workflow-skills`とPython helperをロードし、M02 Authority/Risk/ScopeからM03条件/技法runtime/coverage/Case/evidence gateまで実行。終了コードだけでなく結果JSON・`valid=true`・source SHA・参照不備拒否を確認
+- [ ] **#215 Phase 2の実動作**：2コア学習環境で配布Shop/Seed/Reset/Playwrightを起動し、M05 TypeScript/Locator、M06独立spec・初回/再Run、M07 Trace/before-after/Page Object/fixtureを本人のCase・業務Assertion・Run証拠で判定
+- [ ] **#216 Phase 3の実動作**：本人Private repoの費用/権限/対象specを明示確認し、安全なworkflowを本人が有効化したときに限り実PR head・Run/attempt・Check/Artifact・target SHAをGitHub APIで照合。M08〜M10は任意で、Phase 1/2の修了を変更しない
+- [ ] **#217 OpenCode正式AI校正**：独立・最小権限の実モデルでM04/M07/M10を採点し、正答/誤答/別解/部分/旧Run/架空証拠/Prompt Injection/障害の校正結果と重大誤PASS 0件を確認。認証・無料モデル・料金・revisionが成立しなければBLOCKEDとし、モックCIだけで修了を出さない
+- [ ] **#217/#218 個人データの実保全**：本人の提出Markdown/spec/Trace/Run・非公開評価履歴のGit/PR不要のエクスポート・復元・再ロード非破壊性を実確認。別モジュール/過去成果物の上書きやSecret送信を拒否
+- [ ] **#218 配布・Web版の実照合**：最終統合SHAの11モジュール・22状態・Shop・固定Skill/manifestを実配布・ロードし、Web教材と配布版のrevision、不一致時の停止・公開評価資料/個人データ除外を確認。公開Webの全クイズ・画面幅・キーボード/a11y実操作は既存のWeb/クイズ最終チェックと合わせて確認
+- [ ] **#218 権利・公開判断**：第三者Skill・素材の権利とNOTICEの一次資料を確認し、再配布許諾・費用/公開範囲の最終判断を実施。未確認の許諾や未実行の実受入は成功としない。Public Templateの実公開は#199マージ後に別途本人が行う
