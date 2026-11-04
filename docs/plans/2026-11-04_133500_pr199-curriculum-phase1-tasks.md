@@ -147,7 +147,7 @@ M04演習と提出テンプレートに、承認Caseの元ID、Risk/TR・Scope�
 
 ## 2026-11-04 続行：22学習目標・配布元Skill・残条件の再検証
 
-固定した静的検証記録：[`docs/reports/2026-11-04_pr214-phase1-evidence-audit.md`](../../reports/2026-11-04_pr214-phase1-evidence-audit.md)。学習目標22/22について採点条件の必須P番号→実演習P見出し→提出P欄の対応一致。開始/終了stateの22/22目標IDとrevision一致。復習先はリポジトリの`slug-heading.ts`規則で32/32一致。`tests/contracts/ai-assisted-qa-phase1-objective-evidence.test.mjs`に固有の回帰テストを追加。**テストソースはあるがVitest実行は未確認**。
+固定した静的検証記録：[`docs/reports/2026-11-04_pr214-phase1-evidence-audit.md`](../reports/2026-11-04_pr214-phase1-evidence-audit.md)。学習目標22/22について採点条件の必須P番号→実演習P見出し→提出P欄の対応一致。開始/終了stateの22/22目標IDとrevision一致。復習先はリポジトリの`slug-heading.ts`規則で32/32一致。`tests/contracts/ai-assisted-qa-phase1-objective-evidence.test.mjs`に固有の回帰テストを追加。**テストソースはあるがVitest実行は未確認**。
 
 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のソース104/104はGitツリーとのblob SHA・サイズ・パス一致を直接照合。ただし、実受講環境のSkillコピー・helper実行は未検証。M00再ロードの競合拒否は既存`loadModule`と関連テストに実装されていることを読取確認したが、Ports/費用/本人再ロードの**実行証拠はなし**。これらの未完項目はチェックしない。
 
