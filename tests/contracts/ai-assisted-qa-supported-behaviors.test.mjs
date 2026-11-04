@@ -1247,4 +1247,35 @@ describe("サポート機能の仕様と実装の追跡", () => {
       );
     }
   });
+  it("traces 29 cross-cutting requirements to existing tests without claiming runtime acceptance", () => {
+    const linked = new Set(data.behaviors.flatMap((entry) => entry.requirement_refs ?? []));
+    const crossCutting = data.requirements.filter((entry) => !linked.has(entry.id));
+    expect(crossCutting).toHaveLength(29);
+    for (const requirement of crossCutting) {
+      const review = requirement.requirement_analysis.case_reuse_review;
+      expect(review).toMatchObject({
+        source_pr: 219,
+        existing_test_path: requirement.requirement_analysis.cross_cutting_contract,
+        formal_case_id_status: "未確定",
+        acceptance_status: "未受入",
+        target_platform: requirement.platform,
+        target_role: requirement.role,
+      });
+      expect(review.source_blob_sha).toMatch(/^[0-9a-f]{40}$/);
+      expect(review.target_state_seed.length).toBeGreaterThan(0);
+      expect(review.missing_conditions.length).toBeGreaterThan(0);
+      const source = fs.readFileSync(path.join(root, review.existing_test_path), "utf8");
+      for (const title of review.existing_test_titles) {
+        expect(source).toContain(title);
+      }
+      for (const key of review.candidate_web_evidence_keys) {
+        expect(key).toMatch(/^PR219-WEB-\d{3}$/);
+      }
+      expect(new Set(review.candidate_web_evidence_keys).size).toBe(
+        review.candidate_web_evidence_keys.length,
+      );
+      expect(requirement.requirement_analysis.sut_case_trace.acceptance_status).toBe("未受入");
+    }
+  });
+
 });

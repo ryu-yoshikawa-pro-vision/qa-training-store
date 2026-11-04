@@ -34853,6 +34853,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-runtime-service-surface.test.ts",
+          "existing_test_titles": [
+            "exposes the Native Customer purchase surface without Admin services"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "android,ios-build",
+          "target_role": "scopeによる",
+          "target_state_seed": "同じSeedのWeb/Android顧客Role（iOSはbuildのみ）",
+          "missing_conditions": "WebとAndroidのLogin〜ReviewのDTO・Error・State同等実Run。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:9 とtests/contracts/native-runtime-service-surface.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -34943,6 +34962,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-sqlite-transactions.test.ts",
+          "existing_test_titles": [
+            "rolls back a failed reset seed instead of committing an empty database"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "android,ios-build",
+          "target_role": "scopeによる",
+          "target_state_seed": "automation/localとProduction、SQLite失敗・Reset",
+          "missing_conditions": "Production bundleへのTest Control混入、実端末SQLite制約。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:13 とtests/contracts/native-sqlite-transactions.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35050,6 +35088,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-runtime-service-surface.test.ts",
+          "existing_test_titles": [
+            "keeps non-customer roles outside the Native Customer shell"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "android,ios-build",
+          "target_role": "scopeによる",
+          "target_state_seed": "顧客default、Cart→Checkout→Payment→Order→Review",
+          "missing_conditions": "Cart→Checkout→Payment→Order→ReviewのWeb/Android実行同等性。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:25 とtests/contracts/native-runtime-service-surface.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35141,6 +35198,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-ci-workflow.test.ts",
+          "existing_test_titles": [
+            "builds Automation and Production independently from clean jobs"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "android,ios-build",
+          "target_role": "scopeによる",
+          "target_state_seed": "Android RuntimeとiOS build-only",
+          "missing_conditions": "成果物の本番汚染検査・Android実行/iOS build証拠。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:31 とtests/contracts/native-ci-workflow.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35245,6 +35321,31 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/component/route-guard.test.tsx",
+          "existing_test_titles": [
+            "redirects a signed-out user from protected routes to Login"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-001",
+            "PR219-WEB-002",
+            "PR219-WEB-003",
+            "PR219-WEB-004",
+            "PR219-WEB-024"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "ゲストのストアフロント・Cart・チェックアウト・顧客データ・管理権限",
+          "target_state_seed": "default guest・Guest Cartと管理/Checkout拒否",
+          "missing_conditions": "Guest Cart許可、顧客/管理Use Case・Routeの拒否とDB不変。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:7 とtests/component/route-guard.test.tsxの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35344,6 +35445,31 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/auth-account.test.ts",
+          "existing_test_titles": [
+            "keeps management roles out of customer profile operations"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-001",
+            "PR219-WEB-002",
+            "PR219-WEB-003",
+            "PR219-WEB-004",
+            "PR219-WEB-024"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "顧客（有効）のストアフロント・Cart・チェックアウト・顧客データ・管理権限",
+          "target_state_seed": "default active customerの本人/他人データ",
+          "missing_conditions": "Checkout許可、他人Order/住所と管理Routeの拒否。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:8 とtests/integration/auth-account.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35450,6 +35576,32 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/auth-account.test.ts",
+          "existing_test_titles": [
+            "registers a normalized regular customer and logs out"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-001",
+            "PR219-WEB-002",
+            "PR219-WEB-003",
+            "PR219-WEB-004",
+            "PR219-WEB-013",
+            "PR219-WEB-024"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "顧客（停止／退会）のストアフロント・Cart・チェックアウト・顧客データ・管理権限",
+          "target_state_seed": "suspended/withdrawn customerの新旧Session",
+          "missing_conditions": "停止/退会の新旧Session・Checkout拒否をWeb/Androidで区別。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:9 とtests/integration/auth-account.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35557,6 +35709,32 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
+          "existing_test_titles": [
+            "rejects operator/customer admin DTO access without changing DB"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-001",
+            "PR219-WEB-002",
+            "PR219-WEB-003",
+            "PR219-WEB-004",
+            "PR219-WEB-009",
+            "PR219-WEB-024"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "オペレーター（有効）のストアフロント・Cart・チェックアウト・顧客データ・管理権限",
+          "target_state_seed": "active operatorのStore/User/Checkout",
+          "missing_conditions": "Store管理許可、User管理/CheckoutのRouteとUse Case拒否。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:10 とtests/contracts/ai-assisted-qa-admin-users-list.test.mjsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35664,6 +35842,27 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/review-user-use-cases.test.ts",
+          "existing_test_titles": [
+            "protects self-change, the last admin, withdrawn users, and customer role"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-008"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "管理者（有効）のストアフロント・Cart・チェックアウト・顧客データ・管理権限",
+          "target_state_seed": "active adminの他者/自己/最後admin",
+          "missing_conditions": "Store/User管理許可、Checkout拒否と競合・自己変更境界。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:11 とtests/integration/review-user-use-cases.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35763,6 +35962,27 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/checkout-order-use-cases.test.ts",
+          "existing_test_titles": [
+            "does not create an order when price or rank revalidation fails"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-010"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "会員ランクと商品閲覧・価格",
+          "target_state_seed": "regular/gold-member/platinum-memberの価格とRank変更",
+          "missing_conditions": "regular/gold/platinum閲覧制限と送料・Discount、表示金額との一致。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:15 とtests/integration/checkout-order-use-cases.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -35969,6 +36189,28 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/review-user-use-cases.test.ts",
+          "existing_test_titles": [
+            "invalidates all sessions when role or status changes"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-012",
+            "PR219-WEB-013"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "停止・退会アカウントの拒否と状態変更",
+          "target_state_seed": "active/suspended/withdrawnと再開後Session",
+          "missing_conditions": "active↔suspended/withdrawn、再開後旧Session不復活・DB不変。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:23 とtests/integration/review-user-use-cases.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
@@ -36058,6 +36300,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/admin-product-use-cases.test.ts",
+          "existing_test_titles": [
+            "enforces variation, active SKU, image primary, and publishability boundaries"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "draft/published/unpublished/discontinued・Version",
+          "missing_conditions": "draft/published/unpublished/discontinued全辺・拒否/終端とversion。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:9 の正式原文・tests/integration/admin-product-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36146,6 +36407,28 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/review-user-use-cases.test.ts",
+          "existing_test_titles": [
+            "protects self-change, the last admin, withdrawn users, and customer role"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-012",
+            "PR219-WEB-013"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "active/suspended/withdrawn・自己/旧Version",
+          "missing_conditions": "双方向許可・同値/旧version/actor失効拒否、Session/DB不変。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:10 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36248,6 +36531,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/checkout-order-use-cases.test.ts",
+          "existing_test_titles": [
+            "starts, resumes, replaces, and rejects a cart version changed after start"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "active/converted/abandoned/expired・24h期限",
+          "missing_conditions": "active→converted/abandoned/expiredと24h期限/再利用禁止。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:11 の正式原文・tests/integration/checkout-order-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36337,6 +36639,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/admin-operations-use-cases.test.ts",
+          "existing_test_titles": [
+            "updates Order and Shipment atomically through paid to delivered with new action versions"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "pending_payment/payment_failed/paid〜delivered",
+          "missing_conditions": "pending_payment/payment_failed含む全辺・逆遷移拒否/History不変。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:12 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36425,6 +36746,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/admin-operations-use-cases.test.ts",
+          "existing_test_titles": [
+            "updates Order and Shipment atomically through paid to delivered with new action versions"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "pending/shipped/delivered・旧Version",
+          "missing_conditions": "pending→shipped→delivered各辺・逆転/旧version/rollback。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:13 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36530,6 +36870,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/review-user-use-cases.test.ts",
+          "existing_test_titles": [
+            "searches reviews and changes visibility with history and summary atomically"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "published/hidden/deleted・再投稿",
+          "missing_conditions": "published↔hidden→deletedの全許可/拒否と再投稿/rollback。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:14 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36626,6 +36985,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/cart-use-cases.test.ts",
+          "existing_test_titles": [
+            "uses a new generated ID when an existing guest cart is abandoned"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "guest/customer Cart、active/consumed/abandoned",
+          "missing_conditions": "consumed/abandoned終端・Cart統合・旧Cart/重複購入の拒否。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:15 の正式原文・tests/integration/cart-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36730,6 +37108,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/review-user-use-cases.test.ts",
+          "existing_test_titles": [
+            "rejects a review for an undelivered order and a deleted review repost"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "Product/Order/Review/Checkout/Cart終端",
+          "missing_conditions": "Product/Order/Review/Checkout/Cartの6終端を個別に逆遷移拒否。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:17 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -36994,6 +37391,35 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs",
+          "existing_test_titles": [
+            "rejects a stale cart before confirmation and leaves order/payment data unchanged"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-014",
+            "PR219-WEB-015",
+            "PR219-WEB-018",
+            "PR219-WEB-020",
+            "PR219-WEB-021",
+            "PR219-WEB-023",
+            "PR219-WEB-025",
+            "PR219-WEB-026",
+            "PR219-WEB-027"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "empty-catalog/Loading/Error/Conflict/NotFoundとstale Cart",
+          "missing_conditions": "Loading/Empty/Error/Conflict/NotFound・processing中取消/再試行。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:27 の正式原文・tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37075,6 +37501,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-runtime-service-surface.test.ts",
+          "existing_test_titles": [
+            "exposes the Native Customer purchase surface without Admin services"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "NATIVE_CUSTOMER_SCENARIOSのAndroid/SQLite",
+          "missing_conditions": "NATIVE_CUSTOMER_SCENARIOSのAndroid/SQLite/Navigationの実Run。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:31 の正式原文・tests/contracts/native-runtime-service-surface.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37158,6 +37603,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "e2e/web/mobile-boundary.spec.ts",
+          "existing_test_titles": [
+            "keeps filter state synchronized when crossing the 900px breakpoint"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "320/390/767/768/900/1023/1024pxと管理警告",
+          "missing_conditions": "767/768/1023/1024px・390×844と320×700、焦点/管理操作禁止。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:5 の正式原文・e2e/web/mobile-boundary.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37241,6 +37705,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-visual-contract.test.ts",
+          "existing_test_titles": [
+            "keeps the brand, spacing, ratio, and touch-target contract explicit"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "Web/Android共有Token・8px/44px・画像正本",
+          "missing_conditions": "Web/Android実画面・正本画像の配色/余白/タッチ寸法比較。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:9 の正式原文・tests/contracts/native-visual-contract.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37526,6 +38009,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/catalog-use-cases.test.ts",
+          "existing_test_titles": [
+            "uses the half-open sale end from Test Clock"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "default/gold-member/expired-sale/empty-catalogの商品検索",
+          "missing_conditions": "Facet・Sale・在庫・Variation・Review要約をWeb/Androidで実行。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:19 の正式原文・tests/integration/catalog-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37628,6 +38130,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/checkout-order-use-cases.test.ts",
+          "existing_test_titles": [
+            "creates consistent snapshots and decrements stock exactly once after success"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "Guest Cart統合→Customer Checkout→Payment",
+          "missing_conditions": "Guest→Customer Cart統合からCustomer購入・決済、Guest Checkout拒否。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:20 の正式原文・tests/integration/checkout-order-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37733,6 +38254,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/review-user-use-cases.test.ts",
+          "existing_test_titles": [
+            "creates, updates, and deletes one delivered owned review with aggregate changes"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "active customerのOrder/Payment/Shipment/本人Review",
+          "missing_conditions": "Order/Address/Rank/価格Snapshotと決済・配送・本人Review接続。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:21 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -37857,6 +38397,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/integration/admin-operations-use-cases.test.ts",
+          "existing_test_titles": [
+            "searches orders by customer, status, period, total, sort, and page"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "active operator/adminによる管理Role境界",
+          "missing_conditions": "Category/Brand/Product/Review/Userをoperator/adminで権限別受入。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:22 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -38042,6 +38601,32 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "e2e/web/accessibility.spec.ts",
+          "existing_test_titles": [
+            "Keyboardで本文へ移動し、Dialogを閉じるとFocusが戻る"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [
+            "PR219-WEB-014",
+            "PR219-WEB-015",
+            "PR219-WEB-020",
+            "PR219-WEB-021",
+            "PR219-WEB-026",
+            "PR219-WEB-027"
+          ],
+          "candidate_match_basis": "代表Behavior ID一致のみ。要件の直接assertion・採用・製品PASSは未証明",
+          "target_platform": "web,android",
+          "target_role": "正式仕様による",
+          "target_state_seed": "guest/customer/adminのWeb各状態・各幅/a11y",
+          "missing_conditions": "全対象状態・幅別のKeyboard/ScreenReader/Empty/Loading/Conflict/NotFound。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:24 の正式原文・e2e/web/accessibility.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
@@ -38241,6 +38826,25 @@
           ],
           "acceptance_status": "未受入",
           "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        },
+        "case_reuse_review": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
+          "source_blob_sha": "da0d14b148e94034952ae13aa3968f6d0b0cd8b2",
+          "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
+          "existing_test_path": "tests/contracts/native-ci-workflow.test.ts",
+          "existing_test_titles": [
+            "runs the Native platform-boundary enforcement gate in Native CI"
+          ],
+          "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
+          "candidate_web_evidence_keys": [],
+          "candidate_match_basis": "直接一致するWeb実行証拠キーなし。既存契約と必要Platform/Stateを別途照合",
+          "target_platform": "android,ios-build",
+          "target_role": "正式仕様による",
+          "target_state_seed": "Android顧客Runtime、iOS build-only",
+          "missing_conditions": "Native顧客機能Android実行、Native管理/Guest Checkout非提供確認、iOS Build-only。",
+          "formal_case_id_status": "未確定",
+          "acceptance_status": "未受入"
         }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:15 の正式原文・tests/contracts/native-ci-workflow.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
