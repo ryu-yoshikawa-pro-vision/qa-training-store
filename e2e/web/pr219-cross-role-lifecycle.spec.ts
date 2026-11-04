@@ -148,6 +148,37 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
     await expect(page.getByLabel("ランク")).toHaveValue("gold");
   });
 
+  test("SCREEN-ADMIN-USER-DETAIL-A02-01: self role and status edits are disabled", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/users/user-admin");
+
+    await expect(page.getByLabel("役割")).toBeDisabled();
+    await expect(page.getByRole("button", { name: "役割を変更" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "利用停止" })).toBeDisabled();
+    await expect(page.getByText("自分自身の役割は変更できません。")).toBeVisible();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
+
+  test("SCREEN-ADMIN-USER-DETAIL-A02-02: withdrawn customer is read only", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/users/user-customer-withdrawn");
+
+    await expect(page.getByText("退会済みユーザーは読取専用です。")).toBeVisible();
+    await expect(page.getByLabel("ランク")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "利用再開" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "利用停止" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "役割を変更" })).toHaveCount(0);
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
+
   test("SCREEN-ADMIN-USER-DETAIL-A01-04: suspension is confirmed and login is rejected", async ({
     page,
     scenario,

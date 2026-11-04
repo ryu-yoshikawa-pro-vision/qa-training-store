@@ -102,6 +102,39 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     expect(await database.users.get("user-admin")).toEqual(actorBefore);
   });
 
+  it("allows a second active admin's suspension and retains the acting admin", async () => {
+    expect(await database.users.update("user-operator", { role: "admin" })).toBe(1);
+    await database.sessions.put({
+      id: "pr219-second-admin-session",
+      userId: "user-operator",
+      createdAt: SESSION_CREATED_AT,
+    });
+
+    const actorSessionBefore = await database.sessions.get("pr219-actor-session");
+    const targetBefore = await useCases.getDetail("user-operator");
+    const after = await useCases.changeSuspension({
+      userId: targetBefore.userId,
+      accountStatus: "suspended",
+      expectedVersion: targetBefore.version,
+    });
+
+    expect(after.accountStatus).toBe("suspended");
+    expect(after.version).toBe(targetBefore.version + 1);
+    expect(await database.sessions.get("pr219-second-admin-session")).toBeUndefined();
+    expect(await database.sessions.get("pr219-actor-session")).toEqual(actorSessionBefore);
+    const admins = await database.users.where("role").equals("admin").toArray();
+    expect(admins.filter((user) => user.accountStatus === "active")).toHaveLength(1);
+
+    const actor = await useCases.getDetail("user-admin");
+    await expect(
+      useCases.changeSuspension({
+        userId: actor.userId,
+        accountStatus: "suspended",
+        expectedVersion: actor.version,
+      }),
+    ).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
+  });
+
   it("rejects stale role version without changing user or session", async () => {
     expect(await database.users.update("user-operator", { role: "admin" })).toBe(1);
     await database.sessions.put({

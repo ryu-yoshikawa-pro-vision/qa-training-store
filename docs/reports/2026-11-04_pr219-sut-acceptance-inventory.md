@@ -181,3 +181,9 @@
 - `e2e/web/pr219-cross-role-lifecycle.spec.ts`の管理商品検索`getByLabel("検索")`がサイト共通の検索欄とも一致しstrict modeエラーとなったため、`.admin-page input[type="search"]`を使い受入画面内の検索欄に限定した。
 - 同Runの既存`e2e/web/cross-role-lifecycle.spec.ts`で`getByRole("status")`が2要素に一致し失敗。**既存製品テストは#219で編集しない**。独立した再現証拠を#199へ引き継ぐ。
 - Style QualityのPrettier警告は新規`pr219-cross-role-lifecycle.spec.ts`で発生。空行を整理して長いassertionを分割したが、最新HEADのformat結果は別途CIで検証する。旧Runを修正後の成功とみなさない。
+
+## 管理ユーザーの自己変更と退会済み画面の補完
+
+- 受入専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`に2件追加。`SCREEN-ADMIN-USER-DETAIL-A02-01`（本人のRole・停止ボタンdisabled、Dialogなし）と`A02-02`（退会済み顧客の読取専用表示と変更操作なし）。
+- `tests/integration/pr219-admin-user-acceptance.test.ts`に2人のactive adminから対象の別adminを停止し、active adminを1名残す正常系・対象Session消去・actor Session保持と、最後の本人の停止拒否を1件追加。
+- 上記3件の実CIは追加時点で未確認。#199のactor失効競合は別受入Caseの既知不具合として継続。タスクリスト5/6番を安易にPASSにしない。
