@@ -160,3 +160,10 @@
 - 新規`tests/component/pr219-forbidden-route.test.tsx`はactive operator/customerの基準Caseと停止operatorの期待失敗Case（`it.fails`）で差分を証明する。後者は**製品不具合候補であって製品適合PASSではない**。実CIで旧SUTに対する動的証拠を取得するまでは未再現扱い。
 - `app/forbidden.native.tsx`は`NativeUnsupportedScreen title="この操作はNative前半の対象外です"`を返す一方、正式`docs/spec/roles-and-permissions.md`は権限不足の説明と安全な戻り先を要求する。Androidの見た目・操作は未実行であり、仕様との関係を#210へ引継ぎ、独断で修正しない。
 - DB変更なし、機密children非表示、実ブラウザでの停止staff再現とAndroid実機確認が不足するため7番のチェックは保留する。
+
+## Storefront商品0件の実Web検証準備（タスクリスト9番）
+
+- 既存`cross-role-chromium`に受入専用2ケースを追加（`e2e/web/pr219-cross-role-lifecycle.spec.ts`）。設定ファイルは#199の共有所有のため変更せず、現在の実行対象ファイル内の別`describe`で管理する。
+- `empty-catalog`の無条件0件は`/products`のEmpty StatePanelでCTAがなく、BreadcrumbsのHome linkをキーボードEnterで利用できることを確認する。
+- `default`の`/products?minPrice=999999`で0件となる場合はFilter Empty StatePanelと`条件をすべて解除`の機能を確認する。
+- 検索API失敗のError画面・視覚正本画像・全幅と実画像証拠/a11y・Reset直後のDB snapshotは未検証。これらが揃うまでタスクリスト9番は未完了。

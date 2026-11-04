@@ -170,3 +170,39 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
     await expect(page.getByRole("alert")).toContainText("このアカウントは利用停止中です");
   });
 });
+
+
+test.describe("PR #219: storefront empty result boundaries", () => {
+  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: no products has no CTA but breadcrumb works", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("empty-catalog");
+    await page.goto("/products");
+    await expect(page.getByRole("heading", { name: "現在、表示できる商品はありません" })).toBeVisible();
+    const empty = page.locator(".state-panel--empty");
+    await expect(empty).toBeVisible();
+    await expect(empty.locator("a, button")).toHaveCount(0);
+    await expect(page.getByText("0件の商品")).toBeVisible();
+
+    const home = page.getByRole("link", { name: "ホーム", exact: true });
+    await expect(home).toHaveAttribute("href", "/");
+    await home.focus();
+    await expect(home).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: filtered zero has a reset action", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await page.goto("/products?minPrice=999999");
+    await expect(page.locator(".state-panel--filter-empty")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "現在、表示できる商品はありません" })).toHaveCount(0);
+    await page.locator(".state-panel--filter-empty").getByRole("button", { name: "条件をすべて解除" }).click();
+    await expect(page).toHaveURL(/\/products$/);
+    await expect(page.locator(".product-card").first()).toBeVisible();
+  });
+});
