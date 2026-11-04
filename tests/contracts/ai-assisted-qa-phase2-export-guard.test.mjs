@@ -106,7 +106,7 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
     expect(initializeManifest).toBeTruthy();
     const fixture = makeFixture();
     const original = fs.readFileSync(fixture.manifest, "utf8");
-    const appended = original + "workspace/M05/evidence/run-unique/trace.zip\\n";
+    const appended = original + "workspace/M05/evidence/run-unique/trace.zip\n";
     fs.writeFileSync(fixture.manifest, appended);
     const alreadyExists = runManifestInitialization(fixture);
     expect(alreadyExists.status).not.toBe(0);
