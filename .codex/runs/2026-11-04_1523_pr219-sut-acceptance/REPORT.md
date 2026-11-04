@@ -74,3 +74,8 @@
 - #41826786410（c1ff77f）のworkflow全体successを確認。cross-role job 126564385617 は29件PASS、DB10表不変・停止staff旧Sessionでの全23表不変・Checkout競合7幅を個別実証。前二者のうち停止staffとCheckout誤復帰は製品FAIL再現であり製品合格にはしない。対応するWeb3Caseを同じ暫定キーで固定Run履歴として追記し、Web45履歴行/34列（旧42行不変）、キー25種類、208動作中11動作直接紐付け・197動作未紐付けを維持。
 - 新規#219専用契約テスト `tests/contracts/pr219-web-evidence-ledger.test.mjs`でCSV構造、40桁のテストHEAD/SUT、Run/Job ID、期待Clock≠実測、過去Runの証拠キー再利用とBehavior参照整合、BR/ACの誤割当て防止を検査する。追加コミット `de1c54f`のCI #41830058305でStyle QualityにPrettier違反を検出し、`6ea26c4`で修正。修正後の契約テスト実Runは未確認。CI待機は行わず次回検証する。
 - この実行環境は`ANDROID_HOME`未設定で`adb`、`emulator`、`maestro`未導入。実Android/SQLite/端末復帰と画面録画は未実施。#213の正式Case ID採否、#199の成功時cross-role Artifact保管、全採用Caseの独立レビューも未完。14/21のチェック維持。
+
+- CI #41830747741 の契約テスト実証：固定HEAD `2ad05de61a89197d32d23772aacb68a3b633e04c`、Vitest (contracts) job `126577007220` は success。ログで新規 `tests/contracts/pr219-web-evidence-ledger.test.mjs` の3件PASS、契約全75ファイルpass/1098テストpass（expected fail 1、skip 15）を確認。一方 Style Quality `126577006913` は同新規ファイルのPrettier違反でfailureとなり、verify/validateも派生failure。workflow全体はfailure。テストPASSと品質ゲートsuccessを混同しない。
+- Prettierの修正試行：`cc5e008`で既存の複合式を整形したが、Run #41831922016 Style Qualityでは同ファイルの違反が残存し、workflowは後続更新でキャンセル。`10fb7c299d1d5e8367590c8d3165183d8198bb94`で複雑なfilter/map連結やネストされたassertionを明確な逐次処理へ整理。新HEADでのStyle Quality/契約テスト再検証は未確認。
+- Case #219 Web3件 `PR219-WEB-023/024/025` に、既存の `scenario()` が返すTestMetadataから、Reset時のClock実測値、buildSha、app/schema/seed version、scenarioだけを `PR219_RUNTIME_METADATA` としてCIジョブログに記録する専用helperを追加（`4327ad1`）。実データ、認証情報、Session IDをログに出さない。新ログの実測値はまだ未取得、従来CSVのclock_basisは期待値のまま保持。正式Case決定、Android/SQLite、成功時Artifact、全採用Caseの独立レビューは依然未完。
+- Progress: 67% (14/21)。今回チェックの追加なし。
