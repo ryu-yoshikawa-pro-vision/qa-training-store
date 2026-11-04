@@ -24,13 +24,13 @@
 - [x] `SCREEN-ADMIN-USER-DETAIL-A02-01`：自己Role変更・自己停止のUI禁止とUse Case拒否、Session/全DB不変、別admin存在時を照合
 - [x] `SCREEN-ADMIN-USER-DETAIL-A02-02`：withdrawn customer/staffへのRank/Role/Statusの各拒否、Web read-only、非書込みと期待エラーを照合
 - [x] `SCREEN-ADMIN-USER-DETAIL-A02-03`：有効adminの2→1は許可、本人変更は自己拒否、actor権限失効/並行競合は別条件として静的・実行可能な根拠を整理。成立しない「非self最後のadmin」fixtureを作らない
-- [ ] `SCREEN-BOUNDARY-FORBIDDEN-A01-01`：停止staffの戻りリンク循環、Web/Native拒否理由差、別Role・直URL・情報保護とCase採否を確定
+- [x] `SCREEN-BOUNDARY-FORBIDDEN-A01-01`：停止staffの戻りリンク循環、Web/Native拒否理由差、別Role・直URL・情報保護とCase採否を確定
 
 ## 残3状態の基本分析
 
-- [ ] `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`：パンくずの戻り導線と正式仕様の関係を確定。パネル内CTA欠落だけで製品不適合と断定しない
-- [ ] `SCREEN-CHECKOUT-ADDRESS-S-resume-notice`：同一/別Session、初回/再入場/Reload、Resetと期限・Cart版の条件を確認
-- [ ] `SCREEN-CHECKOUT-CONFIRM-S-stale-cart`：確認画面到達後のversion変更、拒否・復帰・Order/Payment/Inventory非変更を整理。Seedの初期unlockedStepと混同しない
+- [x] `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`：パンくずの戻り導線と正式仕様の関係を確定。パネル内CTA欠落だけで製品不適合と断定しない
+- [x] `SCREEN-CHECKOUT-ADDRESS-S-resume-notice`：同一/別Session、初回/再入場/Reload、Resetと期限・Cart版の条件を確認
+- [x] `SCREEN-CHECKOUT-CONFIRM-S-stale-cart`：確認画面到達後のversion変更、拒否・復帰・Order/Payment/Inventory非変更を整理。Seedの初期unlockedStepと混同しない
 
 ## 全件照合・回帰防止
 
@@ -102,3 +102,23 @@
 - 固定照合HEAD：`662179776bda57a33ec58aecdb2c8d105348fceb`。正式BR/AC/Role/State、Web詳細→AdminUserUseCases→Dexie/Session/Checkout、default Seed・Version・Case採否・拒否時の不変条件を静的照合し、基本分析 `analyzed` に更新。台帳 `basic_analysis_review` を正本として実装根拠・既存Caseの有無を記録。
 - 主な根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:618-835`、`src/application/use-cases/review-user-use-cases.ts:542-714`、`src/infrastructure/database/dexie/basic-repositories.ts:57-63,108-133`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`。
 - 結果：静的基本分析のみ完了。採用Caseの直接テスト・実Web/DB全表前後・並行競合/注入失敗・Visual/a11y/Traceと製品適合は**未受入**。実Runは#219、未マージ製品修正と仕様判断は#210へ引き継ぎ、CI成功を推認しない。
+
+### `SCREEN-BOUNDARY-FORBIDDEN-A01-01`（2026-11-04）
+
+- 固定照合HEAD：`ea88ce68f9e996cf5d502407c898f73008b951f1`。正式仕様・Role/Platform/State、UI→Use Case（またはUI-only）→データ/Seed、Risk・TR・Condition・Case採否と判断先の**静的基本分析を完了**。詳細なファイル/line・観測事実と未決事項は既存正本 `training/ai-assisted-qa-course/coverage/supported-behaviors.json` の同ID `basic_analysis_review` / `case_policy` に記録。
+- 実行結果：当該タスクでの直接Playwright/Vitest/Android/DB/Visual/a11yは未実施。静的差と製品不適合・動的Case PASSは区別し、実動作の採用Caseは#219、仕様解釈と製品変更は#210に依頼。共通Web・教材・最終CIは#199。
+
+### `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`（2026-11-04）
+
+- 固定照合HEAD：`ea88ce68f9e996cf5d502407c898f73008b951f1`。正式仕様・Role/Platform/State、UI→Use Case（またはUI-only）→データ/Seed、Risk・TR・Condition・Case採否と判断先の**静的基本分析を完了**。詳細なファイル/line・観測事実と未決事項は既存正本 `training/ai-assisted-qa-course/coverage/supported-behaviors.json` の同ID `basic_analysis_review` / `case_policy` に記録。
+- 実行結果：当該タスクでの直接Playwright/Vitest/Android/DB/Visual/a11yは未実施。静的差と製品不適合・動的Case PASSは区別し、実動作の採用Caseは#219、仕様解釈と製品変更は#210に依頼。共通Web・教材・最終CIは#199。
+
+### `SCREEN-CHECKOUT-ADDRESS-S-resume-notice`（2026-11-04）
+
+- 固定照合HEAD：`ea88ce68f9e996cf5d502407c898f73008b951f1`。正式仕様・Role/Platform/State、UI→Use Case（またはUI-only）→データ/Seed、Risk・TR・Condition・Case採否と判断先の**静的基本分析を完了**。詳細なファイル/line・観測事実と未決事項は既存正本 `training/ai-assisted-qa-course/coverage/supported-behaviors.json` の同ID `basic_analysis_review` / `case_policy` に記録。
+- 実行結果：当該タスクでの直接Playwright/Vitest/Android/DB/Visual/a11yは未実施。静的差と製品不適合・動的Case PASSは区別し、実動作の採用Caseは#219、仕様解釈と製品変更は#210に依頼。共通Web・教材・最終CIは#199。
+
+### `SCREEN-CHECKOUT-CONFIRM-S-stale-cart`（2026-11-04）
+
+- 固定照合HEAD：`ea88ce68f9e996cf5d502407c898f73008b951f1`。正式仕様・Role/Platform/State、UI→Use Case（またはUI-only）→データ/Seed、Risk・TR・Condition・Case採否と判断先の**静的基本分析を完了**。詳細なファイル/line・観測事実と未決事項は既存正本 `training/ai-assisted-qa-course/coverage/supported-behaviors.json` の同ID `basic_analysis_review` / `case_policy` に記録。
+- 実行結果：当該タスクでの直接Playwright/Vitest/Android/DB/Visual/a11yは未実施。静的差と製品不適合・動的Case PASSは区別し、実動作の採用Caseは#219、仕様解釈と製品変更は#210に依頼。共通Web・教材・最終CIは#199。

@@ -2207,20 +2207,20 @@
       "source_line": 73,
       "source_text": "表示可能な商品がない理由と元の画面に戻る導線を表示する。",
       "platform": "web-desktop",
-      "role": "`guest, customer`",
-      "scenario": "empty",
-      "data": "Seed/入力: empty-catalog。通常状態から条件を変更し表示と操作を比較",
+      "role": "Web desktopのguest/active customer。公開商品がないempty-catalog（Native empty視覚は本状態の必須受入範囲外）、guest/session差と商品公開条件は別Case。",
+      "scenario": "empty-catalog Resetの/products無条件0件（page1/keywordなし/ファセット・価格なし）と、通常Seedから検索/価格/カテゴリ絞込で0件になるケースを分ける。Seed初期Guestでもactive customerでの検索可能性を個別検証。",
+      "data": "正式storefront.md:68-74は商品がない理由と『元の画面に戻る導線』を必要とする。Web CatalogListPage:282-290は無条件でホーム(/)へのBreadcrumbsを描画し、商品0件かつ無条件時はStatePanel kind=emptyをaction=nullにしてパネル内CTAを消す。条件付き0件はStatePanel kind=filter-emptyと『条件をすべて解除』→router.replace('/products' 等)を表示。Seed empty-catalogはデータの公開商品等を除去するがReset/初期Session/Role別検索は実Run未検証。Breadcrumbsは実Linkとしてホームへ遷移可能な構成であり『戻る導線が全くない』とは断定できない。パネル内CTAがなくても画面全体の復帰要件を満たすかは正本画像・利用可能性・製品責任者の解釈を待つ。",
       "action": "empty状態を表示・処理",
-      "expected": "表示可能な商品がない理由と元の画面に戻る導線を表示する。",
+      "expected": "guest/customerがempty-catalogの/productsを開くと理由説明とホーム等へ戻れる動線を表示すること。無条件0件ではパネル内CTAはないがBreadcrumbsのホーム(/)があり、パネル限定CTAの欠落だけで正式仕様違反と断定しない。条件付き0件にはフィルター解除Actionを提示。Breadcrumbsによる復帰が正式な『元の画面へ戻る』の受入に十分かは#210で判断、実Web/Visual/a11y/DB/Sessionは#219へ。",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "全商品0件のStatePanel内はaction=nullだが、画面上部のパンくずにはホーム(/)へのLinkがある。正式仕様の『元の画面に戻る導線』をパンくずで満たせるかは仕様解釈・視覚受入が未確定。条件付き0件の『条件をすべて解除』とは復旧方法が異なる（UX/教材導線のMedium候補）",
-      "test_condition": "empty-catalog Reset→Web desktopの素の/products（page=1/検索・フィルタなし）で0件案内とStatePanel action=null、パンくず『ホーム』Linkの表示・遷移先/を確認。仕様の『元の画面に戻る』がパンくずを含むかは正式画面リファレンスと対照する。検索・絞込で0件になった場合は『条件をすべて解除』ボタンが表示・動作することを別Caseで確認。実ブラウザ/画面画像/keyboard/a11y、Reset後DB状態と復帰導線の使用性は未受入",
-      "test_responsibility": "対応操作SCREEN-STOREFRONT-PRODUCT-LIST-A01-01の状態別期待結果を検証",
-      "case_policy": "基準状態と非default状態の対比較",
-      "case_selection_reason": "emptyに固有の表示・操作制御を確認し、親操作のCaseへ含める",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "storefront.md:68-74はempty時に『表示可能な商品がない理由と元の画面に戻る導線』を要求。CatalogListContent:282-290には常設のBreadcrumbsでホーム(/)への導線があり、Breadcrumbs:4-18はExpo RouterのLinkとして描画する。一方、unfiltered /productsの0件はCatalogListContent:501-525でStatePanel action=null。catalog-pages.test.tsx:305-313はパネル内CTAなしを期待する。したがって『画面上に戻り導線が一切ない』とは断定できない。パンくずで正式仕様を満たすか、別途復旧CTAが必要かは正本画像と実Webの挙動・操作性を確認するまで未判断。製品実装/正式仕様は変更せずreview_requiredを維持",
+      "risk": "Medium:無条件empty状態のPanel action=nullで復帰Actionの発見性が低い可能性、固定パンくずのホーム(/)が利用者の直前画面と一致しない可能性。High候補:emptyと認可拒否/通信失敗が同一画面に混同されること、Role/Seedの読み込み差。静的にはホームLinkがあるため完全な復帰不能とはしない。",
+      "test_condition": "C1採用：empty-catalog後、無条件/productsの0件説明・件数・StatePanel action=nullとホームBreadcrumbs Link(' / ')を確認。C2採用：直前画面がホーム以外の場合のパンくずの復帰意味を正式storefront/画像と照合して仕様判断を#210へ依頼。C3採用：価格/検索/カテゴリの条件付き0件と『条件をすべて解除』の正しい遷移先。C4採用：guest/active customer、empty-catalog Reset、検索Repositoryの件数/Role拒否・error/loading区別。C5別判定：Native empty表示/遷移は親操作・#219の別Caseで確認、Web desktop視覚必須とは混同しない。C6採用：Web desktop、キーボード/a11y/正本画像・DB/Sessionの前後不変。",
+      "test_responsibility": "TR1=storefront.md SCREEN-STOREFRONT-PRODUCT-LIST empty条件とBR/AC、画面正本。TR2=CatalogListPageのBreadcrumbs/StatePanel action=null・filter-empty CTA/Router。TR3=empty-catalog Seed/guest/customer検索結果。TR4=既存catalog-pages.test.tsxの無条件/条件付きempty静的Caseと#219実Web/DB/Visual/a11y。仕様解釈の判断先は#210。",
+      "case_policy": "C1/C2/C3/C4/C6を本状態の採用Case、C5 Nativeは親操作の動的範囲へ引継ぐ。Panel内CTA欠落だけを不適合と決めず、ホームBreadcrumbsの存在を根拠に製品適合は未決として分離する。",
+      "case_selection_reason": "全商品0件と検索/絞込結果0件では復帰Actionの仕様と挙動が異なる。BreadcrumbsによるホームLinkを見落として不適合と誤認しないため、意味的なUI受入と静的根拠・実ブラウザ受入を独立させる。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD ea88ce68f9e996cf5d502407c898f73008b951f1 静的基本分析：storefront.md:68-74はempty-catalogの理由と元画面への導線を要求。catalog-list-page.tsx:282-290でホーム(/)Breadcrumbs、:501-525で無条件0件はStatePanel action=null／条件付き0件は解除button。states.tsx:27-68はaction=nullならデフォルトホームCTAを抑止。metadata.ts:86-94とscenarios.ts:39-40のempty-catalog Seed、catalog-pages.test.tsx:305-335のcomponent既存テスト定義を確認。ホームBreadcrumbsを含めて正式『元の画面』に該当するかは静的だけで決定できず、#210の仕様判断と#219の実Web/視覚/a11yで別受入。今回直接Vitest/Playwright・DB前後は未実行。",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2232,7 +2232,7 @@
       "related_use_cases": [],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "仕様/Seed/UI/既存componentに加え、パンくずLinkを独立照合。空状態パネル内CTA欠落は確認したが、画面のホームLinkは存在するため仕様不適合を未確定へ整理。実Web/視覚/a11y・元画面の意味の受入が残る",
+      "analysis_progress": "2026-11-04 静的基本分析analyzed：無条件empty状態にパネル内CTAはない一方ホームBreadcrumbsは存在、条件付きemptyの解除CTAも確認。Risk/TR/Case採否と『元画面』の仕様未決・判断先を記録、製品適合/実Web受入は未完。",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -2295,7 +2295,18 @@
           "start_line": 305,
           "end_line": 316,
           "reason": "既存componentテストは無条件0件のCTAなしを明示的に期待（実Web/Seed受入ではない）"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 24,
+          "end_line": 68,
+          "reason": "action=null時の既定ホームLink抑止"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {
@@ -10381,20 +10392,20 @@
       "source_line": 73,
       "source_text": "再開されたチェックアウトセッションであることを一度だけ通知する。",
       "platform": "web-desktop",
-      "role": "active customer（regular@example.com）。guest/operator/adminおよびsuspended/withdrawnはCheckout不可",
-      "scenario": "checkout-resume。BASE_CLOCK=2026-07-01T03:00:00Z、Checkout期限は2026-07-02T03:00:00Z",
-      "data": "checkout-resumeは本人regular customerのactive CheckoutSession（checkout-active、cartVersion=1、version=1、unlockedStep=address）を作り、Cart version=1と一致する。defaultは既存Checkoutなし、checkout-replacedはCart version=2に変更",
+      "role": "active customerに限るWeb desktopの購入手続再開通知。guest/operator/admin/停止・退会はCheckout禁止。Nativeの購入継続は親動作別受入。",
+      "scenario": "checkout-resume：default regular customerを初期Sessionとしactive checkout-active（cartVersion=1,version=1,unlockedStep=address、expires=2026-07-02T03:00Z、固定BASE_CLOCK 2026-07-01T03:00Z）を生成。checkout-replacedはCart.version=2と旧Checkout.cartVersion=1。初回/同一tabの再入場・reload/Reset/別tab sessionStorage・異なるcheckout ID/期限切れを分ける。",
+      "data": "Web CheckoutAddressContent:118-147はCart取得後CheckoutOrderUseCases.start({cartVersion})で再開/置換を決め、戻り値result=resumed/replacedの場合claimCheckoutNotice(session.id,result)により表示を1回に制限する。browser one-time-notice.web.ts:145-162はsessionStorageキー checkout:<sessionId>:<kind> で既表示を記録し、同一tabのreloadでは再表示せず、別tabのstorage独立性は実ブラウザ差を要確認。Reset時の履歴消去は関連Reset処理の直接検証が別途必要。UseCase.start:108-138はactive customer/Cart版・blockingIssuesを検証しstartOrResumeに委譲。Seed checkout-resume/checkout-replacedはscenarios.ts:367-395で再開可能・Cart版不一致の2経路を作る。expired sessionは24時間の正式規則に従い再開禁止。",
       "action": "resume-notice状態を表示・処理",
-      "expected": "Web /checkout/addressでstartOrResumeがresumedを返すと『以前の購入手続きを再開しました。』をrole=statusで初回だけ表示。同じCheckout Session IDと通知種別ではsessionStorageによってreload時に非表示。SeedをResetすると再表示し、replacedは別文言を表示。Nativeのonce-only視覚条件は正式要求外",
+      "expected": "同一ユーザー・Cart・versionで有効Checkoutを再開すると通知を最初の表示1回に制限し、同一Session/tabのreload/再入場で繰り返さない。Resetまたは新Checkout idなら所定通知を新規表示し、Cart版不一致なら旧Checkout破棄と置換通知、期限切れなら別IDまたは再開始とする。別tabはsessionStorageの独立性を考慮して通知表示条件を実Webで確認する。認可・Cart/Checkout/Sessionの状態、視覚と通知の読み上げは別受入。",
       "rule_refs": [],
       "route": "`/checkout/address`",
-      "risk": "再開と置換の混同、同じ通知のリロード反復、古いCart状態の再開と誤認、非顧客の購入導線へのアクセス",
-      "test_condition": "checkout-resumeでReset→Web desktop /checkout/addressの再開文言とrole=status→同session reloadで非表示→同Seed再Resetで再表示→checkout-replacedで置換文言を確認。Cart/Checkout version一致、期限、本人Customer認可をUse CaseとSeedで照合する。E2Eの存在と実行PASSは別に扱う",
-      "test_responsibility": "Web CheckoutAddressContentのstart/resumed結果とclaimCheckoutNoticeのsessionStorageキー（session ID＋種別）をUI/単体・E2Eで検証。Customer認可とCart versionはCheckoutOrderUseCases、Native基本再開は親操作で別途確認",
-      "case_policy": "Web resume初回、同セッションreload、Seed Reset、Cart version不一致によるreplacedの4条件。非顧客拒否はRole契約、Native再開の基本動作は親操作で扱う",
-      "case_selection_reason": "購入状態を示す通知の一度限り性と置換との差は実利用の混乱を防ぐ。固定Seedと既存Web E2Eで正常・再読込・Reset・変更条件が再現可能",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "正式画面checkout-and-payment.md:59-73、Role:5-23、CheckoutOrderUseCases.start:108-138、CheckoutAddressContent:118-146/178-182、claimCheckoutNotice:153-160、metadata.ts:306-316とBASE_CLOCK、scenarios.ts:107-111/367-395、ui-ux-improvements.spec.ts:141-155を照合。Web限定状態の成立条件と反例を確認した。最新HEADのE2E実行成功とは区別",
+      "risk": "High:異なる本人/Cart/versionや期限切れの旧Checkoutをそのまま再開する、置換と再開を混同し古い価格や支払方法を使用する。Medium:同一tab reloadで通知反復/Reset後通知欠落/別tabの一度限り通知の解釈違い、補助メッセージのa11y不足。",
+      "test_condition": "C1採用：checkout-resumeで初回だけresumed表示（customer、Cart/Checkout.version一致）。C2採用：同一tab reloadと再入場で同じcheckoutId/kind通知を抑制。C3採用：同Seed Reset後に再表示されること・履歴クリアの実経路確認。C4採用：checkout-replacedでCart.version=2→旧Sessionは破棄、新しいIDのreplaced通知。C5採用：別tab/Session・別customer・期限=24h前後、異なるCheckout IDと通知の独立性/権限拒否。C6採用：Web desktop正本・a11y/Focus/DBとSession前後、後続paymentへ進む条件。existing E2E Flow CはC1〜C4に相当するコードのみ確認、直接実行未実施。",
+      "test_responsibility": "TR1=BR-CHECKOUT-001とresume-notice UI状態。TR2=Web CheckoutAddressContentとclaimCheckoutNoticeのsessionStorageキー。TR3=CheckoutOrderUseCases.start→startOrResumeとCart version/24h期限。TR4=checkout-resume/checkout-replaced Seedと既存E2E Flow C、#219実Web/DB/a11y。",
+      "case_policy": "C1〜C6を本状態の採用Case。Native再開基本機能やCheckout Stepの動的復元は親操作別受入に分離。E2E定義の存在をWeb PASSと誤認しない。",
+      "case_selection_reason": "通知はCheckout Session IDとkindに紐づきsessionStorageで既表示を管理するため、reload/Reset/別tab/Cart版不一致/24h期限と認可を分離しないと、一度限り通知の意味を検証できない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD ea88ce68f9e996cf5d502407c898f73008b951f1：checkout-and-payment.md:7-12/59-73に24h再開・一度限り通知、checkout-order-pages.tsx:107-147のstart→resumed/replacedと通知、one-time-notice.web.ts:145-162のsessionStorage checkout:<sessionId>:<kind>、checkout-order-use-cases.ts:108-138のactive customer/Cart versionとstartOrResume、scenarios.ts:98-106/367-395でcheckout-resume版1/checkout-replaced版2、e2e/web/ui-ux-improvements.spec.ts:141-155のFlow Cを確認。Reset時の記録clear、別tab/ブラウザセッション・同ID新旧、期限の実Runは未実施。既存E2Eのコードだけ確認、実E2E/DB/Visual/a11yは#219、製品適合判断#210で別判定。",
       "requirement_refs": [
         "BR-CHECKOUT-001",
         "BR-CHECKOUT-002",
@@ -10403,10 +10414,12 @@
         "AC-CHECKOUT-002",
         "AC-CHECKOUT-003"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "CheckoutOrderUseCases.start"
+      ],
       "covered_by": "SCREEN-CHECKOUT-ADDRESS-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "正式仕様、Web UI/Use Case、Seedの実値と既存E2Eを照合済み。親操作のWeb/Native入力復元と実行結果は未判定 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "2026-11-04 静的基本分析analyzed：UI→Checkout.start→Seed→sessionStorageの再開/置換・初回/reload/Reset/別tab・24h期限とRisk/TR/C1〜C6の採否を明示。実E2E/DBとセッション別挙動は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 107,
@@ -10426,7 +10439,14 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": [],
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.start",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 108,
+          "signature": "async start(request: StartCheckoutRequest): Promise<CheckoutStartResult> {"
+        }
+      ],
       "reviewed_against": [
         "specification",
         "implementation",
@@ -10468,6 +10488,12 @@
           "start_line": 141,
           "end_line": 155,
           "reason": "初回/reload/Reset/置換の回帰期待結果"
+        },
+        {
+          "path": "src/presentation/browser/one-time-notice.web.ts",
+          "start_line": 145,
+          "end_line": 162,
+          "reason": "sessionStorageにIDと通知kindを一度だけ記録"
         }
       ]
     },
@@ -12087,20 +12113,20 @@
       "source_line": 134,
       "source_text": "不一致の内容を説明し、カートまたは該当するステップへ戻す。",
       "platform": "web",
-      "role": "customer",
-      "scenario": "cart-version-invalidates-checkoutのCustomerでCart.version2と旧Checkout.cartVersion1が不一致。SeedのunlockedStep=addressは確認画面まで開けないため、confirm済みSessionを作成してからCart.versionを変更する条件も追加",
-      "data": "checkoutScenario(dataset,true)で旧Session cartVersion1/Cart version2。確認表示ケースはregular-memberでstart→setAddress→setPayment後にCart version+1。WebのgetConfirmation/読込エラーにCART_VERSION_CHANGEDを返す",
+      "role": "active customer本人のみ（Web confirm）。guest/別customer/operator/admin・停止/退会はCheckout不可。",
+      "scenario": "cart-version-invalidates-checkout固定SeedはCart.version2とCheckout.cartVersion1だがunlockedStep=addressで、確認画面到達後の競合条件ではない。独立Caseではregular-member/default customerでstart→setAddress→setPaymentまで進めgetConfirmation確認後にCart.version+1しstale-cartにする。期限切れ/別user Sessionは別Case。",
+      "data": "正式BR-CHECKOUT-002はCart.version/価格差があると注文/決済を作成せずカート画面に戻す。CheckoutOrderUseCases.getConfirmation:176-183はactive customerのconfirm StepとCart版を検証し、beginOrder:185-218はtransaction内でCheckout Version/Status/Cart versionと価格を再検証してからOrder/Paymentを作成する。学習用contracts checkout-confirmation.test.mjs:267-305はconfirm-ready状態からversionを変更しgetConfirmationとbeginOrderがCART_VERSION_CHANGEDで拒否、Order/Payment/Inventory等のsnapshot不変を期待するコードを含む（実行未確認）。Web CheckoutConfirmContent:319-389は読み込み拒否をCheckoutLoadError href=/checkout/paymentへ戻し、確定後の拒否はエラー文言だけ表示し再確定可能なUIを残す。正本BRのCart復帰が必要な不一致と『直接未完了StepはそのStepへ』の区別は#210仕様判断、直接実Webで復帰動線を確認する。",
       "action": "stale-cart状態を表示・処理",
-      "expected": "Webで古い注文確認を表示/確定せず、更新されたCartの確認と手続きのやり直しを案内する。未作成の注文・決済・在庫は変わらず、非default状態の視覚証拠は実ブラウザ受入で別途確認する",
+      "expected": "確認画面到達後Cart版が変わったらgetConfirmation/beginOrderがCART_VERSION_CHANGEDで拒否され、Order/Payment/在庫/OrderHistory/Checkout/Sessionの前後不変・二重注文なし。Cart/該当Stepへ安全に復帰し、更新済Cartの再確認なしに同じ表示を再確定しない。固定Seedの初期unlockedStep=addressを『確認後競合の成功証拠』に流用しない。Webの現戻り先/checkout/payment、submit失敗時に専用Cart CTAがない点は静的観測で製品適合未決。",
       "rule_refs": [],
       "route": "`/checkout/confirm`",
-      "risk": "古いCartでの確定、確認できない画面からの再試行ループ",
-      "test_condition": "C1 regular-memberでstart→setAddress→setPaymentしconfirm-ready到達後Cart.versionだけ変更（固定cart-version-invalidates-checkoutのunlockedStep=addressをそのまま用いない）。C2 getConfirmation/beginOrderのCART_VERSION_CHANGED拒否と注文・決済・在庫・履歴・Sessionの前後不変。C3 Webロード失敗の現戻り先は/checkout/paymentであり、正本BR-CHECKOUT-002のCart復帰要件と異なる可能性を実ブラウザ/視覚正本で判定。C4 submit後のエラー表示と二重押下、他人Session/期限切れ、Cart復帰操作の到達性を確認。既存契約テストは未実行。",
-      "test_responsibility": "Web CheckoutLoadError/CheckoutConfirmContentとUse Case/RepositoryのCART_VERSION_CHANGEDを照合し、S-stale-cartはA02-01の状態別条件としてのみ数える",
-      "case_policy": "Cart版変更後の確認ページ表示拒否と修正リンクを採用。価格差分はA02-02に区別し重複分母としない",
-      "case_selection_reason": "通常時にはないCartの不一致状態から、意図しない注文確定を防ぎ安全にカートへ戻ることを確認するため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:126-153のstale-cart画面契約、checkoutScenario(dataset,true):367-395の旧Cart/Session差、getConfirmation/UseCase・Web/Native Repository・WebのCheckoutLoadError、関連回帰テストを照合。Seedの未完了Stepと確認画面上の版不一致再現条件を混同しない 2026-11-04補足: 既存related_use_casesに登録されていた公開メソッドの定義行・署名をuse_case_evidenceへ追加。Role/DB/画面・実CI/実端末受入は未完了、review_required維持。",
+      "risk": "High:stale CartのままOrder/Payment作成・在庫変動・再送による二重注文、旧価格や別ユーザーSessionの表示・引継ぎ。Medium:読み込み拒否後の/checkout/payment戻りがCart復帰を満たさず同じエラーへ戻る、submit失敗で旧確認DTOを再送可能、固定Seedとpost-confirm競合の混同。",
+      "test_condition": "C1採用：regular customerがstart→setAddress→setPayment→getConfirmationを完了し、Cart.versionだけ上げた後getConfirmationをCART_VERSION_CHANGEDで拒否。C2採用：同じ表示済みCheckoutActionVersionでbeginOrderを拒否、Order/Payment/Stock/InventoryHistories/Sequence/Session等の前後snapshot不変を確認。C3採用：Webロード失敗のCheckoutLoadError href=/checkout/paymentと正式Cart復帰要件、該当Step/Cart/URL復帰ループを検証。C4採用：表示後submit失敗のerror/再度ボタン・二重送信、別user/期限切れSessionとRole拒否、DB不変。C5採用：Web desktopの視覚正本・フォーカス/keyboard/a11y/TraceとReset前後。C6区別：価格差分・Rank更新時の金額不一致は別操作A02-02と共通BRで管理。",
+      "test_responsibility": "TR1=BR-CHECKOUT-002、Checkout confirmの正式UI状態とRole。TR2=Web CheckoutConfirmContentのLoadError/submit失敗/戻り先。TR3=CheckoutOrderUseCases.getConfirmation/beginOrderとDexie create-order transaction、Cart Version/Checkout Versionの拒否。TR4=独立checkout readyの学習契約Case・SeedのunlockedStep差、#219実Web/DB/Visual/a11y。",
+      "case_policy": "C1〜C5採用、C6の価格変更は別操作IDに分離。固定cart-version-invalidates-checkout Seedは初期Step不一致のため確認到達後の競合証拠とせず、実際にconfirm-readyを作ってからVersion変更する。学習用契約定義の存在≠直接RunのPASS。",
+      "case_selection_reason": "再開時点のCart不一致と、購入確認DTOが画面表示された後のCart不一致は再現前提が異なる。注文非作成・DB不変・復帰UX・重複送信を独立に追わないと不整合を見逃す。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD ea88ce68f9e996cf5d502407c898f73008b951f1 の静的基本分析。checkout-and-payment.md:7-16/CheckoutConfirm UI状態のCART_VERSION_CHANGED・Cart復帰、checkout-order-pages.tsx:311-389（getConfirmationのロード失敗時/checkout/payment、beginOrder catchはerrorのみ/旧DTO残留）、checkout-order-use-cases.ts:141-183/185-218（Step/Session/Cart Version、transaction内再検証）、scenarios.ts:367-395（固定Seed unlockedStep=address、Cart.version2）、tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs:267-305（confirm-ready生成後version差とDB snapshot不変のテストコード）を照合。実Vitest/Playwright・DB snapshot・Visual/a11yは未実施。Web復帰導線の正式Cart要件との適合・製品修正は#210、実Runは#219で判定。",
       "requirement_refs": [
         "BR-CHECKOUT-002",
         "AC-CHECKOUT-002"
@@ -12111,7 +12137,7 @@
       ],
       "covered_by": "SCREEN-CHECKOUT-CONFIRM-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "仕様とWeb UIの古いCart導線、Cart-versionの固定Seedと確定直前にVersionを変更するテスト入力を分離。視覚正本との実ブラウザ比較は未完了 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-04: 関連公開UseCaseの定義行・署名を証拠として追加（静的照合のみ）。",
+      "analysis_progress": "2026-11-04 静的基本分析analyzed：固定Seed初期Stepとconfirm-ready後Cart version変更を区別、Checkout.getConfirmation/beginOrderとOrder/Payment/Stock/Session不変、Web復帰先/submitの差をRisk/TR/C1〜C6に整理。直接実Runと製品適合未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 311,
@@ -27296,20 +27322,20 @@
       "source_line": 37,
       "source_text": "ロールまたは権限の不足によりアクセスできないルートであることを説明する。",
       "platform": "web,android",
-      "role": "platform_rolesを参照",
-      "scenario": "default",
-      "data": "default・role不一致・不正ルート、Automation Web/本番の境界",
+      "role": "platform_rolesを参照：Webはguest/customer/operator/adminでRole・active/suspended/withdrawn別に拒否。Nativeも正式禁止画面の対象だが管理画面自体はNative対象外。失効/未ログインとRole不一致を分ける。",
+      "scenario": "default固定Role/Session（customer/staff/admin、guest）、active→suspendedやSession失効で到達する/forbidden、保護URL直アクセス、戻る/進む、productionとlocal/automationのTest Control境界。Native/android拒否画面は仕様上の正本参照と実実装を照合。",
+      "data": "Web RouteGuard:16-55はruntime ready/error、guest/active customer、ログインrequiredとaccess=staff/admin/automation-adminを判定し、不可なら/forbiddenへRedirectする。子画面は不可時描画しない。app/forbidden.tsx:5-14はcurrentUser.roleがoperator/adminならaccountStatusを確認せず/adminリンクを渡す。非active staffなら/adminのRouteGuardが/forbiddenへ戻すため往復導線が静的に成立する。StatePanel(forbidden)はデフォルトでホーム(/)へのLinkを持つが、adminLinkが指定されるとホームの既定Actionを置き換える。Native forbidden.native.tsxはNativeUnsupportedScreen title='この操作はNative前半の対象外です'を返すため、権限不足理由の正式画面契約とは差がある。認証なしはLoginへ遷移し、productionのautomation-adminはisTestApiBuildで遮断。専用Use Case直接呼出しがないUI/Route境界であることを記録。",
       "action": "アクセス権限不足を示す",
-      "expected": "権限不足の場合には禁止された操作内容を表示せず、拒否画面を表示する",
+      "expected": "正式roles-and-permissions.md:33-57と画面カタログのRole・Status別拒否理由および安全な復帰導線に従い、禁止された子コンテンツ・管理情報は露出せず、/forbiddenと/adminでループさせない。Webの停止staff向け/admin導線・Nativeの対象外表示は静的差として報告し、実Web/Android再現・視覚正本/文言の最終適合は#219/#210で別判定。未ログインのLogin/returnTo、DB非変更と合法的なSession clearを区別する。",
       "rule_refs": [],
       "route": "`/forbidden`",
-      "risk": "High:Role/失効/停止状態の情報漏出、誤った戻り先からの遷移ループ。Web ForbiddenRouteはoperator/adminならstatusを見ず/adminリンクを表示するので、非active staffから/admin→RouteGuard→/forbiddenの往復経路が静的に成立。Android forbidden.native.tsxは権限不足ではなく『Native前半の対象外』と表示し、利用者への拒否理由と一致しない。Medium:ログイン経由と権限拒否を混同したナビ/支援技術、公開/テストビルドの境界差。",
+      "risk": "High:Role/停止・失効Sessionによる管理情報露出、Webの非active staff '/forbidden→/admin→/forbidden' 循環、禁止children描画、Nativeで拒否理由が伝わらず安全な復帰先不明。Medium:Login returnTo/権限拒否/production Test APIが混同されること、Reset/直URL/back-forward/アクセシビリティの不一致。Web循環は実コードから導ける静的経路であり、実ブラウザ再現は未受入。",
       "test_condition": "C1 guestがcustomer/staff/adminへアクセス→Loginへの適切なreturnToまたは拒否、機密childrenを描画しない。C2 customer→staff、operator→admin/users、admin→customer checkout、suspended staff→admin の拒否（文言・戻り先・循環防止）。C3 Web ForbiddenRouteはcurrentUser.roleのみでadminリンク表示するので、status非activeでループするか実ブラウザで検証。C4 test API productionのautomation-admin routeはbuild制御でchildren非露出、local/automationの許可との差を確認。C5 Androidは正式『権限不足』説明/安全な戻り先とのズレを実機・正本画像で確認。C6 直接URL/back/forward/Session失効/Resetでログインループや権限外データ露出なし、DB/Session不変（認証セッションの合法的なクリアと区別）。C7 Web desktop/Androidのa11y/focus/戻り先操作確認。",
-      "test_responsibility": "RouteGuard:16-55はready/errorとRole/statusを検査しguestはLogin、権限不足は/forbidden Redirect、childrenは許可時のみ表示。Web forbidden.tsx:5-14はRoleだけで/admin戻りリンク。Native forbidden.native.tsx:1-4はNativeUnsupportedScreenの汎用表示。official roles-and-permissions.md:29-57は拒否説明と安全な導線を要求。route-guard.test.tsx:38-89はproduction automation-admin拒否とguest Loginを部分検査。",
-      "case_policy": "C1〜C6を採用。静的ルートガード照合は済んだが、ロール/状態/Session別の実RunとDB不変が不足し、基本分析完了や製品適合を宣言しない。",
+      "test_responsibility": "TR1=roles-and-permissions/screen-catalogのPlatform/Role/Status/復帰仕様。TR2=RouteGuardのaccessとcurrentUser/ready及びTestApi build。TR3=Web ForbiddenRoute→StatePanelのLink上書きとNativeUnsupportedScreen。TR4=固定Session/Seedとcomponent route-guard.test.tsxの静的既存Case、#219実Web/Android/DB/a11y。製品/仕様差は#210。",
+      "case_policy": "C1採用：guest→customer/staff/adminのLogin/returnTo、禁止children非描画。C2採用：customer→staff、operator→admin、admin→checkout、停止staff→adminの拒否。C3採用：Web /forbiddenのstatus非考慮adminリンクとRouteGuard間の循環。C4採用：production Test API遮断、local/automationの許可。C5採用：AndroidのNativeUnsupportedScreenと正式禁止画面の文言・復帰先比較。C6採用：直URL・back/forward/Reset・失効Session、DB/Session適法clear・個人情報非露出。C7採用：Web desktop/Androidのキーボード・フォーカス・画面読み上げと正本画像。C1/C4は既存componentに一部テスト定義あり、実行未確認。新しいUse Case参照を架空に加えない。",
       "case_selection_reason": "未ログイン・customer・operator・adminとactive/suspended/withdrawnの組合せでルート拒否が分かれ、Web /forbiddenのstaff復帰先はRoleのみで決まる。境界の認可/SessionとNative文言を直接検証する必要がある。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-03 PR #212独立監査：roles-and-permissions.md:5-23,29-57、RouteGuard:16-55、Web forbidden.tsx:5-14、Android forbidden.native.tsx:1-4、route-guard.test.tsx:38-89を再照合。WebはRoleのみでstaff戻りリンクを出しstatus停止を除外しないため、停止staffがadminに行くと再びforbiddenへ戻る可能性がある。Nativeは『Native前半の対象外』という機能非対応メッセージで拒否理由を表現しない。既存テストは停止staffループとNative画面の受入を証明しない。C1-C7の実ブラウザ・Android・DB/Session非変更、公式画像比較前なのでreview_requiredを維持。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD ea88ce68f9e996cf5d502407c898f73008b951f1：roles-and-permissions.md:5-23/33-57のRoleと安全復帰、screen-catalog.md（禁止画面Web/Android）、RouteGuard:16-55のactive/Role/production拒否とchildren非描画、app/forbidden.tsx:5-14（statusを見ずadminへのLink）、app/forbidden.native.tsx:1-4（Native対象外表示）、StatePanel states.tsx:24-68（actionが提供されたときホームLinkに差替）、tests/component/route-guard.test.tsx:38-89（production/Local/guest拒否、直接実行未実施）を照合。非active staff/adminのWeb循環は静的に成立し得るが実ブラウザ未実行。Android/視覚/Role・DB・Session変化/a11yは#219へ、製品/仕様判断は#210へ。対象はRoute/UI境界でありUseCase直接呼出しはないのでrelated_use_casesを無理に追加しない。",
       "requirement_refs": [
         "ROLE-ACCESS",
         "UI-ERROR"
@@ -27319,7 +27345,7 @@
         "web": "guest,customer,operator,admin（管理者のストアフロント利用はゲスト相当の閲覧のみ）",
         "android": "guest,customer（Native管理・管理者向け購入は対象外）"
       },
-      "analysis_progress": "PR #212: Webのstaff status非考慮リンクとNative拒否文言差を公式Role仕様/RouteGuard/既存テストに照合。ナビ循環・漏出防止を具体的Case化。実Run・正本画面/a11y・Role変更後のSessionは未受入。",
+      "analysis_progress": "2026-11-04 静的基本分析analyzed。Web RouteGuard→ForbiddenRoute→StatePanelのactive staff循環候補、Native拒否理由と仕様差、Role/Platform/production境界、Risk/TR/C1〜C7を証拠化。実Web/Android・画面/DB/Session/Visual/a11y受入は未実施。",
       "implementation_evidence": {
         "path": "app/forbidden.tsx",
         "line": 1,
@@ -27381,6 +27407,12 @@
           "start_line": 38,
           "end_line": 89,
           "reason": "production automation-admin/guest拒否の既存部分試験"
+        },
+        {
+          "path": "src/presentation/components/states.tsx",
+          "start_line": 24,
+          "end_line": 68,
+          "reason": "forbiddenのデフォルトホーム導線が明示adminActionで置き換わる"
         }
       ]
     },
