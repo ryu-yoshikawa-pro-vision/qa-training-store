@@ -49,6 +49,8 @@
 2. **P02 数量更新と削除の違いを確かめる（M06-01・03）**：既存CASE-CART-004は削除ボタン、P01は数量selectによる更新です。`cart-page.tsx`では数量selectが1以上であることを読み、**Web UIから数量0へ変更できるというE2Eは作りません**。`BR-CART-001`の数量0削除規則を確認できる層・呼出経路と、UIで検証済みと言えない範囲を記録します。**証拠**：仕様/コード出典、2つの操作経路、どの層のどのCaseが不足するか。
 3. **P03 有効上限の見える範囲を調べる（M06-03）**：`default`のマグと`low-stock`のシャツMについて、商品詳細の購入上限表示・数量選択肢・カート側の数量選択肢を実画面で比較します。「選択肢がない」ことと「APIが拒否して数量を保持する」ことを別のAssertionに分け、必要なら**新しいtest**を追加します。**証拠**：2状態の観測、各Assertionの証明範囲。
 4. **P04 Reset/Contextの独立性を試す（M06-02・04）**：P01の数量2を確認した後、CASE-CART-004を続けて実行する場合と、逆順に実行する場合で、各testの開始時状態をどのように保証するか説明します。テスト順序・前のCart状態に依存するコードを見つけたら自分で修正します。**証拠**：Reset位置、独立している根拠、少なくとも1回の再実行結果。
+
+   `resetScenario(page, ...)`は現在のBrowser Contextへ指定Seedを適用して、再読み込み後の`getMetadata()`でscenarioを照合します。**新しいBrowser Contextを作成する処理ではありません。** Playwrightの通常の`page` fixtureによるtest単位のContext分離とは別に、各Case自身のResetが必要です。逆順実行やリトライの成功を記録するには、実際の別Run・対象spec・先頭のResetと数量を照合し、他CaseのCart状態や前回のreportを流用しません。
 5. **P05 M04の本人CaseをE2Eへ転用（M06-01・05）**：M04で承認したCaseがUI/Seedで実行可能なら、固定3件・削除・数量変更と**異なる条件**をもう1 testとして追加します。例えば在庫違い・別Roleなどのうち、仕様・Reset・観測が確認できたもののみ採用します。M04成果物がない、または実行不能なら公開fallbackを使い、**既知の数量1→2 Caseが代替の実技入力**である旨を明示します。未実行を実施済みにしません。**証拠**：元Case、採否、本人実装かfallbackか、実行可能性。
 6. **P06 増やしたtestを再実行して証拠を照合（M06-02・04・05）**：`pnpm course:run M06 new-case.spec.ts --label initial`と`--label repeat`を実行します。**CASE-CART-004とCASE-CART-005の2件以上**が両RunでPASSし、spec SHA・配布SHA・Run ID・report内の実行test数が一致することを確認します。追加Caseの失敗はAssertionを削って隠さず原因・修正・再実行を記録します。
 
