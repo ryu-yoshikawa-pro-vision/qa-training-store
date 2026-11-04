@@ -15,7 +15,7 @@ M03の本人成果物が有効ならそれを使います。成果物がない�
 
 ## 提出物
 
-`workspace/M04/review.md` と `workspace/M04/submission.md`。Phase 1からPhase 2へ渡す承認済みCaseと未決事項を明確にします。
+`workspace/M04/review.md` と `workspace/M04/submission.md`。Phase 1からPhase 2へ渡す承認済みCase、M03の元CaseとRisk/TR・BR/AC・Scopeの参照、Role/State/Data/Seed、Resetと期待結果、未決事項を明確にします。M05開始の引継ぎ契約はこの**2ファイル**（`M04-result-01/02`、revision `M04-result-v1`、contract `M04-to-M05-handoff-v1`）であり、M02分析やM03の設計ファイルまでM05で自動検査したという意味ではありません。本人のM03成果物は削除せず、必要な場合に参照します。
 
 ## 追加実践：初見レビューと別Caseの承認（P01〜P06）
 
