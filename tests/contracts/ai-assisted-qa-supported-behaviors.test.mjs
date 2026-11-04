@@ -63,7 +63,14 @@ describe("サポート機能の仕様と実装の追跡", () => {
       requires_review: reviewCount,
       classified_rate: 100,
       basic_analysis_rate: analyzedRate,
-      complete: false,
+      unreviewed_requirements: data.requirements.filter(
+        (entry) => entry.analysis_status !== "analyzed",
+      ).length,
+      complete:
+        analyzedCount === operations.length &&
+        blockedCount === 0 &&
+        statePendingCount === 0 &&
+        data.requirements.every((entry) => entry.analysis_status === "analyzed"),
     });
     expect(operations).toHaveLength(188);
     expect(states).toHaveLength(20);
@@ -586,7 +593,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     const unresolved = data.behaviors.find(
       (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
     );
-    expect(unresolved?.analysis_status).toBe("review_required");
+    expect(unresolved?.analysis_status).toBe("analyzed");
     expect(unresolved?.basic_analysis_review).toContain("action=null");
   });
 
@@ -668,7 +675,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.test_condition).toContain("50");
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCTS-A01-02")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits pagination and the staff-only mobile warning without SUT changes", () => {
@@ -880,9 +887,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.test_condition).toContain("Native");
     }
     for (const id of ["SCREEN-STOREFRONT-PRODUCT-LIST-S-empty"]) {
-      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "review_required",
-      );
+      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe("analyzed");
     }
   });
 
@@ -1042,7 +1047,9 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
   it("checks each behavior's Use Case evidence against the current public method registry", () => {
     const method = data.use_case_methods.find((item) => item.id === "AdminUserUseCases.search");
-    const behavior = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
+    const behavior = data.behaviors.find(
+      (item) => item.id === "SCREEN-ADMIN-USERS-A01-02",
+    );
     expect(method).toBeDefined();
     expect(behavior?.use_case_evidence?.[0]).toMatchObject({
       id: method.id,
@@ -1055,9 +1062,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
         const entry = next.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
         update(entry);
       });
-      expect(() => validateCoverage({ root, data: changed })).toThrow(
-        /Use Case evidence/,
-      );
+      expect(() => validateCoverage({ root, data: changed })).toThrow(/Use Case evidence/);
     };
     wrongReference((entry) => {
       entry.use_case_evidence[0].id = "NotAUseCase.method";
@@ -1081,5 +1086,4 @@ describe("サポート機能の仕様と実装の追跡", () => {
       entry.related_use_cases = [];
     });
   });
-
 });

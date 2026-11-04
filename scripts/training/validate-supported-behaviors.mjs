@@ -383,6 +383,9 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     );
     assert(behaviorIds.has(item.behavior_id), `Use Case has no behavior: ${item.id}`);
   }
+  const unreviewedRequirements = document.requirements.filter(
+    (item) => item.analysis_status !== "analyzed",
+  ).length;
   const operations = document.behaviors.filter((item) => item.kind !== "state");
   const analyzed = operations.filter(completeAnalysis).length;
   const blocked = operations.filter((item) => item.analysis_status === "blocked").length;
@@ -395,6 +398,7 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     screen_action_segments: [...actionGroups.values()].reduce((a, b) => a + b, 0),
     non_default_states: stateSources.size,
     unreviewed_state_conditions: unreviewedStates,
+    unreviewed_requirements: unreviewedRequirements,
     br_ac: spec.rules.size,
     use_case_methods: methods.size,
     supported_total: operations.length,
@@ -405,7 +409,11 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     classified_rate: 100,
     basic_analysis_rate:
       operations.length === 0 ? 0 : Math.round((analyzed / operations.length) * 10000) / 100,
-    complete: analyzed === operations.length && blocked === 0 && unreviewedStates === 0,
+    complete:
+      analyzed === operations.length &&
+      blocked === 0 &&
+      unreviewedStates === 0 &&
+      unreviewedRequirements === 0,
   };
 }
 
