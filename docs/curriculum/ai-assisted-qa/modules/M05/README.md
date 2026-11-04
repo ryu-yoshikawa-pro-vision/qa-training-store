@@ -790,6 +790,18 @@ test("商品詳細リンクの表示を確認する", async ({ page }) => {
 
 `BR-CART-001`のカート追加と、チェックアウト時の**注文データ作成**は別の処理です。カートの表示や数量を確認しても、注文レコードの作成・データベースへの保存は証明できません。画面で確認した事実、再読み込み後の状態、保存先の直接確認を分けて記録します。CartのUI操作だけで注文作成まで検証済みとしないでください。
 
+Scenario Shop Web版のカート画面は`cartUseCases.getCart()`から表示データを読み取り、数量変更時には`cartUseCases.updateQuantity()`を呼びます。保存先にはブラウザ内のIndexedDB（Dexie、`carts`/`cart_items`）を利用しています。これは`src/presentation/pages/cart-page.tsx`、`src/application/use-cases/cart-use-cases.ts`、`src/infrastructure/database/dexie/database.ts`で確認できる**実装上の事実**であり、特定のRunでDBへ書けたという実行証拠ではありません。
+
+| 実際に観測したこと | そこから確認できること | まだ確認できないこと |
+| --- | --- | --- |
+| 追加ボタンが表示された・クリックできた | 対象のActionが実行可能だったこと | Cart更新、数量の正しさ、保存 |
+| 「カートへ追加しました」の通知が表示された | 画面に成功通知が現れたこと | Cart明細が要求したSKU・数量になったこと |
+| Cartで対象商品行と数量`1`を検証した | **その画面表示時点**の対象商品・数量 | 再読み込み後の保持、IndexedDB内の記録、注文作成 |
+| 同じBrowser ContextでCartを再読み込みして同じ明細・数量を検証した | 再読み込みをまたいでUIから読み取れる状態が保持されたこと | DBへの直接検査、別Context/他デバイスでの保持、注文作成 |
+| IndexedDBの`carts`と`cart_items`を対象Cart ID・SKUで読み取り、保存結果を照合した | 指定したブラウザ内データベースに、その時点で該当レコードが存在したこと | 別の環境やサーバーDBへの保存、注文レコードの作成 |
+
+たとえば、架空の画面で`click()`だけが成功して`status`の数量が`0`のままなら、Actionは成功しても`expect(status).toHaveText("数量: 1")`は失敗します。こうした**業務Assertionとの対比**が必要です。Scenario Shopでは実際のCart明細を商品単位でscopeし、`getByRole("combobox", { name: "数量" })`の値を別途確認してください。P05はread-onlyで削除を押しません。保存を直接検査していない場合は「未確認」と記録します。
+
 テストが成功したときは、常に**「このテストのAssertionは何を証明できていて、何がまだ未確認なのか」**を客観的に説明できるように意識しましょう。
 
 ### 7.3 Locatorが見つからないときの原因
