@@ -1,4 +1,4 @@
-import AxeBuilder from "@axe-core/playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 import { addDefaultAddress, expect, login, test } from "./fixtures";
 
 test.describe("PR #219: WEB Role and direct-route acceptance", () => {
