@@ -30,6 +30,12 @@
 - 追加の視覚Caseは320/390/767/768/1023/1024/1440pxで競合見出し・戻りリンクの表示、横スクロールなし、各幅のPNG添付を確認する。320/1024pxではaxe重大違反をassertし、Focus→Enterで戻る導線を確認する。
 - 更新SHA `84d3a455acc831efb3b3d24c1a950a9734e8ec1e`。**当該HEADの実ブラウザCIは未確認でありPASSではない。** 成功時のTestInfo添付がCI Artifactに保持されない点は#199へ報告済み。正式競合画面の正本画像との比較、Loading/Error・他画面の視覚とa11y、Android、実Viewportの固定ナビ操作阻害は未受入で、タスクリスト13番は未チェック。
 
+## 現行E2Eの復帰先確認と製品判定の分離（2026-11-05）
+
+- 専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart: conflict widths, axe and keyboard recovery`（暫定Web証拠キー`PR219-WEB-023`）では、7幅の表示・320/1024pxのaxe・KeyboardでEnter操作後、**確認画面`/checkout/confirm`から離れたこと**だけをassertする。製品修正により復帰先が変更されても視覚・a11y Caseが誤検知しないようにした。
+- 遷移後の実際のpathnameは`observedRecoveryPath`へ記録し、当該ログの`productAcceptance`は`not-evaluated-by-this-case`とする。復帰先の正否判定は独立した`KNOWN DEFECT REPRO: confirmed Checkout returns to payment instead of Cart`に残す。
+- 上記の旧Run #41821726873で実際に観測された`/checkout/payment`は**過去の旧SUT実行結果**として維持し、新しいテストで同じ復帰先が観測されたと主張しない。修正後HEADのWeb E2E結果、正式正本画像・成功時PNGの保存、#210統合後の製品適合は別途確認が必要。
+
 ## 固定Run #41821726873のCheckout競合UI結果（2026-11-04）
 
 - テストHEAD `0599c516374710d4144c126a2c0c388e60c1c22c`、#199 SUT `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、cross-role Chromium job `126547309356`。専用E2E `e2e/web/pr219-cross-role-lifecycle.spec.ts:321`が**1回目PASS**。320/390/767/768/1023/1024/1440pxでCheckout競合見出し・戻りリンク表示、横スクロールなし、320/1024pxのaxe serious/criticalなし、Focus→Enterの戻りをassertした。
