@@ -153,3 +153,10 @@
 - `tests/integration/pr219-isolated-fixtures.test.ts`に、`changeRole(user-operator→admin)`でUser更新後のSession削除が失敗する注入Caseを追加。
 - 隔離DB内に対象者Sessionを用意し、`sessions.hook("deleting")`で例外を発生させてUser・Sessionが実行前と一致することをassertする。テスト対象は`change-user-access` transaction rollback。既存Seedや製品実装には変更なし。
 - このCaseはまだ実行成否未確認のため、管理ユーザー全受入（5番）のチェックは付けない。
+
+## ForbiddenRoute 停止staffの戻りリンク（タスクリスト7番は未完了）
+
+- 静的差分：`src/presentation/guards/route-guard.tsx`は管理Routeへ入る際`accountStatus === "active"`を要求。一方`app/forbidden.tsx`の戻りリンク表示条件は`role === "operator" || role === "admin"`のみで、statusを検査しない。停止staffの`currentUser`が残った場合、Forbidden→admin→Forbiddenへ戻る導線が成立する可能性がある。
+- 新規`tests/component/pr219-forbidden-route.test.tsx`はactive operator/customerの基準Caseと停止operatorの期待失敗Case（`it.fails`）で差分を証明する。後者は**製品不具合候補であって製品適合PASSではない**。実CIで旧SUTに対する動的証拠を取得するまでは未再現扱い。
+- `app/forbidden.native.tsx`は`NativeUnsupportedScreen title="この操作はNative前半の対象外です"`を返す一方、正式`docs/spec/roles-and-permissions.md`は権限不足の説明と安全な戻り先を要求する。Androidの見た目・操作は未実行であり、仕様との関係を#210へ引継ぎ、独断で修正しない。
+- DB変更なし、機密children非表示、実ブラウザでの停止staff再現とAndroid実機確認が不足するため7番のチェックは保留する。
