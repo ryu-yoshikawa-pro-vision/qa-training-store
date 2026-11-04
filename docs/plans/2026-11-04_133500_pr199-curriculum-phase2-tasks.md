@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 58% (19/33)**。現時点で未完了14件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。本人実Runは#199最後に実施する。
+- **Progress: 61% (20/33)**。現時点で未完了13件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。 M06-01の新規004/005の独立Case・数量0不可・initial/repeatの静的整合も専用テストで確認した。本人実Runは#199最後に実施する。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -33,7 +33,8 @@
 - [x] `M06-04`の証拠記録を具体化。CASE-CART-004/005のtest名、`run-evidence.json`、spec snapshot・JSON report・対象SHA・終了状態の照合手順を演習/提出欄へ追加。
 - [x] `M06-01`固定3 Case：公開未完成specと参考specを正式BR/AC・Role/State/Data・Locator・業務Assertionへ対応付け、TODO消去だけでPASSしない回帰条件を確認する。
   - BR-CART-001/AC-CART-001と公開未完成3test（default/default/low-stock）、参考specの追加/拒否/数量維持を照合。TODOだけ消した弱いspecが業務Assertionを持たない契約テストと教材注意書きを追加。実Runと正式採点は別項目。
-- [ ] `M06-01`新規Case：削除`CASE-CART-004`と数量1→2・再読込保持`CASE-CART-005`が**別test**であり、Webの数量selectに0を仮定しないことを、参考spec・教材・専用契約テストで確認する。
+- [x] `M06-01`新規Case：削除`CASE-CART-004`と数量1→2・再読込保持`CASE-CART-005`が**別test**であり、Webの数量selectに0を仮定しないことを、参考spec・教材・専用契約テストで確認する。
+  - 004削除前数量1→削除後空と、005数量1→2→再読み込み保持を異なる参考testとして照合。Cart UIの数量selectは1以上・削除は別ボタン。未完成学習者入力はTODO004のみ、005追加は本人実技で行う。
 - [ ] `M06-02`：test単位のReset、Browser Context、IndexedDBとSeedの境界、実行順序依存と再試行の誤判定を確認。隔離fixture/契約テストで再現できる不備は修正し、実Shopでの順序変更検証は#199最終受入へ渡す。
 - [ ] `M06-03`：無関係でもPASSする弱いAssertionの負例を特定し、正式BR/ACの業務結果を検証する期待へ修正。意図した失敗と修正後成功を、実行可能な技術テストまたは明示した再現条件で確認する。
 - [ ] `M06-05`：終了コード、`outcome`、JSON report・ログからPASS/FAIL/BLOCKED/未実行を判定する教材と、旧Run・別spec・実行数の誤判定を拒否する契約テストを整合する。共有実行器の修正は#217へ渡す。
