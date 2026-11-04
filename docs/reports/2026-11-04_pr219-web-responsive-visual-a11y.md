@@ -36,3 +36,10 @@
 - 戻り先は実際に`/checkout/payment`であり、確認ready→stale Cartから安全な復帰先を期待する製品契約とは別の**既知製品不具合**として扱う。前段の専用「KNOWN DEFECT REPRO」Caseも同一jobで成功した。合格したのは表示・操作の当該assertionだけ。
 - `testInfo.attach`した7幅画像と2幅のaxe結果は、成功時にGitHub Actions Artifactへ保存されていない。**PNG本体と正式画像のピクセル比較は未実施**。今回のworkflow全体はNative component/typecheck失敗だが、上記cross-role jobはsuccess。Web全画面・Loading/Error/Conflict網羅、Android実機、実画像比較は残るため、タスク13は未チェック。
 - Web実行証拠表に`PR219-WEB-023`を追加し、208動作一覧の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`に関連付けた。
+
+## IndexedDB取得失敗のWeb実行証拠（2026-11-04）
+
+- SUT：PR #199 base `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`。テストHEAD：`290555e134cbf3c2d63114c8374f6756e880f311`。[CI #41841987928](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41841987928)は**workflow全体success**、cross-role Chromium job [126617054710](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41841987928/job/126617054710)は**success（29 passed、既存E2E 1 flaky）**。Style Quality/Code Quality/Vitest contractsも成功。
+- 新規`PR219-WEB-026`の`e2e/web/pr219-cross-role-lifecycle.spec.ts:616`は、`empty-catalog`のguest browser内でIndexedDB `products`表の読取失敗だけを注入。320/390/767/768/1023/1024/1440pxすべてでError表示、内部例外文字列の非露出、Keyboard Focus→EnterによるRetry後のEmpty復旧、横スクロールなしを個別assert。320/1024pxではaxe serious/critical違反なし。**各7幅の正本画像との比較は未実施**。
+- 同jobの`PR219_CASE_EVIDENCE`では7幅とも`recoveredTo=empty-catalog`/`errorMessageLeaked=false`、取得失敗・復旧前後のIndexedDB**23表すべての表別SHA-256 digest一致**（`tablesChecked=23,allTablesUnchanged=true`）を確認。digest/DB実レコード/Session IDはログ出力せず、成功時Artifact未保存。Case終了時Clock実測は`2026-07-01T03:00:00.000Z`、buildSha `07f1e515ed96d01fef12ad66375caa7136d971dd`、Console/PageError/requestfailed/HTTP 5xx各0。これはReset直後のClock実測とは区別する。
+- Web証拠台帳は**48→49履歴行、暫定Caseキー25→26**。過去48行不変。208動作台帳は208行不変、`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`へ`PR219-WEB-026`の追跡キーだけを追加。正式Case採否は#213の判断待ち。成功時PNG/Trace/動画・Network全文のCI Artifact保存は#199担当。Android実機/SQLite、全Loading/Conflictの視覚比較、独立レビューも未完のため、**タスク13・15・19・20等のチェック14/21は維持**。
