@@ -71,6 +71,19 @@ console.log(label(cart.quantity));
 5. **P05 新しいLocator候補を比較（M05-02・03）**：`default`のguest Cartは初期状態で空なので、公開商品`product-mug`と`product-low-stock`を実Shopの画面から各1点追加して2明細を用意します。Cartの数量selectと削除buttonについてrole/name・label・表示文字列の候補を比較し、**Cart全体では各2件となる曖昧さ**を実行で確認します。商品名リンクを含む明細へ範囲を絞り、数量selectと削除buttonがそれぞれ1件であること、対象数量が1であることをread-only Assertionで確認します。**削除は実行しません**。同じ商品名で複数SKUがある場合は商品名だけでは一意にならないため、SKU等の追加条件を検討します。既定のMugリンク修正とは別の操作対象を扱います。**証拠**：初期化・2商品の追加、全体と明細内のLocator件数、範囲指定の根拠、数量Assertion、削除未実行、実Run/SHA。
 6. **P06 AIからの弱い修正を棄却（M05-02〜05）**：架空AI案「商品詳細へのリンクが見つからないので`expect`を削除し、クリックだけ成功すればPASS」と、架空案「`waitForTimeout(5000)`を追加」を、既存のbefore/after Runと比較します。どちらが不適切で、どういう観測が必要か説明します。**証拠**：不採用理由、保つべきAssertion、実RunのSHA。
 
+### P03・P04・P06：失敗と自動待機を比較する（M05-04）
+
+M05教本の「Web-first assertion・Actionの自動待機と失敗の区別」を参照し、**実際に実行したコマンドと結果**を対応付けます。以下のファイルは本人が`workspace/M05/`に作る学習用コピーであり、配布済みの`product-link.spec.ts`を上書きしません。
+
+1. **構文**：`p03-syntax-error.mjs`へ閉じ括弧不足を一つだけ作り、`node --check workspace/M05/p03-syntax-error.mjs`の最初のエラーと非0終了を記録します。閉じ括弧を直して同じコマンドを再実行します。テストが始まる前のエラーを「業務FAIL」にしません。
+2. **型**：P03の`p03-type-error.ts`を`pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext workspace/M05/p03-type-error.ts`で検査します。文字列を`number`に渡す誤りと修正後を別々に確認します。`tsx`で動いたことは型検査の成功を意味しません。
+3. **実行時**：`p03-runtime-error.mjs`で存在しない値のプロパティを参照する例を一つ作り、`node workspace/M05/p03-runtime-error.mjs`の`TypeError`や行番号を記録して修正します。環境や入力が異なれば例外名も確認し、想定だけで埋めません。
+4. **非同期と自動待機**：P04の`Promise.resolve("ready")`を`await`する前後の値をNode.jsで比較し、Playwrightの`locator.click()`が操作可能状態を待つ仕組み、`await expect(locator).toHaveText(...)`が期待値を再試行する仕組みとの**違い**を自分で説明します。NodeのPromise実験はPlaywright実行を証明しません。
+5. **Locator・Assertion**：`product-link.spec.ts`のbefore/afterで「対象リンクの名前が違うため見つからない」実行結果と、リンク先hrefのAssertionを比較します。P05の2明細では`getByRole("button", { name: "削除", exact: true })`が全体で2件になることを**read-onlyの`toHaveCount(2)`で確認**します。一意な要素を必要とする操作は商品明細へscopeし、検証目的で削除ボタンをクリックしません。
+6. **根拠のない固定待機**：失敗時に`page.waitForTimeout(5000)`を追加しても、Locator名の誤り、重複、業務Assertionの期待値誤りを解決しないことを、実際の失敗メッセージと対比して説明します。不要な固定待機やAssertion削除でPASSを作りません。
+
+終了コードは**各コマンド直後**に`echo $?`で読み、診断の最初の行、ファイル、修正前後、Playwrightなら別`run_id`・`spec_sha256`・reportを提出欄へ記載してください。ここでの構文・型・実行時の独立コードを通しても、M05の専用8082実ChromiumやCart業務AssertionがPASSしたことにはなりません。
+
 ### P05の新規specを専用Configで実行する
 
 P05で本人が作成する`workspace/M05/p05-cart-locator.spec.ts`は、初期配布の`product-link.spec.ts`とは別の練習ファイルです。現行の`course:run`が受け付けるM05のspecは`product-link.spec.ts`のみであり、P05の新規spec名を`course:run`へ渡すと拒否されます。**拒否をPlaywright実行成功に読み替えないでください。**
