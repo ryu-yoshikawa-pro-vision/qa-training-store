@@ -28,3 +28,10 @@
 - PR #219専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`で、停止staffの旧Session残留Fixtureに対するIndexedDB全表の比較を、単一結合digestから**表名順の表別SHA-256**へ変更した。戻りリンクはFocus→EnterでForbiddenへ再遷移する経路を対象とし、全表の前後hashを`pr219-forbidden-indexeddb-digests`として`testInfo.attach`する。レコード実値・Password Hash・Session IDは添付しない。
 - 変更コミット：[`a2f0ea9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/a2f0ea9dabbbdec6c98135d61603132ade2a9fa9)。**新HEADのWeb E2E CIは未確認**。検証成功・DB不変を実証済みとは記載しない。加えて現行Web CIはcross-role成功時にPlaywright添付をArtifactへ保存しないため、証拠の永続化について[#199に引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6629144117)済み。
 - Android実機のNavigation/拒否文言・SQLite実物の前後比較は未実行。タスク7・15はいずれも未チェックとする。
+
+## 固定Run #41821726873の実行結果（2026-11-04）
+
+- SUT：#199 base `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、テストHEAD `0599c516374710d4144c126a2c0c388e60c1c22c`、Linux Chromium、`pnpm exec playwright test --project=cross-role-chromium`、job `126547309356`。Run #41821726873の当該jobは**success（終了コード0）**。同job全体は27件PASSと既存`cross-role-lifecycle.spec.ts`の1件初回失敗→retry成功（flaky）。
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts:522`の停止operator旧Sessionの独立Caseはjobログで**1回目成功**を確認。隔離IndexedDBの`user-operator`をsuspendedへ変更後、Forbidden→`/admin`リンク→ForbiddenをFocus/Enterで再現。表別SHA-256のbefore/after一致assert成功。これは**製品不具合再現の成功**であり、正式Role導線の適合PASSではない。実データとdigest本体は保存していない。
+- 実行Runのworkflow全体は**failure**。原因は#219新規Nativeコンポーネントテストの`render()`未awaitによるTypeScript TS2339、およびNativeRuntimeProvider経由での`QuickBase64`ロード失敗。Code Quality job `126546893944`、Vitest (component) job `126546894146`のログで確定。#219専用`tests/component/native/pr219-forbidden-native.test.tsx`に`await render()`と、既存Native componentテストと同じ`useNativeRuntime`モックを適用（コミット `895280d4769d7e8bf4d6d797d7f70884c11d3e90`）。この修正HEADでの再CI成功は未確認。
+- 最新Web証拠表に`PR219-WEB-024`を追加し、208動作一覧の`SCREEN-BOUNDARY-FORBIDDEN-A01-01`へ接続した。Android実機・Native拒否の実Navigation・SQLite前後不変・成功時Trace/動画のArtifact保存は引き続き未実施。従ってタスク7・15は未チェック。
