@@ -6852,6 +6852,38 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/authentication.md",
+          "start_line": 55,
+          "end_line": 69,
+          "reason": "登録成功時の安全な遷移とSignupの画面条件"
+        },
+        {
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "start_line": 245,
+          "end_line": 266,
+          "reason": "Webでregister成功後にrefreshIdentityして/へ遷移、失敗時はエラー表示"
+        },
+        {
+          "path": "src/presentation/native/native-purchase-screens.tsx",
+          "start_line": 243,
+          "end_line": 256,
+          "reason": "Nativeでregister成功後に/account/profileへ遷移する分岐"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 116,
+          "end_line": 181,
+          "reason": "登録の入力検証とUser/Cart/Session作成処理"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 75,
+          "end_line": 84,
+          "reason": "defaultはguest初期Sessionのシナリオ"
+        }
       ]
     },
     {
@@ -14865,6 +14897,38 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/orders.md",
+          "start_line": 58,
+          "end_line": 99,
+          "reason": "本人の保存注文スナップショットと表示順の正式受入条件"
+        },
+        {
+          "path": "src/presentation/pages/checkout-order-pages.tsx",
+          "start_line": 656,
+          "end_line": 710,
+          "reason": "Web注文詳細はgetMyCustomerOrderの返却DTOを表示"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 389,
+          "end_line": 409,
+          "reason": "getMyOrderの本人注文限定とgetMyCustomerOrderのレビュー状態付与"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/order-review-repositories.ts",
+          "start_line": 73,
+          "end_line": 120,
+          "reason": "Order/OrderItem/Payment/Shipmentの保存値と明細行順をDTOへ変換"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 416,
+          "end_line": 445,
+          "reason": "regular会員に紐づく5状態注文の固定生成"
+        }
       ]
     },
     {
@@ -18345,6 +18409,32 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 61,
+          "end_line": 83,
+          "reason": "商品一覧から新規登録画面への管理導線"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 105,
+          "end_line": 116,
+          "reason": "一覧の新規商品登録リンク"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 337,
+          "end_line": 410,
+          "reason": "登録画面のstaffガード・候補読取・保存時のcreate"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 111,
+          "end_line": 153,
+          "reason": "画像候補読取と、遷移自体とは別のcreate保存処理"
+        }
       ]
     },
     {
@@ -18434,6 +18524,38 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 61,
+          "end_line": 83,
+          "reason": "商品一覧から既存編集画面への管理導線"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 245,
+          "end_line": 255,
+          "reason": "一覧行のproductIdに基づく商品編集リンク"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 415,
+          "end_line": 450,
+          "reason": "編集画面のstaffガードとproductId依存読取"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 104,
+          "end_line": 124,
+          "reason": "getEditと画像候補の認可付き読取"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 510,
+          "end_line": 535,
+          "reason": "指定productIdの集約とカテゴリ・ブランド候補の読取"
+        }
       ]
     },
     {
@@ -18658,6 +18780,32 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 95,
+          "end_line": 115,
+          "reason": "新規商品入力と未保存preview・明示保存の分離"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 346,
+          "end_line": 410,
+          "reason": "新規入力初期値、カテゴリ/ブランド/画像候補読取、previewとsubmit"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 127,
+          "end_line": 153,
+          "reason": "入力検証とdraft作成用transaction"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 70,
+          "end_line": 138,
+          "reason": "draft・Variant初期在庫・INITIAL_STOCK履歴の保存"
+        }
       ]
     },
     {
@@ -18753,6 +18901,38 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 95,
+          "end_line": 115,
+          "reason": "新規商品の入力・プレビューと保存の正式UI条件"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 762,
+          "end_line": 833,
+          "reason": "フォーム入力と保存処理/エラー表示の分岐"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 442,
+          "end_line": 466,
+          "reason": "価格・購入上限などvalidateMinimumの検査（初期在庫検査は不足候補）"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 83,
+          "end_line": 124,
+          "reason": "初期在庫値とINITIAL_STOCK履歴への書込み経路"
+        },
+        {
+          "path": "tests/integration/admin-product-use-cases.test.ts",
+          "start_line": 116,
+          "end_line": 184,
+          "reason": "識別子の正規化・重複・不正入力に関する既存の部分回帰"
+        }
       ]
     },
     {
@@ -18820,6 +19000,32 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 95,
+          "end_line": 115,
+          "reason": "保存前previewとDB書込みの分離"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 394,
+          "end_line": 410,
+          "reason": "新規入力フォームからpreview呼出しと保存処理を分離"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 1055,
+          "end_line": 1114,
+          "reason": "未保存プレビューの描画と旧非同期応答の上書き候補"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 285,
+          "end_line": 321,
+          "reason": "previewの入力・関連情報読取とDTO組み立て"
+        }
       ]
     },
     {
@@ -18887,6 +19093,38 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 95,
+          "end_line": 115,
+          "reason": "未保存preview時の非書込み条件"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 1055,
+          "end_line": 1090,
+          "reason": "プレビュー呼出しと未保存表示（保存ボタンとは別）"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 285,
+          "end_line": 321,
+          "reason": "previewは認可・参照読取とDTO組み立てでDB書込みなし"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 350,
+          "end_line": 382,
+          "reason": "previewの表示用DTO生成と参照データ読取"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 127,
+          "end_line": 153,
+          "reason": "対照：明示保存時にのみcreate transactionに到達"
+        }
       ]
     },
     {
@@ -19612,6 +19850,32 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 118,
+          "end_line": 135,
+          "reason": "既存商品の公開・販売終了を含む管理UI契約"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 441,
+          "end_line": 500,
+          "reason": "公開状態操作/Dirty制御・販売終了確認"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 216,
+          "end_line": 220,
+          "reason": "changeStatusのstaff認可とtransaction委譲"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 253,
+          "end_line": 294,
+          "reason": "状態遷移・Version CAS・公開条件・publishedAt更新"
+        }
       ]
     },
     {
@@ -19689,6 +19953,38 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 118,
+          "end_line": 135,
+          "reason": "Dirty状態と保存・画面遷移の管理契約"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 590,
+          "end_line": 633,
+          "reason": "編集値との差分でDirtyを判定し、遷移・beforeunloadを保護"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 669,
+          "end_line": 711,
+          "reason": "変更破棄/ナビゲーション確認の処理"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 762,
+          "end_line": 789,
+          "reason": "明示保存時のonSubmitと保存メッセージ"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 157,
+          "end_line": 213,
+          "reason": "編集保存時の更新Versionとtransaction処理"
+        }
       ]
     },
     {
@@ -19766,6 +20062,32 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 118,
+          "end_line": 135,
+          "reason": "編集画面の未保存プレビュー条件"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 525,
+          "end_line": 537,
+          "reason": "編集画面のpreview用値とremovedVariantIdsの受渡し"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 1055,
+          "end_line": 1090,
+          "reason": "previewの非同期完了時表示と旧結果残留候補"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 285,
+          "end_line": 321,
+          "reason": "previewによる現行集約参照と表示用SKU変換"
+        }
       ]
     },
     {
@@ -19846,6 +20168,32 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-catalog.md",
+          "start_line": 118,
+          "end_line": 135,
+          "reason": "販売終了状態・確認ダイアログの契約"
+        },
+        {
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "start_line": 489,
+          "end_line": 500,
+          "reason": "販売終了ConfirmDialogと明示changeStatus"
+        },
+        {
+          "path": "src/application/use-cases/admin-product-use-cases.ts",
+          "start_line": 216,
+          "end_line": 220,
+          "reason": "changeStatusの認可・transaction入口"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 253,
+          "end_line": 294,
+          "reason": "discontinuedへの状態遷移、CASと状態更新"
+        }
       ]
     },
     {
@@ -21584,6 +21932,44 @@
         "specification",
         "implementation",
         "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 9,
+          "end_line": 13,
+          "reason": "0/1〜5/6以上のSKU在庫分類に関する正式ルール"
+        },
+        {
+          "path": "docs/spec/features/admin-inventory.md",
+          "start_line": 59,
+          "end_line": 68,
+          "reason": "SKUと商品概要の境界値0/1/5/6および履歴の受入条件"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 78,
+          "end_line": 107,
+          "reason": "在庫一覧の絞込・並び替えとSKU詳細読取"
+        },
+        {
+          "path": "src/presentation/pages/admin-operations-pages.tsx",
+          "start_line": 140,
+          "end_line": 200,
+          "reason": "在庫フィルターとSKU状態・在庫表示"
+        },
+        {
+          "path": "src/application/use-cases/admin-operations-use-cases.ts",
+          "start_line": 57,
+          "end_line": 89,
+          "reason": "searchInventoryとgetInventoryDetailの認可・読取"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/product-repositories.ts",
+          "start_line": 604,
+          "end_line": 638,
+          "reason": "Repositoryの在庫絞込（availableが1以上で正式6以上と不一致の候補）"
+        }
       ]
     },
     {
