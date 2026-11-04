@@ -466,3 +466,91 @@ test.describe("PR #219: Checkout resume after authentication Session replacement
     });
   });
 });
+
+test.describe("PR #219: suspended staff forbidden-link loop", () => {
+  test("KNOWN DEFECT REPRO: suspended operator with a surviving Session loops to forbidden without DB mutations", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "operator@example.com", "/admin");
+
+    // Isolated browser-only interleaving: suspension after authentication, before
+    // the old Session is revoked. No existing Seed/Reset or product code is edited.
+    await page.evaluate(async () => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("ec-automation-training");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const transaction = database.transaction("users", "readwrite");
+          const users = transaction.objectStore("users");
+          const request = users.get("user-operator");
+          request.onsuccess = () => {
+            if (!request.result) {
+              transaction.abort();
+              return;
+            }
+            users.put({
+              ...request.result,
+              accountStatus: "suspended",
+              version: request.result.version + 1,
+            });
+          };
+          transaction.oncomplete = () => resolve();
+          transaction.onabort = () => reject(transaction.error);
+          transaction.onerror = () => reject(transaction.error);
+        });
+      } finally {
+        database.close();
+      }
+    });
+
+    const databaseDigest = () =>
+      page.evaluate(async () => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("ec-automation-training");
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        try {
+          const names = Array.from(database.objectStoreNames);
+          const transaction = database.transaction(names, "readonly");
+          const records = await Promise.all(
+            names.map(
+              (name) =>
+                new Promise<unknown[]>((resolve, reject) => {
+                  const request = transaction.objectStore(name).getAll();
+                  request.onsuccess = () => resolve(request.result);
+                  request.onerror = () => reject(request.error);
+                }),
+            ),
+          );
+          const bytes = new TextEncoder().encode(JSON.stringify(records));
+          const digest = await crypto.subtle.digest("SHA-256", bytes);
+          return Array.from(new Uint8Array(digest))
+            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .join("");
+        } finally {
+          database.close();
+        }
+      });
+    const before = await databaseDigest();
+    await page.reload();
+    await expect(page).toHaveURL(/\/forbidden$/);
+    await expect(
+      page.getByRole("heading", { name: "このページを表示する権限がありません" }),
+    ).toBeVisible();
+
+    // The action should not link back to a protected staff page for this actor.
+    // Record the actual product defect; this green assertion is not acceptance PASS.
+    const returnLink = page.getByRole("link", { name: "管理画面へ" });
+    await expect(returnLink).toHaveAttribute("href", "/admin");
+    await returnLink.click();
+    await expect(page).toHaveURL(/\/forbidden$/);
+    await expect(returnLink).toBeVisible();
+    expect(await databaseDigest()).toBe(before);
+  });
+});
