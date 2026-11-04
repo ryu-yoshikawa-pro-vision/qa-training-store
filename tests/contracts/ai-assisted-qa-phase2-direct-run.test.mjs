@@ -30,7 +30,12 @@ function fixture() {
   fs.writeFileSync(specPath, "/* learner-authored placeholder for command testing only */\n");
   const binDir = path.join(root, "bin");
   fs.mkdirSync(binDir);
-  const report = (file, actual, expected = "passed", reportRoot = path.join(root, "workspace/M05")) =>
+  const report = (
+    file,
+    actual,
+    expected = "passed",
+    reportRoot = path.join(root, "workspace/M05"),
+  ) =>
     JSON.stringify({
       config: { rootDir: reportRoot },
       suites: [
