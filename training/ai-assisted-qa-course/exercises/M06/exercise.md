@@ -26,7 +26,7 @@
    pnpm course:run M06 new-case.spec.ts --label repeat
    ```
 
-   `course:run`は毎回異なる`run_id`と出力先を使い、検証済み配布manifestの`source_sha`と実行したspecの`spec_sha256`をreceiptに記録します。再挑戦する場合も以前の結果を保全し、実行時の両SHA・結果を記録します。実行していない内容を補いません。
+   `course:run`は毎回異なる`run_id`と出力先を使い、検証済み配布manifestの`source_sha`と実行したspecの`spec_sha256`をreceiptに記録します。`run-evidence.json`の`module_id`・`spec_path`・`label`・`run_id`・`exit_code`・`outcome`・`spec_unchanged_during_run`・`tests`（各Caseのtest名と結果）を、同じRun directoryの`spec-snapshot.ts`と`playwright-result.json`へ照合してください。**`tests`の件数だけではCASE-CART-004/005の実行を保証しない**ため、両Caseのtest名、失敗/成功、spec snapshotにあるResetと業務Assertionを確認します。前のRunのreceiptや別specの結果を流用しません。終了コード非0で`outcome`が`blocked`なら、起動・Reset・配布状態を確認し、業務FAILと区別します。失敗や`ungradable`をPASSにしません。再挑戦する場合も以前の結果を保全し、実行時の両SHA・結果を記録します。実行していない内容を補いません。
 
 ## 提出物
 
