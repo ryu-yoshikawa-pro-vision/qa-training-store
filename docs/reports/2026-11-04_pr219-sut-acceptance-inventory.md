@@ -200,3 +200,10 @@
 - `default`と`gold-member`の固定Seedを各テスト専用のDexie DBに読込。stockの追加境界は各テスト内のVariant 1件だけを変更して再現し、既存Seed/ResetおよびSUTを変更しない。Clockは通常`2026-07-15T03:00:00.000Z`、sale期間だけ`2026-07-01T03:00:00.000Z`を使用。
 - 拒否前後の`carts/cart_items/checkout_sessions`の**全レコード**を`toArray()`で比較し、拒否でどの表も変更されないことをassertする。数値境界0/1/5/6と、数量上限5、Cart/Item version、Rank/公開状態、sale価格6400円を分けて確認する。
 - 証拠はVitest実Runの固定SHAとjobログで確認する。Web画面・User rank変更後の既存Cart・Checkout再確認・Native/SQLiteの前後snapshotは別Caseであり、10番はCI合格後でも全条件成立までは未チェック。
+
+## Web Case別の固定Run証拠表（17件）
+
+- `docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`：Run [41798882293](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41798882293)、SUT/Test `374e8cc26b02918d97d85325bc3272bc6f3639c3`の**PR #219新規Web 17件**をテスト名・行・Role/Session・Seed/Reset・Clock・期待/観測・終了コード・アーティファクトURLまで追跡。
+- このうち**16件が個別PASS**、管理商品「表示外選択」は**既知不具合のexpected failure 1件**。`cross-role-chromium` job全体は既存`cross-role-lifecycle.spec.ts`の`getByRole("status")` strict違反でfailure（exit 1）。Job/Workflowを全体PASSとしない。
+- CIで保存されたPlaywright Artifactは`playwright-cross-role-41798882293-1`（Artifact ID `13306602054`）。Fixtureは`scenario-metadata-console` JSONをTestInfoへ添付し、Consoleエラーがないことをassertする。成功時のTrace/画像/動画、Network/DB全表の証拠は現在のPlaywright設定では保存されないため未取得と記録した。
+- **この17行だけでタスクリスト2番や20番は未完了。** 分析元の188操作・20状態の各採用Case、Android/SQLite、Webの全条件・成功時Trace等が未取得のため、未受入CaseをPASSに変えない。
