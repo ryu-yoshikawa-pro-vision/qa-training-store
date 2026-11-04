@@ -19,10 +19,10 @@ M07終了時に本人が記入します。教材テンプレートには完成�
 
 | Run | コマンド・対象spec | Run ID / 実行revision | 終了状態 | 根拠の保存先 |
 | --- | --- | --- | --- | --- |
-| Assertion修正前 | `course:run M07 repaired-assertion.spec.ts --label before` |  |  |  |
-| Assertion修正後 | `course:run M07 repaired-assertion.spec.ts --label after` |  |  |  |
-| 保守変更前（既存2件） | `course:run M07 maintenance.spec.ts --label before` |  |  |  |
-| 保守変更後（独立3件以上） | `course:run M07 maintenance.spec.ts --label after` |  |  |  |
+| Assertion修正前 | `pnpm course:run M07 repaired-assertion.spec.ts --label before` |  |  |  |
+| Assertion修正後 | `pnpm course:run M07 repaired-assertion.spec.ts --label after` |  |  |  |
+| 保守変更前（既存2件） | `pnpm course:run M07 maintenance.spec.ts --label before` |  |  |  |
+| 保守変更後（独立3件以上） | `pnpm course:run M07 maintenance.spec.ts --label after` |  |  |  |
 
 - 各Runの`source_sha`・`spec_sha256`・spec snapshot・JSON report・test件数・終了コードの照合:
 - 保守変更後の3件目が、数量2へ更新後に別ページへ移動しCartを開き直すことを確認した実Run:
