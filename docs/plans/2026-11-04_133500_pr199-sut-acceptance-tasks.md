@@ -2,7 +2,7 @@
 
 対象：[#219](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219)。作業ブランチは`work/pr199-sut-acceptance`、統合先は[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。開始時にルートの`AGENTS.md`、[分担Plan](./2026-11-04_pr199-parallel-branches.md)、対象HEAD、既存テストとCIを確認する。
 
-**責任変更（2026-11-05）**：旧リストの21項目中14項目は部分検証・引継ぎとして実施済み。旧未完7項目に含まれる**最終実受入**は、#213〜#219の作業内容と必要な#210の製品修正を統合した後、**#199の最後に実施する**。旧未完7項目の対応先は末尾に記す。#219には代わりに、AIエージェントがこのブランチで実施できる準備・検証・引継ぎ7項目を設ける。現在の進捗は**20/21件**。これは新しい#219専用リストの準備・検証の進捗であり、Scenario Shopの受入率ではない。
+**責任変更（2026-11-05）**：旧リストの21項目中14項目は部分検証・引継ぎとして実施済み。旧未完7項目に含まれる**最終実受入**は、#213〜#219の作業内容と必要な#210の製品修正を統合した後、**#199の最後に実施する**。旧未完7項目の対応先は末尾に記す。#219には代わりに、AIエージェントがこのブランチで実施できる準備・検証・引継ぎ7項目を設ける。現在の進捗は**21/21件**。これは新しい#219専用リストの準備・検証の進捗であり、Scenario Shopの受入率ではない。
 
 ## 担当と変更範囲
 
@@ -40,7 +40,7 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 - [x] Web/Android/DBのRisk別部分証拠、実行不能条件・必要機材/権限・再開方法を専用レポートへ記録した
 - [x] #213へ分析IDと固定Run/暫定Webキーの対応、不足根拠を引き渡し、製品修正前後のHEADを混同しなかった
 
-## #219の準備・検証・引継ぎ（全7項目・残り1件）
+## #219の準備・検証・引継ぎ（全7項目完了）
 
 - [x] **専用ファイルの品質ゲートを整える。** 最新HEADのStyle Qualityで失敗した`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md:116`のMD012など、#219所有ファイルに起因するlint/formatter/契約テストを修正し、固定HEAD・該当job・結果を記録する。共有既存テストのflakyは原因と再現Runを#199へ渡し、独断で編集しない。 証拠：[Web CI #41930249981](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41930249981)（テストHEAD `21c943fa91d1bd401b82ff29fb3f9925b1a18f64`）でStyle Quality job `126925018349`、Contracts `126925018638`、Integration `126925019067`、Component `126925018907`、Code Quality `126925018738`、cross-role Chromium `126925517349`、verify/validateが成功しworkflow全体success。cross-roleは30 passed/既存共有テスト1 flakyで、`getByRole("status")`の二重一致は#199へ引継ぎ済み。後続のレビュー修正が入るHEADは別途CI確認対象とする。
 - [x] **分析台帳とCase候補を突き合わせる。** #213の79要件（直接参照のない29横断要件を含む）、188操作＋20状態、Risk/TR/Condition/Case候補、既存テストの実assertion/Role/State/Platformを照合。既存Case再利用・追加が必要・正式判断待ち・不要候補と根拠を列挙する。正式Case ID・採否は#213/#199の決定待ちとして明記する。 証拠：[29横断要件・実assertionの静的照合](../reports/2026-11-05_pr219-static-case-assertion-handoff.md)。正式Case採否・IDと残197動作の動的受入は#213/#199へ移管。
@@ -48,12 +48,12 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 - [x] **自動化できる境界Caseを再確認する。** Web/Component/Integration/Contractsの既存Caseで必要な拒否・失効・stale・競合・rollbackのassertionを照合し、不足を#219専用テストで補完する。固定HEADで実行可能なCI結果と既知製品FAIL/TEST ERROR/未実行を切り分ける。製品修正後の最終再実行は#199へ渡す。 証拠：[境界・視覚・Android準備レポート](../reports/2026-11-05_pr219-boundary-visual-android-final-handoff.md)。境界テストと既知不具合をassertion単位で点検。追加の重複テストは不要、修正後の再実行は#199へ。
 - [x] **Web視覚・a11yの事前比較を整理する。** 320/390/767/768/1023/1024/1440px、Empty/Loading/Error/Conflict、キーボード・Focus・axeと既存UI Review画像を照合。既存画像の差分と取得できない成功時Trace/PNG/動画/axe JSONを区別し、共有workflowでの保存方法・正式正本との最終判定条件を#199へ渡す。ここで視覚受入を確定しない。 証拠：[境界・視覚・Android準備レポート](../reports/2026-11-05_pr219-boundary-visual-android-final-handoff.md)。7幅/4状態のRun、保存画像と正式画像差分、成功時Artifactの未保存条件を整理。
 - [x] **Android/SQLiteの最終実行手順を用意する。** 既存Native/Component/Maestro/SQLite/Sessionのテストと`.github/workflows/native-ci.yml`を確認し、端末・SDK/ADB・実行権限・Seed/Reset・Navigation/停止/再開/Forbidden/戻る・前後snapshotの手順、期待結果、証拠保存先とBLOCKED理由を整理する。端末を実行できなければPASSにしない。共有workflowは変更しない。 証拠：[境界・視覚・Android準備レポート](../reports/2026-11-05_pr219-boundary-visual-android-final-handoff.md)。Native CI手動実行経路・Windows実機Runbookと機材/Artifact/BLOCKEDを照合。端末自体は未実行。
-- [ ] **#199への引継ぎと#219差分レビューを完了する。** 専有ファイルのみの変更、#199最新baseとの比較、関連CI、#210の修正要否と未マージHEAD、#213の採否待ち、失敗・BLOCKED・残リスク、#199最終実受入用のCase/Run/再実行手順を一つの参照先から追えるようにし、独立レビューを依頼する。レビュー未実施なら完了にしない。
+- [x] **#199への引継ぎと#219差分レビューを完了する。** 専有ファイルのみの変更、#199最新baseとの比較、関連CI、#210の修正要否と未マージHEAD、#213の採否待ち、失敗・BLOCKED・残リスク、#199最終実受入用のCase/Run/再実行手順を一つの参照先から追えるようにし、独立レビューを依頼する。レビュー未実施なら完了にしない。 証拠：[#199の引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6635695670)、[29横断要件](../reports/2026-11-05_pr219-static-case-assertion-handoff.md)、[50履歴の監査](../reports/2026-11-05_pr219-web-evidence-run-audit.md)、[境界・視覚・Android実行手順](../reports/2026-11-05_pr219-boundary-visual-android-final-handoff.md)。#199 base `166412cf`と#210未マージHEAD `4a53efbc`、#213分析HEAD `111061fb`を区別。差分34ファイルは#219専有範囲内。CodeRabbit独立レビュー3指摘を修正し、レビュアーが現行コードとの照合で修正を確認して3スレッドすべて解決済み。再レビュー全体の結果・修正後HEADの最新CIは別途確認する。
 
 ## 2026-11-05 未完項目の状況
 
 - **品質ゲート**：以前のStyle MD018/MD012は修正済み。固定HEAD `21c943fa` のRun [41930249981](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41930249981)でStyle、Contracts、Integration、Component、cross-role等の個別jobとworkflow全体のsuccessを確認。共有E2Eの`getByRole("status")`はretryで通過した1 flakyであり、製品の正式受入PASSとは区別する。**レビュー指摘でこの後変更するHEADのCI結果は別に確認する**。
-- **差分・引継ぎ・独立レビュー**：#199 base `166412cf` と比較した#219の34変更ファイルは専用テスト・レポート・タスクリスト・Run記録に限定。#213はHEAD `111061fb`で正式Case採否待ち、#210製品修正は別HEAD `4a53efbc`のままで未統合。#199への[初回引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6635695670)、#219への[レビュー依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6644375020)は投稿済み。CodeRabbitの**独立レビューは実施済みでCHANGES_REQUESTED 3件**。進捗表記（`34b5f393`）、actor競合の旧`it.fails`記述（`9233af39`・`1051ef51`）、競合画面の視覚Caseでの復帰先URL固定（`ae08f251`・`631479f6`）を修正し、各threadへ回答済み。修正後HEAD `631479f6`の[Web CI #41932273873](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41932273873)は確認時点で実行中。**再レビュー・新HEADの検証結果が確定するまで、最終チェックは未完了とする**。
+- **差分・引継ぎ・独立レビュー**：#199の固定base `166412cf`と比較した34変更ファイルは#219専用テスト/レポート/タスクリスト/Run記録のみ。#213正式Case採否は別HEAD `111061fb`、#210製品修正は別HEAD `4a53efbc`で未統合。#199への引継ぎは投稿済み。CodeRabbitレビューは以前`CHANGES_REQUESTED`で3件を指摘したが、進捗表記・`it.fails`旧手順・視覚Caseの復帰先固定を修正し、レビュアーが現行コードと照合して3件すべて解消済み、3スレッド解決済みを確認。#219担当分の独立レビュー対応は完了。再レビュー全体の状態変更と新HEADのCI [#41932482569](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41932482569)は未確認。#199の最終実受入/マージを許可したものではない。
 
 ## #199の最後に移した最終実受入（このリストでは完了チェックしない）
 
