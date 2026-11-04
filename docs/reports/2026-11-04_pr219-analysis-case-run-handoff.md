@@ -90,3 +90,12 @@
 - 同Runの**workflow全体はfailure**で、主因はStyle Quality job `126577006913`の新規契約テストPrettier違反。verify/validate failureはこのゲート失敗の派生。`cc5e008`の整形後Run #41831922016もStyle failureが残り、後続更新でcancelled。`10fb7c2`で複雑な改行を伴う式を逐次処理へリファクタリングしたが、**修正後のStyle/Contracts CI成功は未確認**。
 - `e2e/web/pr219-cross-role-lifecycle.spec.ts`の暫定証拠キー`PR219-WEB-023/024/025`に、FixtureのTestMetadataから**Reset時のClock実測**・buildSha・app/schema/seedバージョンだけを出す`PR219_RUNTIME_METADATA`ログを追加。個人情報・認証情報・Session IDは出力しない。`4327ad1`以降のCIで値が確認できるまで実測とは書かず、Web45履歴行の既存clock_basisを変更しない。
 - 14/21の未完7項目を維持。WebのCase別証拠は一部揃っているが、全採用Case・正式Case ID、Android実機SQLite、成功時Trace/画像/Networkなどの保存と独立レビューは未達。
+
+## CI #41832718832のClock実測と証拠契約・整形の修正（2026-11-04）
+
+- テストHEAD `e4a36f5c5834b7056dcff5a8b56ee10e6a840d06`、SUT（PR #199 base）`46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、[CI #41832718832](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41832718832)、cross-role job `126584626212` **success（29 passed）**。workflowは後続コミットにより**cancelled**、Style Quality job `126584054105`はfailure。個別ジョブとworkflowの結果を混同しない。
+- ログ`PR219_RUNTIME_METADATA`の`PR219-WEB-023` / `024` / `025`は、Reset後にTestMetadataから得た`clockObservedAtReset=2026-07-01T03:00:00.000Z`、`buildSha=f3f269aa0956b8927634a0098ef0947cb65895bc`、`appVersion=0.1.0`、`schemaVersion=1`、`seedVersion=11`を記録。`buildSha`はRuntimeメタデータ値であり、テストHEAD・SUT SHAとは別識別子。3 Caseとも期待Clockと一致。認証情報、DBレコード、Session IDをログに出していない。
+- 同ジョブの`PR219_CASE_EVIDENCE`で、`025`のIndexedDB10表不変、`023`のCheckout競合幅7/axe2・Keyboardと誤復帰`/checkout/payment`、`024`の停止operator旧Session→Forbidden戻りループとIndexedDB23表不変を確認。**Webテスト29件成功は製品適合とは別**（`023`と`024`は製品不具合の再現）。
+- Web実行履歴CSVは**45→48行、34列、暫定証拠キー25種類**。旧45行は全列不変。同Runの3履歴は固定HEADに対応する実際の開始行`025:382`、`023:431`、`024:646`へ訂正し、workflow結果も`cancelled（Style失敗、cross-role成功）`へ修正。新規RunのClock実測はこの3行にだけ反映し、過去Runの期待Clock記録を改変しない。
+- [CI #41833700883](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41833700883)のVitest contractsでは、Clock実測に対して旧`clock_basis`検査が「実測ではない／未取得」しか許容せず、`pr219-web-evidence-ledger.test.mjs:97`の1件が失敗。Style Qualityも同ファイルの1か所`byKey.get(key)?.some(...)`の改行でfailure。CI上のPrettierが生成した出力を一時診断で取得し、同一ファイルの書式を正確に修正、**一時診断は削除済み**。Clock検査は実測Runならメタデータ内`clockObservedAtReset`と期待時刻を照合し、過去Runなら未実測の区別を検証するように変更（`4b44f17`）。**修正HEADのCI成功は未確認**。
+- 208動作のうち直接証拠がつながるのは引き続き11動作。#213の正式Case ID採否、全CaseのTrace/動画/画像/Network/DB前後、Android実機・SQLite、独立レビューは未受入。専用タスクリスト14/21のまま。
