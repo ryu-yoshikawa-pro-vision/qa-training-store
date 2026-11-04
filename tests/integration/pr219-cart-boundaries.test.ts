@@ -208,6 +208,38 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
     expect(await persistedCartState()).toEqual(before);
   });
 
+  it("revalidates expired Sale price and accepts the new price with version CAS", async () => {
+    await loadSeedDataset(database, createScenarioDataset("gold-member"), "gold-member");
+    const goldSession = await database.sessions
+      .where("userId")
+      .equals("user-customer-gold")
+      .first();
+    expect(goldSession).toBeDefined();
+    session = new SessionStore(goldSession!.id);
+
+    const initial = await cart(SALE_TIME).addItem({
+      variantId: "variant-running-shoes-one",
+      addQuantity: 1,
+    });
+    const stale = await cart(FIXED_TIME).getCart();
+    expect(stale.blockingIssues).toContain("PRICE_CHANGED");
+    const before = await database.checkout_sessions.toArray();
+
+    const accepted = await cart(FIXED_TIME).acceptPriceChanges({
+      cartExpectedVersion: stale.cartVersion,
+      itemExpectedVersions: Object.fromEntries(
+        stale.items.map((item) => [item.itemId, item.itemVersion]),
+      ),
+    });
+    expect(accepted.blockingIssues).not.toContain("PRICE_CHANGED");
+    expect(accepted.cartVersion).toBe(stale.cartVersion + 1);
+    expect(accepted.items.find((item) => item.variantId === "variant-running-shoes-one")).toMatchObject({
+      unitEffectivePriceAtAdd: 8000,
+    });
+    expect(await database.checkout_sessions.toArray()).toEqual(before);
+    expect(accepted.cartVersion).toBeGreaterThan(initial.cartVersion);
+  });
+
   it("permits eligible gold customer to add a discounted item during its sale window", async () => {
     await loadSeedDataset(database, createScenarioDataset("gold-member"), "gold-member");
     const goldSession = await database.sessions

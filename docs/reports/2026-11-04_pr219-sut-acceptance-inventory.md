@@ -238,3 +238,8 @@
 - `tests/integration/pr219-cart-boundaries.test.ts`に`default` SeedのGuestが数量3をCartに追加した後、Variant在庫を2へ変更し数量3更新を拒否（`QUANTITY_LIMIT_EXCEEDED`）するCaseを追加。続いて在庫50に戻しpurchaseLimitを1へ縮小し数量2更新を拒否する。
 - 拒否の前後で`carts`/`cart_items`/`checkout_sessions`の全レコードが一致することをassert。Variantのstock/purchaseLimit変化は隔離したテストDBだけに限定し、既存Seed/Reset・SUTは不変更。
 - このCaseのCI実行結果と、既存7件のstock0/1/5/6・Rank/Sale・version結果、実ブラウザでの表示・復旧導線を照合して10番の完了可否を判定する。現時点では未実行扱い。
+
+## Sale期間外での価格再確認（10番の補完）
+
+- `tests/integration/pr219-cart-boundaries.test.ts`に、`gold-member`でSale期間内に`variant-running-shoes-one`を購入Cartへ追加→期間外に`getCart`すると`PRICE_CHANGED`→CartとItemの最新versionで`acceptPriceChanges`し、価格スナップショットが6400→8000へ更新されるCaseを追加。
+- ClockはSale内`2026-07-01T03:00:00Z`、Sale外`2026-07-15T03:00:00Z`。Checkout表の前後不変もassertし、Rank・Saleの表示金額を時点別に区別する。実CIのCase成功は別途確認する。
