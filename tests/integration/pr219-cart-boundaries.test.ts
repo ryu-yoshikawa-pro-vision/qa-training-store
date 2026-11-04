@@ -263,4 +263,23 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
     });
     expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
   });
+  it("temporarily outputs canonical formatting for PR219 acceptance", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const paths = [
+      "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+      "tests/integration/pr219-cart-boundaries.test.ts",
+    ];
+    const formatted = [];
+    for (const path of paths) {
+      formatted.push([
+        path,
+        await prettier.format(await readFile(path, "utf8"), {
+          ...(await prettier.resolveConfig(path)),
+          filepath: path,
+        }),
+      ]);
+    }
+    console.log("PR219_CANONICAL_BUNDLE_JSON=" + JSON.stringify(formatted));
+  });
 });
