@@ -6,6 +6,12 @@
 >
 > **変更境界**：本ブランチの担当範囲だけを編集。製品SUT・正式仕様・既存Seed/Reset・既存製品テストは読み取り専用。共有ファイルや他ブランチの専有ファイルが必要なら、PRコメントに理由・影響・受入条件を記録し#199で調停する。#199へのマージは行わない。
 
+## エージェント担当と実受入の引継ぎ
+
+このPRではM00〜M04の22目標について教材・クイズ・演習・提出欄・公開開始状態、固定Skillの入力/CLI契約を調査・修正し、追加したテストをGitHub Actionsで確認する。本人のCodespaces/Private Port・課金画面・認証付きOpenCode・固定Skillを学習環境で操作する**実受入は#199最後**に実施する。GitHub上の静的照合やCIで確認できる範囲は、このPRで完了させる。
+
+確認した現状は25/30チェック済み（HEAD `370ffef92f6b`）。25件の完了根拠は教材・契約の確認であり、本人のLevel 2や実モデル実行を意味しない。5件の未完は以下の**エージェントが行える準備・テスト**として再定義する。#199へは対象入力と固定SHA、実行手順、期待する成功/拒否、未実行理由を引き継ぐ。
+
 ## 対象・変更境界
 
 22学習目標。対象：`docs/curriculum/ai-assisted-qa/modules/M00..M04/**`（各モジュールディレクトリ）、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`、`states/Mxx/**`、該当クイズと新規の専用契約テスト。評価エンジン・`assessment/**`・共通manifest・知識グラフは直接変更しない。採点基準・知識グラフの調整が必要なら正式評価/統合先へ根拠を引き継ぐ。
@@ -17,7 +23,7 @@
 - [x] `M00-01`：開始ガイド→別ファイルを開く/変更/保存→実行場所と出力の確認を、初心者がGit知識なしで実施できる手順に整合
 - [x] `M00-02`：AgentとChat、OpenCodeのread/edit/command権限、固定Skillとhelper、無料モデル/Secretの扱いを具体的な許可・拒否判断へ結び付ける
 - [x] `M00-03`：本人が目的・参照・範囲・成果物・完了条件を持つAI依頼を作り、結果の誤りを本人が訂正する別条件課題を照合
-- [ ] `M00-04`：差分・未実行/失敗、Privateポート、課金、再ロードの既存成果物保護を実際の拒否条件で検証。架空の判断と実費用/Port確認を区別
+- [ ] `M00-04`：差分・未実行/失敗、Private Port、課金、再ロードによる上書き禁止について、教材の判断例・拒否条件・検証手順・公開可能な契約/負例テストを照合・修正する。実Port・本人料金画面の操作は#199最終実受入へ渡す
   - [x] 既存`loadModule`の競合拒否とM00契約テスト、P05/P06・本人記録欄をソース確認。架空の危険提案と観測証拠を分離。
   - [ ] 人間：実Codespacesで競合時の非0終了・前後ファイル不変、Private Port・支払者・利用枠・モデル条件を確認。
 
@@ -53,13 +59,13 @@
 
 ## 固定Skillの通し確認・横断受入
 
-- [ ] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324` のM02 `spec-analysis/test-analysis` から実在Authority/Risk/Scopeと検証責務を作り、出典/revisionを記録
+- [ ] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のM02 `spec-analysis/test-analysis`について、Authority/Risk/Scopeと検証責務の入力例・固定commit・参照先・CLI入出力を検証し、専用の契約/負例テストとCI証拠を追加する。本人環境でのSkill実操作は#199へ渡す
   - [x] Cart BR/AC、Riskの正本CSV、M02/M03 Scope分離・固定Authority helper入力形式と出典を照合し、M03の未実行入力候補を準備。
   - [ ] 人間：固定Skillで仕様とリスクを実分析し、current Authority/Product Risk Entityと検証責務、実行時source revisionを採否付きで保存。
-- [ ] M03で`condition_structure(direct)`→適用技法runtime→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→`verify_runtime_evidence`を実入力で通す。終了コード0だけでなく結果envelope・`valid=true`・未解決・current fingerprintを確認。model依存評価は別ゲート
+- [ ] M03の`condition_structure(direct)`→技法runtime→`materialize_coverage(artifact)`→`case_structure`→`verify_runtime_evidence`の依存・入力/出力・`valid`・fingerprint/拒否条件を固定資料と専用契約テストで検証する。許可済みCIで再現可能なら実Runも記録し、本人学習環境での一連の実受入は#199へ渡す
   - [x] M03のCase検証先を`test-case-design` helperへ訂正。終了コード0だけでは判定しない`valid/issues/missing/extra/current_structure_state`のJSON検査と契約テストを追加。
   - [ ] 人間：同一実入力による技法・materialize・Caseの通しRun、current fingerprint、負例拒否、意味上の採否を記録。
-- [ ] Skill-local`SKILL.md/references/assets/scripts` の固定版、Python helperの実行、必要なruntimeが学習環境に存在することを確認。M02→M03の不足は配布ブランチへ引継ぐ
+- [ ] 固定Skillの`SKILL.md/references/assets/scripts`とPython helperの配布依存・entrypoint・import・必要なruntimeを固定SHAと既存CI/契約テストで調査し、不足を#218へ引継ぐ。本人CodespacesのPython実行・操作確認は#199へ渡す
   - [x] 固定commitの104配布元ファイルをGit Blob SHA/size/pathで全件照合。必要なSkill-local helperの配布定義と専用回帰契約を確認。
   - [ ] 人間：配布後の学習環境で実ファイル・Python 3.11・helper結果を確認。
 - [x] 22目標すべてについて教材→演習→提出→評価条件→復習先、`start/end`状態と対応を全量照合し、固有テスト・検証ログを残す。内容未受入の目標を一括完了にしない
@@ -68,7 +74,7 @@
 
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
 - [x] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
-- [ ] 通常のOpenCode AIチューターについて、初学者が説明→段階ヒント→別条件練習→誤解別の復習→再挑戦を進められる内容と実操作を検証。学習側Agentの正しい説明だけで本人の達成にせず、M04の独立正式AI採点と混同しない
+- [ ] 通常OpenCodeチューターの説明→段階ヒント→別条件→誤解別復習→再挑戦の教材・プロンプト・提出/復習経路を静的レビューし、可能な契約/負例テストを整備。独立M04採点との権限/セッション分離を確認して、認証付きモデルとの実対話は#199へ渡す
   - [x] M00〜M04の別条件チューター練習を教材へ追加、M03/M04起動コマンドを修正、モデル引数・反復5段階と正式採点分離の契約テストを追加。
   - [ ] 人間：固定OpenCode 2.0.22と許可されたモデルで本人の対話・段階ヒント・再挑戦、費用・権限・未達時の挙動を確認。
 - [x] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
@@ -178,3 +184,11 @@ M04演習と提出テンプレートに、承認Caseの元ID、Risk/TR・Scope�
 ## 2026-11-04 実動作確認を除く作業の完了記録
 
 上記の5項目それぞれについて、**実動作以外の準備は5/5件チェック済み**。元の受入5項目は人間の実動作証拠がまだないので未チェックのままとする。具体的な修正、固定Skill/仕様の照合、JavaScriptによる直接静的検査44+13件、未実行の条件は[検証レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)に記録。新規`tests/contracts/ai-assisted-qa-phase1-pinned-skill-entry.test.mjs`と既存の専用テストはCIによる実行結果を未取得。CI完了は待機しない。
+
+## #199最後に移した実受入（このPRのチェック対象外）
+
+- M00初回ロード、受講者本人のPrivate Port・費用・Secret・権限と実操作
+- 学習者のOpenCodeモデルへの認証付き対話、段階的なヒント/再挑戦とM04独立採点の区別
+- 固定Skill/Python helperの学習環境でのM02→M03全工程実行と有効な実証拠の確認
+
+受入実施前にチェックを追加して「完了」としない。実行不能の場合は入力・再開条件を#199へ記録する。
