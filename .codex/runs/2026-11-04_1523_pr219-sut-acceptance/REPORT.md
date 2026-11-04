@@ -43,3 +43,5 @@
 - タスク10番完了：SUT SHA `7cc39f2`、Web CI #41805391258のVitest integration job 126491204270で新規Cart 10件PASS、Integration全146件PASS。Style Quality/Code Qualityもsuccess。stock0/1/5/6、購入上限縮小、Rank/Sale価格、stale CAS、guest拒否、active Checkout付き顧客のCart失敗後3表不変をassert。全CaseやAndroidの実受入には換算しない。
 
 - 管理ユーザー受入タスク5・最後の管理者競合タスク6：固定HEAD e5fc6a5、Run #41802885428のIntegration 8+6+2件・Web関連Caseを照合し、actor失効競合は製品FAILとして区別。専用報告書 docs/reports/2026-11-04_pr219-admin-user-acceptance-completion.md に記録。タスク5/6は検証と結果分類の完了としてチェックし、製品合格を意味しない。
+
+- タスク12番完了：Run #41806200267（b37b603）Integration job 126493922493でOrder/Shipment/Review実3件PASS、全150件成功。配送CAS、Snapshot不変、他人Review拒否、Review transaction rollbackを実証。一時診断は削除。Web全画面/Android/SQLite/Traceは別タスク未受入。

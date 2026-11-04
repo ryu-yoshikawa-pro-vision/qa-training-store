@@ -273,3 +273,12 @@
 - ②`reviewable-orders` Seedでregular顧客が配送済み商品へReviewを作成後、別gold顧客によるEligibility/作成を拒否し、古いReview versionの更新を`CONFLICT`で拒否。Review/History/Summaryの全レコード不変をassert。
 - ③Review新規作成時の`product_review_summaries.hook("updating")`に失敗を注入し、Review・Review Status History・Summaryの更新がtransaction rollbackで全て戻ることをassert。
 - 全ケースは新規隔離Dexie DBと固定Seed/Clockに限定。新規CIで実行確認するまで12番は未完了。WebのOrder/Shipment/Review実操作、Android/SQLite、実画像/Trace/全DB保存ファイルも別途未受入。
+
+## Order/Shipment/Review受入（タスクリスト12番完了）
+
+- 対象SUT/Test SHA：`b37b6034cde6a9c81a15934ad39ca9a245c64e29`、[Web CI Run #41806200267](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41806200267)、Vitest (integration) job `126493922493`。`tests/integration/pr219-order-review-boundaries.test.ts`の**3件の実受入がPASS**（同Run内の一時Prettier診断1件は後続`db5f7a6`で削除済み）、Integration全体**150件PASS**、exit 0。Style Qualityはこの診断コミットで失敗し、最新HEADの書式確認とは区別する。**Workflow全体の成功を意味しない**。
+- Order/Shipment：`default` SeedでoperatorがOrder`order-paid`のpaid→preparing→shipped→deliveredを実行。古い`orderActionVersion`でShipが`CONFLICT`拒否となり、Order/Shipment/Historyの全レコードが不変。
+- 注文時点Snapshot：遷移後にユーザー会員RankとVariantの価格を別値に更新しても、Order`shippingAddressSnapshot`、`membershipRankSnapshot`、subtotal/discount/total、OrderItemのSKU・価格等の全レコード、Paymentの全レコードは不変であるとassert。既存Checkout Integrationでも作成時Snapshotを検証。
+- Review：`reviewable-orders` Seedでregular顧客が自分の配送済みOrderItemに投稿でき、gold顧客が他人のOrderItemのEligibility/投稿を拒否される。古いReview versionの更新は`CONFLICT`、Review/History/Summary全レコードが不変。PR #219 Webの別人Order非露出も[Run #41792378802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802)で確認済み。
+- Review transaction rollback：`product_review_summaries.hook("updating")`で書込み失敗を注入し、Review、Review Status History、Summaryの全レコードが更新前に復帰。既存IntegrationはReviewの作成/更新/削除/表示状態集計、Order/Shipment正規遷移を検証済み。
+- このタスクが明示した**状態遷移、version CAS、rollback、Order/Address/Rank/価格Snapshot、本人/他者の拒否**を、隔離DBと既存Web代表Caseで検証したためチェックする。Native/SQLiteと全Caseの成功時Trace/画面幅や永続DB証拠は別項目2/13〜15/20の未受入であり、当該結果をそれらに転用しない。SUT/Seed/既存製品テストは改変していない。

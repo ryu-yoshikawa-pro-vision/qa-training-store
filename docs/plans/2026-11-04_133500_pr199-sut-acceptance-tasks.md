@@ -29,7 +29,7 @@ Scenario Shopは読み取り専用のSUT。変更可能なのは**新規の学�
 - [ ] `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`で無条件0件/フィルター0件/エラーを分離し、Breadcrumbs/CTAの戻り・視覚/a11yを操作確認
 - [x] Cartの商品公開・Rank/Sale価格、stock0/1/5/6、上限縮小、数量変更とversion、拒否後のCart/Checkout不変を比較
 - [ ] Checkoutの住所再開通知（同一/別Session・Reload/Reset）、24h期限・旧Cart/stale確認、4種類のモック決済、再試行/二重確定/在庫競合の前後を検証
-- [ ] Order/Shipment/Reviewの状態遷移・version CAS・rollback、OrderItem/Address/Rank価格スナップショットの不変、本人/別ユーザー拒否を確認
+- [x] Order/Shipment/Reviewの状態遷移・version CAS・rollback、OrderItem/Address/Rank価格スナップショットの不変、本人/別ユーザー拒否を確認
 
 ## Web/Android・DB・UX
 
