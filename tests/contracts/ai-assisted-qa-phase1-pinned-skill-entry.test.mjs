@@ -68,6 +68,18 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m03).toContain("購入上限5");
     expect(m03).toContain("独立したMachine Entityではありません");
     expect(m03).toContain("Riskの出典は");
+    const requestBlock = m03.match(/```json\\n([\\s\\S]*?)\\n```/);
+    expect(requestBlock, "M03 should include the pinned Authority input, not a fake result").not.toBeNull();
+    const request = JSON.parse(requestBlock[1]);
+    expect(Object.keys(request)).toEqual(["authorities"]);
+    expect(request.authorities).toHaveLength(2);
+    expect(request.authorities.map((row) => row.active_content.spec_id)).toEqual([
+      "BR-CART-001",
+      "AC-CART-001",
+    ]);
+    expect(request.authorities.every((row) => row.scope === "SCOPE-101")).toBe(true);
+    expect(request.authorities.every((row) => row.source_refs.length === 1)).toBe(true);
+    expect(m03).toContain("未実行の準備例");
   });
 
   it("uses the matching runtime helper per skill and rejects false-positive process exit 0", () => {
@@ -114,6 +126,12 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
       expect(lesson, module).not.toContain(
         `pnpm course:tutor ${module} --model <プロバイダ/モデルID>`,
       );
+      const exercise = read(`training/ai-assisted-qa-course/exercises/${module}/exercise.md`);
+      for (const stage of ["**説明**", "**段階ヒント**", "**別条件練習**", "**誤解別の復習**", "**再挑戦**"]) {
+        expect(exercise, `${module}: missing tutor practice stage ${stage}`).toContain(stage);
+      }
+      expect(exercise).toContain("正式採点");
+      expect(exercise).toContain("未実行と記録");
     }
     const m04 = read("docs/curriculum/ai-assisted-qa/modules/M04/README.md");
     expect(m04).not.toContain("AIチューター（`pnpm course:tutor M04`）");
