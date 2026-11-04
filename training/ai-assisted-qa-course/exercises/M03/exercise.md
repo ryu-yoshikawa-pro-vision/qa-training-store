@@ -25,9 +25,33 @@ M02提出物またはこのモジュールの別ID公開サンプル、Cart仕�
    保存したrequestを次の固定Skill helperへ直接渡して確認します。JSONの`valid=true`、issues/missing/extra/incomplete pairsが空であることも確認します。
 
    ```bash
-   python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/condition-runtime-evidence.json
-   python3 .agents/skills/test-case-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json
+   python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/condition-runtime-evidence.json > workspace/M03/condition-verification-result.json
+   python3 .agents/skills/test-case-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json > workspace/M03/case-verification-result.json
+
+   python3 - <<'PY'
+   import json
+   from pathlib import Path
+
+   for phase in ("condition", "case"):
+       result_path = Path(f"workspace/M03/{phase}-verification-result.json")
+       result = json.loads(result_path.read_text(encoding="utf-8"))
+       empty_fields = (
+           "issues", "missing", "extra", "incomplete_pairs", "duplicates",
+           "missing_entities", "extra_entities", "duplicate_entities",
+       )
+       structure = result.get("current_structure_state")
+       if (
+           result.get("valid") is not True
+           or any(result.get(field) for field in empty_fields)
+           or not isinstance(structure, dict)
+           or not structure.get("runtime_results")
+       ):
+           raise SystemExit(f"BLOCKED: {phase}のruntime証拠を受け入れられません: {result_path}")
+       print(f"{phase}: valid=true、未解決・不足なし（意味上の採否は別）")
+   PY
    ```
+
+   **注意**：固定helperは不正入力や`valid=false`でも終了コード0を返す場合があります。上記のJSON検査がBLOCKEDなら成功扱いにせず、`issues`・欠落・fingerprint/currentnessを確認してください。`current_structure_state`とMachine Runtime Resultの内容も照合し、モデル依存の評価と仕様意味上の採否は別に記録します。
 
    `course:assess M04`は配布元の固定revisionから同じhelperをPython 3.11で再実行し、request内のartifactが現在の提出物と一致することを検証します。JSON内のvalid=trueという自己申告だけでは通りません。モデル/技法runtimeの生成を実行していない場合は、決定論的helperの成功と分けて報告します。
 
