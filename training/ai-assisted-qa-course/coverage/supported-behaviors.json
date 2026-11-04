@@ -7089,9 +7089,10 @@
         "AC-AUTH-002"
       ],
       "related_use_cases": [
-        "AccountUseCases.getProfile"
+        "AccountUseCases.getProfile",
+        "AuthUseCases.getCurrentUser"
       ],
-      "analysis_progress": "正式仕様・Web/Native UI・顧客認可・Seedを照合済み。Web/Native component回帰テストを追加し、CI/実機実行結果は別途確認する",
+      "analysis_progress": "正式仕様・Web/Native UI・顧客認可・Seedを照合済み。Web/Native component回帰テストを追加し、CI/実機実行結果は別途確認する | 2026-11-04: Web AppRuntimeProviderおよびNative ShellからAuthUseCases.getCurrentUserを使う認証状態の補助参照を確認。本人プロフィールDTOを直接取得する主処理はAccountUseCases.getProfile。実Run・認証拒否の受入は変更なし。",
       "implementation_evidence": {
         "path": "src/presentation/pages/profile-page.tsx",
         "line": 20,
@@ -7159,6 +7160,24 @@
           "start_line": 291,
           "end_line": 375,
           "reason": "Nativeの本人DTOとプロフィール欄"
+        },
+        {
+          "path": "src/application/use-cases/auth-use-cases.ts",
+          "start_line": 203,
+          "end_line": 206,
+          "reason": "現在UserのSession依存読取り。プロフィールDTO本体はAccountUseCases.getProfile"
+        },
+        {
+          "path": "src/presentation/providers/app-runtime-provider.tsx",
+          "start_line": 29,
+          "end_line": 36,
+          "reason": "Web初期化時の認証状態更新とgetCurrentUser呼出し"
+        },
+        {
+          "path": "src/presentation/native/native-shell.tsx",
+          "start_line": 27,
+          "end_line": 46,
+          "reason": "Native Shellの現在ユーザー取得、世代チェック、例外時の非表示"
         }
       ]
     },
