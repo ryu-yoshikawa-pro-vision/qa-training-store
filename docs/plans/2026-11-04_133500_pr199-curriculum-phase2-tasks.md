@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 85% (28/33)**。現時点で未完了5件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テスト3件と、公開参考specの実行不能時の再開条件/未取得証拠の記録1件を完了した。後者は実Chromium成功ではない。 追加でM06-01固定3 Caseの仕様・参考spec・未完成spec・TODO削除の弱い例を契約テストに固定した。 M06-01の新規004/005の独立Case・数量0不可・initial/repeatの静的整合も専用テストで確認した。 M06-02のReset/Context独立性を既存Reset実装と隔離mock Page契約テストで確認し、実ブラウザ実受入は#199へ維持。 M06-03は数量Assertionを削除した変異例を技術契約で拒否し、参考specの必要な数量Assertionは残した。 M06-05はrunnerの結果区分と本人提出欄の意味のずれを修正し、旧Run/別spec/初回・再実行の検証条件を既存契約に照合した。 M07-02/04は診断A・合成B/Cと修正対象のTODO before・業務Assertion afterを分離して専用契約テストへ追加した。 M07通常OpenCodeは本人先行の段階ヒント・失敗後復習・秘密情報除去を教材と契約テストに固定した。 #218の固定配布manifest・Shop生成・load/check・Secret保護を現行教材と静的照合した。 #217ではJSON reporterの相対パス、M05 P05、M07参考3件目が未修正であることを固定HEAD/引継ぎコメントと照合した。本人実Runは#199最後に実施する。
+- **Progress: 88% (29/33)**。未完了4件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -65,7 +65,8 @@
 - [x] M04→M05→M06→M07→M08の状態JSONで入力/出力のID・path・revision・contractを照合。`ai-assisted-qa-phase2-handoff.test.mjs`を追加。公開fallbackを本人の先行修了証拠にしない。
 - [x] 固定HEADで教材変更・テスト/CI・未実行範囲・残リスクを[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ記録。
 - [ ] 今回の専用契約テスト（M05直接実行・型検査、M07保全、Phase間引継ぎ）と既存M05〜M07の検証を最新HEADのCIで確認。失敗を修正し、`training-web-baseline`と**新課程専用ConfigのChromium実行を同じ結果として扱わない**。
-- [ ] M05〜M07の対象教材・公開参考spec・専用Config・学習用Resetと既存契約の整合を最後に差分レビュー。不要な抽象化やSUT変更を行わず、未解決の仕様差を受入レポートへ残す。
+- [x] M05〜M07の対象教材・公開参考spec・専用Config・学習用Resetと既存契約の整合を最後に差分レビュー。不要な抽象化やSUT変更を行わず、未解決の仕様差を受入レポートへ残す。
+  - #215差分25ファイルを確認し、変更がM05〜M07教材・専用契約テスト・報告/Planに限定されることを確認。既存Config/Reset・参考spec・正式BR/ACを読み取りで照合し、#217共有実行器/M07参照と#218最終配布の未解決条件を受入レポートへ記録。
 - [x] #217の共通実行器/正式評価が所有する問題（JSON reporterの`rootDir`相対パス、M05 P05の`course:run`許可、M07保守後参考spec）について、引継ぎ済みコメントと最終的な修正/未修正を照合する。**#215で共有実装を書き換えない**。
   - #217 HEAD/Blobと引継ぎコメント4件を再照合。rootDir相対パス、P05 direct-only、M07の`page.reload()`3件目、M06 TODO削除の偽PASSリスクはいずれも正式実装修正待ちと明記。共有実装は#215で変更しない。
 - [x] #218の固定配布manifest・Shop・`course:load/check`・出力先・Secret分離について、#215の教材と必要な技術条件を突き合わせる。配布実装の欠陥は再現条件を#218に渡し、**#215でmanifestを変更しない**。
