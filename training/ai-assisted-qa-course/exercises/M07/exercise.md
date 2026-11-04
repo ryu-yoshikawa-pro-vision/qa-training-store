@@ -72,7 +72,7 @@ pnpm course:run M07 maintenance.spec.ts --label after
 
 Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保管用ファイルは配布済みの`workspace/.gitignore`でGit管理対象外の`M07/`配下に置きます。**生成されるアーカイブは暗号化されない**ため、外部共有・公開先へのpushをせず、本人のみがアクセスできる領域で扱ってください。M08へ移る前に、本人が保管先を決め、**必要なファイルを個別に選び、機密情報を確認してから**手元に保存してください。GitHubのcommit/PRや正式AI評価の実行は、この保全作業の前提ではありません。
 
-1. `workspace/M05/`〜`workspace/M07/`にある本人の提出物とspecを確認します。Runの記録は各モジュールの`evidence/runs/<実際のrun_id>/`内にあり、`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`、必要に応じてTrace・画像等のattachmentを選びます。修正前後の**別Run**と`source_sha`・`spec_sha256`を取り違えないよう、まず`phase2-handoff.md`へ実際の識別子を記録します。
+1. `workspace/M05/`〜`workspace/M07/`にある本人の提出物とspecを確認します。`course:run`の証拠は各モジュールの`evidence/runs/<実際のrun_id>/`内の`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`、必要なTrace・画像等です。M05 P05の**直接Playwright実行**は別経路で、`workspace/M05/evidence/p05-direct-<実際の識別子>/`に`console.log`と`playwright-result.json`等が保存されます。こちらには`course:run`のreceiptとRun IDがないため、実際の出力ディレクトリ・コマンド・終了コード・spec SHA-256を区別して記録します。修正前後の**別Run**と`source_sha`・`spec_sha256`を取り違えないよう、まず`phase2-handoff.md`へ実際の識別子を記録します。
 2. Run内のJSON、Trace、画像、標準出力にはURL、認証状態、個人情報等が含まれる可能性があります。内容を確認できないものは外部へ持ち出さず、**未保全と理由**を記録します。`.env*`、トークン、ブラウザの認証プロファイル、`workspace/.course-assessments/`、非公開採点資料、無関係な生成物を含めません。
 3. Codespacesのターミナルで、リポジトリルートから次のように、本人の成果物**だけ**を一覧にします。ファイルが未作成なら原因を確認し、架空の出力や空のファイルを作って完了扱いにしません。
 
@@ -81,6 +81,8 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
    cat > workspace/M07/exports/phase2-files.txt <<'EOF'
    workspace/M05/submission.md
    workspace/M05/product-link.spec.ts
+   workspace/M05/p03-type-error.ts
+   workspace/M05/p05-cart-locator.spec.ts
    workspace/M06/submission.md
    workspace/M06/cart-cases.spec.ts
    workspace/M06/new-case.spec.ts
@@ -91,7 +93,7 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
    EOF
    ```
 
-4. 実際に採用したRunについて、`workspace/Mxx/evidence/runs/<run_id>/run-evidence.json`・`spec-snapshot.ts`・`playwright-result.json`と、必要なTrace・画像の**実在する相対パス**を`phase2-files.txt`の末尾へ一行ずつ追記します。Runの出力ディレクトリを丸ごと指定せず、対象と内容を確認したファイルだけ追加します。
+4. 実際に採用した`course:run`について、`workspace/Mxx/evidence/runs/<run_id>/run-evidence.json`・`spec-snapshot.ts`・`playwright-result.json`と、必要なTrace・画像の**実在する相対パス**を`phase2-files.txt`の末尾へ一行ずつ追記します。M05 P05を直接実行した場合は、`workspace/M05/evidence/p05-direct-<実際の識別子>/playwright-result.json`、同じ場所の`console.log`と必要なattachmentを、内容を確認して別途追記します。P01〜P04の学習用コードなど、本人が実際に作ったほかの提出対象ファイルも個別に追記します。Runの出力ディレクトリを丸ごと指定せず、対象と内容を確認したファイルだけ追加します。**直接実行のJSONを`course:run`のreceiptとして扱ってはいけません。**
 5. 下記で対象パス・通常ファイルであることを確認し、アーカイブを作成してチェックサムを検証します。エラーになったら途中のアーカイブを成功証拠として使いません。
 
    ```bash
