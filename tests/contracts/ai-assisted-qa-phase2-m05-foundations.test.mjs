@@ -62,7 +62,7 @@ describe("M05-01：教材コードの動作とspec変更の境界", () => {
         ],
       },
     ];
-    for (const { heading, expected } of cases) {{
+    for (const { heading, expected } of cases) {
       const script = exampleAfter(lesson, heading, "js");
       const result = runNode(script);
       expect(result.status, heading + "\n" + result.stderr).toBe(0);
