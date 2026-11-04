@@ -1879,9 +1879,7 @@ describe("AI-assisted QA distribution contract", () => {
     });
     const statePath = "course/states/M00/start.json";
     const state = JSON.parse(fs.readFileSync(path.join(fixture.target, statePath), "utf8"));
-    const forged = Buffer.from(
-      JSON.stringify({ ...state, revision: "ai-assisted-qa-course-v2" }),
-    );
+    const forged = Buffer.from(JSON.stringify({ ...state, revision: "ai-assisted-qa-course-v2" }));
     writeFixtureFile(fixture.target, statePath, forged);
     const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
