@@ -45,4 +45,15 @@
 | P05 | Cart数量/削除の一意なLocator・Assertion案 | 未記入 | 未記入 | 未確認 |
 | P06 | AIの弱いAssertion/固定待ち案の棄却 | 未記入 | 未記入 | 未確認 |
 
+### P05の専用Configによる直接実行記録
+
+- 本人作成specのパスとSHA-256（`p05-cart-locator.spec.ts`）:
+- 実行コマンド、`PLAYWRIGHT_TEST_ROOT`、8082、`AI_QA_OUTPUT_ROOT`:
+- 終了コード、実行時刻、標準出力/エラー（`console.log`）:
+- 出力ディレクトリと`playwright-result.json`のtest名・件数・結果:
+- 商品追加前のResetと2明細の観測、全体で2件・商品単位で1件のLocator判定:
+- 削除ボタンを押していないことと、数量の業務Assertion:
+- 直接実行（正式な`course:run` receiptではない）と、その制限:
+- 未実行・未確認事項:
+
 必要な証拠は関連する既存の必須提出物にも反映し、同じ内容を二重に作らないでください。学習用の架空データ・合成ログ・AI自己申告と、実行したspec/Runを区別してください。
