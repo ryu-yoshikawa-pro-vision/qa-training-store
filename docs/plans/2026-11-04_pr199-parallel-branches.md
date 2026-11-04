@@ -39,3 +39,19 @@
 ## 定期実行との関係
 
 既存の毎時00/15/30/45分の4件は、現在PR #199本体の**同じ共通逐次作業**を指している。ブランチ作成だけでは実行先は変更されず、並行タスクも自動開始されない。これらを分担ブランチに割り当てる場合は、対象branch・所有範囲・引継ぎ方法を明示して別途設定を変更する。未変更のまま運用する場合は、#199本体での並行更新と分析台帳/教材の競合が起き得るため、各作業開始時にHEAD・対象Blobを再確認する。
+
+## 作業ブランチの個別タスクリスト
+
+各ブランチの開始時にrootの`AGENTS.md`を読み、該当ブランチ専用のタスクリストを参照する。各リストは**その作業ブランチにのみ存在し、#199統合先からのリンク先にはまだ存在しない場合がある**。差分の責務・完了条件はそのリストと本Planの両方を確認する。
+
+| ブランチ | タスクリスト |
+| --- | --- |
+| `work/pr199-analysis-coverage` | `docs/plans/2026-11-04_133500_pr199-analysis-coverage-tasks.md` |
+| `work/pr199-curriculum-phase1` | `docs/plans/2026-11-04_133500_pr199-curriculum-phase1-tasks.md` |
+| `work/pr199-curriculum-phase2` | `docs/plans/2026-11-04_133500_pr199-curriculum-phase2-tasks.md` |
+| `work/pr199-curriculum-phase3` | `docs/plans/2026-11-04_133500_pr199-curriculum-phase3-tasks.md` |
+| `work/pr199-formal-assessment` | `docs/plans/2026-11-04_133500_pr199-formal-assessment-tasks.md` |
+| `work/pr199-distribution-security` | `docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md` |
+| `work/pr199-sut-acceptance` | `docs/plans/2026-11-04_133500_pr199-sut-acceptance-tasks.md` |
+
+個別PRは#199をbaseとしたDraftで作成する。個別PRの作成時点は着手準備完了であり、分析・教材受入やCIの完了を意味しない。旧定期タスクはユーザーが停止する予定であり、本Plan・ブランチの作成だけで停止したと判断しない。
