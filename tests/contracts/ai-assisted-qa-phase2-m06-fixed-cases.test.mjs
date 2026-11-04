@@ -84,6 +84,25 @@ describe("M06-01：固定3 Caseの仕様・未完成spec・参考実装の責務
     }
   });
 
+  it("通知/クリックは成功してもカート数量のAssertionを削ればCaseの契約違反になる", () => {
+    for (const [id, expectedQuantity] of [
+      ["CASE-CART-001", "1"],
+      ["CASE-CART-002", "1"],
+      ["CASE-CART-003", "3"],
+    ]) {
+      const implemented = caseSection(reference, id);
+      const assertion = `await expect(page.getByLabel("数量")).toHaveValue("${expectedQuantity}");`;
+      expect(implemented).toContain(assertion);
+      const weakened = implemented.replace(assertion, "");
+      expect(weakened).not.toContain(assertion);
+      const needsQuantity = requiredResults[id].find((value) => value.includes("toHaveValue"));
+      expect(implemented).toContain(needsQuantity);
+      expect(weakened).not.toContain(needsQuantity);
+      // A successful toast alone does not prove the cart retained the required quantity.
+      expect(weakened).toContain('getByRole("status")');
+    }
+  });
+
   it("TODOエラーを消しただけのspecは業務Assertionの契約を満たさない", () => {
     const withoutTodoErrors = starter.replace(/^\s*throw new Error\("TODO:[^\n]+\);?$/gm, "");
     expect(withoutTodoErrors).not.toContain("throw new Error");
