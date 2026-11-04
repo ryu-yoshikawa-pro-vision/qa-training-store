@@ -39,7 +39,7 @@
 - [ ] M07保守前の2件以上・保守後の独立3件以上を別Runで実証。学習者固有の変更と公開参照spec・完成状態の用途を分ける
 - [ ] 8082配布Shop Serve/Reset、report/Trace/fixtureの独立性・新旧テスト混入を検証。配布元ファイル/manifestの不備は配布ブランチへ証拠を引継ぐ
 - [x] 全15目標の教本・P01〜P06・提出欄・start/end・評価基準・復習先を個別照合。M07正式AI評価は評価ブランチへ引継ぎ、本人Private 2コアCodespaces実行は決定済みの後続時期に回す
-- [ ] 対象テスト、Playwrightの実Run、CI、証拠/残リスクを固定HEADで報告。実行環境がない項目は未実行として残す
+- [x] 対象テスト、Playwrightの実Run、CI、証拠/残リスクを固定HEADで報告。実行環境がない項目は未実行として残す
 
 ## クイズ・理解事項・自習・Phase間引継ぎ（補完）
 
@@ -106,3 +106,11 @@
 - M05専用Configの8082/出力先と既存のCI `training-web-baseline`のConfigを照合し、両者の実行対象が異なることを確認。M05公開参考specと正式採点の本人証拠要件を区別。M05-01/02/05および横断の実Chromium項目は引き続き未チェック。
 - M04 end→M05 startの2入力はID/path/revision/contractが一致。M07 endは4出力、M08 startはうち3入力を参照しており、保守specはM07のhandoffテンプレートで別記録。M08側の必要出力全件を4件と断定せず、実ファイルがない状態で本人成果物の引継ぎ完了を主張しない。
 - **進捗：28% (7/25)**。既存チェック7件は維持。今回のCI回帰修正は25件の独立した受入項目ではないため、見かけの進捗を増やさない。
+
+## 2026-11-04 M05〜M07の進行と報告項目
+
+- M05 P05直接Playwright実行のJSON確認を強化。対象specのtest 0件、skip、期待失敗、別specを成功と認めない。隔離stub用の回帰テストに負例を追加した。本人のP05実行は未実施。
+- M06 004/005のinitial/repeatは、同一Run receipt・JSON・spec snapshot内の両Caseのtest名と業務Assertionで照合するよう教材・提出欄を修正。実Runは未取得。
+- M07 3件目は数量2の再読み込みではなく別ページ遷移とCartへの再入場が必須。Page Object/fixtureのsource revisionも記録するよう修正。正式参考specとの差は[PR #217へ引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6632850727)済み。
+- **チェック追加は固定HEADでのテスト・CI・未実行/残リスクの報告項目1件のみ**。[Phase 2受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に対象、Blob SHA、CIの確認結果、実Run未取得、再開条件を明記。前HEAD `a538b5d75a756f7b2ae2c2d431facf3df63ae424` の[Web CI #41842768500](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41842768500)は成功。今回の変更後HEADのCIは未確認／成功と断定しない。
+- **Progress: 32% (8/25)**。残り17件。実Run必須項目は未チェックのまま。
