@@ -102,6 +102,20 @@ P05で本人が作成する`workspace/M05/p05-cart-locator.spec.ts`は、初期�
 
 P05では本人のspecが存在することを確認し、以下のとおり**新課程専用Config**でそのspecだけを直接実行します。まず`pnpm course:load M05`で教材をロードし、実Shopの画面で実際のRole/Name/Labelと削除ボタン数を確認してから自分でテストを書きます。完成見本を丸写しにして学習達成としません。
 
+`workspace/M05/p05-cart-locator.spec.ts`は本人が新規作成します。共通Resetは`workspace/M05`からの相対パスで読み込みます。以下は未完成の入口だけで、正解LocatorやAssertionは含みません。**TODOエラーを削除しただけでは実技達成になりません。** 商品の追加と2明細の業務Assertionを自分で実装します。
+
+```ts
+import { test } from "@playwright/test";
+import { resetScenario } from "../../training/playwright/support/reset-scenario";
+
+test("M05 P05: 2明細の数量と削除操作対象を識別する", async ({ page }) => {
+  await resetScenario(page, "default");
+  // TODO: 公開商品2件をCartへ追加し、数量と削除操作対象を明細ごとに確認する
+  throw new Error("TODO: P05のLocatorと業務Assertionが未実装です");
+});
+```
+
+
 ```bash
 mkdir -p workspace/M05/evidence
 p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)"
