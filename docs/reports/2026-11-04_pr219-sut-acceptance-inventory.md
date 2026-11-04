@@ -250,3 +250,9 @@
 - `product-mug`の唯一のVariantをテストDB内でinactiveにすると、`DexieAdminProductQueryRepository.search`は`Math.min(...[])`/`Math.max(...[])`で`Infinity`/`-Infinity`を返す。この異常値も**不具合再現（製品適合PASSではない）**として直接assertする。
 - targetIds空配列の`bulkChangeStatus`が`VALIDATION`拒否し、Products/Variants表を変更しないことを検証する。Webの表示外選択→空bulk未処理Promise経路は別のブラウザCaseで判定する。
 - 現時点で新規4件の実行は未確認。正式UIが要求するSKU/カテゴリ/ブランドフィルターの採否、many-productsのpage/sort・選択残留・一括部分成功、実画像/a11y/Traceは引き続き未受入。製品SUTへの変更は行わない。
+
+## 進行中Checkoutを持つ顧客のCart拒否後不変（10番の補完）
+
+- `tests/integration/pr219-cart-boundaries.test.ts`に`checkout-resume`固定Seed（`session-checkout`、Cart/Checkoutのversion一致、`checkout-active` status=active）を隔離DBへ読込み、既存Cartの数量6更新を拒否した後の`carts/cart_items/checkout_sessions`全レコードが**操作前と完全一致**することを検証する。
+- ClockはCheckoutが期限内の`2026-07-01T03:00:00Z`。以前のGuest CartではCheckout表にactive recordがないため、拒否後Checkout不変が空の比較になる可能性があった。このCaseはactive Checkoutを明示assertし、その欠落を補う。
+- 実CIで新Caseが成功し、他のstock0/1/5/6・数量上限縮小・stale version・Rank/Saleと一致したら10番の完了可否を再判定する。新CI結果未確認のため現時点では未チェック。

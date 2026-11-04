@@ -163,6 +163,33 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
     expect(await persistedCartState()).toEqual(beforeLimitRejection);
   });
 
+  it("preserves an active customer Checkout on a rejected Cart quantity mutation", async () => {
+    await loadSeedDataset(database, createScenarioDataset("checkout-resume"), "checkout-resume");
+    session = new SessionStore("session-checkout");
+    const useCases = cart(SALE_TIME);
+    const existing = await useCases.getCart();
+    expect(existing.items.length).toBeGreaterThan(0);
+    const before = await persistedCartState();
+    expect(before.checkouts).toContainEqual(
+      expect.objectContaining({
+        id: "checkout-active",
+        status: "active",
+        cartVersion: existing.cartVersion,
+      }),
+    );
+
+    await expect(
+      useCases.updateQuantity({
+        itemId: existing.items[0]!.itemId,
+        quantity: 6,
+        cartExpectedVersion: existing.cartVersion,
+        itemExpectedVersion: existing.items[0]!.itemVersion,
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+
+    expect(await persistedCartState()).toEqual(before);
+  });
+
   it("rejects stale cart and item versions without changing DB", async () => {
     const useCases = cart();
     const added = await useCases.addItem({ variantId: "variant-mug-one", addQuantity: 1 });
