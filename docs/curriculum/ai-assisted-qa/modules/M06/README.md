@@ -399,6 +399,16 @@ pnpm course:run M06 new-case.spec.ts --label repeat
 
 ## 6. 実行証拠（Evidence）を読む
 
+この節では、[§1のCase→spec対応](#1-caseのどの部分をコードにするか)を実行証拠まで追跡します。**M06-Q03の確認点**は、Caseの前提・操作・期待結果・仕様根拠が、spec内の`resetScenario`・操作Locator/Action・業務Assertionに対応していることを、対象RunのreceiptとJSON reportから確認できるかです。
+
+| Caseの要素 | specで確認する箇所 | Runで残す根拠 |
+| --- | --- | --- |
+| 前提（Role/State/Data） | Resetのscenario、Browser Context | 設定値・Run ID・前提の実観測 |
+| 操作（Journey） | 対象ページ、Locator、Action | 対象Caseの実行結果、必要なTrace |
+| 期待結果（BR/AC） | 数量や明細を直接確認するAssertion | JSON reportの対象test・期待/観測、実行時spec SHA |
+
+ファイル名やPASSだけではこの対応を確認できません。Reportに対象Caseが含まれない、仕様を保証しないAssertionしかない、または修正前のRunを流用している場合は受入不可です。
+
 ### 6.1 実行証拠とは何か？
 
 `course:run` コマンドを使ってテストを実行すると、システムは実行ごとに一意な「Run ID（実行識別子）」を発行し、そのときのテストコードの内容や実行結果レポートを証拠（Evidence）として記録します。
