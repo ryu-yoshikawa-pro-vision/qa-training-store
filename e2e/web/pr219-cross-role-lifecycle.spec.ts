@@ -306,9 +306,7 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     await expect(quantity).toHaveValue("3");
 
     await page.goto("/checkout/confirm");
-    await expect(
-      page.getByRole("heading", { name: "購入手続きを続けられません" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "購入手続きを続けられません" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "注文内容を確認" })).toHaveCount(0);
     const recovery = page.getByRole("link", { name: "戻って確認する" });
     await expect(recovery).toHaveAttribute("href", "/checkout/payment");

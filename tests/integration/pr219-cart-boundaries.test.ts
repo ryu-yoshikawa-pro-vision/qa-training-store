@@ -233,7 +233,9 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
     });
     expect(accepted.blockingIssues).not.toContain("PRICE_CHANGED");
     expect(accepted.cartVersion).toBe(stale.cartVersion + 1);
-    expect(accepted.items.find((item) => item.variantId === "variant-running-shoes-one")).toMatchObject({
+    expect(
+      accepted.items.find((item) => item.variantId === "variant-running-shoes-one"),
+    ).toMatchObject({
       unitEffectivePriceAtAdd: 8000,
     });
     expect(await database.checkout_sessions.toArray()).toEqual(before);
@@ -262,24 +264,5 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
       unitEffectivePriceAtAdd: 6400,
     });
     expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
-  });
-  it("temporarily outputs canonical formatting for PR219 acceptance", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const paths = [
-      "e2e/web/pr219-cross-role-lifecycle.spec.ts",
-      "tests/integration/pr219-cart-boundaries.test.ts",
-    ];
-    const formatted = [];
-    for (const path of paths) {
-      formatted.push([
-        path,
-        await prettier.format(await readFile(path, "utf8"), {
-          ...(await prettier.resolveConfig(path)),
-          filepath: path,
-        }),
-      ]);
-    }
-    console.log("PR219_CANONICAL_BUNDLE_JSON=" + JSON.stringify(formatted));
   });
 });
