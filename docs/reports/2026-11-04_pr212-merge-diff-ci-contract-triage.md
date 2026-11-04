@@ -1,5 +1,17 @@
 # PR #212 / PR #199 差分とCI契約の突合（2026-11-04）
 
+## 2026-11-04 独立監査：要件・原文・Use Case/状態ID参照（固定HEAD `7723d06c9f4ffd28118e7cc0fa5817cfaa6f0534`）
+
+- 台帳の`requirements` **79件**（15出典ファイル）は`source_path/source_line/source_text`の**79/79件で指定行と完全一致**。対象は原文位置であり、要件解釈・実装・実行の合格ではない。
+- 台帳の`behaviors` **208件**（21出典ファイル）は`source_path/source_line`が実在し、`source_text`が指定行に**208/208件含まれる**。箇条書き記号や表の列を伴うため、原文行全体と文字列が完全一致することまでは要求しない。
+- 208 Behavior内の`requirement_refs` **803/803件**は79要件の既存IDを指す。重複なしの要件IDは79/79、Behavior IDは208/208。形式的な参照先不明は0件。
+- `related_use_cases` **308/308件**と`use_case_evidence[].id` **296/296件**は76公開Use Caseの既存IDを指す。`use_case_methods[].behavior_id` 76/76件も既存Behaviorを指し、`related_use_cases`から未参照の公開Use Caseは0件。これはID存在検証であり、直接呼出し、path/行/署名、実行結果の検査を置き換えない。
+- `state_refs` **21/21件**は台帳上のStateを指し、20の非default状態がすべて少なくとも1操作から参照される（20/20）。`requirement_refs`・`state_refs`・`related_use_cases`・`use_case_evidence[].id`・`use_case_methods[].behavior_id`の未解決IDは0件。
+- **79要件中29件は`requirement_refs`と`rule_refs`の両方から未参照**：Native固有BR/AC 4件、Role/Rank/Status 7件、遷移/状態 10件、UI 2件、サポート範囲 6件。これは**直接参照の欠落の事実**であり、横断契約に専用テストがある場合まで未検証と断定しない。各要件について担当テストとRole×Platform×State×Error×Version×Dataの実行証拠を対応させる最終監査は残る。
+- この監査で分析ステータス、製品適合、Web/Native実行、権限・永続化の挙動は変更・判定していない。#199の固定status契約とValidator、#211 Assessment、#210製品差分、同一統合HEAD必須CIは従来どおり別作業。
+
+
+
 ## 2026-11-04 再計算：131 Behavior差への更新（#199固定HEAD `493a403b...`）
 
 - 現行#212台帳（`1f60df35`時点）と#199 `493a403b6449ae908117a23b4d631132a7d6d098`の**同一208 ID**をフィールド単位で再比較した結果、**131件の相違（分析Status差58件、その他のみ73件）**。以前の124件（Status差58件、その他66件）は54参照行補正・重複整理・補助認証紐付け**前**の値であり、最新値として使わない。
