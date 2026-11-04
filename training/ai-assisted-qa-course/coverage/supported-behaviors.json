@@ -34812,7 +34812,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -34909,7 +34909,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-sqlite-transactions.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35005,7 +35005,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35106,7 +35106,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-ci-workflow.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35199,7 +35199,7 @@
         ],
         "cross_cutting_contract": "tests/component/route-guard.test.tsx",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35303,7 +35303,7 @@
         ],
         "cross_cutting_contract": "tests/integration/auth-account.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35402,7 +35402,7 @@
         ],
         "cross_cutting_contract": "tests/integration/auth-account.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35508,7 +35508,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35615,7 +35615,7 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35722,7 +35722,7 @@
         ],
         "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35821,7 +35821,7 @@
         ],
         "cross_cutting_contract": "tests/integration/auth-account.test.ts",
         "assignment": "Behavior直接参照42件に横断契約を併用",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -35922,7 +35922,7 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36021,7 +36021,7 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-product-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36110,7 +36110,7 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36204,7 +36204,7 @@
         ],
         "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36300,7 +36300,7 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36389,7 +36389,7 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36483,7 +36483,7 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36588,7 +36588,7 @@
         ],
         "cross_cutting_contract": "tests/integration/cart-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36684,7 +36684,7 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36782,7 +36782,7 @@
         ],
         "cross_cutting_contract": "tests/integration/seeds.test.ts",
         "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36864,7 +36864,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-test-control-reset.test.mjs",
         "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -36957,7 +36957,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37046,7 +37046,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37127,7 +37127,7 @@
         ],
         "cross_cutting_contract": "e2e/web/mobile-boundary.spec.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37210,7 +37210,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-visual-contract.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37299,7 +37299,7 @@
         ],
         "cross_cutting_contract": "e2e/web/accessibility.spec.ts",
         "assignment": "Behavior直接参照9件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37400,7 +37400,7 @@
         ],
         "cross_cutting_contract": "tests/component/catalog-pages.test.tsx",
         "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37495,7 +37495,7 @@
         ],
         "cross_cutting_contract": "tests/integration/catalog-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37584,7 +37584,7 @@
         ],
         "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37686,7 +37686,7 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37797,7 +37797,7 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -37909,7 +37909,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-test-control-reset.test.mjs",
         "assignment": "Behavior直接参照4件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -38002,7 +38002,7 @@
         ],
         "cross_cutting_contract": "e2e/web/accessibility.spec.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -38100,7 +38100,7 @@
         ],
         "cross_cutting_contract": "e2e/web/mobile-boundary.spec.ts",
         "assignment": "Behavior直接参照9件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -38201,7 +38201,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-ci-workflow.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
@@ -38293,7 +38293,7 @@
         ],
         "cross_cutting_contract": "tests/contracts/architecture.test.ts",
         "assignment": "Behavior直接参照2件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ 動的受入は未受入。",
         "sut_case_trace": {
           "source_pr": 219,
           "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
