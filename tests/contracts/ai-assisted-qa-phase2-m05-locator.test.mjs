@@ -38,9 +38,7 @@ describe("M05-02：2明細のLocatorを実装と参照specで照合する", () =
     expect(reference).toContain(
       'await expect(mugLine.getByRole("combobox", { name: "数量" })).toHaveValue("1")',
     );
-    expect(reference).toContain(
-      'mugLine.getByRole("button", { name: "削除", exact: true })',
-    );
+    expect(reference).toContain('mugLine.getByRole("button", { name: "削除", exact: true })');
     expect(reference).toContain("await expect(mugRemove).toHaveCount(1)");
     expect(reference).toContain("await expect(mugRemove).toBeEnabled()");
     expect(reference).toContain('await expect(page.locator("article.cart-item")).toHaveCount(2)');
