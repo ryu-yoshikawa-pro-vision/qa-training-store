@@ -33541,13 +33541,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Productの許可/禁止状態遷移",
       "expected": "| Product | draft → published; published → unpublished/discontinued; unpublished → published/discontinued |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Productの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "販売終了の復活と未承認公開",
+      "test_condition": "採用Case：draft→published、published→unpublished/discontinued、unpublished→published/discontinuedの許可/拒否、discontinued終端とState Versionを検証。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:9 のTRANSITION-PRODUCT正式要件を、代表Behavior SCREEN-ADMIN-PRODUCT-DETAIL-A01-05、SCREEN-ADMIN-PRODUCT-DETAIL-A02-03・関連Use Case/Seedと既存tests/integration/admin-product-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：draft→published、published→unpublished/discontinued、unpublished→published/discontinuedの許可/拒否、discontinued終端とState Versionを検証。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "販売終了の復活と未承認公開を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 9
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/admin-product-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:9 の正式原文・tests/integration/admin-product-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "TRANSITION-ACCOUNT",
@@ -33562,13 +33593,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Accountの許可/禁止状態遷移",
       "expected": "| Account | active ↔ suspended |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Accountの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "accountStatusの無効遷移",
+      "test_condition": "採用Case：active↔suspendedのみ許可しwithdrawn/同値/本人/Role不正・旧Versionを拒否、Session無効化とDB全表不変を確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:10 のTRANSITION-ACCOUNT正式要件を、代表Behavior SCREEN-ADMIN-USER-DETAIL-A01-04、SCREEN-ADMIN-USER-DETAIL-A02-02・関連Use Case/Seedと既存tests/integration/review-user-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：active↔suspendedのみ許可しwithdrawn/同値/本人/Role不正・旧Versionを拒否、Session無効化とDB全表不変を確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "accountStatusの無効遷移を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 10
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-USER-DETAIL-A01-04",
+          "SCREEN-ADMIN-USER-DETAIL-A02-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:10 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "TRANSITION-CHECKOUT",
@@ -33583,13 +33645,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Checkoutの許可/禁止状態遷移",
       "expected": "| Checkout | active → converted/abandoned/expired |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Checkoutの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "期限切れや完了済みCheckoutの二重使用",
+      "test_condition": "採用Case：active→converted/abandoned/expired、24h期限/Cart版差/再開と変換済Sessionの再利用拒否を区別する。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:11 のTRANSITION-CHECKOUT正式要件を、代表Behavior SCREEN-CHECKOUT-ADDRESS-A02-01、SCREEN-CHECKOUT-PROCESSING-A01-01、SCREEN-CHECKOUT-ADDRESS-A02-03・関連Use Case/Seedと既存tests/integration/checkout-order-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：active→converted/abandoned/expired、24h期限/Cart版差/再開と変換済Sessionの再利用拒否を区別する。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "期限切れや完了済みCheckoutの二重使用を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-ADDRESS-A02-01",
+          "SCREEN-CHECKOUT-PROCESSING-A01-01",
+          "SCREEN-CHECKOUT-ADDRESS-A02-03"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 457
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-03",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:11 の正式原文・tests/integration/checkout-order-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "TRANSITION-ORDER",
@@ -33604,13 +33703,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Orderの許可/禁止状態遷移",
       "expected": "| Order | pending_payment → payment_failed; pending_payment → paid; payment_failed → pending_payment; paid → preparing; preparing → shipped; shipped → delivered |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Orderの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "決済状態と配送状態の飛び越し",
+      "test_condition": "採用Case：pending_payment→payment_failed/paid、payment_failed→pending_payment、paid→preparing→shipped→deliveredの各段階と逆転拒否をDBで照合。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:12 のTRANSITION-ORDER正式要件を、代表Behavior SCREEN-CHECKOUT-FAILED-A01-02、SCREEN-ADMIN-ORDER-DETAIL-A02-01・関連Use Case/Seedと既存tests/integration/admin-operations-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：pending_payment→payment_failed/paid、payment_failed→pending_payment、paid→preparing→shipped→deliveredの各段階と逆転拒否をDBで照合。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "決済状態と配送状態の飛び越しを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 12
+        },
+        "representative_behaviors": [
+          "SCREEN-CHECKOUT-FAILED-A01-02",
+          "SCREEN-ADMIN-ORDER-DETAIL-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-CHECKOUT-FAILED-A01-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 508
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:12 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "TRANSITION-SHIPMENT",
@@ -33625,13 +33755,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Shipmentの許可/禁止状態遷移",
       "expected": "| Shipment | pending → shipped → delivered |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Shipmentの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "注文と配送の一部だけが更新",
+      "test_condition": "採用Case：Shipment pending→shipped→delivered、Order対応状態・配送時刻・Historyの原子更新とVersion競合を確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:13 のTRANSITION-SHIPMENT正式要件を、代表Behavior SCREEN-ADMIN-ORDER-DETAIL-A02-01、SCREEN-ORDERS-DETAIL-A01-02・関連Use Case/Seedと既存tests/integration/admin-operations-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：Shipment pending→shipped→delivered、Order対応状態・配送時刻・Historyの原子更新とVersion競合を確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "注文と配送の一部だけが更新を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 13
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+          "SCREEN-ORDERS-DETAIL-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 458
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:13 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "TRANSITION-REVIEW",
@@ -33646,13 +33807,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Reviewの許可/禁止状態遷移",
       "expected": "| Review | published ↔ hidden; published/hidden → deleted |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Reviewの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "削除後再公開と非公開レビューの集計混入",
+      "test_condition": "採用Case：published↔hidden、published/hidden→deletedの許可/拒否、deleted終端・再投稿拒否・公開集計の再計算を比較。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:14 のTRANSITION-REVIEW正式要件を、代表Behavior SCREEN-ADMIN-REVIEWS-A02-01、SCREEN-ADMIN-REVIEWS-A02-02、UC-REVIEW-DELETE・関連Use Case/Seedと既存tests/integration/review-user-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：published↔hidden、published/hidden→deletedの許可/拒否、deleted終端・再投稿拒否・公開集計の再計算を比較。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "削除後再公開と非公開レビューの集計混入を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 14
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-REVIEWS-A02-01",
+          "SCREEN-ADMIN-REVIEWS-A02-02",
+          "UC-REVIEW-DELETE"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 252
+          },
+          {
+            "behavior_id": "UC-REVIEW-DELETE",
+            "path": "src/application/use-cases/review-user-use-cases.ts",
+            "line": 193
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:14 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "TRANSITION-CART",
@@ -33667,13 +33865,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Cartの許可/禁止状態遷移",
       "expected": "| Cart | active → consumed/abandoned |",
-      "risk": "不正な終端変更や状態飛越し",
-      "test_condition": "正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "test_responsibility": "Cartの許可/禁止状態遷移。正常の許可遷移と、逆方向・飛越し・終端状態からの変更拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "破棄/消費済みCartの再使用",
+      "test_condition": "採用Case：active→consumed/abandonedのみ許可、Guest Cart統合でabandoned/注文成功でconsumed、旧Cart再利用と二重確定を拒否。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:15 のTRANSITION-CART正式要件を、代表Behavior UC-CART-MERGE、SCREEN-STOREFRONT-CART-A02-03、SCREEN-CHECKOUT-PROCESSING-A02-01・関連Use Case/Seedと既存tests/integration/cart-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：active→consumed/abandonedのみ許可、Guest Cart統合でabandoned/注文成功でconsumed、旧Cart再利用と二重確定を拒否。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "破棄/消費済みCartの再使用を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 15
+        },
+        "representative_behaviors": [
+          "UC-CART-MERGE",
+          "SCREEN-STOREFRONT-CART-A02-03",
+          "SCREEN-CHECKOUT-PROCESSING-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "UC-CART-MERGE",
+            "path": "src/application/use-cases/auth-use-cases.ts",
+            "line": 52
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A02-03",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A02-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 457
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/cart-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:15 の正式原文・tests/integration/cart-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "STATE-TERMINAL",
@@ -33688,13 +33923,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "終端状態の不変性",
       "expected": "状態の飛び越しや逆戻り、終端状態からの変更は許可しません。`discontinued`、`delivered`、`deleted`、`converted`、`expired`、`abandoned` は終端状態です。",
-      "risk": "状態破損または不正な再試行",
-      "test_condition": "Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "test_responsibility": "終端状態の不変性。Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "終端状態の復活・履歴の破壊",
+      "test_condition": "採用Case：discontinued/delivered/deleted/converted/expired/abandonedの各終端状態で不正な逆遷移を直接Use Caseから試み、関連表のVersion/状態不変を確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:17 のSTATE-TERMINAL正式要件を、代表Behavior SCREEN-ADMIN-PRODUCT-DETAIL-A02-03、SCREEN-ORDERS-DETAIL-A01-02、UC-REVIEW-DELETE・関連Use Case/Seedと既存tests/integration/review-user-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：discontinued/delivered/deleted/converted/expired/abandonedの各終端状態で不正な逆遷移を直接Use Caseから試み、関連表のVersion/状態不変を確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "終端状態の復活・履歴の破壊を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 17
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+          "SCREEN-ORDERS-DETAIL-A01-02",
+          "UC-REVIEW-DELETE"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 415
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          },
+          {
+            "behavior_id": "UC-REVIEW-DELETE",
+            "path": "src/application/use-cases/review-user-use-cases.ts",
+            "line": 193
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:17 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "STATE-SEEDS",
@@ -33709,13 +33981,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "固定シナリオとSeed",
       "expected": "固定シナリオは `src/seeds/metadata.ts` の `SCENARIO_METADATA` および `src/seeds/scenarios.ts` における変換処理を正本とします。主なシナリオには、`default`、`empty-catalog`、`out-of-stock`、`low-stock`、`regular-member`、`cart-with-invalid-items`、`payment-declined`、`checkout-resume`、`reviewable-orders` があります。",
-      "risk": "状態破損または不正な再試行",
-      "test_condition": "Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "test_responsibility": "固定シナリオとSeed。Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "Scenario前提ずれによるテスト誤判定",
+      "test_condition": "採用Case：default/empty-catalog/many-products/checkout-resumeなどのScenario metadataとSeed変換、Clock・初期Route/Roleの整合を確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:21 のSTATE-SEEDS正式要件を、代表Behavior SCREEN-TEST-CONTROL-A01-01、SCREEN-STOREFRONT-PRODUCT-LIST-S-empty・関連Use Case/Seedと既存tests/integration/seeds.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：default/empty-catalog/many-products/checkout-resumeなどのScenario metadataとSeed変換、Clock・初期Route/Roleの整合を確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "Scenario前提ずれによるテスト誤判定を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 21
+        },
+        "representative_behaviors": [
+          "SCREEN-TEST-CONTROL-A01-01",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-TEST-CONTROL-A01-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 844
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/seeds.test.ts",
+        "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:21 の正式原文・tests/integration/seeds.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "STATE-RESET",
@@ -33730,13 +34033,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Reset対象と画面側の責務分離",
       "expected": "リセット処理では、データベース、セッション、ゲスト識別子、クロック、決済遅延を指定された状態へ戻します。リセット完了の通知表示および安全な画面遷移の制御はUIテストコントロールのみが担当し、テストAPIのリセット処理はリセット結果とメタデータを返却するのみにとどめます。",
-      "risk": "状態破損または不正な再試行",
-      "test_condition": "Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "test_responsibility": "Reset対象と画面側の責務分離。Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "Reset残存Sessionと部分初期化",
+      "test_condition": "採用Case：DB/Session/Guest ID/Clock/Payment Delayを指定SeedへResetし、UIの通知/安全遷移とTest APIの結果・metadataを分離、障害時全表不変。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:23 のSTATE-RESET正式要件を、代表Behavior SCREEN-TEST-CONTROL-A01-04、SCREEN-TEST-CONTROL-A01-02・関連Use Case/Seedと既存tests/contracts/ai-assisted-qa-test-control-reset.test.mjsに照合。直接Runは別受入。",
+      "case_policy": "採用：DB/Session/Guest ID/Clock/Payment Delayを指定SeedへResetし、UIの通知/安全遷移とTest APIの結果・metadataを分離、障害時全表不変。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "Reset残存Sessionと部分初期化を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 23
+        },
+        "representative_behaviors": [
+          "SCREEN-TEST-CONTROL-A01-04",
+          "SCREEN-TEST-CONTROL-A01-02"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-TEST-CONTROL-A01-04",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 844
+          },
+          {
+            "behavior_id": "SCREEN-TEST-CONTROL-A01-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 844
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/ai-assisted-qa-test-control-reset.test.mjs",
+        "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:23 の正式原文・tests/contracts/ai-assisted-qa-test-control-reset.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "STATE-BOUNDARY",
@@ -33751,13 +34085,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "読み込み・エラー・競合と価格等の再検証",
       "expected": "アプリケーションでは、読み込み中、データなし、エラー、競合、未検出の各状態を明確に区別します。価格、公開状態、会員ランク、在庫、カートのバージョンは、カート表示、チェックアウト開始、注文確認、注文作成の各境界で再検証します。決済処理中は、再試行およびキャンセルを許可しません。",
-      "risk": "状態破損または不正な再試行",
-      "test_condition": "Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "test_responsibility": "読み込み・エラー・競合と価格等の再検証。Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "異常状態の混同と旧価格の注文確定",
+      "test_condition": "採用Case：loading/empty/error/conflict/not-foundを区別、価格/Rank/Stock/Cart Versionの読取・開始・確認・確定境界で再検証しprocessing中の取消/再試行を拒否。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:27 のSTATE-BOUNDARY正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-S-empty、SCREEN-CHECKOUT-CONFIRM-S-stale-cart、SCREEN-BOUNDARY-NOT-FOUND-A01-01・関連Use Case/Seedと既存tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjsに照合。直接Runは別受入。",
+      "case_policy": "採用：loading/empty/error/conflict/not-foundを区別、価格/Rank/Stock/Cart Versionの読取・開始・確認・確定境界で再検証しprocessing中の取消/再試行を拒否。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "異常状態の混同と旧価格の注文確定を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 27
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+          "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+          "SCREEN-BOUNDARY-NOT-FOUND-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          },
+          {
+            "behavior_id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+            "path": "app/+not-found.tsx",
+            "line": 1
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:27 の正式原文・tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "STATE-NATIVE",
@@ -33772,13 +34143,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "ネイティブ環境のデータ永続化と本番境界",
       "expected": "ネイティブアプリ向けの顧客シナリオは、`NATIVE_CUSTOMER_SCENARIOS` に定義された範囲に限定します。ネイティブ環境はWeb環境とアプリケーション層の仕様・セマンティクスを共有しますが、ストレージおよびランタイムのアダプターにはSQLiteやNative KVを使用します。本番ビルドでは、テストコントロール、ハーネス、自動化ブリッジは利用できません。",
-      "risk": "状態破損または不正な再試行",
-      "test_condition": "Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "test_responsibility": "ネイティブ環境のデータ永続化と本番境界。Reset前後・ステータス別の前提を固定し、異常遷移を拒否",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "Native未サポート状態への誤誘導",
+      "test_condition": "採用Case：NATIVE_CUSTOMER_SCENARIOSにある顧客ScenarioだけをAndroidで検証、SQLite/Navigationと共有Use Caseの意味を確認しiOS build限定を明示。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/state-and-scenarios.md:31 のSTATE-NATIVE正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-A01-01、SCREEN-CHECKOUT-ADDRESS-A01-01・関連Use Case/Seedと既存tests/contracts/native-runtime-service-surface.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：NATIVE_CUSTOMER_SCENARIOSにある顧客ScenarioだけをAndroidで検証、SQLite/Navigationと共有Use Caseの意味を確認しiOS build限定を明示。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "Native未サポート状態への誤誘導を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/state-and-scenarios.md",
+          "line": 31
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+          "SCREEN-CHECKOUT-ADDRESS-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:31 の正式原文・tests/contracts/native-runtime-service-surface.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "UI-BREAKPOINT",
@@ -33793,13 +34195,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "レスポンシブ・管理画面の境界",
       "expected": "モバイルは767px以下、タブレットは768〜1023px、デスクトップは1024px以上を基本的なブレークポイントとします。ストアフロントおよびカスタマー画面では、390×844を標準モバイル解像度とし、320×700を追加の検証境界として扱います。管理画面は1024px未満では管理操作を提供せず、警告または安全な画面への入口を表示します。",
-      "risk": "操作不能、エラー誤解、情報露出",
-      "test_condition": "Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "test_responsibility": "レスポンシブ・管理画面の境界。Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "小画面で管理操作露出・購入導線が隠れる",
+      "test_condition": "採用Case：767/768/1023/1024px、390×844/320×700の表示/操作/フォーカス/管理警告を検証する。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/ui-ux-contract.md:5 のUI-BREAKPOINT正式要件を、代表Behavior SCREEN-ADMIN-DASHBOARD-A02-01、SCREEN-STOREFRONT-PRODUCT-LIST-A01-01・関連Use Case/Seedと既存e2e/web/mobile-boundary.spec.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：767/768/1023/1024px、390×844/320×700の表示/操作/フォーカス/管理警告を検証する。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "小画面で管理操作露出・購入導線が隠れるを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/ui-ux-contract.md",
+          "line": 5
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-DASHBOARD-A02-01",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-DASHBOARD-A02-01",
+            "path": "src/presentation/pages/admin-master-pages.tsx",
+            "line": 27
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "cross_cutting_contract": "e2e/web/mobile-boundary.spec.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:5 の正式原文・e2e/web/mobile-boundary.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "UI-DESIGN",
@@ -33814,13 +34247,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "タッチターゲット・視覚規約",
       "expected": "画面はオフホワイト、ダークネイビー、限定ゴールドを基調とし、8pxグリッド、44px以上のタッチターゲット、枠線を基調としたカードを使用します。カラー、タイポグラフィ、スペーシング、角丸は `src/presentation/design/tokens.ts` と `src/presentation/styles/global.css` を正本とし、仕様書側ではその意味や利用目的のみを定義します。",
-      "risk": "操作不能、エラー誤解、情報露出",
-      "test_condition": "Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "test_responsibility": "タッチターゲット・視覚規約。Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "Web/NativeのデザインToken差・操作領域不足",
+      "test_condition": "採用Case：shared tokenのOff-white/Navу/Gold、8pxグリッド、44px以上タップ領域と枠線カードをWeb/Android正本画像に対比する。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/ui-ux-contract.md:9 のUI-DESIGN正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-A01-01、SCREEN-ADMIN-DASHBOARD-A01-01・関連Use Case/Seedと既存tests/contracts/native-visual-contract.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：shared tokenのOff-white/Navу/Gold、8pxグリッド、44px以上タップ領域と枠線カードをWeb/Android正本画像に対比する。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "Web/NativeのデザインToken差・操作領域不足を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/ui-ux-contract.md",
+          "line": 9
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+          "SCREEN-ADMIN-DASHBOARD-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-DASHBOARD-A01-01",
+            "path": "src/presentation/pages/admin-master-pages.tsx",
+            "line": 27
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/native-visual-contract.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:9 の正式原文・tests/contracts/native-visual-contract.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "UI-A11Y",
@@ -33835,13 +34299,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "キーボード・ラベル・フォーカス",
       "expected": "主要なフローはキーボード操作のみで完了できます。検索はコンボボックス、評価はラジオグループ、エラーサマリーは見出しおよびリンク、確認操作はダイアログ、フィルターは操作可能なシートとして実装します。エラーを色情報のみで伝えず、ラベル、ロール、テキストを併用します。画面遷移後は、主要な見出しへフォーカスを移動させます。",
-      "risk": "操作不能、エラー誤解、情報露出",
-      "test_condition": "Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "test_responsibility": "キーボード・ラベル・フォーカス。Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "支援技術で操作不可・拒否理由が伝わらない",
+      "test_condition": "採用Case：keyboardのみの完走・Combobox/Radio/ConfirmDialog/FilterSheet・エラー見出しとlink・遷移後Focus・ARIA/色以外の説明をWeb/Androidで確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/ui-ux-contract.md:13 のUI-A11Y正式要件を、代表Behavior SCREEN-STOREFRONT-SEARCH-A01-02、SCREEN-ADMIN-USER-DETAIL-A01-02、SCREEN-BOUNDARY-FORBIDDEN-A01-01・関連Use Case/Seedと既存e2e/web/accessibility.spec.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：keyboardのみの完走・Combobox/Radio/ConfirmDialog/FilterSheet・エラー見出しとlink・遷移後Focus・ARIA/色以外の説明をWeb/Androidで確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "支援技術で操作不可・拒否理由が伝わらないを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/ui-ux-contract.md",
+          "line": 13
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-SEARCH-A01-02",
+          "SCREEN-ADMIN-USER-DETAIL-A01-02",
+          "SCREEN-BOUNDARY-FORBIDDEN-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-02",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-02",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 618
+          },
+          {
+            "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+            "path": "app/forbidden.tsx",
+            "line": 1
+          }
+        ],
+        "cross_cutting_contract": "e2e/web/accessibility.spec.ts",
+        "assignment": "Behavior直接参照9件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:13 の正式原文・e2e/web/accessibility.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "UI-ERROR",
@@ -33856,13 +34357,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Loading/Empty/Error/Conflict/Not Foundと回復",
       "expected": "ローディング、データなし、エラー、競合、未検出の各状態を、同一の表示へとひとまとめに集約・混同させません。バリエーション未選択、在庫切れ、価格変更、ログイン拒否、チェックアウトのバージョン不一致、決済失敗、権限拒否の各状態では、利用者が次に実行可能なアクションを明示します。内部の列挙型（Enum）、リポジトリのバージョン、アクターID、ゲートウェイキーなどの内部情報を、カスタマーUIへ露出させません。",
-      "risk": "操作不能、エラー誤解、情報露出",
-      "test_condition": "Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "test_responsibility": "Loading/Empty/Error/Conflict/Not Foundと回復。Desktop/mobile境界・キーボードのみ・エラー通知・回復先",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "ErrorをEmptyと誤認・復帰ループ",
+      "test_condition": "採用Case：Loading/Empty/Error/Conflict/NotFoundおよび価格変化/在庫0/権限拒否を区別して次操作/復帰Routeを検証する。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/ui-ux-contract.md:17 のUI-ERROR正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-S-empty、SCREEN-CHECKOUT-CONFIRM-S-stale-cart、SCREEN-BOUNDARY-NOT-FOUND-A01-01・関連Use Case/Seedと既存tests/component/catalog-pages.test.tsxに照合。直接Runは別受入。",
+      "case_policy": "採用：Loading/Empty/Error/Conflict/NotFoundおよび価格変化/在庫0/権限拒否を区別して次操作/復帰Routeを検証する。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "ErrorをEmptyと誤認・復帰ループを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/ui-ux-contract.md",
+          "line": 17
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+          "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+          "SCREEN-BOUNDARY-NOT-FOUND-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          },
+          {
+            "behavior_id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+            "path": "app/+not-found.tsx",
+            "line": 1
+          }
+        ],
+        "cross_cutting_contract": "tests/component/catalog-pages.test.tsx",
+        "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:17 の正式原文・tests/component/catalog-pages.test.tsxの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-SUPPORTED-1",
@@ -33877,13 +34415,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "サポート機能領域 1",
       "expected": "- 商品の探索・検索、ファセット絞り込み、価格、セール、在庫、バリエーション、レビュー要約",
-      "risk": "製品範囲の分析漏れ",
-      "test_condition": "各対象領域を関連BR/AC・画面・実行環境に照合",
-      "test_responsibility": "サポート機能領域 1。各対象領域を関連BR/AC・画面・実行環境に照合",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "探索・価格・レビュー要件の分類漏れ",
+      "test_condition": "採用Case：探索/検索/Facet/価格/Sale/Stock/Variation/ReviewSummaryがWeb/Androidの正式機能にあることを確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:19 のSCOPE-SUPPORTED-1正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-A01-03、SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02、SCREEN-STOREFRONT-SEARCH-A01-01・関連Use Case/Seedと既存tests/integration/catalog-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：探索/検索/Facet/価格/Sale/Stock/Variation/ReviewSummaryがWeb/Androidの正式機能にあることを確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "探索・価格・レビュー要件の分類漏れを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 19
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+          "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+          "SCREEN-STOREFRONT-SEARCH-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+            "path": "src/presentation/pages/product-detail-page.tsx",
+            "line": 23
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/catalog-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:19 の正式原文・tests/integration/catalog-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-SUPPORTED-2",
@@ -33898,13 +34473,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "サポート機能領域 2",
       "expected": "- ゲスト／カスタマーカート、ログイン時のカート統合、チェックアウト、ローカルモック決済",
-      "risk": "製品範囲の分析漏れ",
-      "test_condition": "各対象領域を関連BR/AC・画面・実行環境に照合",
-      "test_responsibility": "サポート機能領域 2。各対象領域を関連BR/AC・画面・実行環境に照合",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "Guest Checkoutを誤って必須受入扱い",
+      "test_condition": "採用Case：Guest/Customer Cart統合→Customer Checkout→ローカルモックPaymentの導線を確認しGuest Checkoutを対象外とする。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:20 のSCOPE-SUPPORTED-2正式要件を、代表Behavior SCREEN-STOREFRONT-CART-A01-01、UC-CART-MERGE、SCREEN-CHECKOUT-CONFIRM-A01-01・関連Use Case/Seedと既存tests/integration/checkout-order-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：Guest/Customer Cart統合→Customer Checkout→ローカルモックPaymentの導線を確認しGuest Checkoutを対象外とする。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "Guest Checkoutを誤って必須受入扱いを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 20
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-CART-A01-01",
+          "UC-CART-MERGE",
+          "SCREEN-CHECKOUT-CONFIRM-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+            "path": "src/presentation/pages/cart-page.tsx",
+            "line": 22
+          },
+          {
+            "behavior_id": "UC-CART-MERGE",
+            "path": "src/application/use-cases/auth-use-cases.ts",
+            "line": 52
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:20 の正式原文・tests/integration/checkout-order-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-SUPPORTED-3",
@@ -33919,13 +34531,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "サポート機能領域 3",
       "expected": "- 注文スナップショット、決済結果、配送状況、カスタマーレビュー",
-      "risk": "製品範囲の分析漏れ",
-      "test_condition": "各対象領域を関連BR/AC・画面・実行環境に照合",
-      "test_responsibility": "サポート機能領域 3。各対象領域を関連BR/AC・画面・実行環境に照合",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "過去注文変更・Review所有権不備",
+      "test_condition": "採用Case：Order Snapshot/Payment結果/Shipment Status/顧客Reviewの機能と本人所有権を確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:21 のSCOPE-SUPPORTED-3正式要件を、代表Behavior SCREEN-ORDERS-DETAIL-A01-01、SCREEN-ORDERS-DETAIL-A01-02、SCREEN-REVIEWS-EDITOR-A01-01・関連Use Case/Seedと既存tests/integration/review-user-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：Order Snapshot/Payment結果/Shipment Status/顧客Reviewの機能と本人所有権を確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "過去注文変更・Review所有権不備を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 21
+        },
+        "representative_behaviors": [
+          "SCREEN-ORDERS-DETAIL-A01-01",
+          "SCREEN-ORDERS-DETAIL-A01-02",
+          "SCREEN-REVIEWS-EDITOR-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-02",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          },
+          {
+            "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 57
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:21 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-SUPPORTED-4",
@@ -33940,13 +34589,56 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "サポート機能領域 4",
       "expected": "- オペレーター／管理者による商品、カテゴリー、ブランド、在庫、注文、レビュー、ユーザーの管理",
-      "risk": "製品範囲の分析漏れ",
-      "test_condition": "各対象領域を関連BR/AC・画面・実行環境に照合",
-      "test_responsibility": "サポート機能領域 4。各対象領域を関連BR/AC・画面・実行環境に照合",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "管理機能の業務・認可漏れ",
+      "test_condition": "採用Case：operator/adminの商品/Category/Brand/Inventory/Order/Review/User管理、Roleごとの画面・Use Case許可範囲を確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:22 のSCOPE-SUPPORTED-4正式要件を、代表Behavior SCREEN-ADMIN-PRODUCTS-A01-01、SCREEN-ADMIN-INVENTORIES-A01-01、SCREEN-ADMIN-ORDERS-A01-01、SCREEN-ADMIN-USERS-A01-01・関連Use Case/Seedと既存tests/integration/admin-operations-use-cases.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：operator/adminの商品/Category/Brand/Inventory/Order/Review/User管理、Roleごとの画面・Use Case許可範囲を確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "管理機能の業務・認可漏れを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 22
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-PRODUCTS-A01-01",
+          "SCREEN-ADMIN-INVENTORIES-A01-01",
+          "SCREEN-ADMIN-ORDERS-A01-01",
+          "SCREEN-ADMIN-USERS-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCTS-A01-01",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 48
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 69
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-ORDERS-A01-01",
+            "path": "src/presentation/pages/admin-operations-pages.tsx",
+            "line": 293
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-USERS-A01-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 508
+          }
+        ],
+        "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:22 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-SUPPORTED-5",
@@ -33961,13 +34653,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "サポート機能領域 5",
       "expected": "- シードリセット、固定クロック、決定論的な決済遅延、限定的なインスペクション",
-      "risk": "製品範囲の分析漏れ",
-      "test_condition": "各対象領域を関連BR/AC・画面・実行環境に照合",
-      "test_responsibility": "サポート機能領域 5。各対象領域を関連BR/AC・画面・実行環境に照合",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "本番Test API露出とReset不整合",
+      "test_condition": "採用Case：Seed Reset/固定Clock/モック決済遅延/限定Inspectionがテスト環境のみであることを確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:23 のSCOPE-SUPPORTED-5正式要件を、代表Behavior SCREEN-TEST-CONTROL-A01-01、SCREEN-TEST-CONTROL-A01-04・関連Use Case/Seedと既存tests/contracts/ai-assisted-qa-test-control-reset.test.mjsに照合。直接Runは別受入。",
+      "case_policy": "採用：Seed Reset/固定Clock/モック決済遅延/限定Inspectionがテスト環境のみであることを確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "本番Test API露出とReset不整合を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 23
+        },
+        "representative_behaviors": [
+          "SCREEN-TEST-CONTROL-A01-01",
+          "SCREEN-TEST-CONTROL-A01-04"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-TEST-CONTROL-A01-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 844
+          },
+          {
+            "behavior_id": "SCREEN-TEST-CONTROL-A01-04",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 844
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/ai-assisted-qa-test-control-reset.test.mjs",
+        "assignment": "Behavior直接参照4件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:23 の正式原文・tests/contracts/ai-assisted-qa-test-control-reset.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-SUPPORTED-6",
@@ -33982,13 +34705,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "サポート機能領域 6",
       "expected": "- レスポンシブ表示、キーボード操作、スクリーンリーダー対応、エラー、Empty、Loading、Conflict、Not Foundの各種状態表示",
-      "risk": "製品範囲の分析漏れ",
-      "test_condition": "各対象領域を関連BR/AC・画面・実行環境に照合",
-      "test_responsibility": "サポート機能領域 6。各対象領域を関連BR/AC・画面・実行環境に照合",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "状態/支援技術の受入漏れ",
+      "test_condition": "採用Case：レスポンシブ、Keyboard/ScreenReader、Empty/Loading/Conflict/NotFoundを状態別に確認。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:24 のSCOPE-SUPPORTED-6正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-S-empty、SCREEN-BOUNDARY-NOT-FOUND-A01-01、SCREEN-ADMIN-DASHBOARD-A02-01・関連Use Case/Seedと既存e2e/web/accessibility.spec.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：レスポンシブ、Keyboard/ScreenReader、Empty/Loading/Conflict/NotFoundを状態別に確認。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "状態/支援技術の受入漏れを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 24
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+          "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+          "SCREEN-ADMIN-DASHBOARD-A02-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+            "path": "app/+not-found.tsx",
+            "line": 1
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-DASHBOARD-A02-01",
+            "path": "src/presentation/pages/admin-master-pages.tsx",
+            "line": 27
+          }
+        ],
+        "cross_cutting_contract": "e2e/web/accessibility.spec.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:24 の正式原文・e2e/web/accessibility.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "PLATFORM-WEB",
@@ -34003,13 +34763,50 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "Web desktop/mobileの保証範囲",
       "expected": "デスクトップWebおよびモバイルWebを正式な対象とします。ストアフロント、カスタマー購入導線、オペレーター／管理者用管理画面を提供します。管理操作はデスクトップ環境（画面幅1024px以上）を前提としており、ビューポートが狭い場合は専用の警告メッセージを表示します。",
-      "risk": "対象外の自動化要求または必須対象の見落とし",
-      "test_condition": "製品スコープの保証範囲と実行テストの対象を分離",
-      "test_responsibility": "Web desktop/mobileの保証範囲。製品スコープの保証範囲と実行テストの対象を分離",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "小画面で管理操作が可能になる",
+      "test_condition": "採用Case：Web desktop/mobileでStore/Customerを提供、管理操作は1024px以上、未満は警告のみとする。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:11 のPLATFORM-WEB正式要件を、代表Behavior SCREEN-ADMIN-DASHBOARD-A02-01、SCREEN-ADMIN-PRODUCTS-A01-01、SCREEN-STOREFRONT-PRODUCT-LIST-A01-01・関連Use Case/Seedと既存e2e/web/mobile-boundary.spec.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：Web desktop/mobileでStore/Customerを提供、管理操作は1024px以上、未満は警告のみとする。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "小画面で管理操作が可能になるを防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 11
+        },
+        "representative_behaviors": [
+          "SCREEN-ADMIN-DASHBOARD-A02-01",
+          "SCREEN-ADMIN-PRODUCTS-A01-01",
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-ADMIN-DASHBOARD-A02-01",
+            "path": "src/presentation/pages/admin-master-pages.tsx",
+            "line": 27
+          },
+          {
+            "behavior_id": "SCREEN-ADMIN-PRODUCTS-A01-01",
+            "path": "src/presentation/pages/admin-product-pages.tsx",
+            "line": 48
+          },
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          }
+        ],
+        "cross_cutting_contract": "e2e/web/mobile-boundary.spec.ts",
+        "assignment": "Behavior直接参照9件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:11 の正式原文・e2e/web/mobile-boundary.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "PLATFORM-NATIVE",
@@ -34024,14 +34821,51 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "AndroidランタイムとiOSビルド限定",
       "expected": "ネイティブアプリは、カスタマー向けのゲストストアフロント、カート、ログイン、アカウント、住所、チェックアウト、決済、注文、レビューを対象とします。ネイティブ環境での管理画面およびゲストチェックアウトは対象外です。Androidはビルドおよびランタイム／Maestroによる自動テストを保証範囲とし、iOSは自動化・本番シミュレータビルド、ビルド時メタデータ、本番ガード、成果物検証を対象とするビルド限定契約とします。",
-      "risk": "対象外の自動化要求または必須対象の見落とし",
-      "test_condition": "製品スコープの保証範囲と実行テストの対象を分離",
-      "test_responsibility": "AndroidランタイムとiOSビルド限定。製品スコープの保証範囲と実行テストの対象を分離",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
+      "risk": "Nativeの不要権限混入とiOS実行保証の誤表記",
+      "test_condition": "採用Case：Nativeは顧客Store/Cart/Login/Account/Address/Checkout/Payment/Order/Reviewだけ、Native管理/Guest Checkoutは除外、Android実機+MaestroとiOS build限定を区別。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:15 のPLATFORM-NATIVE正式要件を、代表Behavior SCREEN-STOREFRONT-PRODUCT-LIST-A01-01、SCREEN-CHECKOUT-ADDRESS-A01-01、SCREEN-ORDERS-DETAIL-A01-01・関連Use Case/Seedと既存tests/contracts/native-ci-workflow.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：Nativeは顧客Store/Cart/Login/Account/Address/Checkout/Payment/Order/Reviewだけ、Native管理/Guest Checkoutは除外、Android実機+MaestroとiOS build限定を区別。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "Nativeの不要権限混入とiOS実行保証の誤表記を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
       "rule_refs": [],
-      "platform_basis": "Androidランタイム/自動テストとiOSビルド限定は異なる保証範囲"
+      "platform_basis": "Androidランタイム/自動テストとiOSビルド限定は異なる保証範囲",
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 15
+        },
+        "representative_behaviors": [
+          "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+          "SCREEN-CHECKOUT-ADDRESS-A01-01",
+          "SCREEN-ORDERS-DETAIL-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+            "path": "src/presentation/pages/catalog-list-page.tsx",
+            "line": 111
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 107
+          },
+          {
+            "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 656
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/native-ci-workflow.test.ts",
+        "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:15 の正式原文・tests/contracts/native-ci-workflow.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
     {
       "id": "SCOPE-EXCLUDED",
@@ -34046,13 +34880,44 @@
       "data": "正式契約の対象データ・Role/State/Platform",
       "action": "正式対象外の機能一覧",
       "expected": "キャンセル・返品・返金、決済状態不明・照合、ゲストチェックアウト、ネイティブ管理画面、インポート・エクスポート、マイグレーション復旧、クーポン、ポイント、お気に入り、レコメンド、外部の決済・配送APIとの通信は、現行仕様の期待される動作に含めません。",
-      "risk": "対象外の自動化要求または必須対象の見落とし",
-      "test_condition": "製品スコープの保証範囲と実行テストの対象を分離",
-      "test_responsibility": "正式対象外の機能一覧。製品スコープの保証範囲と実行テストの対象を分離",
-      "case_policy": "許可/拒否・境界状態の代表Caseを選定",
-      "case_selection_reason": "共通規則の不備が複数の画面・操作へ波及するため",
-      "analysis_status": "needs_content_review",
-      "rule_refs": []
+      "risk": "対象外機能を教材へ追加し誤PASS判定",
+      "test_condition": "採用Case：取消/返品/返金/外部決済配送/Guest Checkout/Native管理/Import/Export等を現行操作の必須期待に含めない。正常/拒否/境界・DB/Session/Role/Version/Visualの観測はCaseと対象HEADを指定して別途実行する。",
+      "test_responsibility": "docs/spec/product-scope.md:28 のSCOPE-EXCLUDED正式要件を、代表Behavior SCREEN-TEST-CONTROL-A02-01、SCREEN-CHECKOUT-CONFIRM-A01-01・関連Use Case/Seedと既存tests/contracts/architecture.test.tsに照合。直接Runは別受入。",
+      "case_policy": "採用：取消/返品/返金/外部決済配送/Guest Checkout/Native管理/Import/Export等を現行操作の必須期待に含めない。関連Behaviorと別の状態やPlatformの操作を単に要件数合わせで二重加算しない。",
+      "case_selection_reason": "対象外機能を教材へ追加し誤PASS判定を防ぐため、BR/AC・対象プラットフォームと正常・異常条件を独立に評価する。",
+      "analysis_status": "analyzed",
+      "rule_refs": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "requirement_analysis": {
+        "source": {
+          "path": "docs/spec/product-scope.md",
+          "line": 28
+        },
+        "representative_behaviors": [
+          "SCREEN-TEST-CONTROL-A02-01",
+          "SCREEN-CHECKOUT-CONFIRM-A01-01"
+        ],
+        "implementation_refs": [
+          {
+            "behavior_id": "SCREEN-TEST-CONTROL-A02-01",
+            "path": "src/presentation/pages/review-user-pages.tsx",
+            "line": 844
+          },
+          {
+            "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+            "path": "src/presentation/pages/checkout-order-pages.tsx",
+            "line": 311
+          }
+        ],
+        "cross_cutting_contract": "tests/contracts/architecture.test.ts",
+        "assignment": "Behavior直接参照2件を持ち、代表動作に横断条件を適用",
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+      },
+      "analysis_progress": "2026-11-04 docs/spec/product-scope.md:28 の正式原文・tests/contracts/architecture.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     }
   ],
   "use_case_methods": [
