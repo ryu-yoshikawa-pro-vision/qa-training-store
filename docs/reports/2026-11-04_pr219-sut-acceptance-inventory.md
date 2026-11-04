@@ -282,3 +282,9 @@
 - Review：`reviewable-orders` Seedでregular顧客が自分の配送済みOrderItemに投稿でき、gold顧客が他人のOrderItemのEligibility/投稿を拒否される。古いReview versionの更新は`CONFLICT`、Review/History/Summary全レコードが不変。PR #219 Webの別人Order非露出も[Run #41792378802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802)で確認済み。
 - Review transaction rollback：`product_review_summaries.hook("updating")`で書込み失敗を注入し、Review、Review Status History、Summaryの全レコードが更新前に復帰。既存IntegrationはReviewの作成/更新/削除/表示状態集計、Order/Shipment正規遷移を検証済み。
 - このタスクが明示した**状態遷移、version CAS、rollback、Order/Address/Rank/価格Snapshot、本人/他者の拒否**を、隔離DBと既存Web代表Caseで検証したためチェックする。Native/SQLiteと全Caseの成功時Trace/画面幅や永続DB証拠は別項目2/13〜15/20の未受入であり、当該結果をそれらに転用しない。SUT/Seed/既存製品テストは改変していない。
+
+## 商品0件・取得失敗・画面幅/a11y受入Caseの追加（9番の検証待ち）
+
+- 新規`tests/component/pr219-storefront-states.test.tsx`で`catalog.search`の一時エラーを注入し、読み込み中の`role=status`、個人情報や内部エラーメッセージを表示しないエラー状態、再試行後に無条件0件へ復帰、フィルター用解除CTAが混入しないことを検証する。共有製品/既存テストは編集しない。
+- 既存の`e2e/web/pr219-cross-role-lifecycle.spec.ts`に追加2件。`empty-catalog`の無条件0件と`default`の絞込0件を320/390/767/768/1023/1024/1440pxで分けて検証し、横はみ出し、Breadcrumbs/解除CTA、キーボードEnterの復帰、Web画像添付（幅ごと）を検査。empty状態は320/1024pxで`@axe-core/playwright`の重大違反をassertし、全axe結果を添付する。
+- 正式画面正本`docs/spec/features/storefront.md`の`SCREEN-STOREFRONT-PRODUCT-LIST` empty web-desktopを比較対象とする。**添付画像の取得・正本との画像比較・CI実行結果は別**。現在はまだ最新Runで実行しておらず、9番は未チェック。Androidはタスク14、全画面幅/視覚正本はタスク13として別途受入が必要。
