@@ -105,17 +105,18 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
   linuxIt("Run証拠を追記した既存の保全リストを初期化で上書きしない", () => {
     expect(initializeManifest).toBeTruthy();
     const fixture = makeFixture();
-    const original = fs.readFileSync(fixture.manifest, "utf8");
+    const manifestFile = path.join(fixture.root, fixture.manifest);
+    const original = fs.readFileSync(manifestFile, "utf8");
     const appended = original + "workspace/M05/evidence/run-unique/trace.zip\n";
-    fs.writeFileSync(fixture.manifest, appended);
+    fs.writeFileSync(manifestFile, appended);
     const alreadyExists = runManifestInitialization(fixture);
     expect(alreadyExists.status).not.toBe(0);
-    expect(fs.readFileSync(fixture.manifest, "utf8")).toBe(appended);
+    expect(fs.readFileSync(manifestFile, "utf8")).toBe(appended);
 
-    fs.rmSync(fixture.manifest);
+    fs.rmSync(manifestFile);
     const created = runManifestInitialization(fixture);
     expect(created.status, created.stderr + created.stdout).toBe(0);
-    expect(fs.readFileSync(fixture.manifest, "utf8")).toContain(
+    expect(fs.readFileSync(manifestFile, "utf8")).toContain(
       "workspace/M07/phase2-handoff.md",
     );
     const repeated = runManifestInitialization(fixture);
