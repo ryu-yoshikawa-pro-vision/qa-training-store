@@ -8,7 +8,7 @@ M07終了時に本人が記入します。教材テンプレートには完成�
 - コース配布元SHA（`.course/distribution-manifest.json`）:
 - 対象module load receipt:
 - 修正後spec: `workspace/M07/repaired-assertion.spec.ts`
-- 保守演習の本人spec: `workspace/M07/maintenance.spec.ts`（`M07-result-04` / `M07-result-v1` / `M07-to-M08-handoff-v1`）
+- 保守演習の本人spec: `workspace/M07/maintenance.spec.ts`（`M07-result-04` / `M07-result-v1` / `M07-to-M08-handoff-v1`）、Page Object・fixtureをspec内に定義した箇所、外部ファイル利用時のimport・依存ファイルSHAと保全先:
 - M05 P03の型検査対象ファイル `workspace/M05/p03-type-error.ts`と、誤型/修正後の終了コード・診断記録:
 - M05 P05の本人新規spec `workspace/M05/p05-cart-locator.spec.ts`、直接実行の`spec-snapshot.ts`・`console.log`・`playwright-result.json`、実行前後のspec SHA-256一致、終了コード・保存先（`course:run`のreceiptではない）:
 - M06から引き継いだCart Case・spec・提出物のID、revisionと、公開fallbackを使った場合の区別:
