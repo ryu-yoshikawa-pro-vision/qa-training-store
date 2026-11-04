@@ -74,11 +74,13 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
 
 1. `workspace/M05/`〜`workspace/M07/`にある本人の提出物とspecを確認します。`course:run`の証拠は各モジュールの`evidence/runs/<実際のrun_id>/`内の`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`、必要なTrace・画像等です。M05 P05の**直接Playwright実行**は別経路で、`workspace/M05/evidence/p05-direct-<実際の識別子>/`に`spec-snapshot.ts`・`console.log`・`playwright-result.json`等が保存されます。こちらには`course:run`のreceiptとRun IDがないため、実際の出力ディレクトリ・コマンド・終了コード・実行前snapshotと実行後specのSHA-256一致結果を区別して記録します。修正前後の**別Run**と`source_sha`・`spec_sha256`を取り違えないよう、まず`phase2-handoff.md`へ実際の識別子を記録します。
 2. Run内のJSON、Trace、画像、標準出力にはURL、認証状態、個人情報等が含まれる可能性があります。内容を確認できないものは外部へ持ち出さず、**未保全と理由**を記録します。`.env*`、トークン、ブラウザの認証プロファイル、`workspace/.course-assessments/`、非公開採点資料、無関係な生成物を含めません。
-3. Codespacesのターミナルで、リポジトリルートから次のように、本人の成果物**だけ**を一覧にします。ファイルが未作成なら原因を確認し、架空の出力や空のファイルを作って完了扱いにしません。
+3. Codespacesのターミナルで、リポジトリルートから次のように、本人の成果物**だけ**を一覧にします。ファイルが未作成なら原因を確認し、架空の出力や空のファイルを作って完了扱いにしません。 **既存の`phase2-files.txt`があれば上書きしません。** 過去のRunや追加ファイルの一覧を残したまま内容を確認し、必要な行だけ編集してください。
 
    ```bash
    mkdir -p workspace/M07/exports
-   cat > workspace/M07/exports/phase2-files.txt <<'EOF'
+   (
+     set -C
+     cat > workspace/M07/exports/phase2-files.txt <<'EOF'
    workspace/M05/submission.md
    workspace/M05/product-link.spec.ts
    workspace/M05/p03-type-error.ts
@@ -91,10 +93,11 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
    workspace/M07/maintenance.spec.ts
    workspace/M07/phase2-handoff.md
    EOF
+   ) || { echo "既存の一覧は上書きしません。内容を確認してください"; exit 1; }
    ```
 
 4. 実際に採用した`course:run`について、`workspace/Mxx/evidence/runs/<run_id>/run-evidence.json`・`spec-snapshot.ts`・`playwright-result.json`と、必要なTrace・画像の**実在する相対パス**を`phase2-files.txt`の末尾へ一行ずつ追記します。M05 P05を直接実行した場合は、`workspace/M05/evidence/p05-direct-<実際の識別子>/spec-snapshot.ts`、`playwright-result.json`、同じ場所の`console.log`と必要なattachmentを、内容を確認して別途追記します。P01〜P04の学習用コードなど、本人が実際に作ったほかの提出対象ファイルも個別に追記します。Runの出力ディレクトリを丸ごと指定せず、対象と内容を確認したファイルだけ追加します。**直接実行のJSONを`course:run`のreceiptとして扱ってはいけません。**
-5. 下記で対象パス・通常ファイルであることを確認し、アーカイブを作成してチェックサムを検証します。エラーになったら途中のアーカイブを成功証拠として使いません。
+5. 下記で対象パス・通常ファイルであることを確認し、アーカイブを作成してチェックサムを検証します。**既存の`phase2.tgz`とチェックサムは上書きしません。** 以前の保全物があれば先に保管・照合し、別のバックアップとして保持したうえで新規作成してください。エラーになったら途中のアーカイブを成功証拠として使いません。
 
    ```bash
    workspace_root=$(realpath -e workspace)
@@ -123,11 +126,20 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
      esac
    done < "$manifest"
 
-   tar --create --gzip --file=workspace/M07/exports/phase2.tgz \
-     --verbatim-files-from --no-recursion --files-from="$manifest" || exit 1
-   sha256sum workspace/M07/exports/phase2.tgz > workspace/M07/exports/phase2.tgz.sha256
-   sha256sum -c workspace/M07/exports/phase2.tgz.sha256 || exit 1
-   tar -tzf workspace/M07/exports/phase2.tgz
+   archive=workspace/M07/exports/phase2.tgz
+   checksum="$archive.sha256"
+   test ! -e "$archive" && test ! -L "$archive" && \
+     test ! -e "$checksum" && test ! -L "$checksum" || {
+       echo "既存のアーカイブまたはチェックサムは上書きしません"; exit 1;
+     }
+   (
+     set -C
+     tar --create --gzip --file=- \
+       --verbatim-files-from --no-recursion --files-from="$manifest" > "$archive" || exit 1
+     sha256sum "$archive" > "$checksum" || exit 1
+   ) || exit 1
+   sha256sum -c "$checksum" || exit 1
+   tar -tzf "$archive"
    ```
 
 6. `phase2.tgz`と`phase2.tgz.sha256`をCodespacesから本人だけがアクセスできるローカル保管先へダウンロードします。実際に保管したアーカイブのSHA-256を照合し、信頼できる**空の非公開ディレクトリ**で解凍して提出物・Run記録を読み取れることを確認します。公開URLやGitHub PRへ貼り付けず、`phase2-handoff.md`に保存先（個人情報・秘密情報を含まない表記）、SHA、復元確認の結果を記録します。
