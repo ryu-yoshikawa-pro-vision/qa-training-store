@@ -1213,4 +1213,37 @@ describe("サポート機能の仕様と実装の追跡", () => {
     );
   });
 
+  it("keeps 79 requirement case-condition references traceable without treating them as executed", () => {
+    expect(data.requirements).toHaveLength(79);
+    for (const requirement of data.requirements) {
+      const audit = requirement.requirement_analysis;
+      const trace = audit.sut_case_trace;
+      expect(trace.source_pr).toBe(219);
+      expect(trace.source_blob_sha).toMatch(/^[a-f0-9]{40}$/);
+      expect(trace.acceptance_status).toBe("未受入");
+      expect(trace.row_keys.map((row) => row.behavior_id).sort()).toEqual(
+        [...audit.representative_behaviors].sort(),
+      );
+      for (const row of trace.row_keys) {
+        expect(row.condition_refs.length).toBeGreaterThan(0);
+        for (const condition of row.condition_refs) {
+          if (condition !== null) expect(condition).toMatch(/^C[0-9]+$/);
+        }
+      }
+    }
+    for (const change of [
+      (trace) => { trace.row_keys[0].behavior_id = "NONEXISTENT-BEHAVIOR"; },
+      (trace) => { trace.row_keys[0].condition_refs = []; },
+      (trace) => { trace.source_blob_sha = "not-a-commit"; },
+      (trace) => { trace.acceptance_status = "PASS"; },
+    ]) {
+      const changed = mutated((next) => {
+        change(next.requirements[0].requirement_analysis.sut_case_trace);
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /requirement analysis lacks verified evidence/,
+      );
+    }
+  });
+
 });

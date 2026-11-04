@@ -309,6 +309,33 @@ function completeRequirement(item, root, behaviorById, directlyLinkedRequirement
       return false;
     }
   }
+  const trace = audit.sut_case_trace;
+  if (
+    trace?.source_pr !== 219 ||
+    trace.source_path !== "docs/reports/2026-11-04_pr219-case-traceability.csv" ||
+    !/^[a-f0-9]{40}$/.test(trace.source_blob_sha ?? "") ||
+    trace.acceptance_status !== "未受入" ||
+    !Array.isArray(trace.row_keys) ||
+    trace.row_keys.length !== ids.length
+  ) {
+    return false;
+  }
+  const tracedBehaviors = new Set();
+  for (const row of trace.row_keys) {
+    if (
+      !ids.includes(row.behavior_id) ||
+      tracedBehaviors.has(row.behavior_id) ||
+      !Array.isArray(row.condition_refs) ||
+      row.condition_refs.length === 0 ||
+      new Set(row.condition_refs).size !== row.condition_refs.length ||
+      !row.condition_refs.every(
+        (condition) => condition === null || /^C[0-9]+$/.test(condition),
+      )
+    ) {
+      return false;
+    }
+    tracedBehaviors.add(row.behavior_id);
+  }
   return /未実施|未受入/.test(audit.dynamic_acceptance ?? "");
 }
 
