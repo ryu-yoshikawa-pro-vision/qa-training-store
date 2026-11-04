@@ -11,9 +11,7 @@ const transitions = [
 ];
 
 function loadState(moduleId, phase) {
-  return JSON.parse(
-    fs.readFileSync(path.join(statesRoot, moduleId, `${phase}.json`), "utf8"),
-  );
+  return JSON.parse(fs.readFileSync(path.join(statesRoot, moduleId, `${phase}.json`), "utf8"));
 }
 
 function handoffErrors(source, destination, fromModule) {
