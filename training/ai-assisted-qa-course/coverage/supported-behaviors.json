@@ -25084,20 +25084,20 @@
       "source_line": 50,
       "source_text": "ユーザー詳細と、許可されたロール／ランク／ステータスの操作を表示する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ロール変更",
+      "role": "active adminによる別アカウントのoperator↔admin Role変更。customer/guest/operator/停止・退会adminをactorとして拒否。自己Role変更はadminが2名存在してもSELF_CHANGE_FORBIDDEN。Nativeは管理対象外。",
+      "scenario": "defaultはactive admin=user-admin 1名、operator=user-operator 1名、customer5名（Version=1、初期Session guest）。adminログインを用意しoperator→admin後2人の状態から別adminの降格2→1を検証。退会/停止/失効Session、stale Version、rollback用失敗注入は隔離DBで別条件。",
+      "data": "Web AdminUserDetailPage→Guard(admin)→AdminUserDetailFormは本人操作disabled、他者Role変更時ConfirmDialog/expectedVersion=user.versionを送信し成功時に再読込、拒否コードとSession削除の説明を表示。AdminUserUseCases.changeRoleはrequireAdmin→自己拒否後にchange-user-accessのDexie transactionを開始し、target取得・version CAS・operator/admin・withdrawn除外・active admin数でlast-admin保護して更新する。DexieUserRepository.updateはVersion一致を検証して+1、SessionRepository.deleteByUserIdは対象全Sessionを削除。transaction対象はusers/sessions/checkout_sessions、失敗時は原子ロールバックが契約。#199の現実装ではactor再認可はtransaction前だけで、#210製品ブランチのtransaction内assertActorStillAuthorizedとは差がある。",
       "action": "ロール変更",
-      "expected": "他人に対する許可されたrole変更だけを反映し、本人権限破壊・最終Admin降格を拒否する",
+      "expected": "正式BR-ADMINUSER-001/AC-ADMINUSER-001はoperator/admin間の他者Role変更だけ許可し、自己破壊的変更・withdrawn・最後のactive adminを拒否する。通常のactive admin actorと異なるactive admin targetが同時に存在するなら管理者数>=2であり、2→1の他者降格は許可、最後の本人の降格はSELF_CHANGE_FORBIDDEN。非self最後のadminを通常fixtureで無理に作らない。更新成功時はVersion+1・対象全Session失効、拒否/障害時はDB/Session全表不変とする。製品のactor並行権限失効は未受入で#210判断、実動作は#219に分離。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
+      "risk": "High: 非adminによる権限昇格、role更新後の旧Session残留、transaction前actor失効を見逃して管理者ゼロへ到達する競合、複数変更時のVersion CAS/不正更新、Session削除失敗時の部分書込み。Medium: customer/withdrawnのRole書込み、実現不能な非self last-admin負例による誤PASS、ConfirmDialog・拒否理由・画面幅とアクセシビリティの不一致。既存テスト・静的検査で確認できる範囲と実Run未受入を分離する。",
       "test_condition": "C1 active adminが別のactive operatorをadminへ昇格し、User.version/CAS・全対象Session無効化・他表不変を検証。C2 2名のactive adminから別adminをoperatorへ降格して1名残す正常系と、唯一のadmin本人の降格がSELF_CHANGE_FORBIDDENになる負例を分離。非self最後のactive adminという通常成立しない固定fixtureではLAST_ADMIN_PROTECTEDを実Run認定しない。C3 customer/withdrawn/非admin/失効actorと欠損targetを拒否し、全DB不変・Sessionローカルclearを区別。C4 旧Version CONFLICT、actor失効のrequireAdmin→transaction間競合と#210のtransaction内再認可を比較して二重降格を防止。C5 User更新後のSession削除失敗注入でtransaction rollbackを確認。C6 Web ConfirmDialogの取消/確定/拒否理由とSession無効化案内。C7 Web desktop/tablet/1023/1024px・keyboard/a11y/Traceを受入。",
-      "test_responsibility": "管理権限、ロール変更の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ロール変更が権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "基本分析継続（review_required）。正式BR-ADMINUSER-001/AC-ADMINUSER-001（admin-users.md:9-25,43-79）とroles-and-permissions.md:5-24のactive admin専用・operator/admin間のみ・自己/last-admin/withdrawn拒否を確認。AdminUserDetailForm:638-813はadmin Guard、isSelf disabled、ConfirmDialog、role差分、expectedVersion=user.version、失敗理由表示、全Session無効化案内。AdminUserUseCases.changeRole:567-598はrequireAdmin→自己拒否→change-user-access transaction内でtarget/version・operator/admin/withdrawn・active last-admin数を検査し、DexieUserRepository.update:58-64でversion CAS、SessionRepository.deleteByUserId:129-131で対象Session削除。default Seedはadmin1/operator1/customer5、version1（default-dataset.ts:730-779）。High R1=非admin権限昇格、R2=自己/最後のadmin降格、R3=stale CAS/並列ロール変更、R4=対象Session失効漏れ、R5=失敗時の部分更新。Medium R6=withdrawn/customer/欠損target、R7=ConfirmDialog・拒否理由・非同期再読取、R8=desktop/tablet・keyboard/a11y。TR1=正式BR/AC/Role、TR2=詳細UI/ConfirmDialog、TR3=Use Case/Identity/Dexie transaction、TR4=default Seed/既存Integration/学習用契約。C1採用=adminが他人のactive operatorをadminへ昇格しversion1→2、全対象Session削除・他表不変・stale version拒否（学習用契約1 Case追加、同HEAD実行待ち）。C2採用=別admin存在下のadmin→operator/last-admin拒否、C3採用=自己/非admin/withdrawn/customer/失効actorの拒否と全表不変、C4採用=並列version/last-admin interleaving、C5採用=Session削除失敗注入のtransaction rollback、C6採用=実Web確認ダイアログ・成功/拒否理由・Session無効化、C7採用=1023/1024px・desktop/tablet・keyboard/a11y。会員ランク・利用停止は別ID。直接ローカルVitest/formatter/validator・新CaseのCI実行・実Web/製品適合・最終CIは未受入。C1の実行証拠およびC2-C7の採否/既存証拠最終確認後に基本分析判定。 2026-11-04追記: 2名→1名の他者降格は許可、最後のadmin本人はSELF_CHANGE_FORBIDDENを先に返すため、既述C2の「last-admin拒否」を通常の非self固定fixtureでは再現しない。並行actor失効の安全性はA02-03のC4と#210の再認可で別検証する。",
+      "test_responsibility": "TR1=admin-users.mdのBR/ACとroles-and-permissionsの認可。TR2=Web Guard/自己disabled/ConfirmDialog/Version/エラー表示。TR3=ApplicationのrequireAdmin・self/last-admin・CAS・Dexie transactionとSession全削除。TR4=default Seed・学習用契約/既存integration・動的Web/DB。C1〜C7の役割/正常/拒否/失効・rollback/視覚の独立判定を台帳に記録。",
+      "case_policy": "C1採用：adminによる別operator→admin、Version1→2、全対象Session失効、他表不変・stale拒否（学習用契約実装済み）。C2採用：2 active adminからの別admin→operator 2→1許可と唯一admin本人のSELF_CHANGE_FORBIDDENを分離（学習用契約に2→1のCaseあり）。C3採用：customer/withdrawn・非admin・欠損target・Session失効の拒否と前後不変（契約の一部あり）。C4採用：旧Version競合、requireAdmin後actor失効時点差と#210 transaction内再認可を別HEADで確認。C5採用：Session削除例外注入→users/sessions/checkout_sessions rollback（未実行）。C6採用：Web ConfirmDialog取消/確定/拒否理由/全Session失効案内（未実行）。C7採用：Web desktop/tablet/1023↔1024px・keyboard/a11y/Trace（未実行）。Rank変更・停止更新はA01-03/04に分離。",
+      "case_selection_reason": "Role権限の実データ変更、旧Session失効、他者2→1許可と自己禁止、失効actor競合/rollbackを分離しなければ、テストの一部成功で管理者保護を証明したことにならない。現実に成立しない非self最後adminの期待を避け、C1〜C7で固定Seed/独立DB/実UIを対応させる。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD ee94a27bbb545f21e5e2c7cf3ea0e840e6230073 の静的基本分析。admin-users.md:9-25,43-79、roles-and-permissions.md:5-28、Web review-user-pages.tsx:618-835（本人disabled・他者ConfirmDialog・Version/成功再取得・失効通知）、UseCase review-user-use-cases.ts:567-598/642-714（requireAdmin・SELF_CHANGE_FORBIDDEN・CAS・last-admin・transaction）、Dexie basic-repositories.ts:57-63/115-133（Version+1とSession全削除）、transaction-runner.ts:98-99/130-141（users/sessions/checkout_sessionsのrw transaction）、default-dataset.ts:730-773（admin1/operator1/customer5）を照合。既存integration review-user-use-cases.test.ts:297-351はpromotion/自己・withdrawnの一部検証。学習用contracts ai-assisted-qa-admin-users-list.test.mjs:182-330にはoperator昇格＋全表比較、他admin降格2→1、自己拒否、operator拒否、expired Session拒否、旧Version競合が定義されている。GitHub Web CIは実行中または古いHEADのため、個別Caseの今回のCI PASSは**未確定**。実Web/Android（管理Native対象外）・DB故障注入・actor失効インターリーブ・視覚/a11yは今回未実行。製品側#210のchangeRole:574-606にはtransaction内assertActorStillAuthorizedがあるが未マージであり#199現HEADの製品実装へ反映済みと扱わない。実行#219/製品#210へ引継ぐ。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25105,7 +25105,7 @@
       "related_use_cases": [
         "AdminUserUseCases.changeRole"
       ],
-      "analysis_progress": "2026-11-03: A01-02のRole/State/Data、UI→Use Case→Dexie/Session transaction、default SeedとHigh/Medium Risk・TR1-4・C1-7を照合。学習用契約C1（他人operator→admin、version CAS、全対象Session削除、他表不変、stale拒否）1 Case追加。直接CI実行待ちのためreview_required継続、操作121/188・非default17/20据置。次回同IDで同HEADの契約結果とC2-C7を確認。 | 2026-11-04: C2のlast-admin負例前提を正常2→1/本人拒否/actor失効競合に分割。実行未受入。",
+      "analysis_progress": "2026-11-04 基本分析analyzed：Role変更の仕様/Role/State/Data、UI→UseCase→Dexie/Session、default Seed、Risk/TR/C1〜C7・既存契約Caseと未実行Case・2→1許可/自己拒否・#210との差分を静的に確定。実Runと製品適合・独立CIは別未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -25219,6 +25219,24 @@
           "start_line": 1,
           "end_line": 220,
           "reason": "追加C1の隔離Dexie契約、CI実行待ち"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 130,
+          "end_line": 141,
+          "reason": "Dexie transaction rwによる原子境界"
+        },
+        {
+          "path": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
+          "start_line": 228,
+          "end_line": 330,
+          "reason": "2→1降格・本人/非admin/失効Session負例（コードのみ、CI別）"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 700,
+          "end_line": 714,
+          "reason": "SELF_CHANGE_FORBIDDEN/LAST_ADMIN_PROTECTEDの拒否コード"
         }
       ]
     },
