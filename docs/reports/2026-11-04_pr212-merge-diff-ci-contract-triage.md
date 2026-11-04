@@ -1,5 +1,16 @@
 # PR #212 / PR #199 差分とCI契約の突合（2026-11-04）
 
+## 2026-11-04 引継ぎ時HEADのWeb CI確定（`3b0da3ea9742dee0db26f776cde9fb8eaddebdf4`）
+
+- [Web CI #41758911771](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758911771)は **completed/failure**。この結果は上記固定HEADのもので、後続コミットのPASSを保証しない。
+- `Vitest (contracts)` は **74ファイル中2 failed / 72 passed、テスト13 failed / 1,032 passed / 1 expected fail / 15 skipped**。失敗13件は、`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`の固定`review_required`期待と台帳`analyzed`の衝突12判定（6操作ID）、および`tests/contracts/ai-assisted-qa-assessment.test.mjs:2343`のCalibration復旧エラーメッセージ期待差1件。前回報告の失敗分類と一致する。
+- `Style Quality`は`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`、`tests/contracts/ai-assisted-qa-assessment.test.mjs`の**2ファイル**をPrettier違反として指摘した。
+- `verify`は`style-quality result was failure`で失敗し、`validate`は`verify result was failure`で失敗。`deploy-preview`・`deploy-production`はskipped。集約ジョブの失敗を新たな独立不具合として二重計上しない。
+- Code Quality、Training runtime contracts、build-production/automation、Integration/Unit/Component/Repository、Chromium E2E（required / training-web-baseline / cross-role / mobile-boundary / accessibility）、UI Review（desktop / tablet / mobile / small-mobile）は**同Runでsuccess**。Android実機・MaestroやMobile必須CIの成功を意味しない。
+- 新規追加の`audit_branch_refs`に直接起因する失敗は、このRunの失敗ログからは確認されなかった。ただし参照の意味的妥当性、実Web/Androidでの動作、製品適合は未受入。
+- 調停先は#199の固定ステータス契約・Validator、#211のAssessment期待差、担当ブランチのPrettier。#212では分析ステータスをCI通過目的で巻き戻さず、製品SUT・正式仕様・Seed/Reset・他PRのコードを変更しない。#199/#210/#211/#212を統合した同一HEADのWeb/Mobile必須CIは別途確認する。
+
+
 ## 対象と作業境界
 
 - 独立PR [#212](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/212)：`work/pr199-parallel-supporting-analysis-20261103`、比較HEAD `715b422fbf9d4daf07548f1ca8301959dedcc157`。
