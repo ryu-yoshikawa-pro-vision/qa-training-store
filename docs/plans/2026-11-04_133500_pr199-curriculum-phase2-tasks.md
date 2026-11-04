@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 48% (16/33)**。現時点で未完了17件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`と`M05-02`の技術的な照合・固有テストを完了したため2件増えた。本人実Runは#199最後に実施する。
+- **Progress: 52% (17/33)**。現時点で未完了16件。前回の14件は既存の完了済み8項目と内部作業6項目の再整理。今回`M05-01`・`M05-02`・`M05-05`の技術的な照合・固有テストを完了したため3件増えた。本人実Runは#199最後に実施する。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -23,7 +23,8 @@
   - 教本の関数・await実コード3例を隔離Node.jsで実行。TypeScript短コードも分岐の変更前後を隔離transpileで確認。未完成Mugリンクの1箇所と参考href Assertion、before/after・提出欄を照合。専用契約テストを追加（実Shop Runは#199最終受入）。
 - [x] `M05-02`：Role/Name/Label/test IDの一意性、Cartの複数商品行と数量select/削除ボタンのscopeを、正式仕様・実画面コード・学習用参考specに照合。名前だけでなく2行の誤選択を検出する回帰条件を追加し、画面操作が必要な部分は#199最終受入へ渡す。
   - 製品Cart画面を読み取り、記事・SKU・数量select・削除buttonと参照specの全体各2件/商品行各1件・数量1の照合を契約テストへ固定。削除は非実行（実画面Runは#199最終受入）。
-- [ ] `M05-05`：`playwright.ai-assisted-qa.config.ts`、8081/8082/6080、`PLAYWRIGHT_TEST_ROOT`、対象spec、`AI_QA_OUTPUT_ROOT`、Trace/JSON report・`course:run` receiptを読み取りで追跡。M05 P05直接実行と`course:run`の異なる証拠契約を教材/専用テストで確認し、共通実行器の不足は#217に引き継ぐ。
+- [x] `M05-05`：`playwright.ai-assisted-qa.config.ts`、8081/8082/6080、`PLAYWRIGHT_TEST_ROOT`、対象spec、`AI_QA_OUTPUT_ROOT`、Trace/JSON report・`course:run` receiptを読み取りで追跡。M05 P05直接実行と`course:run`の異なる証拠契約を教材/専用テストで確認し、共通実行器の不足は#217に引き継ぐ。
+  - 専用Configの8082/testDir/report/Trace、8081/6080転送、配布検証とP05直接実行・`course:run` receiptの差をソースで照合。固有の契約テストを追加。JSON reporter相対パスの共有実行器不具合は#217へ引継ぎ済み。
 - [ ] 公開M05参照specの2明細Locatorを、実行可能な既存の学習用環境/CIで技術検証する。実行できない場合は必要なサーバー・Config・コマンド・期待/未取得証拠を記録し、受講者が実行したとは報告しない。
 
 ## M06：別条件からのWeb E2E実装
