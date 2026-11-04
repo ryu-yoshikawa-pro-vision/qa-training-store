@@ -37,3 +37,10 @@
 - 同Runの[Integration job 126512202112](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480/job/126512202112)はsuccess：`pr219-checkout-boundaries.test.ts`5件、既存`checkout-order-use-cases.test.ts`10件を含む。別Sessionで同一Checkout ID/version復帰と住所Snapshot不変、24時間期限、旧Checkout versionとconfirm-ready後の旧Cart、4種決済/再試行/二重注文防止/在庫競合のassertionを確認。関連Webの同一Session Reload/Reset・置換通知は既存`ui-ux-improvements.spec.ts`の[先行Run #41792378802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802)で成功。
 - **製品FAIL**：同じ[Web CI #41811366480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)の`KNOWN DEFECT REPRO: confirmed Checkout returns to payment instead of Cart`で、confirm-ready後にCart数量を変更すると確認画面は拒否されるが、`戻って確認する`のリンク先が`/checkout/payment`となる現象を再現。正式な復帰導線の要件と照合して#210/#213へ引き継ぐ。これをCheckout UIの合格とは判定しない。
 - **11番を検証と結果分類の完了としてチェック**：列挙された住所再開・Session・期限・Cart競合・決済/再試行・二重確定・在庫を実行し、正常PASSと既知の製品FAILを区別した。製品不具合の修正と#210新HEADでの再受入、Android/SQLite、成功時Traceと保存済みDB全表は別タスク（14、15、20等）として残す。cross-roleで撮影したPNGは当該成功jobのHTML Reportへの添付であり、[Run #41811366480のArtifact一覧](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)にはcross-role Report自体が見当たらないため、画像が永続公開されているとは主張しない。
+
+## stale Cart拒否時のDB10表不変Case（実行待ち）
+
+- #219専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`へ、confirm-ready CheckoutをCart数量変更でstaleにした後、`/checkout/confirm`へ再遷移した時点で注文・決済・配送を作成せず、Cart/Checkout/在庫履歴の既存状態を変更しないことを検証する**独立したWeb E2E**を追加した。
+- 対象表は`carts`、`cart_items`、`checkout_sessions`、`orders`、`order_items`、`daily_sequences`、`payments`、`shipments`、`order_status_histories`、`inventory_histories`の10表。読み取り専用IndexedDB transactionから表別SHA-256を計算し、拒否画面表示の前後で一致をassertする。支払ボタンが表示されないことも確認する。
+- 認証情報・個人情報・レコード実値はCIログへ出さない。TestInfoへの添付はdigestのみ、jobログへは条件・表数・一致判定のみを出力する。既存Forbidden Caseでも同じdigestヘルパーを再利用し、テスト内の重複実装を削減した。
+- テスト追加コミット`b9a032b6d690eaea5dbb7e02276cf3d2971cba47`、ログ補完`c0821559ea3cc776f945893e7e45cad3cc54c807`。**新E2EはCI未確認であり、DB10表不変はまだ実証済みではない。** 既存Web E2Eの製品不具合（stale Cartの戻り先が`/checkout/payment`）は別判定。Android SQLite/実機や他のCaseのDB前後・取引rollbackまでは検証しない。
