@@ -51,3 +51,11 @@
 - 変更前後のCSVを列単位で比較し、Web39行・元32列、Behavior208行・元17列はすべて不変、列数不整合0を確認。新規列は静的な照合情報であり、採用Caseの合格・動的証拠の取得を意味しない。
 - `e2e/web/pr219-cross-role-lifecycle.spec.ts`のCheckout stale-cartは、既知の戻り先不具合を再現するCaseと、7画面幅（320/390/767/768/1023/1024/1440px）・320/1024pxのaxe・Focus/Enter・画像を取得するCaseに分離した。共通セットアップのみ再利用。更新SHA `84d3a455acc831efb3b3d24c1a950a9734e8ec1e`の**実行結果は未確認**であり、当該チェックは保留。
 - タスクリスト2・13・19・20は未チェックのまま。#213の正式Case採否・条件参照、成功時Trace/画像保存、DB前後の実物、Android/SQLite、独立レビューが未完了。これらをCI旧HEAD `83fb0325`の成功で代用しない。
+
+## CI #41821726873の実証Caseと失敗原因（2026-11-04）
+
+- #199 SUT `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、実行テストHEAD `0599c516374710d4144c126a2c0c388e60c1c22c`。cross-role job `126547309356` success（27件PASS＋既存1件初回失敗・retry成功）、required Chromium job `126547309443` success（64件PASS）、accessibility Chromium job `126547309348` success（5件PASS）。
+- 新しく確認できた2つの個別Case：`PR219-WEB-023`＝Checkout stale Cartの7幅・axe・Focus/Enter（E2Eファイル321行、1回目PASS）、`PR219-WEB-024`＝停止operator旧SessionのForbidden循環（同522行、1回目PASS）と全IndexedDB表digest一致。両者とも製品不具合/未受入条件を含むため、**正式採用Caseの製品PASSではない**。
+- Web実行表は39→41履歴行、34列、既存39行は全列不変。208動作一覧は208行を維持、既存17列不変で上記2証拠キーを追記。CSV parser照合で不正列幅0を確認。これらの一意キーは正式Case IDではない。
+- ワークフローは**failure**：Code Quality job `126546893944`で`tests/component/native/pr219-forbidden-native.test.tsx`にTS2339、Native component job `126546894146`で`QuickBase64`のNative実装未ロード。修正 `895280d4769d7e8bf4d6d797d7f70884c11d3e90`にて、Native `render`のawait・Providerモックを追加したが、修正後CIの成功はまだ検証していない。
+- #213から正式Case採否が確定しておらず、直接参照なし29要件、成功時Artifact、各CaseのDB/実画面/Android・SQLiteの証拠が不足する。タスクリスト2・7・13・14・15・19・20は未チェック。
