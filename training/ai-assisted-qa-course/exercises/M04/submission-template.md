@@ -8,7 +8,10 @@
 - Automate / Later / Do not automateと根拠:
 - 仕様の未決事項と確認先:
 - 質問本文・保留する期待結果・影響するCase・次の確認先:
-- Phase 2へ渡す承認済みCase:
+- Phase 2へ渡す承認済みCase（Case ID、対象TR/Risk、BR/AC、Scopeと仕様revision）:
+- CaseごとのRole/State/Data/Seed、Reset・必要な事前状態、期待結果・不変条件・観測:
+- M03の元Case参照・本人の修正/承認の根拠（未承認は区別）:
+- M05へ渡すファイル（`workspace/M04/review.md`、`workspace/M04/submission.md`）の実保存確認:
 - 未確認事項:
 
 ## 反復実践 P01〜P06 の記録
