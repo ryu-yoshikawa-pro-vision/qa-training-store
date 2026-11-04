@@ -345,3 +345,10 @@
 - **修正**：`training/ai-assisted-qa-course/exercises/M06/exercise.md`（修正後Blob `47593c5cb1477cbd15dc2a13a493c566cdc36ea4`）の固定3 Case実行直後へ、TODO例外を削っただけでは業務Assertionがないこと、001/002/003に必要な結果とBR/AC、実行数やPASS表示だけで修了認定しない条件を追記した。受講者向けの未完成specを完成答案に置換していない。
 - **回帰**：`tests/contracts/ai-assisted-qa-phase2-m06-fixed-cases.test.mjs`（Blob `b5ad1bb2f5b6ceedfc9d4f8a0bf5846a08ed13da`）を追加し、3testの分離・Reset・TODOの残存、参考specの各商品・操作・数量/拒否Assertion、TODOだけ取り除いた弱いspecが業務検証条件を満たさないことを静的に照合する。`course:run`単独の終了コード0はAssertion充足の保証にならない。正式評価の意味的採否・実Runは#217/#199の受入で別検証し、今回の静的契約テスト自体を評価器とは扱わない。
 - **実行状態**：この作業では参考specの専用Chromium実行と本人実装は未実施。[Web CI #41865378412](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41865378412)はHEAD`700436c4a4ca7fb41e09e1593201ef791e2c8ddc`で確認時`queued`。CI完了を待たず、M06-01固定3 CaseのPR #215技術項目のみ完了と判定する。
+
+## 2026-11-05 M06-01別Case（004/005）の技術照合
+
+- **本人入力と参考を区別**：公開`training/ai-assisted-qa-course/inputs/M06/new-case.spec.ts`（Blob `8eaad67efa9b8f63db3f0187cf7de594fd3ff2a5`）には`CASE-CART-004`の未完成testが1件のみある。学習者は別の`CASE-CART-005`を新しいtestとして追加する。参考`assessment/playwright/M06/remove-item.spec.ts`（Blob `e9272e0a57545800b0c5dc1e428e7ee13b36412e`）と`quantity-update.spec.ts`（Blob `00eedfc14f9d2e5b8e74f0c0d8370ee1e9dd8789`）は別ファイル・別testであり、受講者用に完成状態をコピーしない。
+- **業務Assertion**：削除004はdefault Reset、Mug追加、削除前数量1、削除後の商品明細0・Cart空を検証。数量更新005は別のdefault Reset、Mug数量1→selectで2へ変更、数量2を確認、同じCartを再読み込み後も数量2を検証する。製品Cart UI（`src/presentation/pages/cart-page.tsx`、読み取り）は数量selectの候補を`index + 1`として生成し、数量変更と削除buttonは`updateQuantity`/`removeItem`の別経路である。Web画面で数量0を選択する架空E2Eは要求しない。
+- **契約テスト**：`tests/contracts/ai-assisted-qa-phase2-m06-separate-cases.test.mjs`（新規）に未完成入力、参考2本の独立Reset/業務Assertion、selectの数量保持、Web UIの数量0不可、教材のinitial/repeat・spec snapshot・提出欄の追跡条件を固定。公開参照specの有無と静的Assertionの存在は実Runや本人の独立実装を証明しない。
+- **完了境界**：本PRの技術的な`M06-01`新規Caseの対応付けは完了。学習者の`new-case.spec.ts`へ正解を埋めず、#199最終実受入で両Case各Runの2件以上PASS・Run/配布SHA/receipt/Traceを照合する。共通実行器の誤判定は#217の担当。
