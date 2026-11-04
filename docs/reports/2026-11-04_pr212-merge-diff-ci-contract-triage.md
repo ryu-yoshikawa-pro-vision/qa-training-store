@@ -1,5 +1,14 @@
 # PR #212 / PR #199 差分とCI契約の突合（2026-11-04）
 
+## 2026-11-04 追加：`AuthUseCases.getCurrentUser`の補助認証参照を確定
+
+- [コミット `6a2dbaa9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/6a2dbaa967d1e06ada3bf0ef8cdbad29e239f9a4)で`SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`の`related_use_cases`へ`AuthUseCases.getCurrentUser`を追加。既存の`use_case_evidence`と公開メソッド一覧の`behavior_id`は以前から同操作を指していた。
+- 根拠は`src/application/use-cases/auth-use-cases.ts:203-206`、`src/presentation/providers/app-runtime-provider.tsx:29-36`、`src/presentation/native/native-shell.tsx:27-46`の3範囲。Web Providerが初期化時/更新時、Native Shellが画面保護・現在ユーザー判定時に当該Use Caseを呼ぶ。一方、プロフィール本文の本人DTOの**直接取得は`AccountUseCases.getProfile`**であり、2つを同じ呼出しとして扱わない。
+- 208 Behaviorの`audit_branch_refs`は**2,517件・155ファイル**に更新。公開Use Case 76件の`related_use_cases`から直接参照されないIDは**1→0件**。前節の「`AuthUseCases.getCurrentUser`の直接参照なし」は本コミットで解消。79要件中29件の直接参照なし・6 Behaviorの関連/直接根拠差は未解決。
+- 基本分析179/188、非default17/20の`analysis_status`は不変。補助認証リンクを追加しただけで動的受入・全要件の意味網羅が完了したとは判断しない。
+- 直接未参照の**29要件は次の横断要件群**：Native 4（`BR-NATIVE-001/002`, `AC-NATIVE-001/002`）、権限7（`ROLE-01`〜`ROLE-05`, `ROLE-RANK`, `ROLE-STATUS`）、遷移/状態10（`TRANSITION-PRODUCT/ACCOUNT/CHECKOUT/ORDER/SHIPMENT/REVIEW/CART`, `STATE-TERMINAL/BOUNDARY/NATIVE`）、UI2（`UI-BREAKPOINT/DESIGN`）、範囲6（`SCOPE-SUPPORTED-1/2/3/4/6`, `PLATFORM-NATIVE`）。形式的な紐付けではなく、全体契約とBehavior個別受入の担当を特定する必要がある。
+
+
 ## 2026-11-04 引継ぎ後の全参照監査・補正（台帳HEAD `5fc0c345306d33bd6f5fc0cd13136fd7532b6275`）
 
 ### 実施範囲・結果
