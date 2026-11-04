@@ -27,7 +27,7 @@ function fixture() {
   tempDirectories.push(root);
   const specPath = path.join(root, "workspace/M05/p05-cart-locator.spec.ts");
   fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, "/* learner-authored placeholder for command testing only */\\n");
+  fs.writeFileSync(specPath, "/* learner-authored placeholder for command testing only */\n");
   const binDir = path.join(root, "bin");
   fs.mkdirSync(binDir);
   const stub = [
@@ -43,8 +43,8 @@ function fixture() {
     'echo "stubbed pnpm: no browser run"',
     'if [ "$P05_TEST_MODE" = "fail" ]; then exit 9; fi',
     "exit 0",
-  ].join("\\n");
-  fs.writeFileSync(path.join(binDir, "pnpm"), stub + "\\n", { mode: 0o755 });
+  ].join("\n");
+  fs.writeFileSync(path.join(binDir, "pnpm"), stub + "\n", { mode: 0o755 });
   return { root, specPath, binDir };
 }
 
