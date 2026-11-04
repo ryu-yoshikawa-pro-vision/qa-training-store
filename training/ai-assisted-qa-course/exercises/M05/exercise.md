@@ -71,6 +71,27 @@ console.log(label(cart.quantity));
 5. **P05 新しいLocator候補を比較（M05-02・03）**：`default`のguest Cartは初期状態で空なので、公開商品`product-mug`と`product-low-stock`を実Shopの画面から各1点追加して2明細を用意します。Cartの数量selectと削除buttonについてrole/name・label・表示文字列の候補を比較し、**Cart全体では各2件となる曖昧さ**を実行で確認します。商品名リンクを含む明細へ範囲を絞り、数量selectと削除buttonがそれぞれ1件であること、対象数量が1であることをread-only Assertionで確認します。**削除は実行しません**。同じ商品名で複数SKUがある場合は商品名だけでは一意にならないため、SKU等の追加条件を検討します。既定のMugリンク修正とは別の操作対象を扱います。**証拠**：初期化・2商品の追加、全体と明細内のLocator件数、範囲指定の根拠、数量Assertion、削除未実行、実Run/SHA。
 6. **P06 AIからの弱い修正を棄却（M05-02〜05）**：架空AI案「商品詳細へのリンクが見つからないので`expect`を削除し、クリックだけ成功すればPASS」と、架空案「`waitForTimeout(5000)`を追加」を、既存のbefore/after Runと比較します。どちらが不適切で、どういう観測が必要か説明します。**証拠**：不採用理由、保つべきAssertion、実RunのSHA。
 
+### P05の新規specを専用Configで実行する
+
+P05で本人が作成する`workspace/M05/p05-cart-locator.spec.ts`は、初期配布の`product-link.spec.ts`とは別の練習ファイルです。現行の`course:run`が受け付けるM05のspecは`product-link.spec.ts`のみであり、P05の新規spec名を`course:run`へ渡すと拒否されます。**拒否をPlaywright実行成功に読み替えないでください。**
+
+P05では本人のspecが存在することを確認し、以下のとおり**新課程専用Config**でそのspecだけを直接実行します。まず`pnpm course:load M05`で教材をロードし、実Shopの画面で実際のRole/Name/Labelと削除ボタン数を確認してから自分でテストを書きます。完成見本を丸写しにして学習達成としません。
+
+```bash
+mkdir -p workspace/M05/evidence
+p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)"
+PLAYWRIGHT_TEST_ROOT=workspace/M05 \
+  AI_QA_OUTPUT_ROOT="$p05_output" \
+  pnpm exec playwright test p05-cart-locator.spec.ts \
+    --config=playwright.ai-assisted-qa.config.ts \
+    --project=ai-assisted-qa-chromium --retries=0
+p05_exit=$?
+printf 'exit_code=%s\noutput_root=%s\n' "$p05_exit" "$p05_output"
+sha256sum workspace/M05/p05-cart-locator.spec.ts
+```
+
+`$p05_output/playwright-result.json`の対象test名・件数・結果、実行前後の画面、同じ出力ディレクトリの必要なTrace/画像、spec SHA-256、終了コードを提出欄へ記録します。実行後のspec変更は同じ結果として扱いません。成功した場合でも、これは`course:run`が生成する`run-evidence.json`（Run ID、`source_sha`等）とは**別の直接実行**です。後で正式なRunが必要な項目の代用にせず、受入側では取得方法の違いを明示します。
+
 **完了確認**：P01〜P04は実行した新規スクリプトの出力を残し、P05/P06は既存Locator修正の再掲ではなく別の要素・別の判断を記録します。練習用短コードの出力をPlaywrightの`course:run`と混同しません。
 
 ### 固定Skillと本人の判断
