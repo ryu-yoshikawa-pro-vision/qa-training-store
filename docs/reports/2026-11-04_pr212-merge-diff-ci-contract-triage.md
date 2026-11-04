@@ -273,3 +273,47 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 - このうち `SCREEN-CHECKOUT-CONFIRM-S-stale-cart` の `CheckoutOrderUseCases.getConfirmation:176` / `beginOrder:185`、`SCREEN-ADMIN-USER-DETAIL-A02-01` の `AdminUserUseCases.changeRole:567` / `changeSuspension:600`、`SCREEN-ADMIN-USER-DETAIL-A02-02` の `changeMembershipRank:542` / `changeRole:567` / `changeSuspension:600` は、各Caseが直接境界として検査対象とする公開メソッドなので**計7参照**を追加。これら3件は全て`review_required`のまま。
 - 残る**11件**については参照の意味を再点検する。①表示に必要な読取/副作用メソッド: `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`、`SCREEN-STOREFRONT-CART-A02-03`、`SCREEN-CHECKOUT-ADDRESS-A02-01`、`SCREEN-CHECKOUT-PAYMENT-A01-01`、`SCREEN-ADMIN-INVENTORIES-A01-03`、②主要UseCase以外の情報取得: `SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`、③関連する別操作/実行用fixtureと直接画面呼出しの分離: `SCREEN-ORDERS-DETAIL-A01-03`、`SCREEN-ORDERS-DETAIL-A02-02`、`SCREEN-ORDERS-DETAIL-S-reviewable`、`SCREEN-REVIEWS-EDITOR-A02-01`、`SCREEN-ADMIN-ORDERS-A02-01`。一律に`related_use_cases`を削除したり、実行したと偽って`use_case_evidence`を追加したりしない。
 - 追加した参照は台帳の**静的な情報源**。既存`audit_branch_refs`の意味一致、最終HEADのValidator/Tests、Use Caseの直接Run、DBの前後証拠は引き続き独立受入条件。
+
+## 2026-11-04 継続監査：公開Use Case対応差の分類と直接証拠5件補完
+
+対象：#212 commit `5d82e9b4c0287e5b488a3855c87994d76e33e46a`。製品本体・正式仕様・Seed/Reset・既存テスト、#199/#210/#211のファイルは変更していない。
+
+### 台帳へ反映した直接呼出し5件
+
+| 操作ID | 確認した画面経路 | `use_case_evidence` の追加定義 |
+| --- | --- | --- |
+| `SCREEN-STOREFRONT-CART-A02-03` | `cart-page.tsx:35-38` 初期loadで `getCart`、削除後は `removeItem` の返却DTOをsetCart。削除のたびにgetCartを追加呼出しするわけではない | `CartUseCases.getCart` `cart-use-cases.ts:82` |
+| `SCREEN-CHECKOUT-ADDRESS-A02-01` | `checkout-order-pages.tsx:115-147` のWeb `start` の `resumed` / `replaced` を通知。Native `useCheckoutSession` は `getActive` → 未開始時 `start` | `CheckoutOrderUseCases.start` `checkout-order-use-cases.ts:108` |
+| `SCREEN-CHECKOUT-PAYMENT-A01-01` | `checkout-order-pages.tsx:247-273` `getActive("payment")` でSessionを取得し `setPayment` | `CheckoutOrderUseCases.getActive` `checkout-order-use-cases.ts:141` |
+| `SCREEN-ADMIN-INVENTORIES-A01-03` | `admin-operations-pages.tsx:105-128` は選択SKUの `getInventoryDetail` と調整 `adjustInventory` を別に呼ぶ | `AdminOperationsUseCases.getInventoryDetail` `admin-operations-use-cases.ts:73` |
+| `SCREEN-ADMIN-ORDERS-A02-01` | `admin-operations-pages.tsx:320-343,430-490` の一覧 `searchOrders` → orderId Link → 詳細 `getOrder` | `AdminOperationsUseCases.searchOrders` `admin-operations-use-cases.ts:115` |
+
+追加5件とも台帳に既存の `related_use_cases` があり、公開メソッド定義の一意なpath・行・署名を現行ソースで確認した。以前からあった証拠は変更していない。特に削除後の再読取と削除Use Caseの戻りDTO、WebとNativeで異なるCheckout再開経路を混同しない。
+
+### 残る対応差7操作の意味（自動的不合格ではない）
+
+| ID | 差分と調停結果 | 後続の確認 |
+| --- | --- | --- |
+| `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock` | `CartUseCases.addItem` は在庫0での拒否を検証する別操作側の責務。状態表示の直接呼出しは `CatalogUseCases.getProductDetail`。関連情報は維持 | 在庫0のWeb disabledとUse Case直接拒否・DB/Cart不変の実証 |
+| `SCREEN-AUTH-ACCOUNT-PROFILE-A01-01` | 画面の直接データ取得は `AccountUseCases.getProfile`。`AuthUseCases.getCurrentUser` の追加証拠は認証状態の補助参照であり、プロフィール内容の直接取得とは区別 | RouteGuard / Runtimeの認証更新経路と本人データ非露出の実証 |
+| `SCREEN-ORDERS-DETAIL-A01-03` | 詳細画面は `getMyCustomerOrder` の `reviewState` を表示。`getEligibility/create/update` はリンク先のレビュー操作/状態遷移であり、注文詳細の直接呼出しではない | 投稿後再表示、非公開/削除済みの画面実Run・本人権限 |
+| `SCREEN-ORDERS-DETAIL-A02-02` | `AdminProductUseCases.update` と `AccountUseCases.updateAddress` は注文確定後に商品/住所を変える試験準備。履歴スナップショットの直接表示は `getMyCustomerOrder` | 購入後の変更前後、OrderItem/AddressSnapshotと実画面の不変性 |
+| `SCREEN-ORDERS-DETAIL-S-reviewable` | `getEligibility/create` はリンク先と状態生成に関連するが、注文詳細の直接読取は `getMyCustomerOrder` | 投稿可能→投稿済みへの遷移、別ユーザー拒否 |
+| `SCREEN-REVIEWS-EDITOR-A02-01` | `AdminReviewUseCases.changeVisibility` は管理者による状態変更であり顧客Editor画面の直接呼出しではない。顧客の状態読取/編集/削除とは分離 | published/hidden/deletedとHistory/Summaryの前後、Web/Native表示 |
+| `SCREEN-ADMIN-ORDERS-A02-01` | `startPreparation/ship/completeDelivery` は詳細遷移後の状態別更新。遷移は `searchOrders/getOrder` で読取のみ。後続更新の関連付けは保持 | 詳細への遷移時DB不変と、Version付き更新のCAS/拒否を別Caseで実証 |
+
+`related_use_cases` は直接呼出し専用フィールドではなく、別操作による状態生成や負例も関連として保持し得る。**そのため、7件をゼロにするためだけの一括削除・証拠捏造はしない**。直接呼出し不足5件についてのみ新たな根拠を記録した。7件の表の「後続確認」は実行・製品適合が未受入であることを意味する。
+
+### 固定HEADでの再照合・親ブランチとの差分
+
+- `implementation_evidence`・`seed_evidence`・`seed_evidence.transform` は25ソースファイルの**624/624件**で行番号・署名が一致。
+- `use_case_evidence` は9 Use Caseソースファイルの**296/296件**で正本76公開メソッドのID、path、行、署名と一致。13件はメソッド署名先頭の空白文字が異なるため、空白を除いて比較。**合計920/920の静的参照一致**（実行結果ではない）。
+- 親#199比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098` と#212 `5d82e9b4` の同一208件をID・フィールド単位で比較。**相違111件＝分析ステータス差58件＋ステータス以外だけの差53件**。58件はステータス以外の項目も異なるため、各フィールドの差件数としては111件すべてにステータス以外の差がある。#199のみが `analyzed` の操作は0件。前HEADの差109件は最新比較値ではない。
+- 基本分析**179/188操作**、非default**17/20状態**、79要件、76公開Use Case、`audit_branch_refs` 未設定の analyzed 13件、関連Use Case未設定22操作は維持。状態・分母・source_commitは変更していない。
+
+### 前HEADのWeb CIを確定（新コミットのCIとは区別）
+
+#212 `eaacfd5b2b1f527c67d69462b63bff2b1b651b89` の [Web CI #41748832195](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41748832195) は **completed/failure**。契約13失敗＝ `supported-behaviors` の固定 `review_required` 期待12件、Assessment Calibration 1件。Prettierは `ai-assisted-qa-admin-users-list.test.mjs` / `ai-assisted-qa-assessment.test.mjs` の2ファイル。verify/validateは失敗。一方、Integration/Repository/Component/Unit、Code Quality、build、required/cross-role/accessibility/mobile-boundary/training Chromium E2E、UI Review 4画面サイズ、Training runtime contractsは成功。
+
+これらは全て**追加5参照のコミット前のCI**。新HEADに成功/失敗結果を流用しない。#212の変更境界に従い、#199側の固定status契約/Validator、#211 Assessment修正と各PR担当のPrettierはこのPRで編集しない。新HEADのCI、実Web/Android/DB/Session/Trace、製品適合、教材と配布の技術受入は引き続き別ゲート。
+
