@@ -2214,13 +2214,13 @@
       "expected": "表示可能な商品がない理由と元の画面に戻る導線を表示する。",
       "rule_refs": [],
       "route": "`/products`",
-      "risk": "正式empty画面で復旧リンクがないため初学者が商品探索へ戻れない。条件付き0件と全商品0件の案内を混同する恐れ（教材導線・UX影響、重大度Medium候補）",
-      "test_condition": "empty-catalog Reset→Web desktop /products (page=1/フィルタなし) で0件案内と元の画面への戻り導線の有無を確認。フィルタで0件となる別条件では『条件をすべて解除』があることを対比較。実ブラウザ実行と視覚正本比較は未実施",
+      "risk": "全商品0件のStatePanel内はaction=nullだが、画面上部のパンくずにはホーム(/)へのLinkがある。正式仕様の『元の画面に戻る導線』をパンくずで満たせるかは仕様解釈・視覚受入が未確定。条件付き0件の『条件をすべて解除』とは復旧方法が異なる（UX/教材導線のMedium候補）",
+      "test_condition": "empty-catalog Reset→Web desktopの素の/products（page=1/検索・フィルタなし）で0件案内とStatePanel action=null、パンくず『ホーム』Linkの表示・遷移先/を確認。仕様の『元の画面に戻る』がパンくずを含むかは正式画面リファレンスと対照する。検索・絞込で0件になった場合は『条件をすべて解除』ボタンが表示・動作することを別Caseで確認。実ブラウザ/画面画像/keyboard/a11y、Reset後DB状態と復帰導線の使用性は未受入",
       "test_responsibility": "対応操作SCREEN-STOREFRONT-PRODUCT-LIST-A01-01の状態別期待結果を検証",
       "case_policy": "基準状態と非default状態の対比較",
       "case_selection_reason": "emptyに固有の表示・操作制御を確認し、親操作のCaseへ含める",
       "analysis_status": "review_required",
-      "basic_analysis_review": "storefront.md:68-74では『表示可能な商品がない理由と元の画面に戻る導線』が必須。一方CatalogListContent:282-288/502-525ではunfiltered /productsの0件はStatePanel action=nullで戻り導線なし。catalog-pages.test.tsx:305-313も無CTAを明示的に期待。仕様と現実の不一致候補のためreview_requiredを維持。SUT修正・正式仕様変更・Issue作成は行わず、ユーザー判断待ち",
+      "basic_analysis_review": "storefront.md:68-74はempty時に『表示可能な商品がない理由と元の画面に戻る導線』を要求。CatalogListContent:282-290には常設のBreadcrumbsでホーム(/)への導線があり、Breadcrumbs:4-18はExpo RouterのLinkとして描画する。一方、unfiltered /productsの0件はCatalogListContent:501-525でStatePanel action=null。catalog-pages.test.tsx:305-313はパネル内CTAなしを期待する。したがって『画面上に戻り導線が一切ない』とは断定できない。パンくずで正式仕様を満たすか、別途復旧CTAが必要かは正本画像と実Webの挙動・操作性を確認するまで未判断。製品実装/正式仕様は変更せずreview_requiredを維持",
       "requirement_refs": [
         "BR-STOREFRONT-001",
         "BR-STOREFRONT-002",
@@ -2232,7 +2232,7 @@
       "related_use_cases": [],
       "covered_by": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "仕様/Seed/UI/既存componentを照合し、unfiltered emptyの復旧導線不一致を検出。製品変更禁止のため未決として記録。実ブラウザ再現/受入は別途",
+      "analysis_progress": "仕様/Seed/UI/既存componentに加え、パンくずLinkを独立照合。空状態パネル内CTA欠落は確認したが、画面のホームLinkは存在するため仕様不適合を未確定へ整理。実Web/視覚/a11y・元画面の意味の受入が残る",
       "implementation_evidence": {
         "path": "src/presentation/pages/catalog-list-page.tsx",
         "line": 111,
@@ -2252,7 +2252,51 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/storefront.md",
+          "start_line": 68,
+          "end_line": 74,
+          "reason": "empty-catalogで元画面への導線を求める正式UI状態"
+        },
+        {
+          "path": "src/seeds/metadata.ts",
+          "start_line": 86,
+          "end_line": 94,
+          "reason": "empty-catalogの対象ルートと初期guest Session"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 39,
+          "end_line": 40,
+          "reason": "empty-catalogを生成するSeed変換入口"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 282,
+          "end_line": 290,
+          "reason": "一覧画面に常設のパンくず『ホーム』href=/がある"
+        },
+        {
+          "path": "src/presentation/patterns/admin-patterns.tsx",
+          "start_line": 4,
+          "end_line": 18,
+          "reason": "パンくずのhref指定項目は実際のExpo Router Linkとして描画される"
+        },
+        {
+          "path": "src/presentation/pages/catalog-list-page.tsx",
+          "start_line": 501,
+          "end_line": 525,
+          "reason": "無条件0件はStatePanel action=null、絞込後0件は解除CTAを表示する"
+        },
+        {
+          "path": "tests/component/catalog-pages.test.tsx",
+          "start_line": 305,
+          "end_line": 316,
+          "reason": "既存componentテストは無条件0件のCTAなしを明示的に期待（実Web/Seed受入ではない）"
+        }
+      ]
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products",
