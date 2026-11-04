@@ -115,7 +115,6 @@ test("M05 P05: 2明細の数量と削除操作対象を識別する", async ({ p
 });
 ```
 
-
 ```bash
 mkdir -p workspace/M05/evidence
 p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)"
