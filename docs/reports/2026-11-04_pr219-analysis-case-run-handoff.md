@@ -43,3 +43,11 @@
 - 正式Case採否、各`condition_ref`との対応、直接未参照29横断要件の必要条件、ケース間の重複・統合は未確定。#213から採用判断と正式Case IDを受け取った後、同キーを使い固定SUT/Test SHAとRun/job/exit、Platform/Role/Seed/Clock、期待・観測、DB前後、Trace/画像/Network（実在する証拠のみ）を結び直す。
 - Web実行結果の最新の全体成功はテストSHA `83fb0325d6efc7d2a517561e52f32bfe793f5986`の[CI #41811366480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)。この時点のPR #219 HEAD `77327824e12e2fff6cafa3ef80efcdd0b37199dd`のチェックはCodeRabbit skippedのみであり、最新HEADのWeb CI PASSとは主張しない。後続のdocs更新も別SHAとして扱う。
 - これで**タスクリスト2番・19番・20番が完了したとは判定しない**。39行のWeb実行証拠にはDB前後実物・成功時Trace/画像/Networkが不足し、Android/SQLiteはBLOCKED、Case採否は#213判断待ち。既知製品不具合の再現成功も製品適合PASSと区別する。
+
+## 208動作とWeb実行証拠の再照合・Seed Clock（2026-11-04）
+
+- Web実行証拠表（`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`）39実行行に、`seed_clock_expected_iso`と`clock_basis`を追加。対象Seedは`default`、`regular-member`、`suspended-user`、`withdrawn-user`、`checkout-resume`、`empty-catalog`、`many-products`。すべて`src/seeds/metadata.ts`の`BASE_CLOCK`と`src/seeds/scenarios.ts`の初期設定から期待時刻`2026-07-01T03:00:00.000Z`を導出したもので、**実行時のTestInfo添付データから読んだ観測値ではない**。既存の`clock`欄やRun/結果は変更していない。
+- `docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv`の208動作へ`matched_web_evidence_case_keys`を追加。実行表の`behavior_id`が一致する**11動作・19証拠キー**だけを関連付け、197動作は空欄とした。Behavior未確定のWeb実行6行（3証拠キー、`BR-AUTH-001/002`参照）は勝手に割り当てない。
+- 変更前後のCSVを列単位で比較し、Web39行・元32列、Behavior208行・元17列はすべて不変、列数不整合0を確認。新規列は静的な照合情報であり、採用Caseの合格・動的証拠の取得を意味しない。
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`のCheckout stale-cartは、既知の戻り先不具合を再現するCaseと、7画面幅（320/390/767/768/1023/1024/1440px）・320/1024pxのaxe・Focus/Enter・画像を取得するCaseに分離した。共通セットアップのみ再利用。更新SHA `84d3a455acc831efb3b3d24c1a950a9734e8ec1e`の**実行結果は未確認**であり、当該チェックは保留。
+- タスクリスト2・13・19・20は未チェックのまま。#213の正式Case採否・条件参照、成功時Trace/画像保存、DB前後の実物、Android/SQLite、独立レビューが未完了。これらをCI旧HEAD `83fb0325`の成功で代用しない。
