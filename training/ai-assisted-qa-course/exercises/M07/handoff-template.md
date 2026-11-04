@@ -9,6 +9,8 @@ M07終了時に本人が記入します。教材テンプレートには完成�
 - 対象module load receipt:
 - 修正後spec: `workspace/M07/repaired-assertion.spec.ts`
 - 保守演習の本人spec: `workspace/M07/maintenance.spec.ts`（`M07-result-04` / `M07-result-v1` / `M07-to-M08-handoff-v1`）
+- M05 P03の型検査対象ファイル `workspace/M05/p03-type-error.ts`と、誤型/修正後の終了コード・診断記録:
+- M05 P05の本人新規spec `workspace/M05/p05-cart-locator.spec.ts`とSHA-256、直接実行の`console.log`・`playwright-result.json`・終了コード・保存先（`course:run`のreceiptではない）:
 - M06から引き継いだCart Case・spec・提出物のID、revisionと、公開fallbackを使った場合の区別:
 - Playwright Config: `playwright.ai-assisted-qa.config.ts`
 - 依存: `package.json`、`pnpm-lock.yaml`（各SHA-256）
