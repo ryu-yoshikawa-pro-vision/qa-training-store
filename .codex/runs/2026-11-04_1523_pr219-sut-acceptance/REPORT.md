@@ -70,3 +70,7 @@
 - CI #41824802868でstale Cart拒否時のIndexedDB10表不変を初回PASSとして実証。テストHEAD `681e55c`、SUT `46cd014e`、cross-role job `126557496126` success、`PR219_CASE_EVIDENCE`の`tableCount=10` / `allTablesUnchanged=true`を確認。全23表不変の停止staff循環再現、Checkout競合7幅と製品の誤復帰先も個別成功で再確認。ワークフローはStyle Quality failure、cross-role既存Case2件はflakyだったため、全CI合格や製品適合と混同しない。
 - Style QualityのPrettier違反を専用E2Eで修正（`6455a4d`）、Run #41826050155 Style Quality job `126560935572` successを確認。#199共有E2Eの`getByRole("status")`二重一致（operation-message + loading status）は#199コメント #6630183604に正確な発生箇所と修正候補を引継いだ。既存SUT・テスト・workflow変更なし。
 - Web証拠CSV `PR219-WEB-025`を追加（42行/34列、過去の41行不変）、208動作一覧に接続。正式Case ID採用、Android SQLite・全条件・成功時Artifact・独立レビューは未完。14/21のチェックは変更せず、CI完了は待機しない。
+
+- #41826786410（c1ff77f）のworkflow全体successを確認。cross-role job 126564385617 は29件PASS、DB10表不変・停止staff旧Sessionでの全23表不変・Checkout競合7幅を個別実証。前二者のうち停止staffとCheckout誤復帰は製品FAIL再現であり製品合格にはしない。対応するWeb3Caseを同じ暫定キーで固定Run履歴として追記し、Web45履歴行/34列（旧42行不変）、キー25種類、208動作中11動作直接紐付け・197動作未紐付けを維持。
+- 新規#219専用契約テスト `tests/contracts/pr219-web-evidence-ledger.test.mjs`でCSV構造、40桁のテストHEAD/SUT、Run/Job ID、期待Clock≠実測、過去Runの証拠キー再利用とBehavior参照整合、BR/ACの誤割当て防止を検査する。追加コミット `de1c54f`のCI #41830058305でStyle QualityにPrettier違反を検出し、`6ea26c4`で修正。修正後の契約テスト実Runは未確認。CI待機は行わず次回検証する。
+- この実行環境は`ANDROID_HOME`未設定で`adb`、`emulator`、`maestro`未導入。実Android/SQLite/端末復帰と画面録画は未実施。#213の正式Case ID採否、#199の成功時cross-role Artifact保管、全採用Caseの独立レビューも未完。14/21のチェック維持。
