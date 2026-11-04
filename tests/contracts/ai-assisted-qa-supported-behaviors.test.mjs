@@ -1213,7 +1213,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     );
   });
 
-  it("keeps 79 requirement case-condition references traceable without treating them as executed", () => {
+  it("tracks 79 requirements to unaccepted case conditions", () => {
     expect(data.requirements).toHaveLength(79);
     for (const requirement of data.requirements) {
       const audit = requirement.requirement_analysis;
@@ -1232,10 +1232,18 @@ describe("サポート機能の仕様と実装の追跡", () => {
       }
     }
     for (const change of [
-      (trace) => { trace.row_keys[0].behavior_id = "NONEXISTENT-BEHAVIOR"; },
-      (trace) => { trace.row_keys[0].condition_refs = []; },
-      (trace) => { trace.source_blob_sha = "not-a-commit"; },
-      (trace) => { trace.acceptance_status = "PASS"; },
+      (trace) => {
+        trace.row_keys[0].behavior_id = "NONEXISTENT-BEHAVIOR";
+      },
+      (trace) => {
+        trace.row_keys[0].condition_refs = [];
+      },
+      (trace) => {
+        trace.source_blob_sha = "not-a-commit";
+      },
+      (trace) => {
+        trace.acceptance_status = "PASS";
+      },
     ]) {
       const changed = mutated((next) => {
         change(next.requirements[0].requirement_analysis.sut_case_trace);
@@ -1245,5 +1253,4 @@ describe("サポート機能の仕様と実装の追跡", () => {
       );
     }
   });
-
 });
