@@ -65,7 +65,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
   it("preserves valid CSV syntax and immutable per-run references", () => {
     const cases = readCsv(WEB_CASES);
     expect(cases.header).toHaveLength(34);
-    expect(cases.rows.length).toBeGreaterThanOrEqual(42);
+    expect(cases.rows.length).toBeGreaterThanOrEqual(48);
 
     for (const item of cases.rows) {
       for (const field of [
@@ -93,8 +93,16 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       expect(item.job_id).toMatch(/^\d+$/);
       expect(item.job_exit_code).toMatch(/^\d+$/);
       expect(item.seed_clock_expected_iso).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-      // An expected Seed clock is not evidence of an observed runtime clock.
-      expect(item.clock_basis).toMatch(/(実測ではない|実測値は未取得)/);
+      // Expected Seed time and a runtime-observed clock require different evidence.
+      const basis = item.clock_basis;
+      if (basis.includes("clockObservedAtReset実測")) {
+        const metadata = item.scenario_metadata_console;
+        const actual = metadata.match(/clockObservedAtReset=([^\s、]+)/);
+        expect(actual?.[1]).toBe(item.seed_clock_expected_iso);
+        expect(item.clock).toContain("TestMetadata.clock実測");
+      } else {
+        expect(basis).toMatch(/(実測ではない|実測値は未取得)/);
+      }
       if (item.case_id.startsWith("KNOWN DEFECT REPRO:")) {
         const classification = `${item.case_result} ${item.note}`;
         expect(classification).toMatch(/(製品FAIL|製品不具合|不具合の期待失敗)/);
@@ -129,9 +137,9 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       const keys = refs.split(";");
       expect(new Set(keys).size).toBe(keys.length);
       for (const key of keys) {
-        const matchingEvidence = byKey.get(key)?.some(
-          (item) => item.behavior_id === behavior.behavior_id,
-        );
+        const matchingEvidence = byKey
+          .get(key)
+          ?.some((item) => item.behavior_id === behavior.behavior_id);
         expect(matchingEvidence).toBe(true);
       }
     }
@@ -155,20 +163,5 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     });
     expect(() => parseCsv('case,key\n"unfinished')).toThrow("Unclosed CSV quote");
     expect(() => parseCsv("case,key\none\n")).toThrow("Inconsistent CSV column count");
-  });
-
-  // Temporary diagnostics: records the exact formatter output in the job log.
-  it("diagnoses the exact formatter output for this contract", async () => {
-    const file = join(process.cwd(), "tests/contracts/pr219-web-evidence-ledger.test.mjs");
-    const contents = readFileSync(file, "utf8");
-    const prettier = await import("prettier");
-    const config = await prettier.resolveConfig(file);
-    const result = await prettier.format(contents, {
-      ...config,
-      filepath: file,
-    });
-    if (contents !== result) {
-      console.log("PR219_PRETTIER_EXPECTED " + JSON.stringify(result));
-    }
   });
 });
