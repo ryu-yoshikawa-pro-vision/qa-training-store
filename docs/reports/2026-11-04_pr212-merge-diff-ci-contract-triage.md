@@ -10,14 +10,11 @@
 - **79要件中29件は`requirement_refs`と`rule_refs`の両方から未参照**：Native固有BR/AC 4件、Role/Rank/Status 7件、遷移/状態 10件、UI 2件、サポート範囲 6件。これは**直接参照の欠落の事実**であり、横断契約に専用テストがある場合まで未検証と断定しない。各要件について担当テストとRole×Platform×State×Error×Version×Dataの実行証拠を対応させる最終監査は残る。
 - この監査で分析ステータス、製品適合、Web/Native実行、権限・永続化の挙動は変更・判定していない。#199の固定status契約とValidator、#211 Assessment、#210製品差分、同一統合HEAD必須CIは従来どおり別作業。
 
-
-
 ## 2026-11-04 再計算：131 Behavior差への更新（#199固定HEAD `493a403b...`）
 
 - 現行#212台帳（`1f60df35`時点）と#199 `493a403b6449ae908117a23b4d631132a7d6d098`の**同一208 ID**をフィールド単位で再比較した結果、**131件の相違（分析Status差58件、その他のみ73件）**。以前の124件（Status差58件、その他66件）は54参照行補正・重複整理・補助認証紐付け**前**の値であり、最新値として使わない。
 - 124→131に増えた7 IDは`SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`、`SCREEN-ORDERS-DETAIL-A01-03`、`SCREEN-REVIEWS-EDITOR-A01-01`、`SCREEN-REVIEWS-EDITOR-A02-02`、`SCREEN-ADMIN-BRANDS-A01-03`、`SCREEN-ADMIN-ORDER-DETAIL-A01-01`、`SCREEN-ADMIN-ORDER-DETAIL-A02-01`。前者は関連Use Case/分析記録/参照追加、残り6件は既存参照の終了行補正のみ。
 - #199単独で`analyzed`の操作を#212が`review_required`に下げたものは0。**58件のStatus差は静的基本分析の結果差**であり、製品適合・実Runでの合格を示さない。全量統合時に同一HEADでID＋フィールド比較を再実行する。
-
 
 ## 2026-11-04 追加：補助・別操作・前提操作の6件を個別調停
 
@@ -34,7 +31,6 @@
 
 この分類は台帳に既にある処理経路・責務の**静的な整合確認**。6件の`related_use_cases`を削除したり、欠落と断じて`use_case_evidence`へ一括複製しない。実行中のWeb CIが成功しても上記Caseの個別動的受入は別途必要。状態・基本分析件数の変更は行わない。
 
-
 ## 2026-11-04 追加：`AuthUseCases.getCurrentUser`の補助認証参照を確定
 
 - [コミット `6a2dbaa9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/6a2dbaa967d1e06ada3bf0ef8cdbad29e239f9a4)で`SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`の`related_use_cases`へ`AuthUseCases.getCurrentUser`を追加。既存の`use_case_evidence`と公開メソッド一覧の`behavior_id`は以前から同操作を指していた。
@@ -42,7 +38,6 @@
 - 208 Behaviorの`audit_branch_refs`は**2,517件・155ファイル**に更新。公開Use Case 76件の`related_use_cases`から直接参照されないIDは**1→0件**。前節の「`AuthUseCases.getCurrentUser`の直接参照なし」は本コミットで解消。79要件中29件の直接参照なし・6 Behaviorの関連/直接根拠差は未解決。
 - 基本分析179/188、非default17/20の`analysis_status`は不変。補助認証リンクを追加しただけで動的受入・全要件の意味網羅が完了したとは判断しない。
 - 直接未参照の**29要件は次の横断要件群**：Native 4（`BR-NATIVE-001/002`, `AC-NATIVE-001/002`）、権限7（`ROLE-01`〜`ROLE-05`, `ROLE-RANK`, `ROLE-STATUS`）、遷移/状態10（`TRANSITION-PRODUCT/ACCOUNT/CHECKOUT/ORDER/SHIPMENT/REVIEW/CART`, `STATE-TERMINAL/BOUNDARY/NATIVE`）、UI2（`UI-BREAKPOINT/DESIGN`）、範囲6（`SCOPE-SUPPORTED-1/2/3/4/6`, `PLATFORM-NATIVE`）。形式的な紐付けではなく、全体契約とBehavior個別受入の担当を特定する必要がある。
-
 
 ## 2026-11-04 引継ぎ後の全参照監査・補正（台帳HEAD `5fc0c345306d33bd6f5fc0cd13136fd7532b6275`）
 
@@ -68,7 +63,6 @@
 - [Web CI #41759859801](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41759859801)（前HEAD `00b68816`）は**completed/failure**。29 jobs中22 success、4 failure（Style Quality / Vitest contracts / verify / validate）、3 skipped。`5fc0c345`の[Web CI #41761106845](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41761106845)は記録時点でin_progress。後続CIは完了してから固定HEADで受入する。
 - この追加作業は台帳の参照補正1コミットと本報告書のみ。#199/#210/#211のコード、製品SUT・仕様・Seed/Reset・既存製品テストを変更していない。実行証拠がない12件は`review_required`のまま。merge/force pushなし。
 
-
 ## 2026-11-04 引継ぎ時HEADのWeb CI確定（`3b0da3ea9742dee0db26f776cde9fb8eaddebdf4`）
 
 - [Web CI #41758911771](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758911771)は **completed/failure**。この結果は上記固定HEADのもので、後続コミットのPASSを保証しない。
@@ -78,7 +72,6 @@
 - Code Quality、Training runtime contracts、build-production/automation、Integration/Unit/Component/Repository、Chromium E2E（required / training-web-baseline / cross-role / mobile-boundary / accessibility）、UI Review（desktop / tablet / mobile / small-mobile）は**同Runでsuccess**。Android実機・MaestroやMobile必須CIの成功を意味しない。
 - 新規追加の`audit_branch_refs`に直接起因する失敗は、このRunの失敗ログからは確認されなかった。ただし参照の意味的妥当性、実Web/Androidでの動作、製品適合は未受入。
 - 調停先は#199の固定ステータス契約・Validator、#211のAssessment期待差、担当ブランチのPrettier。#212では分析ステータスをCI通過目的で巻き戻さず、製品SUT・正式仕様・Seed/Reset・他PRのコードを変更しない。#199/#210/#211/#212を統合した同一HEADのWeb/Mobile必須CIは別途確認する。
-
 
 ## 対象と作業境界
 
@@ -393,7 +386,7 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 
 ### 前HEADのWeb CIを確定（新コミットのCIとは区別）
 
-#212 `eaacfd5b2b1f527c67d69462b63bff2b1b651b89` の [Web CI #41748832195](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41748832195) は **completed/failure**。契約13失敗＝ `supported-behaviors` の固定 `review_required` 期待12件、Assessment Calibration 1件。Prettierは `ai-assisted-qa-admin-users-list.test.mjs` / `ai-assisted-qa-assessment.test.mjs` の2ファイル。verify/validateは失敗。一方、Integration/Repository/Component/Unit、Code Quality、build、required/cross-role/accessibility/mobile-boundary/training Chromium E2E、UI Review 4画面サイズ、Training runtime contractsは成功。
+PR #212 `eaacfd5b2b1f527c67d69462b63bff2b1b651b89` の [Web CI #41748832195](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41748832195) は **completed/failure**。契約13失敗＝ `supported-behaviors` の固定 `review_required` 期待12件、Assessment Calibration 1件。Prettierは `ai-assisted-qa-admin-users-list.test.mjs` / `ai-assisted-qa-assessment.test.mjs` の2ファイル。verify/validateは失敗。一方、Integration/Repository/Component/Unit、Code Quality、build、required/cross-role/accessibility/mobile-boundary/training Chromium E2E、UI Review 4画面サイズ、Training runtime contractsは成功。
 
 これらは全て**追加5参照のコミット前のCI**。新HEADに成功/失敗結果を流用しない。#212の変更境界に従い、#199側の固定status契約/Validator、#211 Assessment修正と各PR担当のPrettierはこのPRで編集しない。新HEADのCI、実Web/Android/DB/Session/Trace、製品適合、教材と配布の技術受入は引き続き別ゲート。
 
@@ -429,8 +422,6 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 - **製品/実受入**：#210の認可/Version、決済runtime、Web/Native差、IndexedDB/SQLite全表前後、Maestro/Android、画像・keyboard/a11y。今回の参照補完で完了扱いしない。
 - **教材/配布/統合**：M00〜M10実演習・採点・Private CI・`course:sync`・ライセンス・各PRの競合調整、同一最終HEADの必須Web/Mobile CIと独立レビュー。merge/force push等は未実施。
 
-
 ### 追加確認：60参照追加HEADのCI結論
 
 [`47c868f9` Web CI #41758131249](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758131249)は**completed/failure**。ジョブログを独立照合し、Vitest contracts は**1032 passed / 13 failed / 1 expected fail / 15 skipped**。失敗は従来どおり固定`review_required`期待12件＋Assessment復旧期待エラー1件。Style Qualityも既存`ai-assisted-qa-admin-users-list.test.mjs`、`ai-assisted-qa-assessment.test.mjs`の2ファイルのみ。コード品質、Integration、Repository、Component、Unit、Training runtime contracts、UI Review、主要Chromium E2E等は成功。今回追加した60件の`audit_branch_refs`自体に起因する新たな失敗はこのログでは検出されていない。ただし`cd02b39f`以降の最終HEAD成功とは別扱い。
-

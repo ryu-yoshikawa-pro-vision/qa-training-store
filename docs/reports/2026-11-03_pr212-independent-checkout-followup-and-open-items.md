@@ -69,7 +69,7 @@
 
 ## 横断的な残タスクと受入条件
 
-**台帳と正本の整合**
+### 台帳と正本の整合
 
 1. 188操作（172 action + 16 use_case）・20 stateの分母と `docs/spec/screen-catalog.md`、79要件、76 Use Caseメソッドのリンクを画面/Role/Platform/状態単位で照合する。今回は構造数とID一意性までは確認したが、正本と全件突合は未了。
 2. 179件の `analyzed` に存在する `expected/risk/test_condition/case_policy/case_selection_reason` 等の空欄を機械検査。今回 **この5項目は179/179埋まっている**。個別の正確性と十分性は未監査。
@@ -78,28 +78,27 @@
 5. `use_case_evidence` が未設定の分析済み **47件**、`related_use_cases` 配列が空の **23件**、今回の追加監査用 `audit_branch_refs` がない **21件**。UI専用/Use Case専用の操作も含むため直ちに不備と断定しない。個別に必須性と相当する証拠を判定する。
 6. 以前の「UI不具合修正済み」「回帰テスト追加済み」の記載を、分離された #210 の製品変更と混同せず **最新HEAD** の実装/実在テスト/CI結果で再評価。古い計画のPASSを移植しない。
 
-**Web/Android・データ整合**
+### Web/Android・データ整合
 
-7. ResetのVersion・Build種別・Seed/Clock/roleの再現性、再実行/失敗途中/rollback・Session/IndexedDB/SQLiteの前後差を証拠化。
-8. Checkoutの住所・決済・確認・処理・成功/失敗・再試行と4種決済、旧Cart、価格/Sale/Rank変更、24時間期限、同時操作、最終在庫不足、二重Order/Shipment/History、本人/別人/無認証を横断。
-9. 管理商品・ユーザー・Inventory・Order・Reviewの検索/ソート/ページ/権限/版競合/一括部分成功を固定Seedと操作後変更で検査。
-10. Web browser Playwrightで各Role・状態の操作、URL直アクセス、正本画面との比較、DOM/Console/Network/Trace、IndexedDB前後を保存し、少なくとも不具合候補に再現証拠を与える。
-11. Android実機または妥当なエミュレータとMaestroで同条件を検査し、Native SQLite、プロセス再起動、Navigation、タップ・戻る操作、スナップショット、不正Roleを確認。
-12. デスクトップ/タブレット/Androidの画面画像・レイアウト/可読性/キーボード/フォーカス/スクリーンリーダー/エラー・空状態・通信中表示を比較。
-13. 仕様と実装の差は根拠付きで#210の判断・修正候補へ渡す。**製品コード・公式仕様・Seed・既存製品テストをPR #212から直接更新しない**。
+1. ResetのVersion・Build種別・Seed/Clock/roleの再現性、再実行/失敗途中/rollback・Session/IndexedDB/SQLiteの前後差を証拠化。
+2. Checkoutの住所・決済・確認・処理・成功/失敗・再試行と4種決済、旧Cart、価格/Sale/Rank変更、24時間期限、同時操作、最終在庫不足、二重Order/Shipment/History、本人/別人/無認証を横断。
+3. 管理商品・ユーザー・Inventory・Order・Reviewの検索/ソート/ページ/権限/版競合/一括部分成功を固定Seedと操作後変更で検査。
+4. Web browser Playwrightで各Role・状態の操作、URL直アクセス、正本画面との比較、DOM/Console/Network/Trace、IndexedDB前後を保存し、少なくとも不具合候補に再現証拠を与える。
+5. Android実機または妥当なエミュレータとMaestroで同条件を検査し、Native SQLite、プロセス再起動、Navigation、タップ・戻る操作、スナップショット、不正Roleを確認。
+6. デスクトップ/タブレット/Androidの画面画像・レイアウト/可読性/キーボード/フォーカス/スクリーンリーダー/エラー・空状態・通信中表示を比較。
+7. 仕様と実装の差は根拠付きで#210の判断・修正候補へ渡す。**製品コード・公式仕様・Seed・既存製品テストをPR #212から直接更新しない**。
 
-**教材・CI・PR統合**
+### 教材・CI・PR統合
 
-14. PR #199本体の教材M00〜M10（11モジュール）と演習/評価、既知のM02→M03の技法から実行への受渡し、M04/M07/M10の採点、M05〜M07 Playwright、M08 Git、M09/M10 private CIとPR証拠を、教材の受入基準ごとに独立レビューする。
-15. `course:sync`、配布用manifest、レッスン/クイズ、学習環境、22状態に関する検証を正本で追跡する。画像/ライセンス・セキュリティ・学習データ保護も検証。
-16. `node scripts/training/validate-supported-behaviors.mjs`、契約/Unit/Integration/Vitest、Web Playwright、Android/Maestroを必要な環境で実行し、ログ/終了コード/保存先/HEADを記録。**この作業では一つも実行していない**。
-17. PR #199の自動実行を止めたり上書きしたりせず、PR #212の `analyzed` 179件とPR #199最新ID/フィールドの三者比較を実施し、重複/異なる根拠/未決項目の競合を解消してから統合する。
-18. PR #199/ #212のCI・Reviewを最終統合**同一HEAD**で確認。Draft解除/mergeは権限のある担当者の判断と明示指示を要し、現時点で実施しない。
-19. #210（製品問題）/ #211（教材）、既存Issue/Plan/受入タスクと現成果を参照して未着手・検証待ち・仕様判断待ちを分ける。新Issue、PRのmerge、branch削除、強制pushをしない。
+1. PR #199本体の教材M00〜M10（11モジュール）と演習/評価、既知のM02→M03の技法から実行への受渡し、M04/M07/M10の採点、M05〜M07 Playwright、M08 Git、M09/M10 private CIとPR証拠を、教材の受入基準ごとに独立レビューする。
+2. `course:sync`、配布用manifest、レッスン/クイズ、学習環境、22状態に関する検証を正本で追跡する。画像/ライセンス・セキュリティ・学習データ保護も検証。
+3. `node scripts/training/validate-supported-behaviors.mjs`、契約/Unit/Integration/Vitest、Web Playwright、Android/Maestroを必要な環境で実行し、ログ/終了コード/保存先/HEADを記録。**この作業では一つも実行していない**。
+4. PR #199の自動実行を止めたり上書きしたりせず、PR #212の `analyzed` 179件とPR #199最新ID/フィールドの三者比較を実施し、重複/異なる根拠/未決項目の競合を解消してから統合する。
+5. PR #199/ #212のCI・Reviewを最終統合**同一HEAD**で確認。Draft解除/mergeは権限のある担当者の判断と明示指示を要し、現時点で実施しない。
+6. #210（製品問題）/ #211（教材）、既存Issue/Plan/受入タスクと現成果を参照して未着手・検証待ち・仕様判断待ちを分ける。新Issue、PRのmerge、branch削除、強制pushをしない。
 
 ## 検証の範囲と次の作業順
 
 今回の確認はGitHub上の**コード・仕様・既存テストを読み取った静的追跡とJSONの機械整合チェック**。実際のテスト/ブラウザ/Android/CIを実行していないので、`analyzed` 179件を「製品受入済み179件」や「テスト179件PASS」と読むことはできない。
 
 次の優先順は、(1) PR #199最新HEAD差分照合、(2) 管理商品/管理ユーザー/アクセス拒否3件のWeb/Android実行と正式受入判断、(3) 定期実行側の6件を重複排除しながら監査、(4) 非default 3状態の実ブラウザ確認、(5) 179件の既存証拠監査と残要件/教材/CIの最終受入。個別の問題は#210の対象であり、このPRで直接修正しない。
-

@@ -11,7 +11,7 @@
 
 各moduleのSkill一覧はqa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324の固定revisionに照合しています。受講者の提出物・氏名・評価結果・Secretはここへ保存しません。本人の評価記録は`workspace/.course-assessments/`でGit外に保管し、`workspace/.gitignore`で除外します。評価者や中央成績DBを必要としません。
 
-### 同一試行の再開と排他ロック
+## 同一試行の再開と排他ロック
 
 `pnpm course:assess <module> --model <id> --resume <assessment-id>` は、
 `workspace/.course-assessments/<phase>/attempts/<assessment-id>/.resume.lock/` を排他的に作成し、
@@ -24,7 +24,7 @@
 `result.json`、`calibration-result.json`、`ai-candidate.json`などの評価記録は削除しないでください。
 別試行のロックは削除しないでください。
 
-### 最新結果ポインタの公開中断
+## 最新結果ポインタの公開中断
 
 正式結果の保存後に `current.json` を公開する処理も、
 Phase単位の `.current-publish.lock/` で排他制御しています。
@@ -38,7 +38,7 @@ CLIは保存済みの正式結果を照合し、`summary.md` と `current.json` 
 `current.json` や `result.json` を手動編集・削除せず、
 他Phaseのロックや別試行の履歴も削除しないでください。
 
-### 共有校正キャッシュの検証範囲
+## 共有校正キャッシュの検証範囲
 
 共有キャッシュを再利用するときは、固定されたモデル・教材のidentity・Case数に加え、
 成功状態、schema、日時、Session IDの形式を確認します。
@@ -67,7 +67,7 @@ schema・日時・Session IDを照合します。Case別判定のない旧成功
 既存の失敗キャッシュは監査用に保持します。
 実モデルの106 Case校正を代替するものでもありません。
 
-### OpenCode呼び出し中断時の扱い
+## OpenCode呼び出し中断時の扱い
 
 評価モデルへ送信する前に、非公開の試行フォルダへ
 `calibration-invocation.json`または`assessment-invocation.json`を不変記録として保存します。
