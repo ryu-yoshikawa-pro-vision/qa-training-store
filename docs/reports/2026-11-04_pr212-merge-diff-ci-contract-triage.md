@@ -1,5 +1,21 @@
 # PR #212 / PR #199 差分とCI契約の突合（2026-11-04）
 
+## 2026-11-04 追加：補助・別操作・前提操作の6件を個別調停
+
+`related_use_cases`に含まれるが`use_case_evidence`に直接行がない6 Behaviorについて、台帳の動作・期待・Case・出典経路を再点検。**`related_use_cases`は依存・準備・後続操作も列挙する一方、`use_case_evidence`は当該UI動作の直接Use Caseを指す**という責務を維持し、機械的な配列一致・参照追加を行わない。
+
+| Behavior | 直接Use Case（証拠あり） | 追加の`related_use_cases`の責務 | 再開条件 |
+| --- | --- | --- | --- |
+| `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock` | `CatalogUseCases.getProductDetail` | `CartUseCases.addItem`は在庫0追加拒否を別Caseで検証する経路。状態パネルを表示するための直接呼出しではない | out-of-stock実Seed、disabled表示、直接addItem拒否とCart不変、Web/Nativeで別々に実証 |
+| `SCREEN-ORDERS-DETAIL-A01-03` | `CheckoutOrderUseCases.getMyCustomerOrder` | `CustomerReviewUseCases.getEligibility/create/update`はレビュー画面での投稿可否・投稿/更新の後続動作 | Order DTOのNOT_POSTED/PUBLISHED/HIDDEN/DELETEDと、Editor側の本人認可・cross-owner・Review不変を別Caseで実行 |
+| `SCREEN-ORDERS-DETAIL-A02-02` | `CheckoutOrderUseCases.beginOrder/getMyCustomerOrder` | `AdminProductUseCases.update`・`AccountUseCases.updateAddress`は注文後の商品/住所変更という前提操作 | 変更前後の保存OrderItem/画像/住所/Rank SnapshotをWeb/NativeとDBで比較 |
+| `SCREEN-ORDERS-DETAIL-S-reviewable` | `CheckoutOrderUseCases.getMyCustomerOrder` | `CustomerReviewUseCases.getEligibility/create`はレビュー投稿画面の別操作 | reviewable-ordersのWeb一覧導線5件と、投稿先の権限・二重投稿拒否・DB不変を別々に受入 |
+| `SCREEN-REVIEWS-EDITOR-A02-01` | `CustomerReviewUseCases.getEligibility/update/delete` | `AdminReviewUseCases.changeVisibility`は管理者が公開/非公開状態を作る別Role操作 | 管理者の公開/非公開変更前後のSummary/History、本人Web/Nativeの表示、別ユーザー情報非露出を実行 |
+| `SCREEN-ADMIN-ORDERS-A02-01` | `AdminOperationsUseCases.searchOrders/getOrder` | `startPreparation/ship/completeDelivery`は詳細画面での後続状態変更（遷移・読取時は書込みなし） | 一覧→詳細の取扱い・Role拒否と、配送操作のCAS/rollback/Order履歴を別Caseで実行 |
+
+この分類は台帳に既にある処理経路・責務の**静的な整合確認**。6件の`related_use_cases`を削除したり、欠落と断じて`use_case_evidence`へ一括複製しない。実行中のWeb CIが成功しても上記Caseの個別動的受入は別途必要。状態・基本分析件数の変更は行わない。
+
+
 ## 2026-11-04 追加：`AuthUseCases.getCurrentUser`の補助認証参照を確定
 
 - [コミット `6a2dbaa9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/6a2dbaa967d1e06ada3bf0ef8cdbad29e239f9a4)で`SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`の`related_use_cases`へ`AuthUseCases.getCurrentUser`を追加。既存の`use_case_evidence`と公開メソッド一覧の`behavior_id`は以前から同操作を指していた。
