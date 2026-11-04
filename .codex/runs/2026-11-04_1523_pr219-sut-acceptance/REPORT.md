@@ -89,3 +89,5 @@
 - 14/21項目（残7）を維持。Android実機SQLite、正式Case ID採否、成功時クロスロール画像/Trace/動画の永続化、全CaseのDB/Network before-after、独立レビューは未完のまま。
 
 - #219の固定HEAD `290555e`、CI #41841987928はworkflow全体success（cross-role job 126617054710: 29 passed / 既存1 flaky）。新規Web商品一覧IndexedDB読取失敗Caseは320/390/767/768/1023/1024/1440pxでError/内部例外非露出/Focus→Enter Retry/Empty復旧/横はみ出しなし、320/1024 axe serious/critical=0、23表digest前後一致を実ジョブログで確認。Web CSV 49履歴/26暫定キー、208動作一覧は208行維持で`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`へ`PR219-WEB-026`を関連付け。Case終了Clockは実測、Reset直後Clockとは区別。成功時の画像/Traceの永続化と正式Case採否は未完。14/21の完了チェックは据え置き。
+
+- [CI #41841987928]はworkflow全体success（cross-role 29 pass/既存1 flaky）。#219のError→Retry Web Case `PR219-WEB-026`は7幅/axe/23表digestで成功。保存済みUI Review画像（同Runの320px Artifact `13329861639` / 1440px Artifact `13329807665`）を実際に確認：320px page-endで固定ナビはフッター免責文を隠さない。1440px Empty画像は正式正本と主要構成が同じだが**画像高さ29px差、最低評価のSelect配置差**があり正式視覚受入は未判定。これらUI Review画像は成功時cross-role Error/Conflict画像の保存を意味しない。タスク13番は未チェック。
