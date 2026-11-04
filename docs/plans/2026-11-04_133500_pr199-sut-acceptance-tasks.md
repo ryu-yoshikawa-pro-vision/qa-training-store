@@ -12,7 +12,7 @@ Scenario Shopは読み取り専用のSUT。変更可能なのは**新規の学�
 
 ## 実行準備と証拠
 
-- [ ] #199最新HEAD・仕様・対象Role/State/Data・既存Playwright/Maestro/Integration/Repository/Component test・固定Seed/Clock/Reset経路を確認
+- [x] #199最新HEAD・仕様・対象Role/State/Data・既存Playwright/Maestro/Integration/Repository/Component test・固定Seed/Clock/Reset経路を確認
 - [ ] 各CaseのHEAD、platform、Role/Session、Seed/Reset/Clock、操作前後、期待・観測、終了コード、Trace/動画/画像・Console/Network/Reportの保存先を記録し、別Runの結果を流用しない
 - [ ] 固定Seedと通常操作で状態を再現し、失敗注入や競合fixtureをSUTと隔離した学習専用経路で用意。実装/既存Seedは改変しない
 
