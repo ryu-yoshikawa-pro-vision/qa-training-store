@@ -134,4 +134,95 @@ describe("PR #219: SCREEN-ADMIN-USER-DETAIL-A02-03 integration acceptance", () =
     const sessionsAfter = await database.sessions.where("userId").equals("user-operator").toArray();
     expect(sessionsAfter).toEqual(sessionsBefore);
   });
+
+  it("filters users by keyword, role, account status and rank at the Use Case boundary", async () => {
+    const match = await useCases.search({
+      keyword: "regular@example.com",
+      roles: ["customer"],
+      accountStatuses: ["active"],
+      membershipRanks: ["regular"],
+    });
+    expect(match.items.map((item) => item.userId)).toEqual(["user-customer-regular"]);
+
+    const mismatch = await useCases.search({
+      keyword: "regular@example.com",
+      roles: ["operator"],
+    });
+    expect(mismatch.items).toHaveLength(0);
+  });
+
+  it("rejects the active admin's self-suspension without changing User or Session", async () => {
+    const actor = await useCases.getDetail("user-admin");
+    const userBefore = await database.users.get(actor.userId);
+    const sessionsBefore = await database.sessions.where("userId").equals(actor.userId).toArray();
+
+    await expect(
+      useCases.changeSuspension({
+        userId: actor.userId,
+        accountStatus: "suspended",
+        expectedVersion: actor.version,
+      }),
+    ).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
+
+    expect(await database.users.get(actor.userId)).toEqual(userBefore);
+    expect(await database.sessions.where("userId").equals(actor.userId).toArray()).toEqual(
+      sessionsBefore,
+    );
+  });
+
+  it("rejects withdrawn-user rank and status mutations without changing persisted state", async () => {
+    const withdrawn = await useCases.getDetail("user-customer-withdrawn");
+    const usersBefore = await database.users.toArray();
+    const sessionsBefore = await database.sessions.toArray();
+    const checkoutBefore = await database.checkout_sessions.toArray();
+
+    await expect(
+      useCases.changeMembershipRank({
+        userId: withdrawn.userId,
+        rank: "gold",
+        expectedVersion: withdrawn.version,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_ROLE" });
+    await expect(
+      useCases.changeSuspension({
+        userId: withdrawn.userId,
+        accountStatus: "active",
+        expectedVersion: withdrawn.version,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+
+    expect(await database.users.toArray()).toEqual(usersBefore);
+    expect(await database.sessions.toArray()).toEqual(sessionsBefore);
+    expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
+  });
+
+  it("rejects stale rank and status versions before any User or Checkout mutation", async () => {
+    const detail = await useCases.getDetail("user-customer-regular");
+    expect(
+      await database.users.update(detail.userId, { version: detail.version + 1 }),
+    ).toBe(1);
+
+    const usersBefore = await database.users.toArray();
+    const sessionsBefore = await database.sessions.toArray();
+    const checkoutBefore = await database.checkout_sessions.toArray();
+
+    await expect(
+      useCases.changeMembershipRank({
+        userId: detail.userId,
+        rank: "gold",
+        expectedVersion: detail.version,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(
+      useCases.changeSuspension({
+        userId: detail.userId,
+        accountStatus: "suspended",
+        expectedVersion: detail.version,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    expect(await database.users.toArray()).toEqual(usersBefore);
+    expect(await database.sessions.toArray()).toEqual(sessionsBefore);
+    expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
+  });
 });

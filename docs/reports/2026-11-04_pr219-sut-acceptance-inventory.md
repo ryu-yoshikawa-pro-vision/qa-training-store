@@ -132,3 +132,10 @@
 - `SCREEN-ADMIN-USERS-A01-02`、`SCREEN-ADMIN-USER-DETAIL-A01-03/A01-04`へ紐付ける。既存IntegrationはRank変更・Checkout abandoned、Role/StatusでのSession失効と競合、自己/withdrawn拒否の一部を実証済み。
 - `src/presentation/pages/review-user-pages.tsx`の管理一覧はキーワード・Role・Statusを扱うが、Rank絞り込みやcreated/updatedによるsort UIはこの実装で見つからなかった。補助UI仕様との関係は#213/#210の仕様判断待ちとして扱い、製品側の修正は行わない。
 - 新規3件の実ブラウザCI結果は未確認。全対象操作・例外/rollback・画面/DB照合が揃うまで5番は未完了。
+
+## 管理ユーザーの追加Use Case受入（タスクリスト5番の検証準備）
+
+- `tests/integration/pr219-admin-user-acceptance.test.ts`に検索のAND条件（keyword/role/status/rank）、管理者本人の停止拒否とSession不変、退会済みRank/Status拒否とDB不変、Rank/Statusのstale version拒否とDB不変の4件を追加。
+- `tests/integration/pr219-isolated-fixtures.test.ts`に、`checkout-resume` SeedでRank変更時のCheckout abandoned後、User保存に障害注入してtransaction rollbackを検証する1件を追加。いずれも隔離Dexie DB内だけの操作。
+- `src/presentation/pages/review-user-pages.tsx`ではRank絞り込みと登録日/更新日のsort UIが提供されていない。正式仕様と補助UI仕様の優先関係を#213/#210へ照会する前提で、現行SUTに対するE2E・Use Caseの挙動のみ受入テストとする。
+- 追加5件はCIで実Runを確認するまで未実行扱い。タスクリスト5番はまだ未完了。

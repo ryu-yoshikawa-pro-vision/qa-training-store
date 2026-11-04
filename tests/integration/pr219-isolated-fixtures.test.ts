@@ -148,4 +148,36 @@ describe("PR #219: isolated Seed and failure-injection acceptance", () => {
     expect(await database.checkout_sessions.get(checkoutBefore!.id)).toEqual(checkoutBefore);
     expect(await database.carts.get(checkoutBefore!.cartId)).toEqual(cartBefore);
   });
+
+  it("rolls back Checkout abandonment when Membership Rank persistence fails", async () => {
+    await seed("checkout-resume");
+    const useCases = await adminUseCases();
+    const detail = await useCases.getDetail("user-customer-regular");
+    const userBefore = await database.users.get(detail.userId);
+    const checkoutBefore = await database.checkout_sessions
+      .where("[userId+status]")
+      .equals([detail.userId, "active"])
+      .first();
+    expect(checkoutBefore).toBeDefined();
+    const cartBefore = await database.carts.get(checkoutBefore!.cartId);
+    let injectedWrites = 0;
+
+    database.users.hook("updating", () => {
+      injectedWrites += 1;
+      throw new Error("PR219_INJECTED_USER_UPDATE_FAILURE");
+    });
+
+    await expect(
+      useCases.changeMembershipRank({
+        userId: detail.userId,
+        rank: "gold",
+        expectedVersion: detail.version,
+      }),
+    ).rejects.toThrow();
+
+    expect(injectedWrites).toBeGreaterThan(0);
+    expect(await database.users.get(detail.userId)).toEqual(userBefore);
+    expect(await database.checkout_sessions.get(checkoutBefore!.id)).toEqual(checkoutBefore);
+    expect(await database.carts.get(checkoutBefore!.cartId)).toEqual(cartBefore);
+  });
 });

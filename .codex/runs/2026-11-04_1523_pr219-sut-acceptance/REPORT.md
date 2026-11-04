@@ -21,3 +21,5 @@
 - タスク4番完了：PR #219 SUT SHA `b27c77f`、Web CI Run #41790967187 cross-role Chromium Job 126444779774で新規8ケース＋既存4ケースすべてPASS。guest/customer/operator/admin/suspended/withdrawn直URL、他人注文非露出、Role変更後旧Session失効を実画面で確認。AndroidとDB全表は別未受入。
 
 - タスク5番の実ブラウザ補完：管理ユーザーの検索/Rank/Status 3件のE2Eを追加。CI結果確認と例外条件が揃うまでは未完了。
+
+- タスク5番の不足補完：管理ユーザー検索/自己停止/withdrawn/rank-status stale 4件、Rank保存失敗によるCheckout rollback 1件を隔離Integrationテストへ追加。CI実行待ち。
