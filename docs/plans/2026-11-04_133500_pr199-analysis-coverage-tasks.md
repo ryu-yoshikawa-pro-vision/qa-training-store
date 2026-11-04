@@ -45,7 +45,7 @@
 ## 完了条件
 
 - [x] 分母を確定し、全対象の分類率・証拠付き基本分析率が100%。未決は未完のまま扱い、製品適合や動的受入の未完を別途#199へ引継ぐ
-- [ ] 自分の所有ファイルの検証結果、他ブランチへの証拠依頼、PRの差分をレビューできる状態にする
+- [x] 自分の所有ファイルの検証結果、他ブランチへの証拠依頼、PRの差分をレビューできる状態にする
 
 ## 要件ID・実行証拠の受渡し（補完）
 
@@ -170,3 +170,9 @@
 - #213照合前HEAD：`f4ed749cd307b9b7442b9f8adec5af5dbd2894cb`。#219の固定引継ぎレポート`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md` blob `32d397bc11dd57e20499a2edda5351eaae7a09d7`、Web Run 41792378802（HEAD `5e91b912e72cd6c0bb9b683a1ae7470fb56cf833`・cross-role job `126449277139` success・15件PASS）、Run 41795950215（HEAD `9adff1e41687e14d20af8ebf9ba22bf588df0605`・Integration job `126460341746` success 123件PASS＋2件expected fail、Component job `126460341893` success 104件PASS＋1件expected fail、cross-role job `126460743631` failure内でempty 2件個別PASS）、Run 41796764234（HEAD `2cd64eaff7eb64fefa7d440905702cb69a3a803b`・Integration job `126462596786` success 125件PASS）をジョブログと対照。
 - 受領対象：分析台帳の**10 Behavior・18件のケース証拠**を`pr219_runtime_evidence`に、テスト名・ファイル・Run/HEAD・job ID・観測・未受入条件とともに記録。Web管理Role/Rank/停止・検索・権限拒否・ストア商品0件の該当条件PASSと、停止staffの戻りリンク・失効actor更新の**製品FAIL再現**、商品管理E2Eの**TEST ERROR**を区別。
 - 限界：上記workflowの全体結論はsuccessではない。失敗を期待するテストまたは現不具合をassertするテストのjob成功を製品適合PASSと数えない。#219の953条件参照CSVはなお全行`未受入`である。#210 HEADでの修正後受入、Android/SQLite・全表DB/Trace/視覚・一部Web Caseは未実行。固定Runと対応する**一部の結果を受領・転記するタスクのみ**完了チェックし、全採用Caseの動的受入を宣言しない。
+
+### PR差分と他ブランチへの受渡し（2026-11-04）
+
+- #213差分確認：base #199 `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、レビュー直前HEAD `73013e3b336d4840623542b07b7bc826a35ba727`。変更4ファイルは`training/ai-assisted-qa-course/coverage/supported-behaviors.json`、`scripts/training/validate-supported-behaviors.mjs`、`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`、本タスクリストだけ。製品SUT/正式仕様/Seed/Reset/他PR専有資料・共通知識グラフの変更なし。PRはDraftであり独立レビュー承認やマージ許可ではない。
+- #219へ[実Run/Case IDの不足依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6626681708)を投稿。#213へ[レビュー用証拠・未受入の説明](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/213#issuecomment-6626771774)を投稿。10 Behaviorの18件の部分証拠と製品FAIL/TEST ERRORは正本JSONに記録し、Runと該当Caseを分離した。
+- CI確認（完了待ちはしない）：旧HEAD `7df0503`の[Web CI #41802509407](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41802509407)でStyle QualityはPrettier警告によりfailure。対象は本PR専有のValidatorと契約テスト。後続コミット`a578d12`と`73013e3`で条件式・長行を修正したが**最新HEADでのStyle/契約/verify成功は未確認**。直接`pnpm`/Vitestコマンドはこの環境から未実行であり、実行したと記載しない。検証結果の実施/未実施と他ブランチ依頼をレビュー可能な形で記録したため本項目のチェックを付すが、別項目のValidator/CI受入は未チェックのまま残す。
