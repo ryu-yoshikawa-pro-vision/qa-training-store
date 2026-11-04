@@ -337,3 +337,11 @@
 
 - **取得・照合すべき証拠**：実行したGit HEAD、参考spec SHA-256、server/配布source SHAとConfig、実行時刻・終了コード・標準出力、`AI_QA_OUTPUT_ROOT/playwright-result.json`の`config.rootDir`と対象test名/実行数/最終結果、HTML report、失敗時のTrace/screenshot、指定商品のCart 2明細のscope・数量1・削除非実施。成功なら別のspecを混入させず対象1件以上全件PASSを確認する。Traceは`retain-on-failure`であり、成功時にTraceが常時生成されるとは限らない。
 - **取り扱い**：この項目は「実行不可の場合は再開条件と未取得証拠を残す」というPR #215の技術対応として記録し、実Chromium検証済みとは扱わない。実受講者のP05実装・操作・正式受入は#199最後に行う。
+
+## 2026-11-05 M06-01固定3 Caseの技術照合
+
+- **仕様とコード**：正式`docs/spec/features/cart.md`（Blob `6342cbc95f72947b988044c7e86a3d39bdeac2eb`）は`BR-CART-001`で在庫/購入上限/99の最小値と、超過拒否・数量維持、`AC-CART-001`でその境界値を規定。公開未完成`workspace/M06/cart-cases.spec.ts`（Blob `c8342a9624de0f2fdca0e4c9f604a4ff8c78b851`）はCASE-CART-001/002/003の3testがそれぞれ`default/default/low-stock`をResetし、いずれもTODO例外で始まる。
+- **参考実装の責務**：`assessment/playwright/M06/cart-cases.spec.ts`（Blob `a339551956f66144afa7f748e6129a55db6234b4`、読み取りのみ）では001はMugを追加してCart数量1、002はMug数量5の追加による上限超過拒否と元数量1の維持、003は`low-stock`のシャツM（在庫3）を選び3点追加した後の再追加拒否と数量3維持をそれぞれ業務Assertionで確認している。学習用`resetScenario`の適用と公開fallbackと本人のPhase 1成果物の区別はM06教材に記載済み。
+- **修正**：`training/ai-assisted-qa-course/exercises/M06/exercise.md`（修正後Blob `47593c5cb1477cbd15dc2a13a493c566cdc36ea4`）の固定3 Case実行直後へ、TODO例外を削っただけでは業務Assertionがないこと、001/002/003に必要な結果とBR/AC、実行数やPASS表示だけで修了認定しない条件を追記した。受講者向けの未完成specを完成答案に置換していない。
+- **回帰**：`tests/contracts/ai-assisted-qa-phase2-m06-fixed-cases.test.mjs`（Blob `b5ad1bb2f5b6ceedfc9d4f8a0bf5846a08ed13da`）を追加し、3testの分離・Reset・TODOの残存、参考specの各商品・操作・数量/拒否Assertion、TODOだけ取り除いた弱いspecが業務検証条件を満たさないことを静的に照合する。`course:run`単独の終了コード0はAssertion充足の保証にならない。正式評価の意味的採否・実Runは#217/#199の受入で別検証し、今回の静的契約テスト自体を評価器とは扱わない。
+- **実行状態**：この作業では参考specの専用Chromium実行と本人実装は未実施。[Web CI #41865378412](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41865378412)はHEAD`700436c4a4ca7fb41e09e1593201ef791e2c8ddc`で確認時`queued`。CI完了を待たず、M06-01固定3 CaseのPR #215技術項目のみ完了と判定する。
