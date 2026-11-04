@@ -28,7 +28,7 @@
 
 - [ ] `M07-01`：Test/Product/Environment/Flakyの原因候補、仕様/初期状態/ログでの切分けと追加確認を整理
 - [ ] `M07-02`：Trace・スクリーンショット・標準出力・reportから失敗操作/Assertionを特定する別Run演習を検証
-- [ ] `M07-03`：Retry/Timeout延長ではなく原因の切分けを先に判断する基準を確認
+- [x] `M07-03`：Retry/Timeout延長ではなく原因の切分けを先に判断する基準を確認
 - [ ] `M07-04`：AIパッチの採否・最小修正・修正前後の別Runと仕様上の期待結果維持を実証
 - [ ] `M07-05`：重複specと保守変更からPage Object/標準fixtureを採否し、小規模な実装・import・前後Runと保守効果を示す
 
@@ -43,7 +43,13 @@
 
 ## クイズ・理解事項・自習・Phase間引継ぎ（補完）
 
-- [ ] `docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`の設問/正答/誤答理由/復習先を15目標と理解事項に照合。コードを読む・書く・実Runする技能を定義問題やAI自己報告だけで達成扱いにしない
+- [x] `docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`の設問/正答/誤答理由/復習先を15目標と理解事項に照合。コードを読む・書く・実Runする技能を定義問題やAI自己報告だけで達成扱いにしない
 - [ ] `knowledge-graph.json`のM05〜M07の理解事項ごとに、前提の飛躍、教材節、`can_do`、実技の観測、評価基準を意味的に確認。未レビューの`draft_requires_content_review`は承認済みに変更せず、必要な関係/ノード更新を#199に引継ぐ
 - [ ] M04→M05の確定Case・初期Role/State/Data・BR/ACと、M07→M08の本人spec・Config・Reset・Trace/Run/成果物のID/revisionを実ファイルで照合し、別の公開開始サンプルを本人の過去修了証拠とみなさない
 - [ ] 通常のOpenCodeの段階ヒント・失敗後の復習が本人の実装/診断を奪わないか確認。Phase 2のspec、Trace、Run記録をGit/PRなしで安全にエクスポートする手順を教材に記載・検証。共通配布機構は#218、正式評価時の再実行は#217へ引継ぐ
+
+## 2026-11-04 静的確認の証拠・未完了理由
+
+- [PR #215 Phase 2受入記録](../reports/2026-11-04_pr215-phase2-acceptance.md)に、固定HEAD `268d06236e5b068b924f1d71e296a6ad6b0bb4f1`で照合した内容、各ファイルのBlob SHA、未実行の条件、共有領域への引継ぎを記録した。
+- 上記でチェックしたのはM07-03の**判断基準**とM05〜M07の**クイズ内容照合**だけであり、実RunやPhase 2の学習到達・正式AI評価をPASSとしたものではない。
+- 8082 Chromium、M05型検査、M06 004/005 initial/repeat、M07 before/after、配布ShopやGit不要の成果物保全は未実施。実際のRun IDとreport等が揃うまで該当チェックを保持する。
