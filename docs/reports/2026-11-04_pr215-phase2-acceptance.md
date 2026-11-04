@@ -245,3 +245,16 @@
 - 新規契約テストを含む最新HEADの`pnpm test:contracts`とCIは本追記時点で未確認。前HEAD `9d13270637a49005cd121230f5fc7f9da4d9ab04`のCI successを今回の新規テストPASSとは扱わない。
 
 **Progress: 28% (7/25)**。残り18件。実Run依存のチェックは付けない。
+
+## 2026-11-04 継続：直近CIの失敗修正とM05 P05証拠保全
+
+- **対象開始HEAD**：`bd9cb860793634c88e6eb4162932f109dafa0ea0`（PR #215）。[Web CI #41833867254](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41833867254)は`failure`。異常は`Style Quality`の`pnpm run lint:markdown`で、`docs/reports/2026-11-04_pr215-phase2-acceptance.md:239`と`training/ai-assisted-qa-course/exercises/M05/exercise.md:118`の`MD012/no-multiple-blanks`各1件。これが`verify`・`validate`の派生failureとなった。変更対象2ファイルの連続空行を除去し、ソース文字列で各ファイルの重複空行0件を照合。**修正後のCI successは未確認**。
+- **M05 P05実行手順の欠落**：教材の直接実行コマンドは`sha256sum workspace/M05/p05-cart-locator.spec.ts`を終了後にのみ実行していた。実行中にspecが更新された場合、reportと実行したコードの同一性を検査できず、M05-05の証拠紐付けを誤る危険があった。
+- **修正**：M05演習のP05直接実行コマンドに、通常ファイル・symlink拒否、実行前`spec-snapshot.ts`保存、snapshotと実行前spec SHA-256照合、終了後spec SHA-256再照合、`playwright-result.json`存在/通常ファイル確認、実行終了コードの呼出元への伝播を追加。結果ディレクトリは毎回`mktemp -d workspace/M05/evidence/p05-direct-XXXXXX`で独立。M05提出テンプレート・M07保全例・M07引継ぎテンプレートにsnapshotと両SHAの記録・保全を追加し、M07保全契約テストのfixtureもsnapshotを含むよう変更。`course:run`固有の`run-evidence.json`・`source_sha`や正式Run IDが**直接実行から自動作成されたとは扱わない**。
+- **追加した専用契約テスト**：`tests/contracts/ai-assisted-qa-phase2-direct-run.test.mjs`を新規追加。教材からBashコマンドを抽出し、隔離された一時ディレクトリとPlaywrightを呼ばない`pnpm` stubで、(1)専用Config/対象spec/snapshot指定、(2)ログ・report・spec snapshotの同一出力先への保存、(3)実行中のspec変更拒否、(4)reportなし/非0終了の拒否、(5)symlink specの拒否を検証する。**この新規Vitestの実行結果は新CIで要確認**。
+- **補助実行**：作業用Linuxで同じBashコマンドを手元の一時領域へコピーし、`pnpm`を実Playwrightではなく明示的stubへ差し替えて検査。正常時`exit 0`・snapshot同一、実行中spec変更`exit 1`、report不在`exit 1`、Playwright終了9を模擬すると`exit 1`、spec symlinkで`exit 1`。実Shop/8082の起動・Browser Context・`course:run` receiptと実受講者成果物は**検証していない**。
+
+**判定**：M05-05、横断P03/P05実Chromium、M05-01/02、M06/M07本人実Runは実受入証拠が不足し、チェックを変更しない。次は最新HEADのStyle Quality・追加Vitestを確認し、本人Codespacesまたは同等の配布Shop環境でP05を実行する。
+
+**Progress: 28% (7/25)**。未完了18件。
+
