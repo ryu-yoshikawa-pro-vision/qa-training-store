@@ -63,7 +63,7 @@ pnpm course:run M07 maintenance.spec.ts --label after
 2. **P02 Resetを変えた場合の診断計画（M07-01・02）**：`failure-cases.md`の合成Bについて、`default`と`low-stock`の違いを実際のSeed資料へ照合します。架空のログで最初に観測した値を抽出し、もし自分のspecでReset引数を誤ったら**どのmetadata・開始状態・業務Assertionで検知するか**を整理します。Bを再現済みと報告しません。**証拠**：仕様・Seed・追加取得する証拠の対応表。
 3. **P03 Retry成功を原因修正と呼ばない（M07-01〜03）**：合成Cの初回失敗・Retry成功を読み、「遅延」「不安定なLocator」「前テストの残状態」の3仮説を立てます。それぞれを反証するためのTrace・Run順序・ネットワーク結果を指定し、根拠なくTimeoutを増やす提案を棄却します。**証拠**：仮説ごとの観測条件と結論保留の理由。
 4. **P04 保守変更で業務Assertionを維持（M07-04・05）**：既存の2 testのPage Object/fixture化後、数量1と数量2のAssertionを**別testに維持したまま**、Locator変更の仮想要求「カート追加ボタンのaccessible nameが変わる」を当てます。変更前後で触るファイル・test・assertionの数を比較し、実在しない新しいラベルで実装を壊さず説明します。**証拠**：変更影響表、選んだ抽象化の責務。
-5. **P05 新しい回帰条件を自分で追加（M07-04・05）**：既存2件とは異なる**「マグを追加→数量2へ変更→再度Cartを開いて数量2を確認」**という3番目のtestを、保守変更後の`maintenance.spec.ts`へ追加します。各testが個別のResetを使うこと、Page Objectに業務Assertionを隠さないことを確認します。**証拠**：新しいtest・期待結果・変更前後の責務・実Run。
+5. **P05 新しい回帰条件を自分で追加（M07-04・05）**：既存2件とは異なる**「マグを追加→数量2へ変更→別ページへ移動→再度Cartを開いて数量2を確認」**という3番目のtestを、保守変更後の`maintenance.spec.ts`へ追加します。単にCartページを`reload()`するだけでは、「別ページからCartを開き直す」条件を満たしません。各testが個別のResetを使うこと、Page Objectに業務Assertionを隠さないことを確認します。**証拠**：新しいtest・期待結果・変更前後の責務・実Run。
 6. **P06 再実行と変更の範囲を確かめる（M07-02・04・05）**：従来の2件のbefore Runを保全し、変更後の`pnpm course:run M07 maintenance.spec.ts --label after`では**3件以上PASS**することを確認します。条件・順番を変えてもResetが独立する理由を説明します。Run/Traceがなければ未検証、実Runで失敗が残ればそのまま報告します。**証拠**：before/afterのRun ID、件数、spec SHA、失敗診断、残る制約。
 
 **完了条件**：P05は説明だけでなく新しいtestのコードと実行結果を提出します。P02/P03の合成ログは診断計画であり、再現性を実証した結果ではありません。
