@@ -613,6 +613,87 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
     { width: 1440, height: 1000 },
   ];
 
+  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: browser IndexedDB failure shows Error and Retry at responsive widths", async ({
+    page,
+    scenario,
+  }, testInfo) => {
+    await scenario("empty-catalog");
+
+    // Isolate a catalog read failure inside the Playwright browser. No Seed,
+    // Test API, production Repository, or shared fixture is modified.
+    await page.addInitScript(() => {
+      const originalGetAll = IDBObjectStore.prototype.getAll;
+      const originalOpenCursor = IDBObjectStore.prototype.openCursor;
+      const shouldReject = (name: string) =>
+        name === "products" && sessionStorage.getItem("pr219.catalog-read-failure") === "on";
+      IDBObjectStore.prototype.getAll = function (
+        query?: IDBValidKey | IDBKeyRange | null,
+        count?: number,
+      ) {
+        if (shouldReject(this.name)) {
+          throw new DOMException("PR219_INJECTED_CATALOG_READ_FAILURE", "UnknownError");
+        }
+        return originalGetAll.call(this, query, count);
+      };
+      IDBObjectStore.prototype.openCursor = function (
+        query?: IDBValidKey | IDBKeyRange | null,
+        direction?: IDBCursorDirection,
+      ) {
+        if (shouldReject(this.name)) {
+          throw new DOMException("PR219_INJECTED_CATALOG_READ_FAILURE", "UnknownError");
+        }
+        return originalOpenCursor.call(this, query, direction);
+      };
+    });
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => sessionStorage.setItem("pr219.catalog-read-failure", "on"));
+      await page.goto("/products");
+      const error = page.locator(".state-panel--error");
+      await expect(error).toBeVisible();
+      await expect(error.locator("h1")).toBeVisible();
+      await expect(page.getByText("PR219_INJECTED_CATALOG_READ_FAILURE")).toHaveCount(0);
+      await expect(page.locator(".state-panel--empty")).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      await testInfo.attach(`pr219-catalog-error-${viewport.width}`, {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
+      if (viewport.width === 320 || viewport.width === 1024) {
+        const axe = await new AxeBuilder({ page }).analyze();
+        const violations = axe.violations.filter((item) =>
+          ["critical", "serious"].includes(item.impact ?? ""),
+        );
+        expect(violations).toEqual([]);
+      }
+
+      // Restore the failed IndexedDB read on the same page, then retry via
+      // the actual keyboard-accessible product UI.
+      await page.evaluate(() => sessionStorage.removeItem("pr219.catalog-read-failure"));
+      const retry = error.getByRole("button", { name: "再試行" });
+      await retry.focus();
+      await expect(retry).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(
+        page.getByRole("heading", { name: "現在、表示できる商品はありません" }),
+      ).toBeVisible();
+      await expect(error).toHaveCount(0);
+      console.log(
+        "PR219_CASE_EVIDENCE " +
+          JSON.stringify({
+            behavior: "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+            condition: "catalog-read-failure-and-keyboard-retry",
+            width: viewport.width,
+            recoveredTo: "empty-catalog",
+            errorMessageLeaked: false,
+          }),
+      );
+    }
+  });
+
   test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: empty-catalog at responsive widths", async ({
     page,
     scenario,
