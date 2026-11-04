@@ -31,6 +31,19 @@ describe("M07-02/04：診断素材と修正対象の実行境界", () => {
     expect(lesson).toContain("このRunは修正対象のbefore Runとは別の診断記録");
   });
 
+  it("通常OpenCodeは本人の診断→限定したヒント→本人の再実行→復習の順を守る", () => {
+    expect(lesson).toContain("### OpenCodeの段階ヒントと失敗後の復習");
+    expect(lesson).toContain("本人が先にAの失敗行");
+    expect(lesson).toContain("次に確かめる証拠を一つ提案する");
+    expect(lesson).toContain("コードや完成答案は書かない");
+    expect(lesson).toContain("本人が実際に変更・再実行した別Run");
+    expect(lesson).toContain("AIが提案したAssertionの削除");
+    expect(lesson).toContain("本人の独立した診断");
+    expect(lesson).toContain("Secret・認証状態・個人情報を含めず");
+    expect(lesson).toContain("pnpm course:tutor M07 --model provider/model-id");
+    expect(lesson).toContain("pnpm course:assess M07");
+  });
+
   it("B/Cは合成ログであり実Trace/実Runの証拠にしない", () => {
     expect(materials).toContain("B：Reset条件の不一致（説明用ログ）");
     expect(materials).toContain("C：遅延仮説（説明用ログ）");
