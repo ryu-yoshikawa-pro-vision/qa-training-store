@@ -202,7 +202,59 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 
 1. #199の現HEADに対し、6操作IDの新しい`analysis_status`契約を確定し、テストの12固定判定と静的根拠・未解決条件の検査を整合させる（#212で既存テストは編集しない）。
 2. #211 Assessment側の期待エラー更新、#199 admin-users-listのPrettier、#211側Assessmentの書式を取り込み先HEADで個別に検証する。#211が未マージである間は修正の存在を親PRのPASSと数えない。
-3. 59件の新規分析加算としないよう、#212だけで分析済みの**58操作**と説明・根拠のみ異なる**41件**を最新の#199 HEADへID・フィールド単位で再比較する。変更のない操作/状態は上書きしない。
+3. 58件の新規分析加算としないよう、#212だけで分析済みの**58操作**と説明・根拠のみ異なる**41件**を最新の#199 HEADへID・フィールド単位で再比較する。変更のない操作/状態は上書きしない。
 4. 契約/Styleの個別修正後、**同一最終HEAD**のvalidator、Vitest、Prettier、Web必須CIを実行し、Android/Maestro・実Run・教材/配布の受入を別判定する。CI成功でも各操作の動的証拠を自動加算しない。
 
 **今回実施したこと**：GitHub Actionsの最終ジョブログ、#212台帳208件、validator、既存契約テスト、#211のAssessment差分、#199のadmin-users-list追加契約を読み取り照合した。**実施していないこと**：ローカルNode/Vitest/Prettier/Playwright/Androidの実行、製品SUT/正式仕様/Seed/既存テストの変更、#199/#210/#211へのcommit、merge/force push。基本分析179/188・非default17/20は維持する。
+
+## 2026-11-04 Use Case根拠の独立再検証（固定HEAD `775cf53c2ae4104ebb9b483994e6575a578f6748`）
+
+### 検証結果と修正
+
+- 208件の分析台帳に含まれる `use_case_evidence` **283参照**を、親#199の現比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098`と共通の製品実装ファイルの**実際の行・署名**へ照合。旧値で276/283件一致、**7件は行番号が不一致**。対象メソッドの署名が各ソースに一意に存在することを確認し、下表の行番号へ修正した。これはメソッドが正しく動作することや実Run PASSを証明しない。
+- `SCREEN-CHECKOUT-ADDRESSES-A02-01`（配送先未登録案内）は、Web `src/presentation/pages/addresses-page.tsx:45-66,100-110` の `account.listAddresses()` の結果で空表示を決定する。対応する `AccountUseCases.listAddresses:83-86` の `requireCustomer()→addresses.listByUser(user.id)` を確認し、`related_use_cases`、`use_case_evidence`、`audit_branch_refs`を追加。住所登録 `createAddress` は同じ画面の別操作なので、空状態のUse Caseとして重複付与しない。
+- 本変更は `use_case_evidence.line` 7件と上記1操作の読取経路だけ。**分析状態は変更せず**、操作179/188、非default状態17/20を維持。製品SUT・正式製品仕様・Seed/Reset・既存契約テストは変更しない。
+
+| 操作ID | Use Case | 修正前→修正後の行 |
+| --- | --- | --- |
+| `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock` | `CatalogUseCases.getProductDetail` | 100 → 108 |
+| `SCREEN-AUTH-SIGNUP-A02-03` | `AuthUseCases.register` | 116 → 121 |
+| `SCREEN-REVIEWS-EDITOR-A02-01` | `CustomerReviewUseCases.delete` | 194 → 193 |
+| `SCREEN-ADMIN-REVIEWS-A02-03` | `AdminReviewUseCases.bulkChangeVisibility` | 442 → 441 |
+| `SCREEN-ADMIN-PRODUCT-DETAIL-A01-04` | `AdminOperationsUseCases.searchInventory` | 53 → 57 |
+| `SCREEN-ADMIN-PRODUCT-DETAIL-A01-04` | `AdminOperationsUseCases.getInventoryDetail` | 68 → 73 |
+| `SCREEN-ADMIN-PRODUCT-DETAIL-A01-04` | `AdminOperationsUseCases.adjustInventory` | 85 → 91 |
+
+### related_use_casesがない操作の判定
+
+- 変更前の`analyzed`操作のうち `related_use_cases`未設定は**23操作**。上記配送先未登録案内1操作は直接呼出しを発見したため修正。残る**22操作は本調査で既存の公開Use Caseに対応付ける必要を確認できなかった**。実装上はナビゲーション、文章表示、境界ページ、別のTest Controlサービスが責務を持つ。形式的にUse Case名を作らない。
+
+| 操作・画面 | 件数 | 検査した責務と今後の実受入 |
+| --- | ---: | --- |
+| `SCREEN-STOREFRONT-HOME-A02-01/A02-02` | 2 | guest/customer別のWeb/NativeリンクとRouteGuard。HomePageではcatalog.getHomeも使うが、ここでの動作はRole別導線。Role・リンク遷移と情報非露出は未実Run |
+| `SCREEN-ADMIN-DASHBOARD-A01-02` | 1 | AdminShellの基本7リンク、admin限定リンク、Test APIビルド分岐。Use Case処理ではなくリンク表示と認可を検証 |
+| `SCREEN-SUPPORTING-GUIDE-A01-01/A01-02/A02-01/A02-02` | 4 | GuidePageの固定説明・辞書・Role/Rank・Test Controlリンク。内容正確性、Native文言差、アクセス権限、外部Skill再配布は別受入 |
+| `SCREEN-SUPPORTING-TERMS-A01-01/A02-01`、`SCREEN-SUPPORTING-PRIVACY-A01-01/A02-01`、`SCREEN-SUPPORTING-COMMERCE-A01-01/A02-01` | 6 | 法的説明画面のWeb/Native表示とShellの戻り導線。文章の正式受入・Android/画面画像・a11yは未受入 |
+| `SCREEN-BOUNDARY-FORBIDDEN-A02-01` | 1 | StatePanel・Native画面からの戻り導線。A01-01の停止staffループ/拒否理由・機密情報非露出は未解決 |
+| `SCREEN-TEST-CONTROL-A01-01/A01-02/A01-03/A01-04/A02-01` | 5 | 公開Use Caseではなく `TestControlService` がシナリオ/時刻/遅延/Resetを扱う。production拒否、リセット前後差、失敗復帰・実Runは未受入 |
+| `SCREEN-BOUNDARY-NOT-FOUND-A01-01/A01-02/A02-01` | 3 | `+not-found`、StatePanel、NativeUnsupportedScreen。未知Path・Role別・Android実画面/戻り操作の検証が残る |
+| **計** | **22** | 実行・視覚・Role/Sessionを検証する必要は残り、Use Case未設定のみでは基本分析不合格としない |
+
+### バリデータの監査範囲と修正先
+
+- 現行 `scripts/training/validate-supported-behaviors.mjs` は `implementation_evidence`、`seed_evidence`、`seed_evidence.transform` の署名照合を必須化する一方、`use_case_evidence`の署名と行位置を同水準で直接照合していない。このため上記7件の旧参照は、`analyzed`状態のまま残り得た。**#199側のvalidator/契約テストで任意の`use_case_evidence`が存在する場合、その公開Use Case名・path/行/署名を `use_case_methods` の正本と照合する検査を追加することを推奨**。#212の変更境界ではvalidatorと契約テストを編集しない。
+- `audit_branch_refs`なしで`analyzed`の13件は、旧データで実装/Seed/公開Use Case参照を保持している。13件だけでも上記に含まれる `AuthUseCases.register` の1参照が古かったため、参照項目の**存在**と行の**有効性**を分けて判断する。これをもって全13件の画面・DB実受入とはしない。
+
+### 最終管理者保護の受入条件再検討（製品コード変更なし）
+
+- #199の `AdminUserUseCases.changeRole:567-598`、`changeSuspension:600-640` は、管理者actorの認可と自己変更拒否をtransaction前に行い、targetがadminかつ `countActiveAdmins()<=1`なら`LAST_ADMIN_PROTECTED`とする。
+- **正常な一貫した状態では**、権限を持つactive admin actorと、本人以外のactive admin targetが存在する時点でactive admin数は少なくとも2。2人→1人への変更は許可され、残る1人が自分を降格/停止しようとすると先に`SELF_CHANGE_FORBIDDEN`になる。従来の「非selfの最後のactive admin」を単純な固定Seedで作るテスト条件は、**有効actorという前提と両立しない**。
+- #199の旧版は認可後・transaction前にactorを失効させる時間差で `countActiveAdmins()<=1`に到達する余地がある。#210 HEAD `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79`の `assertActorStillAuthorized` は同じ`change-user-access` transaction内にactor Session/Role/Statusの再検証を入れており、失効actorを先に拒否する。#210は未マージのため#199へ受入済みとしない。
+- A02-03の実行条件は、(1)自己降格/停止の`SELF_CHANGE_FORBIDDEN`、(2)2人→1人への許可変更とtarget Session無効化、(3)#199旧版の認可時点差と#210版の再認可・DB不変の対比、(4)別の管理者が残っていることの不変条件、(5)確認UI・最新Version・a11y/実Webを**別Case**として実証する。人工Repositoryで`LAST_ADMIN_PROTECTED`分岐を単体実行しても、現実の権限付き画面で再現した証拠として流用しない。
+- `SCREEN-ADMIN-USER-DETAIL-A02-03`と関連A01-02/A01-04の`review_required`は保持し、既存製品コード・正式仕様・テストをこのPRで修正しない。
+
+### CIと比較時点
+
+- PR #212 HEAD `775cf53c2ae4104ebb9b483994e6575a578f6748` のWeb CI [#41743735380](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41743735380)は**completed/failure**。Vitest contractsは**1032 passed、13 failed（supported-behaviorsの固定status12、Assessment Calibration1）**、Style Qualityは `tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`と`ai-assisted-qa-assessment.test.mjs`の2ファイルで不合格。今回の新HEADにこの古い実行のPASS/FAILを流用しない。
+- 親#199比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098`との旧比較結果はステータス差58件、説明・根拠のみ45件（合計103件）。今回の1件のUse Case関連付けと7参照の更新で**フィールド差の件数ではなく内容が増えた可能性**があるため、統合時にID・フィールド単位で再計算する。
+- 今回の変更でデータ全体の分母・基本分析statusを変更していない。ローカルNode/Vitest/Prettier/Playwright/Androidは実行しておらず、**CIの新HEAD結果確認と実Run受入は残る**。

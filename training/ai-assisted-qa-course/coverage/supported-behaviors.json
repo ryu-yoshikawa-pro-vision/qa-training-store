@@ -3951,7 +3951,7 @@
         {
           "id": "CatalogUseCases.getProductDetail",
           "path": "src/application/use-cases/catalog-use-cases.ts",
-          "line": 100,
+          "line": 108,
           "signature": "async getProductDetail(productId: string): Promise<ProductDetail | null> {"
         }
       ],
@@ -6844,7 +6844,7 @@
         {
           "id": "AuthUseCases.register",
           "path": "src/application/use-cases/auth-use-cases.ts",
-          "line": 116,
+          "line": 121,
           "signature": "async register(request: RegisterUserRequest): Promise<LoginResult> {"
         }
       ],
@@ -9434,15 +9434,17 @@
       "case_policy": "0件表示、1件追加後の消滅、Roleガード、Web/Nativeの案内差を確認。未登録での購入確定は別のSCREEN-CHECKOUT-ADDRESSで扱う",
       "case_selection_reason": "初期Seedが住所0件であり、アプリを最初に使う顧客が住所を登録できることを確認するため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "checkout-and-payment.md:25-39とscreen-catalog.md:25-26、Web addresses-page.tsx:100-110,198-239、Android native-purchase-screens.tsx:518-524,582-644、初期Seed default-dataset.ts:774を照合。Webでは直接リンクでなく同画面下部のフォームが登録導線。Nativeではテキスト案内と入力フォーム。/checkout/addressのリンクは別画面。",
+      "basic_analysis_review": "checkout-and-payment.md:25-39とscreen-catalog.md:25-26、Web addresses-page.tsx:100-110,198-239、Android native-purchase-screens.tsx:518-524,582-644、初期Seed default-dataset.ts:774を照合。Webでは直接リンクでなく同画面下部のフォームが登録導線。Nativeではテキスト案内と入力フォーム。/checkout/addressのリンクは別画面。 2026-11-04独立追跡補足: Web AddressesContent:45-66のaccount.listAddresses()→AccountUseCases.listAddresses:83-86のrequireCustomer/listByUser→addresses.length===0でStatePanel表示:100-110。登録フォーム:198-220は別操作に属するため、この動作の関連UseCaseは読取listAddressesのみとする。静的証拠であり、実Web/Androidの受入済みではない。",
       "requirement_refs": [
         "ROLE-ACCESS"
       ],
-      "related_use_cases": [],
+      "related_use_cases": [
+        "AccountUseCases.listAddresses"
+      ],
       "state_refs": [
         "SCREEN-CHECKOUT-ADDRESSES-S-empty"
       ],
-      "analysis_progress": "仕様・Web/Native実装とSeedを照合済み。テスト実行結果と実機受入は別途判定",
+      "analysis_progress": "仕様・Web/Native実装とSeedを照合済み。テスト実行結果と実機受入は別途判定 | 2026-11-04: 未設定だった読取Use Caseへの関連付けと行証拠を補完（status変更なし）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/addresses-page.tsx",
         "line": 37,
@@ -9464,7 +9466,14 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": [],
+      "use_case_evidence": [
+        {
+          "id": "AccountUseCases.listAddresses",
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "line": 83,
+          "signature": "async listAddresses(): Promise<UserAddress[]> {"
+        }
+      ],
       "audit_branch_refs": [
         {
           "path": "src/presentation/pages/addresses-page.tsx",
@@ -9483,6 +9492,30 @@
           "start_line": 518,
           "end_line": 644,
           "reason": "Native空状態と新規住所フォーム"
+        },
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 45,
+          "end_line": 66,
+          "reason": "Webのaccount.listAddresses()取得結果が空表示条件addresses.length===0を決定"
+        },
+        {
+          "path": "src/application/use-cases/account-use-cases.ts",
+          "start_line": 83,
+          "end_line": 86,
+          "reason": "listAddressesがrequireCustomerと本人のUserAddressRepository.listByUserを適用"
+        },
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 100,
+          "end_line": 110,
+          "reason": "住所0件のWeb StatePanel文言と登録フォームへの案内"
+        },
+        {
+          "path": "src/presentation/pages/addresses-page.tsx",
+          "start_line": 198,
+          "end_line": 220,
+          "reason": "同ページの住所登録フォームとcreateAddress、成功後のreload"
         }
       ],
       "reviewed_against": [
@@ -15985,7 +16018,7 @@
         {
           "id": "CustomerReviewUseCases.delete",
           "path": "src/application/use-cases/review-user-use-cases.ts",
-          "line": 194,
+          "line": 193,
           "signature": "async delete(request: DeleteReviewRequest): Promise<ReviewResultDto> {"
         }
       ],
@@ -17124,7 +17157,7 @@
         {
           "id": "AdminReviewUseCases.bulkChangeVisibility",
           "path": "src/application/use-cases/review-user-use-cases.ts",
-          "line": 442,
+          "line": 441,
           "signature": "async bulkChangeVisibility(input: BulkChangeReviewVisibilityRequest): Promise<BulkActionResult> {"
         }
       ],
@@ -19366,19 +19399,19 @@
         {
           "id": "AdminOperationsUseCases.searchInventory",
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
-          "line": 53,
+          "line": 57,
           "signature": "async searchInventory(query: Partial<InventorySearchQuery> = {}): Promise<Page<InventoryItem>> {"
         },
         {
           "id": "AdminOperationsUseCases.getInventoryDetail",
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
-          "line": 68,
+          "line": 73,
           "signature": "async getInventoryDetail(variantId: string): Promise<InventoryDetail> {"
         },
         {
           "id": "AdminOperationsUseCases.adjustInventory",
           "path": "src/application/use-cases/admin-operations-use-cases.ts",
-          "line": 85,
+          "line": 91,
           "signature": "async adjustInventory(request: AdjustInventoryRequest): Promise<InventoryDetail> {"
         }
       ],
