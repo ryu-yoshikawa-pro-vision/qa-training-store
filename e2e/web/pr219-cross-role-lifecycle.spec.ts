@@ -312,3 +312,25 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     await expect(recovery).toHaveAttribute("href", "/checkout/payment");
   });
 });
+
+test.describe("PR #219: many-products filter and pagination boundary", () => {
+  test("KNOWN DEFECT REPRO: many-products filtered page must reset to first page", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("many-products");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/products");
+
+    const pager = page.getByRole("navigation", { name: "ページ送り" });
+    await expect(pager).toContainText("1 / 50ページ");
+    await pager.getByRole("button", { name: "次へ" }).click();
+    await expect(pager).toContainText("2 / 50ページ");
+
+    await page.getByLabel("最低価格").fill("5400");
+    await expect(page.getByLabel("最低価格")).toHaveValue("5400");
+    // All 20 products with minimum price 5400 belong on page 1 after filtering.
+    test.fail(true, "Changing a non-keyword filter retains page 2 of a one-page result.");
+    await expect(page.getByRole("row").filter({ hasText: "LOAD-0049" })).toHaveCount(1);
+  });
+});
