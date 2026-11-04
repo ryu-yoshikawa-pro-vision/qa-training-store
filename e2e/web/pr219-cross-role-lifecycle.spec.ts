@@ -355,7 +355,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
       await page.goto("/products");
-      await expect(page.getByRole("heading", { name: "現在、表示できる商品はありません" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "現在、表示できる商品はありません" }),
+      ).toBeVisible();
       const empty = page.locator(".state-panel--empty");
       await expect(empty.locator("a, button")).toHaveCount(0);
       const breadcrumb = page.getByRole("navigation", { name: "パンくず" });
@@ -365,7 +367,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
         "aria-current",
         "page",
       );
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
       await home.focus();
       await expect(home).toBeFocused();
       await testInfo.attach(`pr219-empty-${viewport.width}`, {
@@ -374,7 +378,9 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
       });
       if (viewport.width === 320 || viewport.width === 1024) {
         const axe = await new AxeBuilder({ page }).analyze();
-        const violations = axe.violations.filter((item) => ["critical", "serious"].includes(item.impact ?? ""));
+        const violations = axe.violations.filter((item) =>
+          ["critical", "serious"].includes(item.impact ?? ""),
+        );
         await testInfo.attach(`pr219-empty-axe-${viewport.width}`, {
           body: JSON.stringify(axe.violations, null, 2),
           contentType: "application/json",
@@ -383,8 +389,10 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
       }
     }
 
-    await page.getByRole("navigation", { name: "パンくず" })
-      .getByRole("link", { name: "ホーム" }).focus();
+    await page
+      .getByRole("navigation", { name: "パンくず" })
+      .getByRole("link", { name: "ホーム" })
+      .focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/$/);
   });
@@ -399,11 +407,11 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
       await page.goto("/products?minPrice=999999");
       const filtered = page.locator(".state-panel--filter-empty");
       await expect(filtered).toBeVisible();
-      await expect(
-        filtered.getByRole("button", { name: "条件をすべて解除" }),
-      ).toBeVisible();
+      await expect(filtered.getByRole("button", { name: "条件をすべて解除" })).toBeVisible();
       await expect(page.locator(".state-panel--empty")).toHaveCount(0);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
       await testInfo.attach(`pr219-filter-empty-${viewport.width}`, {
         body: await page.screenshot({ fullPage: true }),
         contentType: "image/png",
