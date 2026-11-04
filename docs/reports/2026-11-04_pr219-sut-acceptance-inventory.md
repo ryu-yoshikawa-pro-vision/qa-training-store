@@ -167,3 +167,9 @@
 - `empty-catalog`の無条件0件は`/products`のEmpty StatePanelでCTAがなく、BreadcrumbsのHome linkをキーボードEnterで利用できることを確認する。
 - `default`の`/products?minPrice=999999`で0件となる場合はFilter Empty StatePanelと`条件をすべて解除`の機能を確認する。
 - 検索API失敗のError画面・視覚正本画像・全幅と実画像証拠/a11y・Reset直後のDB snapshotは未検証。これらが揃うまでタスクリスト9番は未完了。
+
+## 管理商品検索・表示外選択のWeb受入（タスクリスト8番の継続）
+
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`に2件追加。固定Seed`default`の`P-0006`（スポーツボトル・stock0・published）について、商品コード検索と在庫切れフィルター・draft状態フィルターのAND条件を実Webで比較。
+- `P-0001`をチェックして存在しない検索語へ変更したとき、画面外選択が残り一括ボタンが押せる現在の実装差を`test.fail`の**既知の期待失敗Case**として定義。CIがexpected failureを報告しても、製品適合PASSには数えない。
+- SKU文字列の検索対象、カテゴリー/ブランド、価格上下限、many-productsでのpage/選択残留、bulkの実行・拒否/rollback、実画像とa11y、DB差分は未検証。完了条件が揃うまで8番は未チェック。

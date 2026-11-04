@@ -209,3 +209,39 @@ test.describe("PR #219: storefront empty result boundaries", () => {
     await expect(page.locator(".product-card").first()).toBeVisible();
   });
 });
+
+
+test.describe("PR #219: admin product list and selected-filter boundary", () => {
+  test("SCREEN-ADMIN-PRODUCTS-A01-02: product code, stock and status are AND-filtered", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/products");
+    await page.getByLabel("検索").fill("P-0006");
+    await expect(page.getByRole("row").filter({ hasText: "P-0006" })).toHaveCount(1);
+    await page.getByLabel("在庫").selectOption("out_of_stock");
+    await expect(page.getByRole("row").filter({ hasText: "スポーツボトル" })).toHaveCount(1);
+    await page.getByLabel("状態").selectOption("draft");
+    await expect(page.getByRole("row").filter({ hasText: "P-0006" })).toHaveCount(0);
+  });
+
+  test("SCREEN-ADMIN-PRODUCTS-A01-02: selection is cleared if no selected row remains", async ({
+    page,
+    scenario,
+  }) => {
+    // The current product UI retains an off-screen selection and an enabled bulk action.
+    // This is a known acceptance failure, not a valid product PASS.
+    test.fail(true, "Selected product IDs remain when the filter removes all visible rows.");
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/products");
+    await page.getByRole("checkbox", { name: "ベーシックTシャツを選択" }).check();
+    await expect(page.getByText("1件選択")).toBeVisible();
+
+    await page.getByLabel("検索").fill("PR219-NO-MATCH");
+    await expect(page.getByText("0件選択")).toBeVisible();
+    await expect(page.getByRole("button", { name: "選択を公開" })).toBeDisabled();
+  });
+});
