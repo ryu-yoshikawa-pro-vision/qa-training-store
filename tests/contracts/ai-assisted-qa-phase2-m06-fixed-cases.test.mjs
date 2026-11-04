@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const starter = read("workspace/M06/cart-cases.spec.ts");
-const reference = read("training/ai-assisted-qa-course/assessment/playwright/M06/cart-cases.spec.ts");
+const reference = read(
+  "training/ai-assisted-qa-course/assessment/playwright/M06/cart-cases.spec.ts",
+);
 const cartSpec = read("docs/spec/features/cart.md");
 const exercise = read("training/ai-assisted-qa-course/exercises/M06/exercise.md");
 
