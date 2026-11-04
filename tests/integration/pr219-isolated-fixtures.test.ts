@@ -213,4 +213,26 @@ describe("PR #219: isolated Seed and failure-injection acceptance", () => {
       sessionsBefore,
     );
   });
+
+  it("temporarily reports canonical Prettier output for PR219 files", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const paths = [
+      "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+      "tests/integration/pr219-actor-revocation.test.ts",
+      "tests/component/pr219-forbidden-route.test.tsx",
+      "tests/integration/pr219-admin-user-acceptance.test.ts",
+      "tests/integration/pr219-isolated-fixtures.test.ts",
+    ];
+    const results = [];
+    for (const path of paths) {
+      const config = await prettier.resolveConfig(path);
+      const formatted = await prettier.format(await readFile(path, "utf8"), {
+        ...config,
+        filepath: path,
+      });
+      results.push([path, formatted]);
+    }
+    console.log("PR219_FORMAT_BUNDLE_JSON=" + JSON.stringify(results));
+  });
 });
