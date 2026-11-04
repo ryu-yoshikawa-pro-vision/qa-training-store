@@ -35,3 +35,5 @@
 - タスク21番完了：元台帳Blob `3143b229`のBehavior IDをWeb/Integration実Run・固定HEAD・個別結果・不足条件に紐付けた`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md`を作成。#213 comment 6626130682、#210 comment 6626133301へ追補共有。未マージ#210のPASS流用なし、各未実行Caseを未受入のままとする。
 
 - タスク10番の補完：新規Cart隔離DBテスト7件（stock 0/1/5/6、stale Cart/Item CAS、guest Rank/公開、Gold/Sale）。CI未実行のため未チェック。
+
+- Cart受入7件：Run #41800985878のIntegration jobで7件成功/全134件成功。Style Quality違反はRun #41801523862で得た公式Prettier出力を適用し一時診断削除。新HEADのCI未確認。

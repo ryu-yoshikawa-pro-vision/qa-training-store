@@ -207,3 +207,8 @@
 - このうち**16件が個別PASS**、管理商品「表示外選択」は**既知不具合のexpected failure 1件**。`cross-role-chromium` job全体は既存`cross-role-lifecycle.spec.ts`の`getByRole("status")` strict違反でfailure（exit 1）。Job/Workflowを全体PASSとしない。
 - CIで保存されたPlaywright Artifactは`playwright-cross-role-41798882293-1`（Artifact ID `13306602054`）。Fixtureは`scenario-metadata-console` JSONをTestInfoへ添付し、Consoleエラーがないことをassertする。成功時のTrace/画像/動画、Network/DB全表の証拠は現在のPlaywright設定では保存されないため未取得と記録した。
 - **この17行だけでタスクリスト2番や20番は未完了。** 分析元の188操作・20状態の各採用Case、Android/SQLite、Webの全条件・成功時Trace等が未取得のため、未受入CaseをPASSに変えない。
+
+## Cart stock/Ranks/Versionの初回CI結果
+
+- [Web CI #41800985878](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41800985878)固定HEAD `cbb5f7d49b8a5987a7516a4f71d9eec721e97bed`で`pr219-cart-boundaries.test.ts` **7/7成功**、Vitest (integration) **134件成功**、Code Quality success。ただし**Style Qualityは本テストファイルのPrettier違反で失敗**しており、全体成功ではない。
+- [Web CI #41801523862](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41801523862)のIntegration job `126478752655`で同じファイルのPrettier整形結果を取得。整形済みソースを反映して一時診断テストを削除した。**この修正後HEADのCI成功は別途確認が必要**。上記7件の実行成功を最新HEADに流用しない。

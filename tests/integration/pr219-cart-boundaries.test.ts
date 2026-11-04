@@ -185,21 +185,12 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
       addQuantity: 1,
     });
 
-    expect(added.items.find((item) => item.variantId === "variant-running-shoes-one")).toMatchObject({
+    expect(
+      added.items.find((item) => item.variantId === "variant-running-shoes-one"),
+    ).toMatchObject({
       quantity: 1,
       unitEffectivePriceAtAdd: 6400,
     });
     expect(await database.checkout_sessions.toArray()).toEqual(checkoutBefore);
-  });
-  it("temporarily captures exact CI Prettier format", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const path = "tests/integration/pr219-cart-boundaries.test.ts";
-    const config = await prettier.resolveConfig(path);
-    const formatted = await prettier.format(await readFile(path, "utf8"), {
-      ...config,
-      filepath: path,
-    });
-    console.log("PR219_CART_CANONICAL_JSON=" + JSON.stringify(formatted));
   });
 });
