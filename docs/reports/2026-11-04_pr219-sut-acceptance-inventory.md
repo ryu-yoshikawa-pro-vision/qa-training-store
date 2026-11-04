@@ -89,3 +89,10 @@
 - 各行にBehavior ID、条件参照、Platform、Role、Scenario、要件、元台帳の期待結果と固定SUT SHAを記録した。未実行の観測・DB前後・Trace/動画/画像・Console/Network・Run・exit codeは空欄、判定はすべて**未受入**。既存の2件のIntegration PASSはCase単位の証拠として上記のCI節で管理しており、部分条件だけで候補行全体をPASSに変更しない。
 - 元台帳の`source_commit`は`383efc9107ef3d5f78c5659473277166c1bba2de`であり現行#199 HEAD `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`とは異なる。台帳の更新・採否は#213に委ね、#219はCaseと実Runの対応のみ追加する。
 - 再開：各候補について元台帳の採否を読み、実Runと固定HEAD・期待/観測・DB前後を紐付けた後に判定を更新する。未実施とBLOCKEDはPASSにしない。番号未付与を即座に仕様漏れと断定しない。
+
+## PR #219専用Webクロスロール受入テスト（実ブラウザ証拠はCI待ち）
+
+- 新規テスト：`e2e/web/pr219-cross-role-lifecycle.spec.ts`。既存`playwright.config.ts`の`cross-role-chromium`に設定された`/cross-role-lifecycle\\.spec\\.ts/`と命名を一致させ、既存`pnpm run test:e2e:cross-role`で実行する。共有config/workflowは変更しない。
+- 対象：`SCREEN-BOUNDARY-FORBIDDEN-A01-01`、`BR-AUTH-001/002`、`SCREEN-ADMIN-USER-DETAIL-A01-02`。guest/customer/operator/admin、suspended/withdrawn、他人の注文表示拒否、Role変更後の古いSessionを直接URLで検証する。
+- 元Seedのユーザーと注文データだけを使用し、Role更新は隔離したPlaywright Browser Context内の通常UI操作に限定。各テストは既存`scenario()`からResetしてから開始する。
+- 期待と判定：顧客・管理機能のルート分離、他人の注文詳細の非露出、Role変更後のSession失効。実CIのPlaywright実Runが成功するまで未実行扱い。画面/DBの全条件を満たすまでタスクリスト4番は未完了。
