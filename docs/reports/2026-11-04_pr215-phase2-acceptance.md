@@ -318,3 +318,22 @@
 - **回帰条件**：新規`tests/contracts/ai-assisted-qa-phase2-m05-config-evidence.test.mjs`にポート境界、testDir/Reporter/Trace、配布検証、P05直接実行と`course:run`の許可spec・証拠の相違を固定。ソースと設定文字列の対応は静的に確認した。新規契約テストのGitHub CI実行結果・専用Chromiumでの実Runは未確認。SUT/Config/共通実行器そのものは変更していない。
 - **担当外の残件**：共有実行器`reportSpecs()`がPlaywright JSON reporterの`rootDir`相対パスをリポジトリルート基準で扱う問題は未修正。既存の[PR #217引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)へ技術条件を記載済み。専用Shopの実Chromium・run receipt成功は#199最後の実受入で検証する。今回の技術タスクは静的な照合と専用契約テストの追加までとする。
 - **変更後CI**：HEAD`8ed8c3c970df9d8e1408476d14357da06d92e50d`の[Web CI #41864643385](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41864643385)は確認時`queued`。完了待ちはしない。
+
+## 2026-11-05 M05 P05公開参考specの専用Chromium実行条件
+
+- **対象**：`training/ai-assisted-qa-course/assessment/playwright/M05/cart-locator-inspection.spec.ts`（Blob `880e7dd60efe1d34ee1249e15a99df6bcbc6f6d5`）。公開参考specのstaticな整合と2明細scopeはM05-02の契約テストに記録済み。これは本人`workspace/M05/p05-cart-locator.spec.ts`とは別ファイル。
+- **未実行理由**：今回の作業環境はGitHub connector経由でコードを確認・commitしているが、実行可能なリポジトリcheckoutと`pnpm`/学習用サーバーが存在しない。接続済みGitHub Actionsの通常`Chromium E2E (training-web-baseline)`は`playwright.training.config.ts`/別testDirを使用するため、参考specの実行証拠にはできない。**公開参考specの専用Chromiumの実行とPASSは未確認**。
+- **再開環境**：Node.js・corepack/pnpmと依存が導入され、Playwright Chromiumを利用できる学習用checkout。必要なポートは専用Configのloopback`127.0.0.1:8082`（通常Web 8081/Private noVNC 6080と異なる）。同期済みShopがある場合は配布manifestとsource SHAが一致して`verify-distribution`成功が必要。ない場合は専用Configの`build:web`/配布物Serve起動が成功すること。
+- **再現コマンド**（リポジトリルートで実行。学習用環境の既存依存とブラウザ導入を確認する。生徒のspecではなく公開参考specを明示）：
+
+  ```bash
+  export PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M05
+  export PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082
+  export AI_QA_OUTPUT_ROOT=output/training/ai-assisted-qa/m05-cart-reference
+  pnpm exec playwright test cart-locator-inspection.spec.ts \
+    --config=playwright.ai-assisted-qa.config.ts \
+    --project=ai-assisted-qa-chromium --retries=0
+  ```
+
+- **取得・照合すべき証拠**：実行したGit HEAD、参考spec SHA-256、server/配布source SHAとConfig、実行時刻・終了コード・標準出力、`AI_QA_OUTPUT_ROOT/playwright-result.json`の`config.rootDir`と対象test名/実行数/最終結果、HTML report、失敗時のTrace/screenshot、指定商品のCart 2明細のscope・数量1・削除非実施。成功なら別のspecを混入させず対象1件以上全件PASSを確認する。Traceは`retain-on-failure`であり、成功時にTraceが常時生成されるとは限らない。
+- **取り扱い**：この項目は「実行不可の場合は再開条件と未取得証拠を残す」というPR #215の技術対応として記録し、実Chromium検証済みとは扱わない。実受講者のP05実装・操作・正式受入は#199最後に行う。
