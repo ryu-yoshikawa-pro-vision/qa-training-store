@@ -135,3 +135,13 @@
 - 完成見本から本人の修了証拠を作らず、本人固有の`source_sha`・spec・Run ID・初期Role/State/Dataについては実ファイル未入手のため**未確認**のままとする。M07正式AI評価の受入は#217の責務。本人Private 2コアCodespaces受入は決定済みの後続工程とする。
 
 **この段階のProgress: 16% (4/25)**。上記の確認で完了とするのは教材/提出欄/状態/評価基準/復習先の**静的な個別照合**だけ。残り21件は必要な実Runなどを取得するまで未完了。
+
+## 再開後の保全手順と検証の限界
+
+- `training/ai-assisted-qa-course/exercises/M07/exercise.md`に、M05〜M07の本人spec/提出物、Runごとの`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`、必要なTraceを**個別に確認・選択**し、Git/PRを使わず保全する手順を追加。教材`modules/M07/README.md`のhandoffから参照する。
+- 保管先は`workspace/M07/exports/`。既存の配布用`workspace.gitignore`には`/M07/`があり、アーカイブを誤って公開Gitへ追加するリスクを下げる。**暗号化しないアーカイブ**なので、本人だけがアクセスできる場所へ保存し、Secret・認証情報・個人情報を含む場合は保全対象から除く。対象Runを選んでから追記し、全`workspace/`や全Traceを無検査でアーカイブしない。
+- **隔離コンテナでの補助検証**：ダミーのM05提出物・M06 spec・M07 Run記録の3ファイルを用い、bashのallowlist、`tar -czf ... -T phase2-files.txt`、`sha256sum -c`、`tar -xzf --no-same-owner --no-same-permissions`による復元、各ファイルの`cmp`、`git check-ignore workspace/M07/exports/phase2.tgz`を実施。全件成功。ただし**固定配布Shop/実Codespacesでの保全・ダウンロード・復元結果ではない**。
+- `scripts/training/ai-assisted-qa-run-evidence.mjs`の読み取りでは、Run単位で3種類の証拠ファイルと必要に応じたattachmentを記録する。外部AI正式評価へ全Traceを送信する契約はない。OpenCodeの段階ヒント・復習導線と本人判断の独立性、受講者Codespacesでのバックアップ実証は引き続き未確認とする。
+- 本保全項目は演習記述と隔離環境のコマンド確認まで進めたが、タスクリストの「通常OpenCodeの確認・安全なエクスポートの実地検証」は未達なので**チェックを付けない**。
+
+**Progress: 16% (4/25)**。残り21項目の未実行/BLOCKEDは保持する。
