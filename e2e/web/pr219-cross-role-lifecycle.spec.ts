@@ -447,30 +447,19 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     logRuntimeMetadata("PR219-WEB-025", metadata);
     await prepareCheckoutStaleCart(page);
 
-    // A rejected read of a stale Checkout must not create orders, payments,
-    // shipments or histories, nor change Cart/Checkout versions or inventory.
-    const tables = [
-      "carts",
-      "cart_items",
-      "checkout_sessions",
-      "orders",
-      "order_items",
-      "daily_sequences",
-      "payments",
-      "shipments",
-      "order_status_histories",
-      "inventory_histories",
-    ] as const;
-    const before = await indexedDbTableDigests(page, tables);
+    // The entire persisted state, not only order/payment tables, must stay
+    // unchanged after rejecting stale Checkout. This includes Session and
+    // settings. No database values or digest hashes are printed in CI logs.
+    const before = await indexedDbTableDigests(page);
 
     await page.goto("/checkout/confirm");
     await expect(page.getByRole("heading", { name: "購入手続きを続けられません" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "注文内容を確認" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /を支払う$/ })).toHaveCount(0);
 
-    const after = await indexedDbTableDigests(page, tables);
+    const after = await indexedDbTableDigests(page);
     await testInfo.attach("pr219-stale-confirm-rejected-db-digests", {
-      body: JSON.stringify({ tables, before, after }, null, 2),
+      body: JSON.stringify({ tables: Object.keys(before), before, after }, null, 2),
       contentType: "application/json",
     });
     expect(after).toEqual(before);
@@ -482,7 +471,7 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
         JSON.stringify({
           behavior: "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
           condition: "rejected-confirm-no-db-mutation",
-          tableCount: tables.length,
+          tableCount: Object.keys(before).length,
           allTablesUnchanged: true,
         }),
     );
