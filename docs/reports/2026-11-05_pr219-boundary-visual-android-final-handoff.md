@@ -38,7 +38,7 @@
 
 保存を確認した画像の例：Run 41841987928 Small Mobile `13329861639` の`products-empty-page-end.png`、Desktop `13329807665` の`products-empty.png`。これらは同Runの**別UI Review job**の画像であり、cross-role成功Caseの添付ではない。現在の`playwright.config.ts`は`trace: retain-on-failure`、`screenshot: only-on-failure`、`video: retain-on-failure`である。成功時Caseの画像/Traceを保存する共有workflowとArtifact取得は#199の担当。
 
-#199の最終比較では**正式正本の存在するPlatform/状態だけ**を照合し、存在しないTablet正本を創作しない。Focus順・スクリーンリーダー・画像差分は採用CaseのRole/幅/状態で独立判定する。
+PR #199の最終比較では**正式正本の存在するPlatform/状態だけ**を照合し、存在しないTablet正本を創作しない。Focus順・スクリーンリーダー・画像差分は採用CaseのRole/幅/状態で独立判定する。
 
 ## 3. Android・SQLite最終実行の準備
 
