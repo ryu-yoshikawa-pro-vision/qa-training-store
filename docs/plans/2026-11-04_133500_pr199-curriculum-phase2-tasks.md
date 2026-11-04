@@ -15,6 +15,7 @@
 - [x] `M05-03`：可視/クリック成功とCart更新・DB保存の保証範囲の差、弱いAssertionを業務結果で補強する判断を確認
 - [x] `M05-04`：Web-first assertion・auto wait・根拠のない`waitForTimeout`と実エラーの区別を演習/負例へ反映
 - [ ] `M05-05`：新課程専用Config、8081/8082/6080、指定spec、Trace/JSON report・receiptの実行経路と保存先を一致させる
+  - [x] P05直接実行のPlaywright v1.62 JSON reporterの`rootDir`相対パスを照合し、別spec・0件・skip・期待FAIL・誤った`rootDir`を拒否する教材と契約テストを更新（本人実Run/receiptは未検証）
 
 ## M06：別条件からのWeb E2E実装（5目標）
 
@@ -22,6 +23,7 @@
 - [ ] `M06-02`：学習用ResetとBrowser Context、単独Run・同じ条件の再実行、実行順・残存IndexedDBによる誤判定防止を実証
 - [ ] `M06-03`：無関係でもPASSするAssertionを正本の業務結果へ修正し、変更前後の失敗/成功を示す
 - [ ] `M06-04`：CLI/対象spec・Case・Run ID/結果・Trace/reportを同じ実行に紐付け、旧Runの流用とファイル名だけの一致を拒否
+  - [x] CASE-CART-004/005の`run-evidence.json`、`spec-snapshot.ts`、JSON report、test名・結果を相互照合する教材と提出欄を更新（初回/再実行は未実施）
 - [ ] `M06-05`：未実行・環境BLOCKED・FAIL・PASSを、終了コードとログ・実操作に基づき区別する
 
 ## M07：失敗解析・保守設計・Phase 2総合演習（5目標）
@@ -31,6 +33,7 @@
 - [x] `M07-03`：Retry/Timeout延長ではなく原因の切分けを先に判断する基準を確認
 - [ ] `M07-04`：AIパッチの採否・最小修正・修正前後の別Runと仕様上の期待結果維持を実証
 - [ ] `M07-05`：重複specと保守変更からPage Object/標準fixtureを採否し、小規模な実装・import・前後Runと保守効果を示す
+  - [x] 3件目は別ページへ移動後にCart再入場すること、Page Object/fixtureのソース同一性を保全することを教材・提出/引継ぎ欄へ明記（参考specは#217へ引継ぎ、本人Runは未実施）
 
 ## 学習用実行・横断的な確認
 
@@ -114,3 +117,10 @@
 - M07 3件目は数量2の再読み込みではなく別ページ遷移とCartへの再入場が必須。Page Object/fixtureのsource revisionも記録するよう修正。正式参考specとの差は[PR #217へ引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6632850727)済み。
 - **チェック追加は固定HEADでのテスト・CI・未実行/残リスクの報告項目1件のみ**。[Phase 2受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に対象、Blob SHA、CIの確認結果、実Run未取得、再開条件を明記。前HEAD `a538b5d75a756f7b2ae2c2d431facf3df63ae424` の[Web CI #41842768500](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41842768500)は成功。今回の変更後HEADのCIは未確認／成功と断定しない。
 - **Progress: 32% (8/25)**。残り17件。実Run必須項目は未チェックのまま。
+
+## 2026-11-04 継続：Playwright JSON reporterの相対パス修正
+
+- Playwright v1.62.0のJSON reporterが`spec.file`を`config.rootDir`相対で出力することを公式ソースで確認。M05 P05直接実行教材と隔離stub契約テストを修正し、Playwright形式のrootDir相対パスでPASS/拒否を検証できるようにした。
+- `course:run`共通実行器でも同じ相対パスをリポジトリルート基準で扱っている問題を発見し、[PR #217へ引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)。共有scriptは本PRで変更しない。
+- 作業済みの内部変更は各親項目の下へチェックを追加した。**親のM05-05/M06-04/M07-05は実Runが未実施のため未完了**。25件の受入チェック計算に内部変更のチェックを加算しない。
+- **Progress: 32% (8/25)**。残り17件。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に対象Blob、テストとCIの状況、実Run制約を記録。
