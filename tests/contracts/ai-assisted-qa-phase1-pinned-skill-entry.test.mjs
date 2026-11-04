@@ -58,9 +58,9 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(cart).toContain("### BR-CART-001");
     expect(cart).toContain("#### AC-CART-001");
     expect(cart).toContain("自動補正を行わずに操作全体を拒否");
-    const riskLine = workbook.split(/\\r?\\n/).find((line) => line.includes("RISK-CART-001"));
+    const riskLine = workbook.split(/\r?\n/).find((line) => line.includes("RISK-CART-001"));
     expect(riskLine).toBeTruthy();
-    expect(riskSample.split(/\\r?\\n/)[1]).toBe(riskLine);
+    expect(riskSample.split(/\r?\n/)[1]).toBe(riskLine);
     expect(m02).toContain("SCOPE-001");
     expect(m02).toContain("在庫を3");
     expect(m03).toContain("SCOPE-101");
