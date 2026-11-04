@@ -51,3 +51,5 @@
 - タスク8完了：CI #41808161478で管理商品の代表検索PASS・選択残留/1,000商品の非keyword filter後page残留を製品期待失敗として観測。#41806506482のRepository4ケースが成功し、SKU検索欠落・active SKU0価格Infinityは製品FAIL再現、空bulkはVALIDATION/DB不変。仕様/UI/Repository比較をレポートへ固定HEAD・jobとともに記録。製品修正・視覚/a11y/Androidは未受入。
 
 - タスク11完了：#41811366480（83fb032）の全CI成功、cross-role job 126512596197で再Login後の新SessionのCheckout通知・復帰成功。既存Web同一Session Reload/Reset、Integration 5+10件により24h/stale Cart/4決済/再試行/在庫競合を照合。confirm-ready stale Cartの戻り先が/paymentとなる製品FAILを再現し、SUT適合PASSとして扱わない。詳細：docs/reports/2026-11-04_pr219-checkout-case-evidence.md。
+
+- タスク9完了：#41811366480（83fb032）のcross-roleでEmpty/FilterEmpty×7画面幅・Breadcrumbs/CTAとaxe2幅の成功、Component jobでError→Retry成功。正式empty WebP（1440×1465、blob 0eb913f）とUI Review Desktop artifact #13311589417のproducts-empty.png（1440×1436）を直接比較し、配置差を残リスクとして記録。視覚適合PASSではなく比較完了。詳細docs/reports/2026-11-04_pr219-storefront-empty-error-accessibility.md。
