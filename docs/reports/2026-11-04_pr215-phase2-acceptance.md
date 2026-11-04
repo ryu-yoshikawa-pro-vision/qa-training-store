@@ -214,3 +214,12 @@
 - **判定**：`M05-03`は弱いAssertionと業務結果・保存を分ける**教材の判断基準**として完了。本人の8082 Run、Cartの業務テスト、IndexedDBへの書込み・再読み込み・別Contextの実証は未実施。`M05-01/02/05`、横断Playwright項目は未チェック。
 
 **Progress: 28% (7/25)**。残り18件。
+
+## 2026-11-04 M07の保全回帰テスト
+
+- 固定HEAD `0da2101d602bb5e531336362bc77bc19f9b56eb0`、`tests/contracts/ai-assisted-qa-phase2-export-guard.test.mjs` Blob `55959b73ef97ea88ce84b5bd0d265c11a6c8a6a6`に**Phase 2固有のVitest 4件**を追加した。対象はM07演習Markdownに記載したGit/PRを使わない保全コマンド本体で、配布エンジンや製品コードではない。
+- チェック対象：(1)3つの明示ファイルだけのtar作成・SHA-256照合・展開後内容一致、(2)`workspace/M05/../outside.txt`の拒否、(3)最終要素/親ディレクトリsymlink拒否、(4)アーカイブの自己入力拒否と既存ファイル不変。テストの検証環境はLinuxに限定し、一時ディレクトリ内のダミーデータで行う。
+- GitHub上のソースでは、MarkdownからBashブロックを3件抽出し、ガードスクリプトを特定できること、テストファイルがJavaScriptとして構文解析できることを**静的に照合**した。**新規Vitest 4件そのもののCI実行結果は現段階で未確認**。前HEADのWeb CI successを新規HEADのPASSに流用しない。CI失敗ならログ・原因を確認する。
+- これらは本人のCodespacesでの実保全・ダウンロード・復元、OpenCode学習支援の非介入を証明しないため、横断の`通常のOpenCode...安全にエクスポート`項目は**未チェック**にする。
+
+**Progress: 28% (7/25)**。残り18件。
