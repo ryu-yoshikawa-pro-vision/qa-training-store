@@ -173,7 +173,7 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
 
 
 test.describe("PR #219: storefront empty result boundaries", () => {
-  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: no products has no CTA but breadcrumb works", async ({
+  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: unfiltered empty breadcrumb", async ({
     page,
     scenario,
   }) => {
@@ -201,7 +201,10 @@ test.describe("PR #219: storefront empty result boundaries", () => {
     await page.goto("/products?minPrice=999999");
     await expect(page.locator(".state-panel--filter-empty")).toBeVisible();
     await expect(page.getByRole("heading", { name: "現在、表示できる商品はありません" })).toHaveCount(0);
-    await page.locator(".state-panel--filter-empty").getByRole("button", { name: "条件をすべて解除" }).click();
+    await page
+      .locator(".state-panel--filter-empty")
+      .getByRole("button", { name: "条件をすべて解除" })
+      .click();
     await expect(page).toHaveURL(/\/products$/);
     await expect(page.locator(".product-card").first()).toBeVisible();
   });
