@@ -471,7 +471,7 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
   test("KNOWN DEFECT REPRO: suspended operator with a surviving Session loops to forbidden without DB mutations", async ({
     page,
     scenario,
-  }) => {
+  }, testInfo) => {
     await scenario("default");
     await login(page, "operator@example.com", "/admin");
 
@@ -508,7 +508,7 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
       }
     });
 
-    const databaseDigest = () =>
+    const tableDigests = () =>
       page.evaluate(async () => {
         const database = await new Promise<IDBDatabase>((resolve, reject) => {
           const request = indexedDB.open("ec-automation-training");
@@ -516,9 +516,9 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
           request.onerror = () => reject(request.error);
         });
         try {
-          const names = Array.from(database.objectStoreNames);
+          const names = Array.from(database.objectStoreNames).sort();
           const transaction = database.transaction(names, "readonly");
-          const records = await Promise.all(
+          const rowsByTable = await Promise.all(
             names.map(
               (name) =>
                 new Promise<unknown[]>((resolve, reject) => {
@@ -528,16 +528,22 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
                 }),
             ),
           );
-          const bytes = new TextEncoder().encode(JSON.stringify(records));
-          const digest = await crypto.subtle.digest("SHA-256", bytes);
-          return Array.from(new Uint8Array(digest))
-            .map((byte) => byte.toString(16).padStart(2, "0"))
-            .join("");
+          const entries = await Promise.all(
+            names.map(async (name, index) => {
+              const bytes = new TextEncoder().encode(JSON.stringify(rowsByTable[index]));
+              const digest = await crypto.subtle.digest("SHA-256", bytes);
+              const hash = Array.from(new Uint8Array(digest))
+                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .join("");
+              return [name, hash] as const;
+            }),
+          );
+          return Object.fromEntries(entries);
         } finally {
           database.close();
         }
       });
-    const before = await databaseDigest();
+    const before = await tableDigests();
     await page.reload();
     await expect(page).toHaveURL(/\/forbidden$/);
     await expect(
@@ -548,9 +554,16 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
     // Record the actual product defect; this green assertion is not acceptance PASS.
     const returnLink = page.getByRole("link", { name: "管理画面へ" });
     await expect(returnLink).toHaveAttribute("href", "/admin");
-    await returnLink.click();
+    await returnLink.focus();
+    await expect(returnLink).toBeFocused();
+    await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/forbidden$/);
     await expect(returnLink).toBeVisible();
-    expect(await databaseDigest()).toBe(before);
+    const after = await tableDigests();
+    await testInfo.attach("pr219-forbidden-indexeddb-digests", {
+      body: JSON.stringify({ before, after }, null, 2),
+      contentType: "application/json",
+    });
+    expect(after).toEqual(before);
   });
 });
