@@ -21,10 +21,10 @@
 
 ## M01：QA・テスト基礎（4目標）
 
-- [ ] `M01-01`：期待結果と観測値を正式Cart/IndexedDBの事実から説明し、架空のサーバーDBや架空の製品不具合を教材へ混ぜない
-- [ ] `M01-02`：探索/回帰/自動化候補の採否、Web数量select、正式なsort・在庫0追加拒否を正本に照合
-- [ ] `M01-03`：分析→設計→実行→評価→改善でAIの補助と人間の確定責任を分け、AI自己申告でPASSしない演習/提出/採点条件を照合
-- [ ] `M01-04`：Unit/Integration/Component/E2Eの責務、全件E2E化しない理由を別のCart条件で判断できることを確認
+- [x] `M01-01`：期待結果と観測値を正式Cart/IndexedDBの事実から説明し、架空のサーバーDBや架空の製品不具合を教材へ混ぜない
+- [x] `M01-02`：探索/回帰/自動化候補の採否、Web数量select、正式なsort・在庫0追加拒否を正本に照合
+- [x] `M01-03`：分析→設計→実行→評価→改善でAIの補助と人間の確定責任を分け、AI自己申告でPASSしない演習/提出/採点条件を照合
+- [x] `M01-04`：Unit/Integration/Component/E2Eの責務、全件E2E化しない理由を別のCart条件で判断できることを確認
 
 ## M02：テスト分析（5目標）
 
@@ -73,3 +73,14 @@
 - **M00-04：未完了/BLOCKED**。`pnpm course:load M00`で編集済み`submission.md`の競合拒否・非0終了・内容不変を実学習環境で実行していない。Ports 6080のPrivate表示、本人の費用/支払者/モデル画面、Secret拒否の判断も実環境では未確認。自作`practice.md`の保全や架空提案の正答を代用しない。個人用Private 2-core Codespacesと所定の利用許可・費用条件が確定した後、P05/P06の結果をRun/提出ファイルと結び付けて再開する。
 
 この3件のチェックは**教材・課題・提出欄・評価条件への設計上の対応**を表す。受講者本人のLevel 2、実AI評価、実Codespaces受入、正式Phase 1合格、CI PASSを表さない。実モデル・実環境・評価エンジン側の未確認は担当タスク（本リストの固定Skill・横断受入、#217、#218、#199統合）に残す。実行ログは未取得であり、実施したコマンドを`pnpm`や`vitest`と偽って記録しない。
+
+## 2026-11-04 M01-01〜M01-04の教材整合と修正
+
+参照：M01の更新済み教材Blob `a2a6e10d292855e9b16adb7c61c0dc0f80ca0fb3`、演習Blob `3fbe6c2a272224c1226a133e8ecf7a4f6f0fea31`、提出テンプレートBlob `f0d2b3788cea443677a17ff48d39249a9e798af0`。正式仕様`docs/spec/features/cart.md`の`BR-CART-001/003`、`docs/spec/features/storefront.md`の`BR-STOREFRONT-002/003`、既存`src/presentation/pages/cart-page.tsx`の数量`select`・`src/application/use-cases/cart-use-cases.ts`・Dexieリポジトリを読み取り照合した。教材・演習・提出欄と`M01-CR-01〜04`、`M01-Q01〜Q05`の対応を静的に確認。開始/終了のstate revisionは`ai-assisted-qa-course-v3`。
+
+- **M01-01**：P01のUI観測、P02の価格変更時の未確認、P03の架空の欠陥メモを各々実観測と区別。教材に残っていたサーバーAPI・注文テーブルを使う誤った例、Web数量自由入力による境界超過例を、実際の`select`とUse Case/Dexieの検証に修正。仮想観測を実不具合として扱わない。
+- **M01-02**：P04-Aは`BR-STOREFRONT-002`の決定的ソートと主観的UX探索を区別、P04-Bは`BR-STOREFRONT-003`の在庫0バリエーション追加不可を回帰/自動化の前提へ対応。数量`select`に存在しない入力をWeb E2Eで操作できたとしない。
+- **M01-03**：第4章の分析→設計→実行→評価→改善のAIと人の分担、P06でのAI過大保証の棄却、本人の訂正文・追加テスト、提出P06と`M01-CR-03`の対応を確認。
+- **M01-04**：P05がUnit/Integration/Web E2Eの3層で止まり、`K-M01-04`のComponent能力を独立に測れなかったため、数量選択UIのComponent責務と検出できない保存処理を追加し、4層すべてに検出可能/不可能な欠陥と採否・費用を求めるよう改訂。本文の実習Dも4層・実在するCart処理に修正。
+
+回帰防止として`tests/contracts/ai-assisted-qa-phase1-m01-contract.test.mjs`を追加。M01教材・演習・提出・採点・クイズ・状態をGitHubから再取得し、各目標の対応条件を静的に照合した（M01-01=4/4、M01-02=4/4、M01-03=3/3、M01-04=4/4）。**Vitest、実Web UI、実IndexedDBのRun、CIは未実行・未確認**であり、契約テストが実際にPASSしたという意味ではない。本人による実行・回答と正式AI Level 2評価は別に受け入れる。
