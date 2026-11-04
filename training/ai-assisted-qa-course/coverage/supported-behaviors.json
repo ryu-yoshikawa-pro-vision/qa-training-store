@@ -18095,20 +18095,20 @@
       "source_line": 65,
       "source_text": "商品、公開状態、フィルター条件、一括操作の結果を表示する。",
       "platform": "web",
-      "role": "Operator / Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,many-products,admin-bulk-partial-failure。role=operator/admin、状態・対象ID・versionを区別。操作: フィルター",
+      "role": "active operator/admin。guest/customer/未ログイン/停止・退会は管理権限なし。Web管理画面（1024px以上、desktop/tablet）が対象。Native管理画面はスコープ外。",
+      "scenario": "default（初期Session guest、管理操作はoperator/adminで再ログイン）、many-products（固定1000商品、1ページ20件）、admin-bulk-partial-failure。絞り込み切替・ページ移動・選択Set残留・有効SKU0件は別途条件を作る。",
+      "data": "Web AdminProductsContentはkeyword/status/rank/stock/minimumPrice/maximumPrice/sort/pageをAdminProductUseCases.searchに渡す。SKU文字列を含む独立検索条件、categoryIds/brandIds入力UIは存在しない。Use CaseはcategoryIds/brandIdsをQueryRepositoryへ委譲するが、Dexieのkeyword照合は商品名/商品コードのみでSKUは対象外。Repositoryは有効SKUの価格にMath.min/maxを用い、有効SKU0件ではInfinity/-Infinityを生成し得る。keyword変更のみpage=1に戻り、他条件変更ではpageとselectedが維持される。bulkは現在ページitemsとselectedの積集合をtargetIdsにし、空配列はUse CaseのVALIDATIONとなるが画面bulkのawaitにはcatchがない。defaultは初期guest、many-productsは1000商品・3 active SKU/商品であり、管理権限付きSessionを用意する。",
       "action": "フィルター",
-      "expected": "商品検索・状態フィルターの結果が入力条件と一致し、対象外商品が選択操作に混入しない",
+      "expected": "正式admin-catalog.mdはoperator/admin向け管理商品一覧とフィルター条件・一括結果の表示を要求。補助UI仕様docs/05_ui/ui_specifications.md:174-186は商品名/商品コード/SKU検索、状態・カテゴリー・ブランド・Rank・在庫、更新日/商品名/最小価格、カテゴリー/ブランドの同一ファセット内OR、表示ページ内最大50件のbulkを記載。実WebではSKU/カテゴリー/ブランドUIがなく、検索RepositoryもSKU非対応。表示外選択・空targetを安全に扱い、条件変更後のページ位置、0 active SKU価格表示を整合させる必要があるが、製品適合・補助仕様の拘束力は#210（製品責任者）で判断する。基本分析は差分・試験条件の特定で完了とし製品適合PASSにはしない。",
       "rule_refs": [],
       "route": "`/admin/products`",
       "risk": "High:画面の選択件数は選択済Set全件、bulk送信は現在ページのitemsとの積集合。ページ/絞り込み変更後に表示外IDだけ残ると選択件数>0でもtargetIds=[]になり、UseCaseのVALIDATIONをWeb bulk側がcatchせず未処理Promiseになる静的経路。正式UI仕様にはSKU検索・カテゴリー/ブランド絞り込みがあるが、現UIには条件がなくRepositoryのkeywordも名称/商品コードだけ。Medium:keyword以外のフィルター変更でpageが維持され結果0件/ページ外、inactive SKUのみの商品はMath.min(...[]) / Math.max(...[])でInfinity/-Infinity、価格フィルターの境界が曖昧。これらは静的懸念で実Run未確認。",
       "test_condition": "C1 Webの検索語=商品名/コード/SKU、状態、会員Rank、stock(0,1,5,6)、最小/最大価格、sortとRepository結果を対比（SKUは現Repository検索対象外）。C2 UI仕様が要求するカテゴリー/ブランド絞り込みの有無・複数選択ORを仕様優先順位と画面正本から判断。C3 many-productsの最終ページ→status/rank/stock/price/sort変更でpageが範囲外に残らないこと、keywordのみpage1リセットの現状を記録。C4 page1で選択→別ページ/絞込→selected.size>0・現在itemsの対象0→bulkChangeStatusに空配列→VALIDATION/未捕捉Promiseの実ブラウザ挙動と選択復帰を検証。C5 targetIdsは表示ページだけ/最大50、部分成功・失敗・stale Version・実在SKU未有効商品・価格上下限矛盾を隔離DBで検査。C6 operator/admin可、guest/customer/停止staff不可、操作前後のDB/Session/履歴不変。C7 Web desktop/tablet/a11y/Trace/Seedと画面正本比較。",
-      "test_responsibility": "AdminProductsContent:56-84の入力条件はkeyword/status/rank/stock/price/sortのみ（category/brandなし）、keywordだけsetPage(1):129-132、他条件はsetPageなし:136-197、selected:Setは条件変更時も残る:67-69。bulk:86-104は現在itemsとの積集合→UseCase.bulkChangeStatus:223-250が空配列をVALIDATIONで拒否、UI catchなし。DexieProductQueryRepository.search:420-508はkeywordにname/productCodeだけ、SKUは検索しない。productVariants activeだけ集めmin/maxをMath.min/Math.maxで生成:432-449。",
-      "case_policy": "C1〜C7を採用（C1通常複合条件、C2 1000件ページ、C3 表示外選択/空target、C4競合、C5認可、C6価格/在庫境界、C7視覚/DB）。商品公開状態の適格性自体はA01-01、bulk成功/失敗件数はA01-03に分離。",
+      "test_responsibility": "画面→AdminProductUseCases.search/bulkChangeStatus→DexieAdminProductQueryRepository.searchの責任を区別し、C1〜C7の正常/拒否/境界/ロールとデータ不変性を検証する。静的に確定した差はSKU/カテゴリー/ブランドUI、selectedと空target、pageリセット条件、Math.min/max空集合。未実行の画面・DB・実Session・視覚は#219、製品修正/仕様判断は#210、#199は横断受入。",
+      "case_policy": "C1採用：商品名/商品コード/SKU、status/rank/stock/価格/sort対比（SKUは現状不一致）。C2採用：カテゴリー/ブランドのUI有無、同一ファセットOR・仕様優先順位の判断依頼。C3採用：many-products 1000/20件の最終pageから非keyword条件変更。C4採用：選択残留→現ページtargetIds空・VALIDATION・エラーハンドリング。C5採用：表示ページ内最大50件、部分成功・stale Version・上限と価格矛盾。C6採用：operator/admin許可、guest/customer/停止staff拒否、DB/Session/履歴の前後不変。C7採用：desktop/tablet・視覚/a11y・Trace。検索結果の基本Status表示はA01-01、bulk成功/失敗件数の詳細はA01-03に重複させず分離。実Web/DBの動的実行は#219へCase ID別に依頼。",
       "case_selection_reason": "一覧の選択状態が検索条件/ページをまたいで保持される実装のため、UI上の選択件数と送信対象の乖離・0件例外・対象外更新の防止をHigh候補として優先する。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-03 PR #212独立監査：正式admin-catalog.md:59-74、補助UI仕様docs/05_ui/ui_specifications.md:174-186、Web AdminProductsContent:56-270、AdminProductUseCases.search:80-101/bulkChangeStatus:223-250、DexieProductQueryRepository.search:420-508、既存Component/Integrationテストを照合。前の選択残留・空bulkに加え、仕様のSKU検索とカテゴリー/ブランドフィルターがWebとRepositoryの検索経路に揃わない、active SKU 0件ではmin/max Infinity/-Infinityになり得る静的問題を確認。補助仕様と正式製品仕様の優先/受入、C1-C7の直接Web実行、DB/Version/Role証拠が未確定のためreview_requiredを維持。既存テストを今回実行していない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD 6c569e8646de740a6424b8bb05231b9c7a1e6dba に対する独立静的照合。主仕様admin-catalog.md:9-19/59-74（operator/admin、default/many-products、フィルター・bulk表示）、補助UI仕様docs/05_ui/ui_specifications.md:174-186（SKU検索・category/brand OR・ページ内bulk）、screen-catalog.md:64-85とproduct-scope.md:9-15（管理Webのみ）を照合。Web admin-product-pages.tsx:56-104/122-269ではcategory/brand入力なし・keyword変更のみpage=1・selectedは条件変更でも残る・bulk現在itemsの積集合・catchなし。AdminProductUseCases.search:80-101はcategory/brandをRepositoryへ渡し、bulkChangeStatus:223-250は空targetIds拒否と対象別部分成功。requireStaff:524-534とSessionIdentityResolver:27-57はactive staff以外を拒否。DexieProductQueryRepository.search:417-508ではSKU keyword非対象、active SKU0件時のInfinity/-Infinity・フィルター/sort/pageを確認。Seed metadata.ts:75-106、scenarios.ts:424-476（many-products1000件/3SKU）を確認。既存component admin-product-pages.test.tsx:184-195とintegration admin-product-use-cases.test.ts:397-449はコード確認のみ。仕様優先判断・実ブラウザ/DB/Session/Visual/a11y/Traceの実Run未実施。これらは基本分析ステータスには混入せず、#219の受入と#210の製品判断へ引継ぐ。",
       "requirement_refs": [
         "BR-ADMINCAT-001",
         "BR-ADMINCAT-002",
@@ -18122,7 +18122,7 @@
       "state_refs": [
         "SCREEN-ADMIN-PRODUCTS-S-many-products"
       ],
-      "analysis_progress": "PR #212: Web→UseCase→Dexie・UI補助仕様・既存テストの追加監査。選択Set残留/空targetIds未捕捉、非keyword変更のpage残留、SKU/カテゴリー/ブランドフィルター未提供、active SKU 0の価格境界を実行Case化。製品修正は#210分離、基本分析の正式採否/実ブラウザ受入は未完了。",
+      "analysis_progress": "2026-11-04 基本静的分析の範囲（正式仕様・補助UI・Web→UseCase→Dexie・Seed・Risk/TR/C1〜C7の採否・判断主体）を再照合しanalyzed。SKU/カテゴリー/ブランド検索不一致、非keyword page残留、選択Set残留→空bulk未処理、SKU0件Infinityを記録。動的PASS・製品適合は未受入。今回の手元で直接テストコマンドは未実行、CIは別項目で受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/admin-product-pages.tsx",
         "line": 48,
@@ -18219,7 +18219,36 @@
           "start_line": 397,
           "end_line": 449,
           "reason": "既存bulk部分成功のintegration試験コード"
+        },
+        {
+          "path": "docs/spec/product-scope.md",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "管理画面のWebのみ契約、Nativeスコープ外"
+        },
+        {
+          "path": "docs/spec/screen-catalog.md",
+          "start_line": 64,
+          "end_line": 85,
+          "reason": "管理商品一覧Routeと許可Role・Platform"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 57,
+          "reason": "active session/認証拒否"
+        },
+        {
+          "path": "src/seeds/scenarios.ts",
+          "start_line": 424,
+          "end_line": 476,
+          "reason": "many-products 1000商品・3SKU/商品"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {

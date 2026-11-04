@@ -16,7 +16,7 @@
 
 各IDについて正式BR/AC・Role/State/Data、画面→Use Case→Repository、Seed、Risk/TR/Condition/Case採否を独立に照合する。**実Web/NativeのPASSと基本分析は別判定**。
 
-- [ ] `SCREEN-ADMIN-PRODUCTS-A01-02`：SKU・カテゴリー・ブランド絞込の正式仕様とUI/Repositoryの差、選択Set残留・空一括更新・page残留・SKU0件の価格境界を特定し、Case採否と未決の判断主体を記録
+- [x] `SCREEN-ADMIN-PRODUCTS-A01-02`：SKU・カテゴリー・ブランド絞込の正式仕様とUI/Repositoryの差、選択Set残留・空一括更新・page残留・SKU0件の価格境界を特定し、Case採否と未決の判断主体を記録
 - [ ] `SCREEN-ADMIN-USERS-A01-02`：Rank/filter・sortの正式要求とUIの欠落、Role/Status変更後page残留、管理権限・DB不変の根拠を整理
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A01-02`：Role変更の昇格/降格、version CAS、Session失効、自己/withdrawn/権限失効拒否、rollbackとC1〜C7を照合。既存学習用CaseのCI成功と未実行の直接Caseを区別
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A01-03`：3 Rank、Checkout abandoned、Cart保持、変更後の価格、stale・actor失効・rollbackの証拠と不足条件を確定
@@ -52,3 +52,11 @@
 - [ ] 79要件ごとに、正式仕様のBR/ACと期待結果、参照Behavior/横断契約、Risk/TR/Condition/Caseの採否、根拠ファイル・検証結果・未決事項を追跡する。**既存`supported-behaviors.json`を正本**にし、必要なら同JSONから参照対応を導出する。別の手入力正本は増やさない。未レビュー要件をまとめて完了扱いにしない
 - [ ] 29件の直接未参照要件は「未テスト」と決め付けず、個別Behaviorまたは横断契約/既存テストのどこで検証するかを要件ID別に確定。不足・保留・不要の理由と、#219に依頼する実RunのCase ID/条件を記録
 - [ ] #219から受け取った採用Caseの実行証拠は対象HEAD/Case IDを確認し、台帳へ必要な根拠を反映する。#219の動的PASSを基本分析ステータスへ自動転記せず、製品修正は#210へ引継ぐ
+
+## 個別基本分析の検証記録
+
+### `SCREEN-ADMIN-PRODUCTS-A01-02`（2026-11-04）
+
+- 対象・固定照合HEAD：`6c569e8646de740a6424b8bb05231b9c7a1e6dba`。台帳 `supported-behaviors.json` の同IDを `analyzed` に更新。分類分母は188操作＋20状態、当該更新後の基本分析は180/188操作・17/20状態。79要件は引き続き内容未レビュー。
+- 直接参照：`docs/spec/features/admin-catalog.md:59-74`、`docs/05_ui/ui_specifications.md:174-186`、`src/presentation/pages/admin-product-pages.tsx:56-104,122-269`、`src/application/use-cases/admin-product-use-cases.ts:80-101,223-250,524-534`、`src/infrastructure/database/dexie/product-repositories.ts:417-508`、`src/seeds/metadata.ts:75-106`、`src/seeds/scenarios.ts:424-476`。静的照合結果とC1〜C7採否・Risk/TR・未決の判断先は台帳 `basic_analysis_review` / `case_policy` に記録。
+- 検証結果：GitHub上の固定ファイル・実装・既存テストのコード読解による静的基本分析を完了。今回の `pnpm` / Playwright実行は**未実施**であり、既存CIや他CaseのPASSを流用していない。`#219`に実Web/DB/Session/視覚/a11y/Traceの採用Caseの動的証拠、`#210`にSKU/カテゴリー/ブランドのUI契約・選択Set・空bulk・page・SKU0価格の製品適合判断を引き継ぐ。これは製品適合や動的受入のPASSを意味しない。
