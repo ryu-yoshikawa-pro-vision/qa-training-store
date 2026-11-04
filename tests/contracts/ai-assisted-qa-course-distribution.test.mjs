@@ -653,6 +653,40 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("rejects a distribution with missing module loads or public start inputs", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "d".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const original = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const scenarios = [
+      {
+        loadFiles: original.load_files.filter((entry) => entry.module_id !== "M10"),
+        expected: /Each of M00-M10 must have explicit load entries/,
+      },
+      {
+        loadFiles: original.load_files.filter(
+          (entry) => entry.source_path !== "course/modules/M00/inputs/start.md",
+        ),
+        expected: /M00 public start input must be allowlisted/,
+      },
+    ];
+    for (const { loadFiles, expected } of scenarios) {
+      fs.writeFileSync(manifestPath, JSON.stringify({ ...original, load_files: loadFiles }));
+      expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(expected);
+      expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(expected);
+      expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+      expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
+  });
+
   it("rejects invalid Skill sizes and oversized downloads", async () => {
     const fixture = courseFixture();
     const first = fixture.manifest.external_skill_files[0];

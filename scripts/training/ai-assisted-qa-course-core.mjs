@@ -105,6 +105,32 @@ function validateAssessmentAssetSet(assets, sourceSha, label = "assessment asset
     fail(`${label} does not match the complete fixed-path allowlist`);
 }
 
+function validateModuleLoadCoverage(loadFiles, distributionFiles) {
+  const loadedModuleIds = new Set(loadFiles.map((entry) => entry.module_id));
+  if (MODULE_IDS.some((moduleId) => !loadedModuleIds.has(moduleId)))
+    fail("Each of M00-M10 must have explicit load entries");
+  for (const moduleId of MODULE_IDS) {
+    const inputTarget = `course/modules/${moduleId}/inputs/start.md`;
+    if (
+      !distributionFiles.some(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.role === "input" &&
+          entry.target_path === inputTarget,
+      ) ||
+      !loadFiles.some(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.source_path === inputTarget &&
+          entry.target_path === inputTarget,
+      )
+    )
+      fail(
+        `${moduleId} public start input must be allowlisted under course/modules/${moduleId}/inputs/`,
+      );
+  }
+}
+
 function validateLoadFileBindings(loadFiles, distributionTargets) {
   const loadTargets = new Set();
   for (const entry of loadFiles) {
@@ -264,29 +290,7 @@ export function validateCourseManifest(manifest) {
   ];
   if (requiredSkills.some((skill) => !skillModules.has(skill)))
     fail("A Plan-required external Skill package is missing");
-  const loadedModuleIds = new Set(manifest.load_files.map((entry) => entry.module_id));
-  if (MODULE_IDS.some((moduleId) => !loadedModuleIds.has(moduleId)))
-    fail("Each of M00-M10 must have explicit load entries");
-  for (const moduleId of MODULE_IDS) {
-    const inputTarget = `course/modules/${moduleId}/inputs/start.md`;
-    if (
-      !manifest.local_files.some(
-        (entry) =>
-          entry.module_id === moduleId &&
-          entry.role === "input" &&
-          entry.target_path === inputTarget,
-      ) ||
-      !manifest.load_files.some(
-        (entry) =>
-          entry.module_id === moduleId &&
-          entry.source_path === inputTarget &&
-          entry.target_path === inputTarget,
-      )
-    )
-      fail(
-        `${moduleId} public start input must be allowlisted under course/modules/${moduleId}/inputs/`,
-      );
-  }
+  validateModuleLoadCoverage(manifest.load_files, manifest.local_files);
   for (const entry of manifest.load_files) {
     if (!MODULE_ID_PATTERN.test(entry.module_id))
       fail(`invalid load module_id: ${entry.module_id}`);
@@ -788,6 +792,7 @@ function readDistribution(root) {
     distribution.load_files,
     new Set(distribution.files.map((file) => file.target_path)),
   );
+  validateModuleLoadCoverage(distribution.load_files, distribution.files);
   for (const asset of distribution.assessment_assets) {
     if (
       Object.hasOwn(asset, "content") ||
