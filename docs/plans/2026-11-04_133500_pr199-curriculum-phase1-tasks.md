@@ -59,7 +59,7 @@
 ## クイズ・理解事項・自習・引継ぎ（補完）
 
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
-- [ ] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
+- [x] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
 - [ ] 通常のOpenCode AIチューターについて、初学者が説明→段階ヒント→別条件練習→誤解別の復習→再挑戦を進められる内容と実操作を検証。学習側Agentの正しい説明だけで本人の達成にせず、M04の独立正式AI採点と混同しない
 - [ ] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
 
@@ -130,3 +130,9 @@ GitHubから再取得した教材・P課題・提出・評価条件・クイズ�
 `M04-Q02`の正答はIntegration/Componentをまとめて「連携点」としていたため、Unit=計算、Integration=保存連携、Component=UI部品、Web E2E=導線へ修正（`M04.json@b70ef11ab0af57a2b5c7ea88bd9be507c2b8cbab`）。M02-Q03の復習リンクは既存slug実装では元の1ハイフンが正しいためその状態へ戻し、追加変更なし。
 
 クイズは**知識の確認**に過ぎず、本人のP課題・固定Skill実行・独立した正式AI評価によるLevel 2を証明しない。既存の横断リンク契約テストはコードを読んだが、Vitest・CIでの実行は未確認。
+
+## 2026-11-04 知識グラフ33理解事項の確認・#199引継ぎ
+
+`knowledge-graph.json@1333e120e8f97af85961701563309f04a82ae3e6`の`type=knowledge`・M00〜M04の33ノード（M00=8/M01=5/M02=8/M03=8/M04=4）をIDごとに確認。全件で固有ID・意味を持つ`can_do`・教材`teaches`・目標`requires_knowledge`・教材の復習見出しがある。復習リンクは既存`scripts/spec/slug-heading.ts`と同じ規則で検査し33/33で存在。クイズ未対応の`K-M00-01/04`、`K-M02-03`、`K-M03-05`は別の実技/採点確認対象であり、クイズがないだけで欠陥と断定しない。
+
+意味上の修正候補は#199へ[コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6628359908)で引継ぎ済み。`K-M01-04`の四層復習先はM01第5章、`K-M04-03`の自動化選定復習先はM04第5章が適切。`M03-04`の`applies_to: F-CHECKOUT`のみという関係は、現行M03 Cart事例との整合判断が必要。**グラフ正本そのものはこのPRで変更せず、33ノードとも`draft_requires_content_review`のまま**。修正完了・学習者の理解度・AI採点PASSとは宣言しない。
