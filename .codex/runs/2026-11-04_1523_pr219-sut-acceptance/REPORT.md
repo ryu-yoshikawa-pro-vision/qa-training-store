@@ -47,3 +47,5 @@
 - タスク12番完了：Run #41806200267（b37b603）Integration job 126493922493でOrder/Shipment/Review実3件PASS、全150件成功。配送CAS、Snapshot不変、他人Review拒否、Review transaction rollbackを実証。一時診断は削除。Web全画面/Android/SQLite/Traceは別タスク未受入。
 
 - 管理商品一覧：公式画面仕様、補助UI仕様、Web/UseCase/Repository、実Webの検索成功・表示外選択FAIL、既存bulk部分成功、SKUとinactive SKU0価格の静的差分を docs/reports/2026-11-04_pr219-admin-product-ui-repository-comparison.md に整理。Repository新規CaseのCI・many-products/視覚が未確認のためタスク8は保留。
+
+- タスク8完了：CI #41808161478で管理商品の代表検索PASS・選択残留/1,000商品の非keyword filter後page残留を製品期待失敗として観測。#41806506482のRepository4ケースが成功し、SKU検索欠落・active SKU0価格Infinityは製品FAIL再現、空bulkはVALIDATION/DB不変。仕様/UI/Repository比較をレポートへ固定HEAD・jobとともに記録。製品修正・視覚/a11y/Androidは未受入。

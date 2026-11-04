@@ -26,3 +26,10 @@
 - SKU0/価格・空bulk拒否のIntegrationは`pr219-admin-product-query.test.ts`を含む**同一固定HEADのVitest Integration成功**を確認してから報告を更新する。現時点では新規4件のPASSを主張しない。
 - 製品の改善は#210へ、仕様・採用条件の確定は#213へ委譲。このPRでは製品UI、Repository、Seed、正式仕様、既存製品テストを変更しない。
 - タスクリスト8番は**比較作業の検証が残っているため未チェック**。特にRepositoryの実行証拠、`many-products`のページ/選択状況、非有限価格の実UI結果を確認する。
+
+## 2026-11-04 実行結果追記：8番の比較完了
+
+- **Web実行**：[Web CI #41808161478](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41808161478)（固定HEAD `4f5c93877bac76190c10adbc300d1cb977bb352b`）、Chromium E2E (cross-role) job `126501615404`。PR #219専用の`P-0006`検索・在庫/状態AND絞り込みは個別PASS。絞り込み後の表示外商品が`selected`に残るケースと`many-products`で価格フィルター後にpage 2が残るケースは**意図した製品期待失敗**として観測した。Checkout stale Cartの画面戻り先も別の製品不整合として再現。既存`e2e/web/cross-role-lifecycle.spec.ts`の`getByRole("status")` strict違反によって**job全体はfailure**（個別結果22 passed/1 failed）。この既存テストは変更しない。
+- **Repository実行**：[Web CI #41806506482](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41806506482)（HEAD `8e7eddd8c9b415d6baa7407f2641b90aec7a0503`）、Vitest Integration job `126495217187`：`pr219-admin-product-query.test.ts`の**4ケース成功**。商品コード/stock0/status/rank/価格1200のANDは仕様どおり。SKU文字列検索が0件、全Variant inactiveの最小/最大価格が`Infinity/-Infinity`になる2ケースは**製品不具合を再現する成功テスト**であり、製品受入PASSではない。targetIds空のbulkは`VALIDATION`拒否でDB不変。既存Integrationの部分成功Caseも同RunでPASS。
+- **比較した仕様**：正式`docs/spec/features/admin-catalog.md`と補助`docs/05_ui/ui_specifications.md`、Web実装`AdminProductsContent`、Use Case`AdminProductUseCases`、Repository`DexieAdminProductQueryRepository`、`default/many-products` Seed。補助仕様のSKU/カテゴリ/ブランド入力とUI未提供の優先判定は#213へ保留。
+- **チェックの意味**：8番は上記の**仕様と実Web・Repositoryの比較、正常/異常結果の判定・引継ぎ**として完了した。SKU検索、非有限価格、表示外選択、page残留が修正された意味ではない。商品専用の正本画像/画面幅/a11y、成功時Trace、全採用CaseのDB保存証拠は項目2・13・15・20で未受入として残す。製品修正は[PR #210へのコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210#issuecomment-6627380368)で共有済み。
