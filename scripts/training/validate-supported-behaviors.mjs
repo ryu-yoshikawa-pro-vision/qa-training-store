@@ -226,6 +226,8 @@ function completeAnalysis(behavior) {
           "基本seedと関連する商品・アカウント",
           "正式BR/ACの入力条件",
           "正式契約の対象データ・Role/State/Platform",
+          "不正操作、競合、データの不整合または所有権逸脱",
+          "許可条件と拒否・競合・状態境界の代表Caseを選定",
         ].includes(behavior[field]),
     ) &&
     Array.isArray(behavior.requirement_refs) &&

@@ -1159,4 +1159,19 @@ describe("サポート機能の仕様と実装の追跡", () => {
     );
   });
 
+  it("rejects generic risk and Case-selection placeholders after the 196-entry audit", () => {
+    const audited = data.behaviors.filter((entry) => entry.analysis_status === "analyzed");
+    for (const entry of audited) {
+      expect(entry.risk).not.toBe("不正操作、競合、データの不整合または所有権逸脱");
+      expect(entry.case_policy).not.toBe("許可条件と拒否・競合・状態境界の代表Caseを選定");
+    }
+    const changed = mutated((next) => {
+      next.behaviors.find((entry) => entry.id === "UC-ACCOUNT-UPDATE-PROFILE").risk =
+        "不正操作、競合、データの不整合または所有権逸脱";
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /analysis lacks verified evidence/,
+    );
+  });
+
 });

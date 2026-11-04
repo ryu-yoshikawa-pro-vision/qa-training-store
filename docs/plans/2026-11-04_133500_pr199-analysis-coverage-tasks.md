@@ -37,7 +37,7 @@
 - [x] 正式仕様（product-scope、screen-catalog、各feature、Role/State/UI/Native）と188操作・20状態の分母を再監査。抜け・同義重複と除外根拠を確定し、分母が変わる場合は理由と契約テストを更新
 - [x] 79要件の原文解釈・正式期待・Risk/TR/Condition/Case採否を全件確認し、分析状態を証拠付きで更新（29件の直接未参照も含む）
 - [x] 直接参照のない29横断要件（Native4、権限7、状態遷移10、UI2、範囲6）をBehavior個別または横断契約に割り当て、対応する検証方法・残リスクを記録。形式を揃えるためだけの架空の参照は追加しない
-- [ ] 分析済み全196 Behaviorの説明・Risk/TR/Condition/Case採否・参照根拠を監査し、形式的な空欄検査と意味上の十分性を区別
+- [x] 分析済み全196 Behaviorの説明・Risk/TR/Condition/Case採否・参照根拠を監査し、形式的な空欄検査と意味上の十分性を区別
 - [ ] `use_case_evidence`の公開メソッドID/path/line/signatureを現在HEADの76メソッドと照合する継続validator/負例（誤ID・古い行・署名違い・別メソッド）を追加
 - [x] 分析済みだが`related_use_cases`が空の23件をUI専用等として個別判定し、追加が必要なものだけ追跡。補助・準備用Use Caseを直接呼出しと誤記しない
 - [ ] 分析台帳変更の直接validator/契約テストとWeb CIを確認し、9操作/3状態・79要件のbefore/afterを固定HEADで報告
@@ -146,3 +146,9 @@
 - 固定HEAD：`bc425d9829584b19389e733636fd80d4b39f140e`。開始時点の196分析済Behaviorで`related_use_cases=[]`だった23件をIDごとに確認。新たに分析したUI-onlyの2件も併せて計25件へ`use_case_relation_review`を記録した。個別の用途・実装経路・関連動作への帰属は同台帳の各IDが正本。
 - 結果：ホーム/ガイド/規約/管理ダッシュボード/禁止・未検出/状態表示のリンク・表示だけを扱うもの、TestControlServiceの操作を扱うものを区別。いずれも当該動作自体が公開UseCaseを直接呼び出しておらず、`related_use_cases`へ架空の関連を付けない。親動作が呼ぶUseCaseと状態専用表示は二重にしない。
 - 検証：Validatorに「analyzedかつ`related_use_cases`空なら40字以上の個別判断理由必須」を追加し、欠落時の負例と25件の契約テストを追加。実Web/Nativeの動的受入は本チェックに含めない。CIの完了を待たず別途受け入れる。
+
+### 既存196件の分析品質監査（2026-11-04）
+
+- 固定HEAD：`7dfa687e82a015404ed13d11bca1ea8b0c1dc579`。初期196件（action163・非default状態17・公開UseCase固有16）を各IDの期待・Role/State/Data・Risk・test_condition・test_responsibility・Case採否・選定理由・静的レビュー・実装/Seed出典・監査参照で再点検。必須フィールド欠落0、`reviewed_against`の3資料欠落0、監査参照0件のBehavior 0、参照行の逆転/不正0。全196件の監査参照は合計2,395箇所・152ファイル。GitHubの当該HEAD treeで参照先ファイル不存在0。**個別行の実装挙動や2,395範囲の本文適合まで自動検証済みと主張しない**。
+- 内容改善：汎用Risk/Case政策が残った7 UseCase（UC-ACCOUNT-UPDATE-PROFILE、UC-ADMIN-CHANGE-CATEGORY-STATUS、UC-ADMIN-CHANGE-BRAND-STATUS、UC-ADMIN-DELETE-DRAFT、UC-AUTH-LOGOUT、UC-REVIEW-DELETE、UC-CART-MERGE）を既存C1以降と正式仕様・UseCase経路に基づいて具体化。説明が短かったUC-ADMIN-DUPLICATE-PRODUCT/UC-ADMIN-REVIEW-DETAIL/UC-ADMIN-BULK-CHANGE-PRODUCT-STATUSとUC-ADMIN-BULK-REVIEW-VISIBILITYの参照意味・直接Runの残件を補足。既存のHigh情報保護リスク（Order/Reviewのcross-owner）、Native表示差、並列actor失効などは残リスクとして維持。
+- 検証：Validatorで汎用Risk/Case定型文を`analyzed`として拒否、契約テストへ負例を追加。静的基本分析の証拠が足りていることと、採用Caseの実Web/Android/DB・製品適合/CIが未受入であることを分離。追加仕様や製品SUT変更はなし。

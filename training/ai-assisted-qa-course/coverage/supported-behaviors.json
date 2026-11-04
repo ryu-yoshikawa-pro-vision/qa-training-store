@@ -29161,13 +29161,13 @@
       "data": "本人と別アカウント、変更可能な属性、不正値",
       "action": "本人のプロフィールを更新する",
       "expected": "顧客本人のdisplayName（必須・最大文字数）とphone（省略可・10〜11桁）だけを検証し、actionVersion一致で更新する。無効値・競合では更新しない",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "本人以外へのUser更新、email/role/rank/statusの権限外変更、空白名・文字数超過、電話9/12桁や非数字の誤受入、古いactionVersionの競合上書き、拒否時のVersion変更",
       "test_condition": "C1 displayName空白のみ/trim後1文字/INPUT_LIMITS.displayName境界/上限+1で保存・拒否と未変更。C2 phone null/空欄/区切り含む10・11桁と9・12桁/非数字を正規化してDBへ保存するか・拒否かを契約どおり確認。C3 actionVersion一致→User.version+1、旧Version→CONFLICT/DB不変。C4 guest/staff/停止/別人アクセスと他属性（email/role/rank/status）が不変。C5 Web/Android画面、入力エラー・再編集、既存integration/componentとCIの実行証拠。",
-      "test_responsibility": "本人のプロフィールを更新するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "本人のプロフィールを更新するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "顧客本人のdisplayName/phoneの正規化と入力境界、UserRepository.updateのactionVersion CAS、他属性/他User/拒否時DB不変を分けて検証する。",
+      "case_policy": "C1名前trimと空/1字/最大/上限+1、C2電話null/空欄・区切り・9/10/11/12桁、C3成功Version+1/stale CONFLICT、C4他Role/他人/他属性不変、C5 Web/Android表示と既存テストを採用。",
+      "case_selection_reason": "Profile更新はUserの一部属性だけを変更する契約であり、入力正規化とVersion衝突、他属性への権限外書込みを分けないと不正PASSが起きる。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AccountUseCases.updateProfile:56-81はrequireCustomer後にdisplayNameをtrim、phoneを非数字除去し、名前の必須/上限・電話10～11桁を検証し、UserRepository.updateへactionVersionを渡す。既存auth-account integration:251-299は名前の長さ超過、component:319-333はactionVersion送信を含む。連続更新、電話の区切り/空欄/9・10・11・12桁、Role/他人、Version競合とDB前後の実行証拠は別受入。テストは未実行。",
+      "basic_analysis_review": "AccountUseCases.updateProfile:56-81はrequireCustomer後にdisplayNameをtrim、phoneを非数字除去し、名前の必須/上限・電話10～11桁を検証し、UserRepository.updateへactionVersionを渡す。既存auth-account integration:251-299は名前の長さ超過、component:319-333はactionVersion送信を含む。連続更新、電話の区切り/空欄/9・10・11・12桁、Role/他人、Version競合とDB前後の実行証拠は別受入。テストは未実行。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "AccountUseCases.updateProfile"
       ],
@@ -29206,7 +29206,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：プロフィール更新の入力正規化・電話10～11桁、顧客Role、actionVersionのCASを静的追跡。既存Integrationは名前上限の部分負例、ComponentはVersion送信の部分確認。電話境界、他人・staff・停止時拒否、DB不変とCI/画面は未受入。",
+      "analysis_progress": "2026-11-03 PR #212：プロフィール更新の入力正規化・電話10～11桁、顧客Role、actionVersionのCASを静的追跡。既存Integrationは名前上限の部分負例、ComponentはVersion送信の部分確認。電話境界、他人・staff・停止時拒否、DB不変とCI/画面は未受入。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/account-use-cases.ts",
@@ -29407,13 +29407,13 @@
       "data": "active/inactiveのカテゴリー、商品参照の有無",
       "action": "カテゴリーの有効状態を変更する",
       "expected": "公開商品が参照するカテゴリーの無効化はINVALID_STATEで拒否し状態を保持する。公開商品がない場合だけ許可されたactive変更を保存する",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "公開商品が参照するCategoryの誤無効化による商品公開条件破綻、stale Versionの上書き、未使用Categoryの復活失敗、Staff以外の無断変更、transactionの部分書込み",
       "test_condition": "C1 公開商品の参照count>0→isActive=falseをINVALID_STATE、Category/Product/Version不変。C2 非参照Categoryのactive→inactive→activeの合法遷移でversion+1/検索結果を確認。C3 stale expectedVersion/削除済ID/他のstaff同時変更を拒否し全関連テーブル不変。C4 operator/admin許可、guest/customer/停止staff拒否。C5 Web一覧・詳細の状態表示、固定Seed+追加Categoryによる境界、Integration/DB/CIの実行証拠。",
-      "test_responsibility": "カテゴリーの有効状態を変更するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "カテゴリーの有効状態を変更するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "公開商品参照countによる無効化拒否と未使用Categoryのactive↔inactiveを分け、Version CAS・他表不変・staff認可・transaction境界を検証する。",
+      "case_policy": "C1参照ありCategory停止INVALID_STATE、C2未使用Category停止/再開、C3stale Version・不存在ID/並列/rollback、C4Staff許可/非Staff拒否、C5画面/固定Seed/隔離DBを採用。",
+      "case_selection_reason": "Categoryの状態変更は公開商品の整合性に直接影響するため、参照あり拒否と参照なしの許可を分け、Version/DBの前後差を確認する必要がある。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AdminMasterUseCases.changeCategoryActiveState:110-135はstaff認可後、change-category-active-state transaction内で無効化対象を公開商品が参照する場合にINVALID_STATE、その他はcategories.changeActiveStateへexpectedVersionを渡す。既存integration:111-133は公開商品ありで拒否+Version不変、未使用カテゴリーを無効化する正常例を定義。復活、古いVersion、operator/guest区分、同時変更/transaction失敗の直接受入は未実施。",
+      "basic_analysis_review": "AdminMasterUseCases.changeCategoryActiveState:110-135はstaff認可後、change-category-active-state transaction内で無効化対象を公開商品が参照する場合にINVALID_STATE、その他はcategories.changeActiveStateへexpectedVersionを渡す。既存integration:111-133は公開商品ありで拒否+Version不変、未使用カテゴリーを無効化する正常例を定義。復活、古いVersion、operator/guest区分、同時変更/transaction失敗の直接受入は未実施。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "AdminMasterUseCases.changeCategoryActiveState"
       ],
@@ -29452,7 +29452,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：公開商品に紐づくカテゴリーの停止拒否と未使用カテゴリ停止成功の既存テストコードを照合。Version CAS・Role/同時変更・復活時の価格/商品表示の影響、失敗時DB不変を直接実行していない。",
+      "analysis_progress": "2026-11-03 PR #212：公開商品に紐づくカテゴリーの停止拒否と未使用カテゴリ停止成功の既存テストコードを照合。Version CAS・Role/同時変更・復活時の価格/商品表示の影響、失敗時DB不変を直接実行していない。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/admin-master-use-cases.ts",
@@ -29568,13 +29568,13 @@
       "data": "active/inactiveブランドと関連商品",
       "action": "ブランドの有効状態を変更する",
       "expected": "公開商品が参照するブランドの無効化はINVALID_STATEで拒否し状態を保持する。公開商品がない場合だけ許可されたactive変更を保存する",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "公開商品が参照するBrandの停止による商品公開条件破綻、未使用Brandの再開失敗、stale Version競合、Staff以外の無断変更、拒否時に商品/ブランド状態が部分変更されること",
       "test_condition": "C1 公開商品が参照するBrandをinactiveにする操作はINVALID_STATE、Brand/Product/Version不変。C2 未使用Brandの停止・再開でversionと表示を確認。C3 stale expectedVersion/他staff同時更新/不明IDの拒否と他テーブル不変。C4 operator/admin許可、guest/customer/停止staff拒否。C5 Web一覧/詳細・固定Seed+新規Brand、既存Integration/DB/CIの実行証拠。",
-      "test_responsibility": "ブランドの有効状態を変更するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "ブランドの有効状態を変更するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "参照商品が公開済みかどうかによるBrand停止の可否、停止/復活、Version CAS、他Role拒否とBrand/Product/Session不変を確認する。",
+      "case_policy": "C1公開参照Brand停止のINVALID_STATE、C2未使用Brand停止/再開、C3stale/不存在/並行更新・DB不変、C4Staffと非Staff、C5Web/DB/CIを採用。",
+      "case_selection_reason": "Brand状態は商品表示の参照整合性を左右する。参照あり・なしで許否が逆転する境界とロール/競合を独立に検証する。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AdminMasterUseCases.changeBrandActiveState:201-225はstaff認可後、change-brand-active-state transaction内で公開商品が参照するブランドの無効化をINVALID_STATE、無参照はbrands.changeActiveStateへ送る。既存integration:153-177はブランドの既存参照の拒否と新規未使用ブランドの停止を確認するコード。Version競合、他ロール、停止→復活、同時更新とUI受入は未実施。",
+      "basic_analysis_review": "AdminMasterUseCases.changeBrandActiveState:201-225はstaff認可後、change-brand-active-state transaction内で公開商品が参照するブランドの無効化をINVALID_STATE、無参照はbrands.changeActiveStateへ送る。既存integration:153-177はブランドの既存参照の拒否と新規未使用ブランドの停止を確認するコード。Version競合、他ロール、停止→復活、同時更新とUI受入は未実施。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "AdminMasterUseCases.changeBrandActiveState"
       ],
@@ -29613,7 +29613,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：公開商品のブランド参照による停止拒否と未使用ブランド停止の既存コードを照合。operator/admin/停止staff・Version・競合・画面、全テーブルの前後差・CIは未受入。",
+      "analysis_progress": "2026-11-03 PR #212：公開商品のブランド参照による停止拒否と未使用ブランド停止の既存コードを照合。operator/admin/停止staff・Version・競合・画面、全テーブルの前後差・CIは未受入。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/admin-master-use-cases.ts",
@@ -29642,13 +29642,13 @@
       "data": "draft/published、関連カート/注文/レビュー、正しい/古いversion",
       "action": "下書き商品を削除する",
       "expected": "参照がなく指定versionに一致する下書きのみ削除され、公開商品・参照あり・競合は拒否される",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "公開済み商品やCart/Order/Reviewに参照された商品を誤削除するデータ損失、Variant/画像/InventoryHistory/ReviewSummaryの孤児化、古いVersionの同時削除、transaction途中失敗時の部分削除",
       "test_condition": "C1 非参照draftのみ削除しProduct/Variant/Images/Review Summary/Inventory Historyの孤児0。C2 公開/unpublished等の非draft、Cart/Order/Review参照、旧Versionで拒否しデータ全体不変。C3 delete transaction途中で失敗注入したときの完全rollback、競合/連打。C4 operator/admin許可、guest/customer/停止staff拒否。C5 product-delete-blocked Seedの実際の参照種類と固定Seedの一致、UI確認Dialog/エラー表示、既存integrationの実行とCI。",
-      "test_responsibility": "下書き商品を削除するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "下書き商品を削除するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "draft・参照なし・正Versionのときだけ関連Aggregateを一括削除し、非draft/参照あり/stale Version/障害注入では全表不変を確認する。",
+      "case_policy": "C1非参照draftと関連Variant/Image/Inventory/ReviewSummary一括削除、C2公開状態/Cart・Order・Review参照・stale拒否、C3途中失敗rollback/連打、C4Staff認可、C5SeedとWeb確認を採用。",
+      "case_selection_reason": "削除は不可逆で参照や関連子レコードに影響する。正常成功と拒否・競合・中断時の原子性を独立Caseで実証する必要がある。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AdminProductUseCases.deleteDraft:253-258はstaff認可後delete-draft-product transactionに渡す。DexieProductRepository.deleteDraftAggregate:297-318は商品Versionを比較しdraft以外・Cart/Order/Review参照ありをPRODUCT_HAS_REFERENCEで拒否、非参照draftのInventory History・Review Summary・Image・Variant・Productを消去する。既存integration:397-436は非参照draft削除とCart参照による拒否の部分試験。履歴テーブル横断・version競合・transaction rollbackの動的証明は未実施。",
+      "basic_analysis_review": "AdminProductUseCases.deleteDraft:253-258はstaff認可後delete-draft-product transactionに渡す。DexieProductRepository.deleteDraftAggregate:297-318は商品Versionを比較しdraft以外・Cart/Order/Review参照ありをPRODUCT_HAS_REFERENCEで拒否、非参照draftのInventory History・Review Summary・Image・Variant・Productを消去する。既存integration:397-436は非参照draft削除とCart参照による拒否の部分試験。履歴テーブル横断・version競合・transaction rollbackの動的証明は未実施。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "AdminProductUseCases.deleteDraft"
       ],
@@ -29687,7 +29687,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：staff認可→delete-draft-product transaction→参照有無/Version比較と関連データ連鎖削除を静的再確認。既存テストは成功/Cart参照拒否の一部を検査。Order/Review参照・InventoryHistory・画像・Summaryの全件削除、遅延失敗時Rollback・Web/CIを未実行。",
+      "analysis_progress": "2026-11-03 PR #212：staff認可→delete-draft-product transaction→参照有無/Version比較と関連データ連鎖削除を静的再確認。既存テストは成功/Cart参照拒否の一部を検査。Order/Review参照・InventoryHistory・画像・Summaryの全件削除、遅延失敗時Rollback・Web/CIを未実行。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/admin-product-use-cases.ts",
@@ -29728,14 +29728,14 @@
       "case_policy": "複製成功、元商品不存在、非Staffの3条件。価格/SKU/画像の非空ケースを採用",
       "case_selection_reason": "公開SKU重複・元データ破壊・在庫持越しを防ぐため、複製DTOと保存状態を分離して検証",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "商品編集の実装(262-282行)、getEditのStaffチェック、product-aggregate-edit Seedと管理仕様を照合。保存しないDTO変換契約として確認",
+      "basic_analysis_review": "商品編集の実装(262-282行)、getEditのStaffチェック、product-aggregate-edit Seedと管理仕様を照合。保存しないDTO変換契約として確認 【2026-11-04品質監査】admin-product-use-cases.ts:260-282はgetEditを介してStaff認可済みDTOを読み、productCodeと全variant.skuを空文字に、initialStockQuantity=0にする。価格/販売期間/optionValue/画像参照は保持し、createやproducts.updateを呼ばない。非Staff/不存在IDはgetEditの認可・取得経路に従う。保存や元商品のVersion不変は独立DB前後Caseで受入する。 今回の調査は静的根拠であり直接Runは未実施。",
       "related_use_cases": [
         "AdminProductUseCases.duplicate"
       ],
       "requirement_refs": [
         "BR-ADMINCAT-002"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする | 2026-11-04: 公開UseCase実装・既存CaseとRole/State/Data・Risk/条件を再確認。静的分析のみ。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 350,
@@ -29790,13 +29790,13 @@
       "data": "有効な顧客/管理者セッション、ログアウト前後",
       "action": "ログアウトしてセッションを破棄する",
       "expected": "セッションが削除され、ログイン必須操作へ再アクセスすると認証が必要になる",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "DB Session削除失敗でも認証済みのまま残る、ローカルpointer clearだけで別Sessionを誤失効させる、ログアウト後の保護画面再アクセスで個人情報が表示される、二重logoutで例外や不整合",
       "test_condition": "C1 本人Session存在→DB Session削除+currentSessionStore null→保護URL再訪でログインを要求。C2 logout2回目/Sessionなしを許容し他Sessionに影響しない。C3 sessions.delete失敗注入とcurrentSessionStore.clear失敗注入を分け、エラー/残存状態と安全な再試行を確認。C4 guest/customer/staff/停止・失効で手順とRole境界確認。C5 Web/Androidの戻り先、ログアウト途中の非露出/Browser/SQLite、既存正常IntegrationとCIの実行証拠。",
-      "test_responsibility": "ログアウトしてセッションを破棄するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "ログアウトしてセッションを破棄するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "SessionRepository.deleteとcurrentSessionStore.clearの順序、保護画面再アクセス、他Sessionの保存、各段階の失敗注入とWeb/Nativeのローカル認証解除を区別する。",
+      "case_policy": "C1本人Session/ローカルpointer消去、C2再logout/別Session維持、C3DB delete/clear各失敗の再試行、C4guest/customer/staff/停止・失効、C5Web/Android再アクセスと非露出を採用。",
+      "case_selection_reason": "DB Sessionと端末ローカルpointerの二段解除は失敗点が異なる。正常ログアウトの画面表示だけでは旧Sessionの有効性や他Sessionへの影響を検出できない。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AuthUseCases.logout:195-201はcurrentSessionStoreのSession IDがあればSessionRepository.delete、続けてローカルSession pointerをclear。ログイン状態での既存auth-account integration:223-249はDB Sessionとpointer双方の消去を確認するコード。SessionRepository.deleteが失敗するとclearまで到達しない直列の静的経路があり、再認証・別セッション・リトライ時の保証は未実証。認証元の安全な解除条件とUI文言は実Run待ち。",
+      "basic_analysis_review": "AuthUseCases.logout:195-201はcurrentSessionStoreのSession IDがあればSessionRepository.delete、続けてローカルSession pointerをclear。ログイン状態での既存auth-account integration:223-249はDB Sessionとpointer双方の消去を確認するコード。SessionRepository.deleteが失敗するとclearまで到達しない直列の静的経路があり、再認証・別セッション・リトライ時の保証は未実証。認証元の安全な解除条件とUI文言は実Run待ち。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "AuthUseCases.logout"
       ],
@@ -29839,7 +29839,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：DB Session削除→ローカルpointer解除の直列処理を確認。既存テストは正常登録後logoutのみ。削除I/O失敗・pointer clear失敗・2回目logout・guest/staff/停止Role・認証済み画面再訪と他Session不変/CIを未受入。失敗時のSession残留は条件付き静的懸念として記録。",
+      "analysis_progress": "2026-11-03 PR #212：DB Session削除→ローカルpointer解除の直列処理を確認。既存テストは正常登録後logoutのみ。削除I/O失敗・pointer clear失敗・2回目logout・guest/staff/停止Role・認証済み画面再訪と他Session不変/CIを未受入。失敗時のSession残留は条件付き静的懸念として記録。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/auth-use-cases.ts",
@@ -30095,13 +30095,13 @@
       "data": "本人/他人、published/hidden/deleted、正しい/古いversion",
       "action": "本人レビューを削除する",
       "expected": "削除済みは終端状態となり、本人でも再投稿できない。他人のレビュー削除は拒否する",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "他人のReview削除、deleted終端からの再編集/再投稿、published Count/RatingSummaryの誤減算、Version競合の上書き、StatusHistoryとReview更新の部分書込み、hidden削除で不要な集計変更",
       "test_condition": "C1 本人published Review削除→status=deleted/version+1、History1件、PublishedCountとrating aggregate正しく減算。C2 hidden Review削除では公開Summary不変、他人/guest/staff/既deleted/旧Versionは拒否してReview/History/Summary前後不変。C3 同一Reviewの再投稿・同時二重削除を拒否しHistoryが増えない。C4 transaction途中失敗注入でReview/History/Summaryが全てrollback。C5 Review Editorの確認Dialog/失敗表示/eligibility、Web/Android・既存integration/component/CIの実行証拠。",
-      "test_responsibility": "本人レビューを削除するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "本人レビューを削除するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "本人のpublished/hidden Review削除、deleted終端と再投稿拒否、Version CAS、Review/StatusHistory/Summary transactionとDB不変を照合する。",
+      "case_policy": "C1published本人削除・Version/History/Summary差、C2hidden削除・他Role/他人/既deleted/stale拒否、C3再投稿/二重削除、C4中断rollback、C5Web/Android画面を採用。",
+      "case_selection_reason": "Review削除は本人認可・終端状態・商品評価集計の三つを同時に変えるため、成功時の差分と失敗時のHistory/Summary不変性を別に検証する。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "CustomerReviewUseCases.delete:193-231はcustomer/本人Review認可、deletedまたは遷移禁止状態拒否、Version CASを行い、review-change transaction内でReview status=deleted、StatusHistory追加、公開済みの場合ReviewSummaryのcount/rating更新を実行。既存integration:66-123は公開Reviewの作成→更新→削除・eligibility=REVIEW_DELETEDと公開件数復元を確認するコード。非公開状態・他人・既削除・失敗注入・二重送信を直接実証していない。",
+      "basic_analysis_review": "CustomerReviewUseCases.delete:193-231はcustomer/本人Review認可、deletedまたは遷移禁止状態拒否、Version CASを行い、review-change transaction内でReview status=deleted、StatusHistory追加、公開済みの場合ReviewSummaryのcount/rating更新を実行。既存integration:66-123は公開Reviewの作成→更新→削除・eligibility=REVIEW_DELETEDと公開件数復元を確認するコード。非公開状態・他人・既削除・失敗注入・二重送信を直接実証していない。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "CustomerReviewUseCases.delete"
       ],
@@ -30140,7 +30140,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：本人Review削除のRole/Version/Status遷移・History・公開Summary更新を静的追跡。既存Integrationは正常削除と再投稿不可理由の一部を扱う。非公開Review・他人・重複削除・旧Version・transaction中断の原子性、Web/Android/CIは未受入。",
+      "analysis_progress": "2026-11-03 PR #212：本人Review削除のRole/Version/Status遷移・History・公開Summary更新を静的追跡。既存Integrationは正常削除と再投稿不可理由の一部を扱う。非公開Review・他人・重複削除・旧Version・transaction中断の原子性、Web/Android/CIは未受入。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/review-user-use-cases.ts",
@@ -30181,14 +30181,14 @@
       "case_policy": "既存レビューのStaff閲覧、非Staffの拒否、存在しないIDの拒否を代表Caseとして採用",
       "case_selection_reason": "レビュー本文とユーザーメールの漏えい防止、誤った履歴表示防止のため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AdminReviewUseCases.getDetail 366-390行のrequireStaff/NOT_FOUND・関連ユーザー/商品/履歴取得とdefault/hidden-reviewsのレビューSeedを照合",
+      "basic_analysis_review": "AdminReviewUseCases.getDetail 366-390行のrequireStaff/NOT_FOUND・関連ユーザー/商品/履歴取得とdefault/hidden-reviewsのレビューSeedを照合 【2026-11-04品質監査】review-user-use-cases.ts:366-390はrequireStaff→reviews.getByIdのNOT_FOUND→review.userId/productIdで関連User/Productを読む。欠損関連は名称/メールを空にしてDTOへ返し、reviewId/status/versionとreviewIdに紐づくStatusHistoryを返す。別Reviewの履歴/個人情報非露出は隔離DBとRole別の実行で受入する。 今回の調査は静的根拠であり直接Runは未実施。",
       "related_use_cases": [
         "AdminReviewUseCases.getDetail"
       ],
       "requirement_refs": [
         "BR-REVIEW-002"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする | 2026-11-04: 公開UseCase実装・既存CaseとRole/State/Data・Risk/条件を再確認。静的分析のみ。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 284,
@@ -30243,13 +30243,13 @@
       "data": "ゲスト/会員の同一・異なるSKU、数量上限、期限切れ",
       "action": "ログイン時にゲストカートと会員カートを統合する",
       "expected": "会員カートを基準に統合し、同一SKUの数量上限と現在価格・在庫を再検証する",
-      "risk": "不正操作、競合、データの不整合または所有権逸脱",
+      "risk": "ゲスト/会員別IDのCart混在、同一SKU上限突破または超過数量の消失、未公開・Rank不足・在庫0商品混入、Guest Cart未破棄、Session作成失敗時の中途統合・価格/Version不整合",
       "test_condition": "C1 guest-cart-merge-overflowの会員Cart3+guest4→合計上限5・追加2/overflow2・Guest Cart abandoned、後続Session生成と通知結果。C2 0追加/全部除外、NOT_FOUND/UNPUBLISHED/RANK_REQUIRED/INACTIVE/OUT_OF_STOCKのReasonと数量・price/Versionの再計算。C3 Session作成失敗・pointerセット失敗のtransaction rollback、他User Cart/Session非変更。C4 他Role/operator/adminはmergeしない、他Guest ID分離、ログイン連打・再試行の冪等性。C5 Web/Android表示のマージ結果、browser storage/SQLite、既存integrationの実行とCI/DB前後。",
-      "test_responsibility": "ログイン時にゲストカートと会員カートを統合するの許可条件・状態更新・拒否時の旧値維持を比較",
-      "case_policy": "許可条件と拒否・競合・状態境界の代表Caseを選定",
-      "case_selection_reason": "ログイン時にゲストカートと会員カートを統合するの状態変更と安全な拒否が仕様どおりか確認するため",
+      "test_responsibility": "ログイン時のguestIdentityStore→login-and-merge-cart→Dexie合算/除外→User Session生成を追い、追加数・overflow・理由・Guest Cart abandoned・rollbackを個別検証する。",
+      "case_policy": "C1会員3+guest4→上限5で追加2/overflow2、C2公開/Rank/在庫など除外理由、C3Session失敗rollback、C4別Role/別Guest/再ログイン、C5Web/Android通知とDB/SQLiteを採用。",
+      "case_selection_reason": "数量合算だけでなく商品可視性・Rank/在庫・Session同時作成までが一つのログイン契約であり、部分成功理由と中断時の原子性を追跡する必要がある。",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AuthUseCases.login:52-120はcustomer認証時guestIdentityStoreでguest IDを取得し、login-and-merge-cart transaction内でDexieCartRepository.mergeGuestIntoUserを呼び、会員Cartを優先してSessionを作成する。Dexie:309以降は商品公開・Rank・在庫・上限ごとに除外理由/追加数量/overflowを記録しGuest Cartをabandonedにする。既存integration:149-205はguest-cart-merge-overflow固定Seedで3+4→上限5（追加2/溢れ2）とSession作成失敗時rollbackを検証するコード。別Role、不可視商品、全部除外、同時ログイン等の実証は未完了。",
+      "basic_analysis_review": "AuthUseCases.login:52-120はcustomer認証時guestIdentityStoreでguest IDを取得し、login-and-merge-cart transaction内でDexieCartRepository.mergeGuestIntoUserを呼び、会員Cartを優先してSessionを作成する。Dexie:309以降は商品公開・Rank・在庫・上限ごとに除外理由/追加数量/overflowを記録しGuest Cartをabandonedにする。既存integration:149-205はguest-cart-merge-overflow固定Seedで3+4→上限5（追加2/溢れ2）とSession作成失敗時rollbackを検証するコード。別Role、不可視商品、全部除外、同時ログイン等の実証は未完了。 【2026-11-04品質監査】Riskは当該UseCaseのRole/State/Data/失敗時の表差へ具体化し、既存C1以降の検証条件とCase採否を一致させた。正式仕様・既存実装・テストの静的根拠に限定し、未実行のCI/画面/DBをPASS扱いしない。",
       "related_use_cases": [
         "AuthUseCases.login",
         "AuthUseCases.register"
@@ -30295,7 +30295,7 @@
         "implementation",
         "seed"
       ],
-      "analysis_progress": "2026-11-03 PR #212：Auth login→transaction→Cart merge→Session createとSeed guest-cart-merge-overflow（既存会員3+Guest4→5、2 overflow）を静的再監査。Session重複によるrollbackとpointer設定失敗の既存Integrationコードあり。SKU不可視/非公開/Rank/在庫不足/全件除外、二重ログイン/Version/Android・DB差分とCIを未受入。",
+      "analysis_progress": "2026-11-03 PR #212：Auth login→transaction→Cart merge→Session createとSeed guest-cart-merge-overflow（既存会員3+Guest4→5、2 overflow）を静的再監査。Session重複によるrollbackとpointer設定失敗の既存Integrationコードあり。SKU不可視/非公開/Rank/在庫不足/全件除外、二重ログイン/Version/Android・DB差分とCIを未受入。 | 2026-11-04: 既存C1以降と静的参照を照合してRisk・試験責務・Case採否・選定理由の一般文を具体化。動的受入は別。",
       "audit_branch_refs": [
         {
           "path": "src/application/use-cases/auth-use-cases.ts",
@@ -30336,7 +30336,7 @@
       "case_policy": "有効1件・50件境界、0/51件・重複拒否、同一要求内の成功/競合混在を採用",
       "case_selection_reason": "一括変更は原子的処理ではなく対象単位の結果を返すため、部分失敗で成功が消えたり失敗が隠れたりしないことを確認",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AdminProductUseCases.bulkChangeStatus 223-251行の件数/重複検証、個別changeStatusとper-ID catch、admin-bulk-partial-failure Seedの競合指定を照合",
+      "basic_analysis_review": "AdminProductUseCases.bulkChangeStatus 223-251行の件数/重複検証、個別changeStatusとper-ID catch、admin-bulk-partial-failure Seedの競合指定を照合 【2026-11-04品質監査】admin-product-use-cases.ts:223-250ではrequireStaff→targetIdsの0/51/重複を一括VALIDATION→各商品changeStatusを順次試行しsucceededIdsとfailures(reason=messageKey)を集計する。対象ごとのtransactionであるため一つの失敗で他の成功を巻き戻さず、未指定Versionは-1として競合になる。50件上限・混在成功・DB状態の直接実行は別受入。 今回の調査は静的根拠であり直接Runは未実施。",
       "related_use_cases": [
         "AdminProductUseCases.bulkChangeStatus"
       ],
@@ -30344,7 +30344,7 @@
         "BR-ADMINCAT-001",
         "AC-ADMINCAT-001"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする | 2026-11-04: 公開UseCase実装・既存CaseとRole/State/Data・Risk/条件を再確認。静的分析のみ。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 383,
@@ -30405,7 +30405,7 @@
       "case_policy": "一括成功、上限0/51、削除済、競合・一部成功、非Staffを採用",
       "case_selection_reason": "個々のエラーを全体成功として誤報告せず、公開集計の整合を守るため",
       "analysis_status": "analyzed",
-      "basic_analysis_review": "AdminReviewUseCases.bulkChangeVisibility 441-479行のStaff・件数・per-ID status/errors とchangeVisibility 392-438行のversion/state/summary transaction、default Seedを照合",
+      "basic_analysis_review": "AdminReviewUseCases.bulkChangeVisibility 441-479行のStaff・件数・per-ID status/errors とchangeVisibility 392-438行のversion/state/summary transaction、default Seedを照合 【2026-11-04品質監査】review-user-use-cases.ts:441-479ではStaff認可、0/51件拒否、per-ID changeVisibilityの成否・code/messageKey/retryableを集計する。公開集計や履歴の更新はchangeVisibility:392-438が担当し、個別Version違い/削除済みの拒否・rollback・重複targetの仕様境界を別Caseで実証する。 今回の調査は静的根拠であり直接Runは未実施。",
       "related_use_cases": [
         "AdminReviewUseCases.bulkChangeVisibility"
       ],
@@ -30413,7 +30413,7 @@
         "BR-REVIEW-002",
         "AC-REVIEW-002"
       ],
-      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする",
+      "analysis_progress": "仕様・公開Use CaseとSeedの対応を記録。下位の具体的な判断条件は手動レビューする | 2026-11-04: 公開UseCase実装・既存CaseとRole/State/Data・Risk/条件を再確認。静的分析のみ。",
       "seed_evidence": {
         "path": "src/seeds/metadata.ts",
         "line": 284,
