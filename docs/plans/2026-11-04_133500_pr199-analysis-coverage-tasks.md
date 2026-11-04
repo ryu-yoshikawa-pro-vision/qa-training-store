@@ -40,7 +40,7 @@
 - [x] 分析済み全196 Behaviorの説明・Risk/TR/Condition/Case採否・参照根拠を監査し、形式的な空欄検査と意味上の十分性を区別
 - [x] `use_case_evidence`の公開メソッドID/path/line/signatureを現在HEADの76メソッドと照合する継続validator/負例（誤ID・古い行・署名違い・別メソッド）を追加
 - [x] 分析済みだが`related_use_cases`が空の23件をUI専用等として個別判定し、追加が必要なものだけ追跡。補助・準備用Use Caseを直接呼出しと誤記しない
-- [ ] 分析台帳変更の直接validator/契約テストとWeb CIを確認し、9操作/3状態・79要件のbefore/afterを固定HEADで報告
+- [x] 分析台帳変更の直接validator/契約テストとWeb CIを確認し、9操作/3状態・79要件のbefore/afterを固定HEADで報告
 
 ## 完了条件
 
@@ -176,3 +176,10 @@
 - #213差分確認：base #199 `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、レビュー直前HEAD `73013e3b336d4840623542b07b7bc826a35ba727`。変更4ファイルは`training/ai-assisted-qa-course/coverage/supported-behaviors.json`、`scripts/training/validate-supported-behaviors.mjs`、`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`、本タスクリストだけ。製品SUT/正式仕様/Seed/Reset/他PR専有資料・共通知識グラフの変更なし。PRはDraftであり独立レビュー承認やマージ許可ではない。
 - #219へ[実Run/Case IDの不足依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6626681708)を投稿。#213へ[レビュー用証拠・未受入の説明](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/213#issuecomment-6626771774)を投稿。10 Behaviorの18件の部分証拠と製品FAIL/TEST ERRORは正本JSONに記録し、Runと該当Caseを分離した。
 - CI確認（完了待ちはしない）：旧HEAD `7df0503`の[Web CI #41802509407](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41802509407)でStyle QualityはPrettier警告によりfailure。対象は本PR専有のValidatorと契約テスト。後続コミット`a578d12`と`73013e3`で条件式・長行を修正したが**最新HEADでのStyle/契約/verify成功は未確認**。直接`pnpm`/Vitestコマンドはこの環境から未実行であり、実行したと記載しない。検証結果の実施/未実施と他ブランチ依頼をレビュー可能な形で記録したため本項目のチェックを付すが、別項目のValidator/CI受入は未チェックのまま残す。
+
+### 分析台帳・Validator・契約テストの固定HEAD受入（2026-11-04）
+
+- 比較起点：`5ecf266f131d`の台帳は179/188操作、17/20非default状態が`analyzed`、79要件は`needs_content_review`。照合済みの分析コミット`d213e5b102b056075f20ef6e3b422bc1d09aa025`では188/188操作（172画面操作＋16独立Use Case）、20/20非default状態、79/79要件が静的基本分析済み。追加分析した9操作・3状態は上記「残9操作」「残3状態」の各ID。29横断要件は直接参照なしを維持し、採用Caseの実Run受入とは別。
+- [Web CI #41807455738](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41807455738)：対象HEAD `d213e5b1`、workflow全体`completed/success`。Style Quality、Code Quality、`Vitest (contracts)`、Chromium E2E (required)、`verify`、`validate`が成功。契約テストは74ファイル成功・1102件PASS・1件expected fail・15件skipped。専用`ai-assisted-qa-supported-behaviors.test.mjs`は58件PASS。正常系・負例から`validateCoverage({ root })`を実行し、分母/79要件/Use Case参照の整合を検査。
+- 直前の失敗Run #41803626336（HEAD `8e90a369`）は専用Validator/契約テストのPrettier不一致と37要件の`dynamic_acceptance`表記不一致が独立原因。後続の`4d95aee`で37件の動的受入未完を明記し、`d213e5b`で短い式を整形。上記最新固定HEADの成功により両方の回帰を解消。
+- 検証の限界：この作業環境での単独`node scripts/training/validate-supported-behaviors.mjs --require-complete`とローカル`pnpm`コマンドは未実施。CIの契約テストが直接`validateCoverage`を呼び出した事実と区別する。CI成功は全採用Caseの実Web/Android/DB/Trace/Visual受入または#210の製品修正受入を意味しない。本チェックを付けた文書のみの後続コミットの新CI結果を過去HEADの成功から推認しない。
