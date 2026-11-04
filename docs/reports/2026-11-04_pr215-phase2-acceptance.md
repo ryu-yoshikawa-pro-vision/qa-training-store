@@ -182,3 +182,25 @@
 - 以上は教材の事実整合を改善する変更であり、本人によるPlaywright実RunやM05〜M07の学習目標達成を意味しない。共有runnerの調停：[PR #217への連絡](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6630325393)、統合：[PR #199への連絡](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6630333042)。
 
 **Progress: 20% (5/25)**。実Runが必要な20項目のチェックは維持せず、未完了のまま残す。
+
+## 2026-11-04 継続作業：M05-04 Web-first・失敗種類の負例
+
+- **確認対象HEAD**：`17145e12fea7098cfe4ba327882d446f8c8ac377`（本レポート追記前）。`docs/curriculum/ai-assisted-qa/modules/M05/README.md` Blob `ade6583523ea883e0a2190dd60d179cac6b4dbec`、`exercises/M05/exercise.md` Blob `6dc92d0d6f6d4cd921a04a1ce438d58f62d36634`、`exercises/M05/submission-template.md` Blob `484fb8ddc3b1faa2fe3b59fcb3a9425e2c64bb2a`。
+- **今回反映**：M05教本の8.1へ、Actionabilityを待つ`click()`とWeb-firstの`await expect(...).toHaveText()/toHaveCount()`、一度だけ読む`count()`の差、Locatorの不存在・複数一致・操作不可と業務Assertion不一致、構文/型/Node実行時エラーを区別する表を追加。演習のP03/P04/P06へ実行コマンドと不採用の固定待機案、提出テンプレートへエラー種類別の記録欄を追加した。
+- **隔離Linux実行で確認した事実**（リポジトリをcloneした実行・配布Shopや`course:run`ではない）：
+
+| 対象 | 環境・操作 | 結果 |
+| --- | --- | --- |
+| 自動待機 | Python Playwright 1.57.0 / Debian Chromium 144.0.7559.96。ページ内の`disabled`ボタンを約180ms後に有効化し`get_by_role(...).click(timeout=3000)` | PASS、クリック完了まで実測255ms。固定sleep不要 |
+| Locator不存在 | 同じ隔離HTMLで存在しないbuttonを`click(timeout=350)` | `TimeoutError`（期待どおりの失敗） |
+| Locator重複 | `同じ名前`の2ボタンに単一`click(timeout=500)` | `strict mode violation`（期待どおりの失敗） |
+| 操作不可 | 無効のままのボタンへ`click(timeout=350)` | `TimeoutError`、ログに`element is not enabled`（期待どおりの失敗） |
+| 業務Assertion | `status`の実際の文言が`数量: 0`、期待が`数量: 1`。`expect(...).to_have_text(timeout=350)` | `AssertionError`（期待どおりの失敗） |
+| 構文 | Node.js 22.16.0の`node --check`で閉じ括弧不足を入力 | 終了コード1、`SyntaxError: Unexpected end of input` |
+| 型 | TypeScript 5.8.3の`tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext`で`number`に`"1"`を渡す | 終了コード2、`TS2345` |
+| Node実行時 | `node -e 'const absent=undefined; console.log(absent.value)'` | 終了コード1、`TypeError` |
+
+- **区別と制限**：Python Playwrightの隔離HTMLはTypeScriptの`@playwright/test`およびScenario Shopの実行結果ではなく、Playwrightの待機・Locator・Assertion動作を小さく切り出した補助確認。Node/tscも本リポジトリの`pnpm-lock.yaml`で導入されたものではない。本人の`workspace/M05/`、8082専用Config、before/after Run ID・receiptの実証は引き続き未実施。
+- **判定**：`M05-04`のチェックは「Web-first/自動待機・エラーの区別を演習と負例へ反映し、隔離実行で動作を検証した」範囲で完了。**受講者の習得・実ShopのPASSを意味しない**。`M05-01/02/03/05`と横断Chromium項目は未完了を維持。
+
+**Progress: 24% (6/25)**。残り19項目は必要な専用Chromium実Run、固定配布Shop・受講者成果物/環境の証拠が不足。
