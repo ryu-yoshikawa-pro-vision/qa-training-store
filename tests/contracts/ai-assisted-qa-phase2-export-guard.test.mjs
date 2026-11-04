@@ -17,8 +17,11 @@ const codeBlockPattern = new RegExp(fence + "bash\\n([\\s\\S]*?)\\n\\s*" + fence
 const commandBlocks = Array.from((backupSection ?? "").matchAll(codeBlockPattern), (match) =>
   match[1].replace(/^ {3}/gm, ""),
 );
+const initializeManifest = commandBlocks.find(
+  (block) => block.includes("phase2-files.txt <<'EOF'") && block.includes("set -C"),
+);
 const guardAndArchive = commandBlocks.find((block) =>
-  block.includes("tar --create --gzip --file=workspace/M07/exports/phase2.tgz"),
+  block.includes("tar --create --gzip --file=-"),
 );
 
 const temporaryDirectories = [];
@@ -52,6 +55,14 @@ function makeFixture() {
   const manifest = "workspace/M07/exports/phase2-files.txt";
   writeFixtureFile(root, manifest, files.join("\n") + "\n");
   return { root, files, manifest };
+}
+
+function runManifestInitialization(fixture) {
+  return spawnSync("bash", ["-c", initializeManifest], {
+    cwd: fixture.root,
+    encoding: "utf8",
+    timeout: 10_000,
+  });
 }
 
 function runGuard(fixture, manifestLines) {
@@ -89,6 +100,52 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
         fs.readFileSync(path.join(fixture.root, file), "utf8"),
       );
     }
+  });
+
+  linuxIt("Run証拠を追記した既存の保全リストを初期化で上書きしない", () => {
+    expect(initializeManifest).toBeTruthy();
+    const fixture = makeFixture();
+    const original = fs.readFileSync(fixture.manifest, "utf8");
+    const appended = original + "workspace/M05/evidence/run-unique/trace.zip\\n";
+    fs.writeFileSync(fixture.manifest, appended);
+    const alreadyExists = runManifestInitialization(fixture);
+    expect(alreadyExists.status).not.toBe(0);
+    expect(fs.readFileSync(fixture.manifest, "utf8")).toBe(appended);
+
+    fs.rmSync(fixture.manifest);
+    const created = runManifestInitialization(fixture);
+    expect(created.status, created.stderr + created.stdout).toBe(0);
+    expect(fs.readFileSync(fixture.manifest, "utf8")).toContain(
+      "workspace/M07/phase2-handoff.md",
+    );
+    const repeated = runManifestInitialization(fixture);
+    expect(repeated.status).not.toBe(0);
+  });
+
+  linuxIt("既存アーカイブとチェックサムを上書きしない", () => {
+    const fixture = makeFixture();
+    const archive = writeFixtureFile(
+      fixture.root,
+      "workspace/M07/exports/phase2.tgz",
+      "previous archive",
+    );
+    const checksum = writeFixtureFile(
+      fixture.root,
+      "workspace/M07/exports/phase2.tgz.sha256",
+      "previous checksum",
+    );
+
+    const existingArchive = runGuard(fixture);
+    expect(existingArchive.status).not.toBe(0);
+    expect(existingArchive.stdout).toContain("上書きしません");
+    expect(fs.readFileSync(archive, "utf8")).toBe("previous archive");
+    expect(fs.readFileSync(checksum, "utf8")).toBe("previous checksum");
+
+    fs.rmSync(archive);
+    const existingChecksum = runGuard(fixture);
+    expect(existingChecksum.status).not.toBe(0);
+    expect(fs.existsSync(archive)).toBe(false);
+    expect(fs.readFileSync(checksum, "utf8")).toBe("previous checksum");
   });
 
   it("M05 P03/P05の本人ファイルと直接Playwright証拠を保全対象として区別する", () => {
