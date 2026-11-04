@@ -134,3 +134,9 @@
 - 対象固定HEAD：`a0562a63b0979f43ed1aa5c443031cdc6bb77ecb`。正式仕様の46 BR/ACと権限8・状態遷移12・UI4・対象範囲9の計79要件について、期待文を元文書の該当行/本文と照合し、要件ID別のRisk/条件/採用Case/代表Behavior/実装参照と未実行条件を同じ`supported-behaviors.json`に記録した。正式原文との文字列不一致0件。個別の`requirement_analysis`に行番号・代表Behavior・実装位置・横断契約を保存。
 - 直接参照なし29件（Native4、Role7、状態遷移10、UI2、対象範囲6）は、既存Behaviorの代表条件と`tests/`/`e2e/`の横断契約を割り当てた。`behavior.requirement_refs`は形式合わせで増やしていない。関連テストの静的存在・既存契約と実行受入を区別し、実Runと残リスクの採否は#219、製品修正や仕様優先順位の判断は#210に引き継ぐ。
 - 検証：今回の直接pnpmは未実行。要件の原文/参照/代表Behavior/横断契約の検証を`validate-supported-behaviors.mjs`へ追加し、誤期待・参照先ID/行・存在しない横断契約を拒否する負例を同専有契約テストへ追加。変更HEADのCI結果は別途受入とする。
+
+### 79要件ValidatorのBR/AC参照行修正（2026-11-04）
+
+- 対象：`8d4cbe9e77a8f813e225e7da71757c199702c3eb`。Web CI #41792962757 で `Vitest (contracts)` は `BR-STOREFRONT-001` の `requirement analysis lacks verified evidence` により失敗。原因は正式BR/ACの要件分析が `source.heading_line` と `source.expectation_line` を持つのに、Validatorが一律 `source.line` を参照していたこと。要件の期待文が誤っているとは判定しない。
+- 修正：BR/ACでは見出し行と期待本文の先頭行、横断規則では単一行を別検証。Native BR/ACの4件も同じ行形式に統一し、誤見出し行と誤期待行を拒否する負例を追加。仕様・製品SUTは変更なし。
+- 別要因：同Runの `Style Quality` はValidatorと契約テストのPrettier警告。後続コミットで専有2ファイルを整形する必要がある。CI再確認は別項目、完了待ちはしない。

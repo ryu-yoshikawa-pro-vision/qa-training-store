@@ -32863,7 +32863,8 @@
       "requirement_analysis": {
         "source": {
           "path": "docs/spec/features/native-customer.md",
-          "line": 9
+          "heading_line": 9,
+          "expectation_line": 11
         },
         "representative_behaviors": [
           "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
@@ -32924,7 +32925,8 @@
       "requirement_analysis": {
         "source": {
           "path": "docs/spec/features/native-customer.md",
-          "line": 13
+          "heading_line": 13,
+          "expectation_line": 15
         },
         "representative_behaviors": [
           "SCREEN-TEST-CONTROL-A02-01",
@@ -32979,7 +32981,8 @@
       "requirement_analysis": {
         "source": {
           "path": "docs/spec/features/native-customer.md",
-          "line": 25
+          "heading_line": 25,
+          "expectation_line": 29
         },
         "representative_behaviors": [
           "SCREEN-STOREFRONT-CART-A01-01",
@@ -33040,7 +33043,8 @@
       "requirement_analysis": {
         "source": {
           "path": "docs/spec/features/native-customer.md",
-          "line": 31
+          "heading_line": 31,
+          "expectation_line": 35
         },
         "representative_behaviors": [
           "SCREEN-TEST-CONTROL-A02-01",

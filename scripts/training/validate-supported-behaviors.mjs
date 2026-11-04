@@ -256,21 +256,26 @@ function completeRequirement(item, root, behaviorById, directlyLinkedRequirement
     return false;
   }
   const audit = item.requirement_analysis;
-  if (audit?.source?.path !== item.source_path || audit.source.line !== item.source_line) {
+  if (audit?.source?.path !== item.source_path) {
     return false;
   }
   const lines = readLines(root, item.source_path);
   let expected;
   if (item.kind === "rule") {
+    if (audit.source.heading_line !== item.source_line) return false;
     const paragraphs = [];
+    let expectationLine = null;
     for (let index = item.source_line; index < lines.length; index += 1) {
       const line = lines[index].trim();
       if (/^#{2,6} /.test(line)) break;
       if (!line || /^関連(?:ビジネスルール|業務ルール|BR):/.test(line)) continue;
+      if (expectationLine === null) expectationLine = index + 1;
       paragraphs.push(line);
     }
+    if (audit.source.expectation_line !== expectationLine) return false;
     expected = paragraphs.join(" ");
   } else {
+    if (audit.source.line !== item.source_line) return false;
     expected = lines[item.source_line - 1]?.trim();
   }
   if (!expected || item.expected !== expected) return false;

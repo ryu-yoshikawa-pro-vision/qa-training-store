@@ -118,7 +118,10 @@ describe("サポート機能の仕様と実装の追跡", () => {
         item.expected = "formal business rule";
       },
       (item) => {
-        item.requirement_analysis.source.line += 1;
+        item.requirement_analysis.source.heading_line += 1;
+      },
+      (item) => {
+        item.requirement_analysis.source.expectation_line += 1;
       },
       (item) => {
         item.requirement_analysis.representative_behaviors = ["NOT-AN-EXISTING-BEHAVIOR"];
