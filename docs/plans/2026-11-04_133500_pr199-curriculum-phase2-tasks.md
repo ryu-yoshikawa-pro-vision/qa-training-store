@@ -12,7 +12,7 @@
 
 - [ ] `M05-01`：Node/pnpm/TypeScriptの`await`・型・関数、最小specの実行と1箇所の安全な変更→再実行を演習/提出/採点基準へ整合
 - [ ] `M05-02`：Role/Name/Label/test IDによるLocatorと一意性、複数Cart明細を全体/商品単位でscopeする区別を実画面で確認
-- [ ] `M05-03`：可視/クリック成功とCart更新・DB保存の保証範囲の差、弱いAssertionを業務結果で補強する判断を確認
+- [x] `M05-03`：可視/クリック成功とCart更新・DB保存の保証範囲の差、弱いAssertionを業務結果で補強する判断を確認
 - [x] `M05-04`：Web-first assertion・auto wait・根拠のない`waitForTimeout`と実エラーの区別を演習/負例へ反映
 - [ ] `M05-05`：新課程専用Config、8081/8082/6080、指定spec、Trace/JSON report・receiptの実行経路と保存先を一致させる
 
@@ -79,3 +79,9 @@
 - [受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に隔離Linux（Node.js 22、TypeScript 5.8.3、Python Playwright 1.57、Chromium 144）での成功・意図的失敗と終了コードを記録。これは配布Shop/受講者の`course:run`ではなく、`M05-01/02/03/05`および横断実Chromium受入を代替しない。
 - 前HEAD `e6b41570f90e20214210547917873234faae1bda` の[Web CI #41827772448](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41827772448)は成功。今回の変更のCI結果ではない。
 - **Progress: 24% (6/25)**。残り19件は未完了。
+
+## 2026-11-04 M05-03の保証範囲
+
+- 固定HEAD `94fda6d52c49cd8e4c1bf111b060be6d8a5f113f`で製品Web Cart画面・Cart Use Case・Dexie（`carts`/`cart_items`）と教材の判断表を照合。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に対象Blob SHA、保証できること/できないことを記録。
+- 隔離Chromiumではクリック成功でも数量0のままなら業務AssertionがFAILすることを確認。**Scenario Shopの実Runではない**ので、専用ConfigのChromium受入やCart DBの保存実証には流用せず、M05-02/05および横断項目は未チェック。
+- **Progress: 28% (7/25)**。残り18件。
