@@ -3399,7 +3399,7 @@
         {
           "path": "src/presentation/native/native-variation-selection.ts",
           "start_line": 1,
-          "end_line": 18,
+          "end_line": 17,
           "reason": "Native在庫0は選択できるが追加不可の意図的制御"
         },
         {
@@ -3623,7 +3623,7 @@
         {
           "path": "src/presentation/native/native-variation-selection.ts",
           "start_line": 1,
-          "end_line": 18,
+          "end_line": 17,
           "reason": "Native在庫0は選択できるが追加不可の意図的制御"
         },
         {
@@ -3850,7 +3850,7 @@
         {
           "path": "src/presentation/native/native-variation-selection.ts",
           "start_line": 1,
-          "end_line": 18,
+          "end_line": 17,
           "reason": "Native在庫0は選択できるが追加不可の意図的制御"
         },
         {
@@ -8708,7 +8708,7 @@
         {
           "path": "tests/component/cart-page.test.tsx",
           "start_line": 102,
-          "end_line": 117,
+          "end_line": 116,
           "reason": "Web失敗の既存部分テスト"
         }
       ]
@@ -9557,12 +9557,6 @@
         }
       ],
       "audit_branch_refs": [
-        {
-          "path": "src/presentation/pages/addresses-page.tsx",
-          "start_line": 100,
-          "end_line": 110,
-          "reason": "Webの空案内"
-        },
         {
           "path": "src/presentation/pages/addresses-page.tsx",
           "start_line": 198,
@@ -10551,7 +10545,7 @@
         {
           "path": "src/application/use-cases/checkout-order-use-cases.ts",
           "start_line": 660,
-          "end_line": 673,
+          "end_line": 672,
           "reason": "4つのPAYMENT_METHODS定義"
         },
         {
@@ -15244,7 +15238,7 @@
         {
           "path": "src/application/use-cases/customer-review-state.ts",
           "start_line": 1,
-          "end_line": 15,
+          "end_line": 14,
           "reason": "未配達・未投稿・公開・非公開・削除済の5状態導出"
         },
         {
@@ -15679,7 +15673,7 @@
         {
           "path": "src/application/use-cases/customer-review-state.ts",
           "start_line": 4,
-          "end_line": 15,
+          "end_line": 14,
           "reason": "deliveredかつReviewなしをNOT_POSTEDへ分類"
         },
         {
@@ -15871,7 +15865,7 @@
         {
           "path": "src/application/use-cases/customer-review-state.ts",
           "start_line": 4,
-          "end_line": 15,
+          "end_line": 14,
           "reason": "delivered未投稿をNOT_POSTEDへ分類"
         },
         {
@@ -16206,7 +16200,7 @@
         {
           "path": "src/application/use-cases/customer-review-state.ts",
           "start_line": 1,
-          "end_line": 15,
+          "end_line": 14,
           "reason": "NOT_POSTED/NOT_ELIGIBLE/DELETED/HIDDEN/PUBLISHED"
         },
         {
@@ -16407,7 +16401,7 @@
         {
           "path": "src/application/use-cases/customer-review-state.ts",
           "start_line": 1,
-          "end_line": 15,
+          "end_line": 14,
           "reason": "deleted→DELETEDと既存レビュー優先"
         },
         {
@@ -21702,7 +21696,7 @@
         {
           "path": "tests/component/admin-master-pages.test.tsx",
           "start_line": 152,
-          "end_line": 173,
+          "end_line": 172,
           "reason": "maxlength/作成部分証拠、編集保存は未検証"
         },
         {
@@ -21898,7 +21892,7 @@
         {
           "path": "tests/component/admin-master-pages.test.tsx",
           "start_line": 152,
-          "end_line": 173,
+          "end_line": 172,
           "reason": "required/maxlengthの部分証拠"
         }
       ]
@@ -23711,7 +23705,7 @@
         {
           "path": "tests/component/admin-operations-pages.test.tsx",
           "start_line": 198,
-          "end_line": 215,
+          "end_line": 214,
           "reason": "詳細version操作の部分証拠"
         },
         {
@@ -24078,7 +24072,7 @@
         {
           "path": "tests/contracts/ai-assisted-qa-admin-order-detail-actions.test.mjs",
           "start_line": 1,
-          "end_line": 220,
+          "end_line": 219,
           "reason": "学習用4 Case:正順・非staff・stale・業務DB不変（CIで4/4成功）"
         }
       ]
@@ -26018,13 +26012,13 @@
         {
           "path": "app/guide.native.tsx",
           "start_line": 1,
-          "end_line": 3,
+          "end_line": 2,
           "reason": "Androidガイドroute"
         },
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26150,7 +26144,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26252,13 +26246,13 @@
         {
           "path": "src/presentation/pages/guide-page.tsx",
           "start_line": 190,
-          "end_line": 281,
+          "end_line": 280,
           "reason": "主要確認Flowとシナリオ一覧"
         },
         {
           "path": "src/presentation/routing/guide-routes.ts",
           "start_line": 1,
-          "end_line": 27,
+          "end_line": 26,
           "reason": "許可ルートLink化"
         },
         {
@@ -26276,7 +26270,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26408,7 +26402,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26506,19 +26500,19 @@
         {
           "path": "app/legal/terms.tsx",
           "start_line": 1,
-          "end_line": 20,
+          "end_line": 19,
           "reason": "Web利用規約3章"
         },
         {
           "path": "app/legal/terms.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native利用規約ルート"
         },
         {
           "path": "src/presentation/pages/legal-page.tsx",
           "start_line": 1,
-          "end_line": 19,
+          "end_line": 18,
           "reason": "Web公開ガードと見出し"
         },
         {
@@ -26536,7 +26530,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26658,7 +26652,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26756,13 +26750,13 @@
         {
           "path": "app/legal/privacy.tsx",
           "start_line": 1,
-          "end_line": 17,
+          "end_line": 16,
           "reason": "Webプライバシー内容"
         },
         {
           "path": "app/legal/privacy.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Nativeの見出し"
         },
         {
@@ -26792,7 +26786,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -26908,13 +26902,13 @@
         {
           "path": "app/legal/privacy.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Nativeの該当ルート"
         },
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -27012,13 +27006,13 @@
         {
           "path": "app/legal/commerce.tsx",
           "start_line": 1,
-          "end_line": 27,
+          "end_line": 26,
           "reason": "Web模擬取引4項目"
         },
         {
           "path": "app/legal/commerce.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native模擬取引ルート"
         },
         {
@@ -27042,7 +27036,7 @@
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -27158,13 +27152,13 @@
         {
           "path": "app/legal/commerce.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native模擬取引route"
         },
         {
           "path": "docs/spec/product-scope.md",
           "start_line": 38,
-          "end_line": 143,
+          "end_line": 142,
           "reason": "正式なSupporting画面とWeb/Android対象"
         },
         {
@@ -27375,13 +27369,13 @@
         {
           "path": "src/presentation/guards/route-guard.tsx",
           "start_line": 16,
-          "end_line": 57,
+          "end_line": 56,
           "reason": "active staff権限と禁止Routeへのリダイレクト"
         },
         {
           "path": "app/forbidden.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native forbiddenエントリ"
         },
         {
@@ -27405,13 +27399,13 @@
         {
           "path": "src/presentation/root-layout.web.tsx",
           "start_line": 10,
-          "end_line": 19,
+          "end_line": 18,
           "reason": "Web AppFrame/Slot"
         },
         {
           "path": "src/presentation/root-layout.native.tsx",
           "start_line": 9,
-          "end_line": 24,
+          "end_line": 23,
           "reason": "NativeShell/Slot"
         },
         {
@@ -27671,7 +27665,7 @@
         {
           "path": "scripts/validate-native-production-bundle.ts",
           "start_line": 116,
-          "end_line": 156,
+          "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
       ]
@@ -27914,7 +27908,7 @@
         {
           "path": "scripts/validate-native-production-bundle.ts",
           "start_line": 116,
-          "end_line": 156,
+          "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         },
         {
@@ -28163,7 +28157,7 @@
         {
           "path": "scripts/validate-native-production-bundle.ts",
           "start_line": 116,
-          "end_line": 156,
+          "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
       ]
@@ -28406,7 +28400,7 @@
         {
           "path": "scripts/validate-native-production-bundle.ts",
           "start_line": 116,
-          "end_line": 156,
+          "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
       ]
@@ -28649,7 +28643,7 @@
         {
           "path": "scripts/validate-native-production-bundle.ts",
           "start_line": 116,
-          "end_line": 156,
+          "end_line": 155,
           "reason": "Native Hermesバンドルのテスト機能マーカー排除チェック（Webと別）"
         }
       ]
@@ -28718,7 +28712,7 @@
         {
           "path": "app/+not-found.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native未検出ルート"
         },
         {
@@ -28742,13 +28736,13 @@
         {
           "path": "src/presentation/root-layout.web.tsx",
           "start_line": 10,
-          "end_line": 19,
+          "end_line": 18,
           "reason": "Web AppFrame/Slot"
         },
         {
           "path": "src/presentation/root-layout.native.tsx",
           "start_line": 9,
-          "end_line": 24,
+          "end_line": 23,
           "reason": "NativeShell/Slot"
         },
         {
@@ -28840,7 +28834,7 @@
         {
           "path": "app/+not-found.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native not-foundエントリ"
         },
         {
@@ -28864,13 +28858,13 @@
         {
           "path": "src/presentation/root-layout.web.tsx",
           "start_line": 10,
-          "end_line": 19,
+          "end_line": 18,
           "reason": "Web AppFrame/Slot"
         },
         {
           "path": "src/presentation/root-layout.native.tsx",
           "start_line": 9,
-          "end_line": 24,
+          "end_line": 23,
           "reason": "NativeShell/Slot"
         },
         {
@@ -28956,7 +28950,7 @@
         {
           "path": "app/+not-found.native.tsx",
           "start_line": 1,
-          "end_line": 5,
+          "end_line": 4,
           "reason": "Native専用エントリ"
         },
         {
@@ -28980,13 +28974,13 @@
         {
           "path": "src/presentation/root-layout.web.tsx",
           "start_line": 10,
-          "end_line": 19,
+          "end_line": 18,
           "reason": "Web AppFrame/Slot"
         },
         {
           "path": "src/presentation/root-layout.native.tsx",
           "start_line": 9,
-          "end_line": 24,
+          "end_line": 23,
           "reason": "NativeShell/Slot"
         },
         {
