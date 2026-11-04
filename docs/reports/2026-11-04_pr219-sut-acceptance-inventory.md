@@ -193,3 +193,10 @@
 - `tests/integration/pr219-admin-user-acceptance.test.ts`へ、actor A/Bともにactive admin＋Sessionを持つ隔離DBで、互いを同時に停止しようとする`Promise.allSettled`のCaseを追加。正常なactorを2名持つ一方、単一DBのtransactionにより最終的にactive adminが1名残り、成功1件・拒否1件となることを検証する。
 - 拒否理由は`LAST_ADMIN_PROTECTED`、`ACCOUNT_SUSPENDED`、`AUTHENTICATION_REQUIRED`、`CONFLICT`のいずれかとし、失敗したactorの認可時点によって取り得る差を許容する。ただし**active admin 0名、成功2件は失敗扱い**。actor失効後の別対象更新の不具合再現とは別Caseである。
 - 実CIが成功するまでは未実行扱い。製品#199側のactor再認可不備は直さず#210の修正受入に引き継ぐ。
+
+## Cartの在庫境界・Rank・Sale・CAS受入（10番：実CI確認待ち）
+
+- 新規受入テスト`tests/integration/pr219-cart-boundaries.test.ts`に stock 0/1/5/6の4件、CartとItemのstale version拒否1件、guestの公開・Rank拒否1件、Gold会員のsale期間内購入1件の**計7件**を追加。
+- `default`と`gold-member`の固定Seedを各テスト専用のDexie DBに読込。stockの追加境界は各テスト内のVariant 1件だけを変更して再現し、既存Seed/ResetおよびSUTを変更しない。Clockは通常`2026-07-15T03:00:00.000Z`、sale期間だけ`2026-07-01T03:00:00.000Z`を使用。
+- 拒否前後の`carts/cart_items/checkout_sessions`の**全レコード**を`toArray()`で比較し、拒否でどの表も変更されないことをassertする。数値境界0/1/5/6と、数量上限5、Cart/Item version、Rank/公開状態、sale価格6400円を分けて確認する。
+- 証拠はVitest実Runの固定SHAとjobログで確認する。Web画面・User rank変更後の既存Cart・Checkout再確認・Native/SQLiteの前後snapshotは別Caseであり、10番はCI合格後でも全条件成立までは未チェック。

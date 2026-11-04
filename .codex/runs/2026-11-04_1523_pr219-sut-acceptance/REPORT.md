@@ -33,3 +33,5 @@
 - タスク18番完了：リスク別の固定SHA/Run・PASS/FAIL/BLOCKED/未実行、Android実行の権限・機材・CLIと再開手順、Web Traceの不足と取得手順を専用レポートへ整理。Android実行・全Case合格を主張しない。
 
 - タスク21番完了：元台帳Blob `3143b229`のBehavior IDをWeb/Integration実Run・固定HEAD・個別結果・不足条件に紐付けた`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md`を作成。#213 comment 6626130682、#210 comment 6626133301へ追補共有。未マージ#210のPASS流用なし、各未実行Caseを未受入のままとする。
+
+- タスク10番の補完：新規Cart隔離DBテスト7件（stock 0/1/5/6、stale Cart/Item CAS、guest Rank/公開、Gold/Sale）。CI未実行のため未チェック。
