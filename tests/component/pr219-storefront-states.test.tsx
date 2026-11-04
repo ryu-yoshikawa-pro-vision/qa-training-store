@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ProductSearchResult } from "@/application/contracts";
 import { CatalogListPage } from "@/presentation/pages/catalog-list-page";
 
@@ -49,14 +49,24 @@ describe("PR #219: storefront loading/error/empty state boundary", () => {
   });
 
   it("shows an error without leaking the exception and retries to unfiltered empty", async () => {
+    let rejectFirst: ((reason: Error) => void) | undefined;
     search
-      .mockRejectedValueOnce(new Error("PR219_INJECTED_DATABASE_FAILURE"))
+      .mockImplementationOnce(
+        () =>
+          new Promise<ProductSearchResult>((_, reject) => {
+            rejectFirst = reject;
+          }),
+      )
       .mockResolvedValueOnce(emptyResult());
 
     const { container } = render(<CatalogListPage mode="products" />);
     expect(await screen.findByRole("status")).toHaveTextContent(
       "商品一覧を読み込んでいます。",
     );
+    expect(rejectFirst).toBeDefined();
+    await act(async () => {
+      rejectFirst!(new Error("PR219_INJECTED_DATABASE_FAILURE"));
+    });
 
     const retry = await screen.findByRole("button", { name: "再試行" });
     expect(container.querySelector(".state-panel--error")).toBeInTheDocument();
