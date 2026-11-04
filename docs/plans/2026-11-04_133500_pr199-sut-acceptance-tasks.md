@@ -50,6 +50,11 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 - [x] **Android/SQLiteの最終実行手順を用意する。** 既存Native/Component/Maestro/SQLite/Sessionのテストと`.github/workflows/native-ci.yml`を確認し、端末・SDK/ADB・実行権限・Seed/Reset・Navigation/停止/再開/Forbidden/戻る・前後snapshotの手順、期待結果、証拠保存先とBLOCKED理由を整理する。端末を実行できなければPASSにしない。共有workflowは変更しない。 証拠：[境界・視覚・Android準備レポート](../reports/2026-11-05_pr219-boundary-visual-android-final-handoff.md)。Native CI手動実行経路・Windows実機Runbookと機材/Artifact/BLOCKEDを照合。端末自体は未実行。
 - [ ] **#199への引継ぎと#219差分レビューを完了する。** 専有ファイルのみの変更、#199最新baseとの比較、関連CI、#210の修正要否と未マージHEAD、#213の採否待ち、失敗・BLOCKED・残リスク、#199最終実受入用のCase/Run/再実行手順を一つの参照先から追えるようにし、独立レビューを依頼する。レビュー未実施なら完了にしない。
 
+## 2026-11-05 未完項目の状況
+
+- **品質ゲート**：Run [41858991758](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41858991758)はStyle QualityのMD018（旧タスクリスト見出し）とMD012（分析レポート末尾の空行）でfailure。MD018は後続HEADですでに修正済み、MD012は`a568f9b`で修正。Contractsの別件は`codex-hook-contract.test.ts`の`SubagentStop: spawnSync sh EPIPE`であり#219専有外の失敗。後続の最新HEAD Web CIはqueuedで未確認。**全体successが未確認のためチェックしない**。
+- **差分・引継ぎ・独立レビュー**：#199最新baseに対する#219差分は34ファイルで、専用テスト/レポート/タスクリスト/Run記録以外の変更0。#199への[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6635695670)、#219への[独立レビュー依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6635693303)を投稿済み。**指摘・独立判定・再検証は未実施**のためチェックしない。
+
 ## #199の最後に移した最終実受入（このリストでは完了チェックしない）
 
 移管前の未完7項目は削除ではなく、[#199統合・横断受入タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)で判定する。以下は旧リストの番号と移管先の対応であり、#219の進捗分母に含めない。
