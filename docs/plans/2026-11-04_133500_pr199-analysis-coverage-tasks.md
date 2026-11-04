@@ -51,7 +51,7 @@
 
 - [x] 79要件ごとに、正式仕様のBR/ACと期待結果、参照Behavior/横断契約、Risk/TR/Condition/Caseの採否、根拠ファイル・検証結果・未決事項を追跡する。**既存`supported-behaviors.json`を正本**にし、必要なら同JSONから参照対応を導出する。別の手入力正本は増やさない。未レビュー要件をまとめて完了扱いにしない
 - [ ] 29件の直接未参照要件は「未テスト」と決め付けず、個別Behaviorまたは横断契約/既存テストのどこで検証するかを要件ID別に確定。不足・保留・不要の理由と、#219に依頼する実RunのCase ID/条件を記録
-- [ ] #219から受け取った採用Caseの実行証拠は対象HEAD/Case IDを確認し、台帳へ必要な根拠を反映する。#219の動的PASSを基本分析ステータスへ自動転記せず、製品修正は#210へ引継ぐ
+- [x] #219から受け取った採用Caseの実行証拠は対象HEAD/Case IDを確認し、台帳へ必要な根拠を反映する。#219の動的PASSを基本分析ステータスへ自動転記せず、製品修正は#210へ引継ぐ
 
 ## 個別基本分析の検証記録
 
@@ -164,3 +164,9 @@
 - 監査対象#213 HEAD：`9405a4fa41aacdfe5f3013c698b91b03e42692da`。仕様/実装/Seedの静的分析が操作188/188、非default状態20/20、要件79/79であることを台帳ID別に再集計。188操作は画面操作172＋独立Use Case16。非default状態は操作に二重加算しない。29件の直接参照なし要件は個別の代表Behaviorと横断契約を保持。**静的分類・基本分析率100%**と、実製品受入・直接実行の完了を区別する。
 - #219側参照の固定Blob：`docs/reports/2026-11-04_pr219-case-traceability.csv`（`7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea`）。953行すべて `acceptance_status=未受入`、895行に`condition_ref`、58行は空。208 Behaviorすべてを追跡している。79要件ごとに`requirement_analysis.sut_case_trace`へ、代表Behaviorと#219 CSV上の正確な`behavior_id`/`condition_ref`の組を記録し、参照先不在0件。合計205組の代表Behavior、条件参照993件、条件空44件（要件間の重複を含む）。仕様期待・Risk/TR/Case採否・横断契約の正本は既存`requirement_analysis`と各要件本文。
 - **未受入**：#219 CSVに独立`case_id`列がなく、記録した組は正式Case IDの発行を意味しない。各Caseの採用確定と動的PASS、実Run ID/exit code/DB・Trace・Visual・Androidは未取得。直接参照なし29件の「Case ID/条件」を最終確定するチェックと#219実行証拠受領チェックは、#219によるCase ID発行/採否・対象HEAD付きの実Run受渡し後に判定する。CIの完了は待たず、今回の直接`pnpm`実行は未実施。
+
+### #219実行証拠の受渡し（2026-11-04）
+
+- #213照合前HEAD：`f4ed749cd307b9b7442b9f8adec5af5dbd2894cb`。#219の固定引継ぎレポート`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md` blob `32d397bc11dd57e20499a2edda5351eaae7a09d7`、Web Run 41792378802（HEAD `5e91b912e72cd6c0bb9b683a1ae7470fb56cf833`・cross-role job `126449277139` success・15件PASS）、Run 41795950215（HEAD `9adff1e41687e14d20af8ebf9ba22bf588df0605`・Integration job `126460341746` success 123件PASS＋2件expected fail、Component job `126460341893` success 104件PASS＋1件expected fail、cross-role job `126460743631` failure内でempty 2件個別PASS）、Run 41796764234（HEAD `2cd64eaff7eb64fefa7d440905702cb69a3a803b`・Integration job `126462596786` success 125件PASS）をジョブログと対照。
+- 受領対象：分析台帳の**10 Behavior・18件のケース証拠**を`pr219_runtime_evidence`に、テスト名・ファイル・Run/HEAD・job ID・観測・未受入条件とともに記録。Web管理Role/Rank/停止・検索・権限拒否・ストア商品0件の該当条件PASSと、停止staffの戻りリンク・失効actor更新の**製品FAIL再現**、商品管理E2Eの**TEST ERROR**を区別。
+- 限界：上記workflowの全体結論はsuccessではない。失敗を期待するテストまたは現不具合をassertするテストのjob成功を製品適合PASSと数えない。#219の953条件参照CSVはなお全行`未受入`である。#210 HEADでの修正後受入、Android/SQLite・全表DB/Trace/視覚・一部Web Caseは未実行。固定Runと対応する**一部の結果を受領・転記するタスクのみ**完了チェックし、全採用Caseの動的受入を宣言しない。

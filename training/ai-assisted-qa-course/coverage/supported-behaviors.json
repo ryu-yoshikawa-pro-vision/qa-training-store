@@ -2310,7 +2310,38 @@
         "implementation",
         "seed"
       ],
-      "use_case_relation_review": "無条件0件時のStatePanelとホームBreadcrumbs/解除Actionだけを分離した非default UI状態。CatalogUseCases.searchは親の一覧取得動作が担い、この状態では追加UseCaseを直接呼ばない。"
+      "use_case_relation_review": "無条件0件時のStatePanelとホームBreadcrumbs/解除Actionだけを分離した非default UI状態。CatalogUseCases.searchは親の一覧取得動作が担い、この状態では追加UseCaseを直接呼ばない。",
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460743631,
+            "job_result": "failure",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: unfiltered empty breadcrumb",
+            "result": "該当条件PASS（失敗job内の個別Case）",
+            "observation": "empty-catalogの無条件0件でBreadcrumbsが存在し復帰できるWeb Case",
+            "remaining": "同job全体はfailure。視覚正本・a11y・DB前後は未受入"
+          },
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460743631,
+            "job_result": "failure",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: filtered zero has a reset action",
+            "result": "該当条件PASS（失敗job内の個別Case）",
+            "observation": "フィルタ結果0件で条件解除Actionが表示されるWeb Case",
+            "remaining": "エラー時の表示・失敗jobの別Caseと混同しない"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-many-products",
@@ -18285,7 +18316,27 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460743631,
+            "job_result": "failure",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-ADMIN-PRODUCTS-A01-02: product code, stock and status are AND-filtered",
+            "result": "TEST ERROR",
+            "observation": "管理商品コード×在庫×状態のE2EはgetByLabel('検索')のstrict mode violationで失敗。製品検索の不適合判定には到達していない",
+            "remaining": "locator修正後のRunが必要。selected残留/空bulk・SKU0等の製品検証は未受入"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-PRODUCTS-A01-03",
@@ -24446,7 +24497,38 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41792378802,
+            "run_head_sha": "5e91b912e72cd6c0bb9b683a1ae7470fb56cf833",
+            "job_id": 126449277139,
+            "job_result": "success",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-ADMIN-USERS-A01-02: keyword, role and account status filters combine",
+            "result": "該当条件PASS",
+            "observation": "keyword・Role・StatusのAND検索がWebの既存実装で成功",
+            "remaining": "Rank filter・並べ替えUIの仕様判断、20件超ページと漏えい監査は未受入"
+          },
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "filters users by keyword, role, account status and rank at the Use Case boundary",
+            "result": "該当条件PASS",
+            "observation": "Use Case境界のRankを含む検索の隔離DBテストが成功",
+            "remaining": "Web UIのRankフィルター存在証拠ではない"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-USERS-A02-01",
@@ -25275,7 +25357,38 @@
           "end_line": 714,
           "reason": "SELF_CHANGE_FORBIDDEN/LAST_ADMIN_PROTECTEDの拒否コード"
         }
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41792378802,
+            "run_head_sha": "5e91b912e72cd6c0bb9b683a1ae7470fb56cf833",
+            "job_id": 126449277139,
+            "job_result": "success",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-ADMIN-USER-DETAIL-A01-02: role update invalidates the old operator session",
+            "result": "該当条件PASS",
+            "observation": "operator→admin変更後に旧Sessionから管理画面へ進めないWeb Caseが成功",
+            "remaining": "他Role/Concurrent actor失効とrollbackは未受入"
+          },
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "permits two-to-one admin demotion and rejects self-demotion",
+            "result": "該当条件PASS",
+            "observation": "admin2→1の他者Role変更・stale Version拒否・対象Session無効化の部分条件",
+            "remaining": "失効actorのtransaction内再認可は製品FAIL別扱い"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A01-03",
@@ -25433,7 +25546,38 @@
           "end_line": 138,
           "reason": "再Checkoutでcurrent membershipRankをCartDtoに渡す静的経路"
         }
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41792378802,
+            "run_head_sha": "5e91b912e72cd6c0bb9b683a1ae7470fb56cf833",
+            "job_id": 126449277139,
+            "job_result": "success",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-ADMIN-USER-DETAIL-A01-03: rank update persists after a new page load",
+            "result": "該当条件PASS",
+            "observation": "Rank変更後の再読込表示が更新されるWeb Caseが成功",
+            "remaining": "再Checkoutの新価格・画面幅/a11yは未受入"
+          },
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "rejects stale rank and status versions before any User or Checkout mutation",
+            "result": "該当条件PASS",
+            "observation": "Rankのstale Version拒否を隔離DBで確認",
+            "remaining": "3Rank全組合せ・再計算額までは不明"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
@@ -25585,7 +25729,38 @@
           "end_line": 507,
           "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
         }
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41792378802,
+            "run_head_sha": "5e91b912e72cd6c0bb9b683a1ae7470fb56cf833",
+            "job_id": 126449277139,
+            "job_result": "success",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-ADMIN-USER-DETAIL-A01-04: suspension is confirmed and login is rejected",
+            "result": "該当条件PASS",
+            "observation": "顧客利用停止確認後のLogin拒否をWebで確認",
+            "remaining": "再開後の旧Session不復活・Role別全条件は未受入"
+          },
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "rejects the active admin's self-suspension without changing User or Session",
+            "result": "該当条件PASS",
+            "observation": "active admin本人の自己停止拒否・DB不変を隔離DBで確認",
+            "remaining": "他者停止/checkout破棄の網羅は未受入"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A02-01",
@@ -25744,7 +25919,27 @@
           "end_line": 507,
           "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
         }
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "rejects the active admin's self-suspension without changing User or Session",
+            "result": "該当条件PASS",
+            "observation": "active admin本人のself-suspension拒否とUser/Session不変の隔離DB Case",
+            "remaining": "Web本人disabledの追加Caseは当該Run未収録"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
@@ -25910,7 +26105,27 @@
           "end_line": 507,
           "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
         }
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "rejects withdrawn-user rank and status mutations without changing persisted state",
+            "result": "該当条件PASS",
+            "observation": "withdrawn customerのRank/Status変更拒否・更新前後の不変性",
+            "remaining": "withdrawn staff fixtureとWeb読取専用の新Caseは未受入"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A02-03",
@@ -26051,7 +26266,49 @@
           "end_line": 505,
           "reason": "LAST_ADMIN_PROTECTEDの表示はmockによる検証"
         }
-      ]
+      ],
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41795950215,
+            "run_head_sha": "9adff1e41687e14d20af8ebf9ba22bf588df0605",
+            "job_id": 126460341746,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-admin-user-acceptance.test.ts",
+            "test_case": "permits two-to-one admin demotion and rejects self-demotion",
+            "result": "該当条件PASS",
+            "observation": "active admin2→1の他者降格・本人降格拒否の隔離DB Case",
+            "remaining": "actor失効後の競合を含む全条件PASSとはしない"
+          },
+          {
+            "run_id": 41796764234,
+            "run_head_sha": "2cd64eaff7eb64fefa7d440905702cb69a3a803b",
+            "job_id": 126462596786,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-actor-revocation.test.ts",
+            "test_case": "KNOWN DEFECT REPRO: a demoted actor must not promote another staff user",
+            "result": "製品FAILの再現",
+            "observation": "actorがrequireAdmin後に降格/Session削除されても、別staffをadminへ昇格できることを隔離DBで実証",
+            "remaining": "#210でtransaction内再認可後の拒否を別SUT HEADで検証"
+          },
+          {
+            "run_id": 41796764234,
+            "run_head_sha": "2cd64eaff7eb64fefa7d440905702cb69a3a803b",
+            "job_id": 126462596786,
+            "job_result": "success",
+            "test_path": "tests/integration/pr219-actor-revocation.test.ts",
+            "test_case": "KNOWN DEFECT REPRO: a suspended actor must not suspend a customer",
+            "result": "製品FAILの再現",
+            "observation": "actorがrequireAdmin後に停止/Session削除されても、別customerを停止できることを隔離DBで実証",
+            "remaining": "#210で修正後の全表不変と拒否コードは未受入"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-SUPPORTING-GUIDE-A01-01",
@@ -27436,7 +27693,38 @@
           "reason": "forbiddenのデフォルトホーム導線が明示adminActionで置き換わる"
         }
       ],
-      "use_case_relation_review": "RouteGuardのRole/Session/Build判定とForbiddenRoute/StatePanelの拒否画面表示。アプリケーションUseCase直接呼出しではなく、各保護UseCaseの認可拒否は別Behaviorで検証する。"
+      "use_case_relation_review": "RouteGuardのRole/Session/Build判定とForbiddenRoute/StatePanelの拒否画面表示。アプリケーションUseCase直接呼出しではなく、各保護UseCaseの認可拒否は別Behaviorで検証する。",
+      "pr219_runtime_evidence": {
+        "source_pr": 219,
+        "source_report_path": "docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md",
+        "source_report_blob_sha": "32d397bc11dd57e20499a2edda5351eaae7a09d7",
+        "product_sut_head_sha": "46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f",
+        "acceptance": "未受入（下記の該当条件に限る部分結果。全条件PASSではない）",
+        "cases": [
+          {
+            "run_id": 41792378802,
+            "run_head_sha": "5e91b912e72cd6c0bb9b683a1ae7470fb56cf833",
+            "job_id": 126449277139,
+            "job_result": "success",
+            "test_path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+            "test_case": "SCREEN-BOUNDARY-FORBIDDEN-A01-01: guest direct routes do not expose protected UI",
+            "result": "該当条件PASS",
+            "observation": "guest/customer/operator/adminの直URL拒否・保護画面非露出の4件、停止・退会顧客のCheckout拒否と他人Order非露出も個別Web Caseで確認",
+            "remaining": "Native拒否文言、停止staffのブラウザ循環、DB全表不変は未受入"
+          },
+          {
+            "run_id": 41796764234,
+            "run_head_sha": "2cd64eaff7eb64fefa7d440905702cb69a3a803b",
+            "job_id": 126462597472,
+            "job_result": "success",
+            "test_path": "tests/component/pr219-forbidden-route.test.tsx",
+            "test_case": "KNOWN DEFECT REPRO: suspended staff still sees admin return link",
+            "result": "製品FAILの再現",
+            "observation": "suspended operatorのForbiddenRouteが管理画面へのリンクを表示する。componentは不適切な現動作をassertしているため成功jobでも製品適合PASSではない",
+            "remaining": "ブラウザ導線とNativeは未検証。#210で製品修正が必要"
+          }
+        ]
+      }
     },
     {
       "id": "SCREEN-BOUNDARY-FORBIDDEN-A02-01",
