@@ -34,3 +34,12 @@
 - 分析台帳の`test_condition`、`case_policy`、BR/AC採否の正本変更は#213で行う。上のテスト1件がひとつのBehaviorの全条件を代表するとは扱わない。未確定の953行は未受入のまま保持する。
 - 製品修正候補（actor失効後の更新・停止staffの戻りリンク・管理商品選択残留）と分析仕様判断待ち（Rank UI等）、テストロケータ不備、Android環境BLOCKEDを分離し、製品#210へ根拠を引き継ぐ。
 - Androidの機材・権限・具体的な再開方法、Web/a11y/DBの不足は`docs/reports/2026-11-04_pr219-risk-evidence-and-blockers.md`を参照する。
+
+## Web実行履歴のCase識別と要件対応（2026-11-04）
+
+- 対象：`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`。既存39実行行を変更せず、Webテスト名22種類を再実行間で追跡する`evidence_case_key`（`PR219-WEB-001`〜`PR219-WEB-022`）を追加。同じテスト名の再実行には同じキーを付け、Run/job/SHA・結果は元の行の値を維持した。
+- `evidence_case_key`はこのPRの**証拠照合キー**であり、#213が採用・確定する正式Case IDではない。元の`case_id`列はテスト名のままで、テスト名22種類と実行履歴39行を混同しない。
+- `formal_requirement_refs`は既存の208動作一覧の`behavior_id`と一致する行について、その一覧に記録済みの要件参照を転記した。6実行行は`behavior_id`欄に`BR-AUTH-001/002`という**要件ID**しかなく、対応Behaviorの確定根拠がないため、`case_mapping_status`を「要件IDのみ・Behavior ID未確定」とした。誤ったBehaviorを推定して補完していない。
+- 正式Case採否、各`condition_ref`との対応、直接未参照29横断要件の必要条件、ケース間の重複・統合は未確定。#213から採用判断と正式Case IDを受け取った後、同キーを使い固定SUT/Test SHAとRun/job/exit、Platform/Role/Seed/Clock、期待・観測、DB前後、Trace/画像/Network（実在する証拠のみ）を結び直す。
+- Web実行結果の最新の全体成功はテストSHA `83fb0325d6efc7d2a517561e52f32bfe793f5986`の[CI #41811366480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)。この時点のPR #219 HEAD `77327824e12e2fff6cafa3ef80efcdd0b37199dd`のチェックはCodeRabbit skippedのみであり、最新HEADのWeb CI PASSとは主張しない。後続のdocs更新も別SHAとして扱う。
+- これで**タスクリスト2番・19番・20番が完了したとは判定しない**。39行のWeb実行証拠にはDB前後実物・成功時Trace/画像/Networkが不足し、Android/SQLiteはBLOCKED、Case採否は#213判断待ち。既知製品不具合の再現成功も製品適合PASSと区別する。
