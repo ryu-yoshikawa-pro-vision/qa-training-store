@@ -50,11 +50,10 @@ describe("PR #219: ForbiddenRoute role and account status", () => {
     expect(screen.queryByRole("link", { name: "管理画面へ" })).not.toBeInTheDocument();
   });
 
-  // Known #199 SUT defect: ForbiddenRoute checks role but ignores accountStatus.
-  // Keep it as an expected failure until #210 (product owner) corrects the navigation.
-  it.fails("KNOWN DEFECT: suspended staff must not see an admin return link", () => {
+  // Reproduces the incorrect link shown by the current #199 SUT. NOT acceptance PASS.
+  it("KNOWN DEFECT REPRO: suspended staff still sees admin return link", () => {
     currentUser = { ...operator, accountStatus: "suspended" };
     render(<ForbiddenRoute />);
-    expect(screen.queryByRole("link", { name: "管理画面へ" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "管理画面へ" })).toHaveAttribute("href", "/admin");
   });
 });

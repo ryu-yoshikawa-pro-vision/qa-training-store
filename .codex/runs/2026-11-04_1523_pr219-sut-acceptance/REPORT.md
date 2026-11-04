@@ -27,3 +27,5 @@
 - タスク6番の競合再現：新規隔離DBテストを追加。旧#199の許可時点差を`it.fails`で証明する予定。固定CIが成功するまで再現断定せず、製品適合PASSには数えない。
 
 - タスク17番完了：現時点の製品不具合候補・動的確認結果・未実証仮説を重大度/教材影響付きで分類し#210（comment 6625665762）・#213（comment 6625666592）へ引き継ぎ。baseとの差分12ファイルはいずれも専用受入ファイルだけで製品ファイル変更0。
+
+- CI #41795950215（SUT SHA 9adff1e）：Integration 123 PASS/2 expected failure、Component 104 PASS/1 expected failure、Code Quality TS2339（it.fails 3件）、E2E strict locator失敗、Style Format違反。#219専用3ファイルを修正。修正後CI未確認。既存cross-roleテストのstatus locatorエラーは#199へ引き継ぐ。

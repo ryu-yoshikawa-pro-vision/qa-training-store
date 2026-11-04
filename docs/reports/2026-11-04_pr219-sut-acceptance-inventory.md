@@ -173,3 +173,11 @@
 - `e2e/web/pr219-cross-role-lifecycle.spec.ts`に2件追加。固定Seed`default`の`P-0006`（スポーツボトル・stock0・published）について、商品コード検索と在庫切れフィルター・draft状態フィルターのAND条件を実Webで比較。
 - `P-0001`をチェックして存在しない検索語へ変更したとき、画面外選択が残り一括ボタンが押せる現在の実装差を`test.fail`の**既知の期待失敗Case**として定義。CIがexpected failureを報告しても、製品適合PASSには数えない。
 - SKU文字列の検索対象、カテゴリー/ブランド、価格上下限、many-productsでのpage/選択残留、bulkの実行・拒否/rollback、実画像とa11y、DB差分は未検証。完了条件が揃うまで8番は未チェック。
+
+## CI #41795950215 の不具合と是正
+
+- 固定HEAD `9adff1e41687e14d20af8ebf9ba22bf588df0605` の[Web CI #41795950215](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41795950215)でIntegration 123 PASS＋**2件expected fail**、Component 104 PASS＋**1件expected fail**。製品不具合再現テストの`it.fails`はこのリポジトリのTypeScript宣言にないため`TS2339`を3件発生させ、Code Qualityに失敗した。
+- `tests/integration/pr219-actor-revocation.test.ts` の2件と`tests/component/pr219-forbidden-route.test.tsx`の1件を、現在の#199で**誤った状態変更・リンク表示が実際に発生すること**を検査する通常の`it`に修正した。これらの**greenは既知不具合の再現**であり、製品適合PASSではない。#210修正済みHEADでは正しい拒否・状態不変を検査する別テストに切り替える。
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`の管理商品検索`getByLabel("検索")`がサイト共通の検索欄とも一致しstrict modeエラーとなったため、`.admin-page input[type="search"]`を使い受入画面内の検索欄に限定した。
+- 同Runの既存`e2e/web/cross-role-lifecycle.spec.ts`で`getByRole("status")`が2要素に一致し失敗。**既存製品テストは#219で編集しない**。独立した再現証拠を#199へ引き継ぐ。
+- Style QualityのPrettier警告は新規`pr219-cross-role-lifecycle.spec.ts`で発生。空行を整理して長いassertionを分割したが、最新HEADのformat結果は別途CIで検証する。旧Runを修正後の成功とみなさない。

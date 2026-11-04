@@ -91,10 +91,10 @@ describe("PR #219: actor revocation between authorization and transaction", () =
     });
   }
 
-  // Expected failures are known product defects on #199. They are NOT acceptance passes.
-  // #210 must revalidate actor identity inside the transaction. Change it.fails to it
-  // when validating the fixed product HEAD, then confirm the expected error and unchanged DB.
-  it.fails("KNOWN DEFECT: a demoted actor must not promote another staff user", async () => {
+  // This reproduces the observed *unsafe* outcome on the unpatched #199 SUT.
+  // A green test is NOT product acceptance; on the fixed #210 SUT these cases must
+  // instead assert rejection and unchanged target state.
+  it("KNOWN DEFECT REPRO: a demoted actor must not promote another staff user", async () => {
     const service = useCases("role");
     const targetBefore = await database.users.get("user-operator");
     const detail = await service.getDetail("user-operator");
@@ -113,16 +113,14 @@ describe("PR #219: actor revocation between authorization and transaction", () =
     const actorAfter = await database.users.get("user-admin");
     expect(actorAfter?.role).toBe("operator");
     expect(await database.sessions.where("userId").equals("user-admin").count()).toBe(0);
-    expect({
-      outcome,
-      targetAfter: await database.users.get("user-operator"),
-    }).toEqual({
-      outcome: "AUTHENTICATION_REQUIRED",
-      targetAfter: targetBefore,
+    expect(outcome).toBe("RESOLVED");
+    expect(await database.users.get("user-operator")).toMatchObject({
+      role: "admin",
+      version: targetBefore!.version + 1,
     });
   });
 
-  it.fails("KNOWN DEFECT: a suspended actor must not suspend a customer", async () => {
+  it("KNOWN DEFECT REPRO: a suspended actor must not suspend a customer", async () => {
     const service = useCases("status");
     const targetBefore = await database.users.get("user-customer-regular");
     const detail = await service.getDetail("user-customer-regular");
@@ -141,12 +139,10 @@ describe("PR #219: actor revocation between authorization and transaction", () =
     const actorAfter = await database.users.get("user-admin");
     expect(actorAfter?.accountStatus).toBe("suspended");
     expect(await database.sessions.where("userId").equals("user-admin").count()).toBe(0);
-    expect({
-      outcome,
-      targetAfter: await database.users.get("user-customer-regular"),
-    }).toEqual({
-      outcome: "AUTHENTICATION_REQUIRED",
-      targetAfter: targetBefore,
+    expect(outcome).toBe("RESOLVED");
+    expect(await database.users.get("user-customer-regular")).toMatchObject({
+      accountStatus: "suspended",
+      version: targetBefore!.version + 1,
     });
   });
 });

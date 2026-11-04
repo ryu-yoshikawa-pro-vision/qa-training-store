@@ -171,7 +171,6 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
   });
 });
 
-
 test.describe("PR #219: storefront empty result boundaries", () => {
   test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: unfiltered empty breadcrumb", async ({
     page,
@@ -200,7 +199,9 @@ test.describe("PR #219: storefront empty result boundaries", () => {
     await scenario("default");
     await page.goto("/products?minPrice=999999");
     await expect(page.locator(".state-panel--filter-empty")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "現在、表示できる商品はありません" })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "現在、表示できる商品はありません" }),
+    ).toHaveCount(0);
     await page
       .locator(".state-panel--filter-empty")
       .getByRole("button", { name: "条件をすべて解除" })
@@ -210,7 +211,6 @@ test.describe("PR #219: storefront empty result boundaries", () => {
   });
 });
 
-
 test.describe("PR #219: admin product list and selected-filter boundary", () => {
   test("SCREEN-ADMIN-PRODUCTS-A01-02: product code, stock and status are AND-filtered", async ({
     page,
@@ -219,7 +219,7 @@ test.describe("PR #219: admin product list and selected-filter boundary", () => 
     await scenario("default");
     await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/products");
-    await page.getByLabel("検索").fill("P-0006");
+    await page.locator(".admin-page input[type=\"search\"]").fill("P-0006");
     await expect(page.getByRole("row").filter({ hasText: "P-0006" })).toHaveCount(1);
     await page.getByLabel("在庫").selectOption("out_of_stock");
     await expect(page.getByRole("row").filter({ hasText: "スポーツボトル" })).toHaveCount(1);
@@ -240,7 +240,7 @@ test.describe("PR #219: admin product list and selected-filter boundary", () => 
     await page.getByRole("checkbox", { name: "ベーシックTシャツを選択" }).check();
     await expect(page.getByText("1件選択")).toBeVisible();
 
-    await page.getByLabel("検索").fill("PR219-NO-MATCH");
+    await page.locator(".admin-page input[type=\"search\"]").fill("PR219-NO-MATCH");
     await expect(page.getByText("0件選択")).toBeVisible();
     await expect(page.getByRole("button", { name: "選択を公開" })).toBeDisabled();
   });
