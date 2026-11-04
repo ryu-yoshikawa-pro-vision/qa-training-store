@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 export const COURSE_MANIFEST_PATH = "training/course-sync/manifest.json";
 export const DISTRIBUTION_MANIFEST_PATH = ".course/distribution-manifest.json";
 const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v3";
+const EXTERNAL_SKILL_REPOSITORY = "ryu-yoshikawa-pro-vision/qa-workflow-skills";
+const EXTERNAL_SKILL_COMMIT = "7cc6cba7772de549841a39d71694cbafbc783324";
 const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide"]);
 const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
@@ -103,6 +105,57 @@ function validateAssessmentAssetSet(assets, sourceSha, label = "assessment asset
     fail(`${label} does not match the complete fixed-path allowlist`);
 }
 
+function validateModuleLoadCoverage(loadFiles, distributionFiles) {
+  const loadedModuleIds = new Set(loadFiles.map((entry) => entry.module_id));
+  if (MODULE_IDS.some((moduleId) => !loadedModuleIds.has(moduleId)))
+    fail("Each of M00-M10 must have explicit load entries");
+  for (const moduleId of MODULE_IDS) {
+    const inputTarget = `course/modules/${moduleId}/inputs/start.md`;
+    if (
+      !distributionFiles.some(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.role === "input" &&
+          entry.target_path === inputTarget,
+      ) ||
+      !loadFiles.some(
+        (entry) =>
+          entry.module_id === moduleId &&
+          entry.source_path === inputTarget &&
+          entry.target_path === inputTarget,
+      )
+    )
+      fail(
+        `${moduleId} public start input must be allowlisted under course/modules/${moduleId}/inputs/`,
+      );
+  }
+}
+
+function validateLoadFileBindings(loadFiles, distributionTargets) {
+  const loadTargets = new Set();
+  for (const entry of loadFiles) {
+    if (!distributionTargets.has(entry.source_path))
+      fail(`load source_path is not included in the pinned distribution: ${entry.source_path}`);
+    const moduleSource = entry.source_path.match(
+      /^course\/(?:modules|exercises|states)\/(M(?:0[0-9]|10))\/|^course\/quizzes\/(M(?:0[0-9]|10))\.json$/,
+    );
+    if (!moduleSource)
+      fail(`load source_path must be a module-scoped course file: ${entry.source_path}`);
+    if ((moduleSource[1] ?? moduleSource[2]) !== entry.module_id)
+      fail(`load source_path belongs to another module: ${entry.source_path}`);
+    if (
+      entry.target_path !== entry.source_path &&
+      !entry.target_path.startsWith(`workspace/${entry.module_id}/`)
+    )
+      fail(`load target_path must stay within its module workspace: ${entry.target_path}`);
+    if (entry.target_path === entry.source_path && !entry.target_path.startsWith("course/"))
+      fail(`load target_path may preserve only course content: ${entry.target_path}`);
+    if (loadTargets.has(entry.target_path))
+      fail(`duplicate module load target: ${entry.target_path}`);
+    loadTargets.add(entry.target_path);
+  }
+}
+
 function fail(message) {
   throw new Error(message);
 }
@@ -182,8 +235,8 @@ export function validateCourseManifest(manifest) {
     );
   validateAssessmentAssetSet(manifest.assessment_asset_allowlist);
   if (
-    manifest.external_skill_source?.repository !== "ryu-yoshikawa-pro-vision/qa-workflow-skills" ||
-    manifest.external_skill_source?.commit !== "7cc6cba7772de549841a39d71694cbafbc783324"
+    manifest.external_skill_source?.repository !== EXTERNAL_SKILL_REPOSITORY ||
+    manifest.external_skill_source?.commit !== EXTERNAL_SKILL_COMMIT
   )
     fail("The external Skill source must remain pinned to the Plan revision");
   const destinations = new Set();
@@ -237,29 +290,7 @@ export function validateCourseManifest(manifest) {
   ];
   if (requiredSkills.some((skill) => !skillModules.has(skill)))
     fail("A Plan-required external Skill package is missing");
-  const loadedModuleIds = new Set(manifest.load_files.map((entry) => entry.module_id));
-  if (MODULE_IDS.some((moduleId) => !loadedModuleIds.has(moduleId)))
-    fail("Each of M00-M10 must have explicit load entries");
-  for (const moduleId of MODULE_IDS) {
-    const inputTarget = `course/modules/${moduleId}/inputs/start.md`;
-    if (
-      !manifest.local_files.some(
-        (entry) =>
-          entry.module_id === moduleId &&
-          entry.role === "input" &&
-          entry.target_path === inputTarget,
-      ) ||
-      !manifest.load_files.some(
-        (entry) =>
-          entry.module_id === moduleId &&
-          entry.source_path === inputTarget &&
-          entry.target_path === inputTarget,
-      )
-    )
-      fail(
-        `${moduleId} public start input must be allowlisted under course/modules/${moduleId}/inputs/`,
-      );
-  }
+  validateModuleLoadCoverage(manifest.load_files, manifest.local_files);
   for (const entry of manifest.load_files) {
     if (!MODULE_ID_PATTERN.test(entry.module_id))
       fail(`invalid load module_id: ${entry.module_id}`);
@@ -272,6 +303,7 @@ export function validateCourseManifest(manifest) {
       "load target_path",
     );
   }
+  validateLoadFileBindings(manifest.load_files, destinations);
   for (const asset of manifest.assessment_asset_allowlist) {
     if (asset.asset_type === "rubric") continue;
     if (
@@ -459,6 +491,33 @@ function expandBuildOutput(root, manifest) {
   return files;
 }
 
+// Pattern-based pre-publication checks complement, but do not replace, a full content audit.
+const PUBLIC_CONTENT_PATTERNS = [
+  ["GitHub token", /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/],
+  ["OpenAI API key", /\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b/],
+  ["Anthropic API key", /\bsk-ant-api\d+-[A-Za-z0-9_-]{20,}\b/],
+  ["AWS access key", /\bAKIA[0-9A-Z]{16}\b/],
+  ["Google API key", /\bAIza[0-9A-Za-z_-]{35}\b/],
+  ["Slack token", /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/],
+  ["GitLab token", /\bglpat-[A-Za-z0-9_-]{20,}\b/],
+  ["private key", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
+  [
+    "personal email address",
+    /\b[A-Z0-9._%+-]+@(?:gmail\.com|yahoo\.(?:co\.jp|com)|icloud\.com|outlook\.(?:com|jp)|hotmail\.com)\b/i,
+  ],
+];
+const PUBLIC_TEXT_FILE =
+  /(?:\.(?:css|csv|gitignore|html|js|json|jsx|log|md|mjs|py|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
+
+function verifyPublicFileContent(targetPath, bytes) {
+  if (!PUBLIC_TEXT_FILE.test(targetPath)) return;
+  const content = bytes.toString("utf8");
+  for (const [description, pattern] of PUBLIC_CONTENT_PATTERNS) {
+    if (pattern.test(content))
+      fail(`public course content contains a potential ${description}: ${targetPath}`);
+  }
+}
+
 function atomicWriteNewFile(root, relativePath, bytes) {
   const absolute = assertNoSymlinkPath(root, relativePath, false);
   fs.mkdirSync(path.dirname(absolute), { recursive: true });
@@ -593,6 +652,8 @@ export async function syncCourse({
   else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
     fail("Shop build is required by the distribution contract");
 
+  for (const file of files) verifyPublicFileContent(file.target_path, file.bytes);
+
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
     target_path: file.target_path,
@@ -653,6 +714,25 @@ function resolveWithin(root, relativePath) {
   return assertNoSymlinkPath(root, normalized);
 }
 
+function validateExternalSkillDistributionEntry(entry) {
+  const isSkillTarget = entry.target_path.startsWith(".agents/skills/");
+  if (isSkillTarget !== (entry.origin === "external-skill"))
+    fail(`external Skill origin and target disagree: ${entry.target_path}`);
+  if (!isSkillTarget) return;
+  const source = /^skills\/([^/]+)\/(.+)$/.exec(entry.source_path);
+  if (
+    !source ||
+    entry.target_path !== `.agents/skills/${source[1]}/${source[2]}` ||
+    !/^[a-f0-9]{40}$/.test(entry.blob_sha ?? "")
+  )
+    fail(`external Skill source path or blob SHA is invalid: ${entry.target_path}`);
+}
+
+function verifyExternalSkillDistributionBytes(entry, bytes) {
+  if (entry.origin === "external-skill" && gitBlobSha(bytes) !== entry.blob_sha)
+    fail(`external Skill blob SHA mismatch: ${entry.target_path}`);
+}
+
 function readDistribution(root) {
   const absoluteRoot = path.resolve(root);
   if (
@@ -667,11 +747,13 @@ function readDistribution(root) {
   const distribution = readJson(manifestPath, "course distribution manifest");
   if (distribution.schema_version !== 1 || !SHA_PATTERN.test(distribution.source_sha))
     fail("course distribution manifest has an invalid source SHA");
+  if (distribution.state_contract_revision !== STATE_CONTRACT_REVISION)
+    fail("course distribution manifest has an unsupported state contract revision");
   if (
-    typeof distribution.state_contract_revision !== "string" ||
-    !distribution.state_contract_revision
+    distribution.external_skill_source?.repository !== EXTERNAL_SKILL_REPOSITORY ||
+    distribution.external_skill_source?.commit !== EXTERNAL_SKILL_COMMIT
   )
-    fail("course distribution manifest has no state contract revision");
+    fail("course distribution manifest has an unpinned external Skill source");
   if (!Array.isArray(distribution.files) || !Array.isArray(distribution.load_files))
     fail("course distribution manifest is incomplete");
   validateAssessmentAssetSet(distribution.assessment_assets, distribution.source_sha);
@@ -692,6 +774,7 @@ function readDistribution(root) {
       normalizeRelativePath(entry.target_path, "distribution target_path"),
       "distribution target_path",
     );
+    validateExternalSkillDistributionEntry(entry);
   }
   for (const entry of distribution.load_files) {
     if (!MODULE_ID_PATTERN.test(entry.module_id))
@@ -705,6 +788,11 @@ function readDistribution(root) {
       "load target_path",
     );
   }
+  validateLoadFileBindings(
+    distribution.load_files,
+    new Set(distribution.files.map((file) => file.target_path)),
+  );
+  validateModuleLoadCoverage(distribution.load_files, distribution.files);
   for (const asset of distribution.assessment_assets) {
     if (
       Object.hasOwn(asset, "content") ||
@@ -813,6 +901,8 @@ function verifiedCourseSource(root, distribution, sourcePath) {
     fail(`distributed input is missing: ${sourcePath}`);
   const bytes = fs.readFileSync(absolute);
   if (sha256(bytes) !== entry.sha256) fail(`distributed input changed after sync: ${sourcePath}`);
+  verifyExternalSkillDistributionBytes(entry, bytes);
+  verifyPublicFileContent(sourcePath, bytes);
   return bytes;
 }
 
@@ -822,9 +912,16 @@ export function readVerifiedCourseSource({ root, sourcePath }) {
   const entry = distribution.files.find((file) => file.source_path === sourcePath);
   if (!entry) fail(`source is not part of the verified course package: ${sourcePath}`);
   const bytes = verifiedCourseSource(targetRoot, distribution, entry.target_path);
-  if (entry.blob_sha && gitBlobSha(bytes) !== entry.blob_sha)
-    fail(`external Skill blob SHA mismatch: ${sourcePath}`);
   return { bytes, targetPath: entry.target_path, metadata: entry };
+}
+
+function hasValidPublicStateDistribution(state) {
+  return (
+    state.distribution?.public_source === true &&
+    state.distribution?.includes_reference_solutions === false &&
+    state.distribution?.includes_scoring_tests === false &&
+    state.distribution?.includes_completed_states === false
+  );
 }
 
 export function verifySyncedCourseDistribution({ root }) {
@@ -841,9 +938,12 @@ export function verifySyncedCourseDistribution({ root }) {
       fail(`distributed file is missing or not a regular file: ${targetPath}`);
     const bytes = fs.readFileSync(absolute);
     if (sha256(bytes) !== entry.sha256) fail(`distributed file changed after sync: ${targetPath}`);
+    verifyExternalSkillDistributionBytes(entry, bytes);
+    verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
 
+  const pinnedStates = new Map();
   for (const moduleId of MODULE_IDS) {
     for (const stateName of ["start", "end"]) {
       const statePath = `course/states/${moduleId}/${stateName}.json`;
@@ -862,7 +962,93 @@ export function verifySyncedCourseDistribution({ root }) {
         state.revision !== distribution.state_contract_revision
       )
         fail(`pinned module state SHA or revision does not match the distribution: ${statePath}`);
+      if (
+        state.public_contract !== true ||
+        state.read_only !== true ||
+        !hasValidPublicStateDistribution(state)
+      )
+        fail(`pinned module state lacks public read-only contract: ${statePath}`);
+      pinnedStates.set(`${moduleId}/${stateName}`, state);
     }
+  }
+
+  // Verify the pinned handoff contracts without relying on mutable learner artifacts.
+  for (const [index, moduleId] of MODULE_IDS.entries()) {
+    const start = pinnedStates.get(`${moduleId}/start`);
+    const end = pinnedStates.get(`${moduleId}/end`);
+    if (!Array.isArray(end.outputs) || end.outputs.length === 0)
+      fail(`pinned ${moduleId} end state outputs are invalid`);
+    const outputIds = new Set();
+    const outputPaths = new Set();
+    for (const output of end.outputs) {
+      if (
+        typeof output?.artifact_id !== "string" ||
+        !output.artifact_id.trim() ||
+        typeof output.path !== "string" ||
+        !output.path.startsWith(`workspace/${moduleId}/`) ||
+        !Array.isArray(end.expected?.required_paths) ||
+        !end.expected.required_paths.includes(output.path) ||
+        typeof output.revision !== "string" ||
+        !output.revision.trim() ||
+        typeof output.contract_id !== "string" ||
+        !output.contract_id.trim() ||
+        outputIds.has(output.artifact_id) ||
+        outputPaths.has(output.path)
+      )
+        fail(`pinned ${moduleId} end state output contract is invalid`);
+      normalizeRelativePath(output.path, "end output path");
+      outputIds.add(output.artifact_id);
+      outputPaths.add(output.path);
+    }
+    const previousId = MODULE_IDS[index - 1];
+    const refs = start.inputs;
+    if (
+      !Array.isArray(refs) ||
+      (previousId === undefined && refs.length !== 0) ||
+      (previousId !== undefined &&
+        (refs.length === 0 ||
+          refs.some((input) => {
+            if (
+              input?.from_module !== previousId ||
+              input.optional !== true ||
+              input.same_input_contract !== true
+            )
+              return true;
+            const previousEnd = pinnedStates.get(`${previousId}/end`);
+            const output = previousEnd.outputs.find(
+              (item) => item.artifact_id === input.artifact_id,
+            );
+            return (
+              !output ||
+              input.path !== output.path ||
+              input.revision !== output.revision ||
+              input.contract_id !== output.contract_id
+            );
+          })))
+    )
+      fail(`pinned ${moduleId} start input contract does not match its predecessor`);
+
+    const fallback = start.public_fallback;
+    const fallbackPath =
+      typeof fallback?.path === "string" ? mapModuleInputPath(moduleId, fallback.path) : null;
+    const fallbackEntry = fallbackPath ? filesByTarget.get(fallbackPath)?.entry : null;
+    if (
+      fallback?.public !== true ||
+      !fallback.artifact_id ||
+      !fallback.contract_id ||
+      !fallback.revision ||
+      !fallbackPath ||
+      fallbackEntry?.module_id !== moduleId ||
+      fallbackEntry?.role !== "input" ||
+      !start.expected?.required_paths?.includes(fallback.path) ||
+      refs.some(
+        (input) =>
+          input.artifact_id === fallback.artifact_id ||
+          input.contract_id !== fallback.contract_id ||
+          input.revision === fallback.revision,
+      )
+    )
+      fail(`pinned ${moduleId} public fallback contract is invalid`);
   }
 
   const shopFiles = new Set(
@@ -895,6 +1081,27 @@ export function verifySyncedCourseDistribution({ root }) {
     if (!observedShopFiles.has(targetPath))
       fail(`manifested Shop file is missing from course/shop: ${targetPath}`);
   }
+
+  const visitPinnedFiles = (directory, relativeDirectory, label) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const targetPath = `${relativeDirectory}/${entry.name}`;
+      const absolute = assertNoSymlinkPath(targetRoot, targetPath, true);
+      if (entry.isSymbolicLink())
+        fail(`symlink is prohibited in the pinned ${label}: ${targetPath}`);
+      if (entry.isDirectory()) {
+        visitPinnedFiles(absolute, targetPath, label);
+        continue;
+      }
+      if (!entry.isFile() || !filesByTarget.has(targetPath))
+        fail(`unmanifested file in the pinned ${label}: ${targetPath}`);
+    }
+  };
+  visitPinnedFiles(assertNoSymlinkPath(targetRoot, "course", true), "course", "course");
+  visitPinnedFiles(
+    assertNoSymlinkPath(targetRoot, ".agents/skills", true),
+    ".agents/skills",
+    "Skill",
+  );
 
   return {
     source_sha: distribution.source_sha,
@@ -1101,7 +1308,14 @@ function detectPreviousInput(root, moduleId, state, distribution) {
       source: "invalid-previous-artifact-reference",
       reasons: ["start state inputs must be an array"],
     };
-  if (refs.length === 0) return publicInputSelection(root, moduleId, state, distribution);
+  if (moduleId === "M00" && refs.length === 0)
+    return publicInputSelection(root, moduleId, state, distribution);
+  const predecessor = MODULE_IDS[MODULE_IDS.indexOf(moduleId) - 1];
+  if (!predecessor || refs.length === 0 || refs.some((input) => input?.from_module !== predecessor))
+    return {
+      source: "invalid-previous-artifact-reference",
+      reasons: ["predecessor inputs must reference the immediately previous module"],
+    };
   const priorModules = new Set(refs.map((input) => input.from_module));
   if (
     priorModules.size !== 1 ||
@@ -1130,6 +1344,9 @@ function detectPreviousInput(root, moduleId, state, distribution) {
     priorState.state !== "end" ||
     priorState.revision !== distribution.state_contract_revision ||
     priorState.source_sha !== distribution.source_sha ||
+    priorState.public_contract !== true ||
+    priorState.read_only !== true ||
+    !hasValidPublicStateDistribution(priorState) ||
     !Array.isArray(priorState.outputs)
   )
     return {
@@ -1238,6 +1455,28 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     const bytes = verifiedCourseSource(targetRoot, distribution, entry.source_path);
     return { source_path: entry.source_path, target_path: entry.target_path, bytes };
   });
+  // Validate the pinned start state before writing any module files.
+  const startBytes = verifiedCourseSource(
+    targetRoot,
+    distribution,
+    `course/states/${moduleId}/start.json`,
+  );
+  const startState = JSON.parse(startBytes.toString("utf8"));
+  if (
+    startState.module_id !== moduleId ||
+    startState.state !== "start" ||
+    startState.source_sha !== distribution.source_sha ||
+    startState.revision !== distribution.state_contract_revision ||
+    startState.public_contract !== true ||
+    startState.read_only !== true ||
+    !hasValidPublicStateDistribution(startState)
+  )
+    fail(`pinned ${moduleId} start state does not match its distribution contract`);
+  const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
+  if (!["module-public-sample", "learner-previous-artifact"].includes(selectedInput.source))
+    fail(
+      `invalid ${moduleId} start input: ${selectedInput.source}; ${(selectedInput.reasons ?? []).join("; ")}`,
+    );
   const receiptTime = now.toISOString();
   const receiptPath = `.course-load/${moduleId}-${receiptTime.replace(/[:.]/g, "-")}.json`;
   const receiptDestination = assertNoSymlinkPath(targetRoot, receiptPath, false);
@@ -1265,13 +1504,6 @@ export function loadModule({ root, moduleId, now = new Date() }) {
       `module load stopped after ${copied.length} new file(s); no existing learner file was overwritten. copied=${copied.join(",")}; retry the same module after resolving the cause. cause=${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  const startBytes = verifiedCourseSource(
-    targetRoot,
-    distribution,
-    `course/states/${moduleId}/start.json`,
-  );
-  const startState = JSON.parse(startBytes.toString("utf8"));
-  const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
   const receipt = {
     schema_version: 1,
     module_id: moduleId,
@@ -1391,7 +1623,7 @@ export function checkState({ root, moduleId, stateName }) {
     reasons.push("状態のmodule_idまたはstateが一致しません");
   if (state.revision !== distribution.state_contract_revision)
     reasons.push("状態revisionと配布revisionが一致しません");
-  if (!state.public_contract || !state.read_only)
+  if (state.public_contract !== true || state.read_only !== true)
     reasons.push("公開・読み取り専用の状態契約がありません");
   if (state.source_sha !== distribution.source_sha)
     reasons.push("状態source_shaと配布source_shaが一致しません");
@@ -1438,12 +1670,7 @@ export function checkState({ root, moduleId, stateName }) {
     )
   )
     reasons.push("状態照合条件のID/mode/conditionが不正です");
-  if (
-    state.distribution?.public_source !== true ||
-    state.distribution?.includes_reference_solutions !== false ||
-    state.distribution?.includes_scoring_tests !== false ||
-    state.distribution?.includes_completed_states !== false
-  )
+  if (!hasValidPublicStateDistribution(state))
     reasons.push("状態契約の公開範囲または評価資料の分離設定が不正です");
   for (const reference of state.references ?? []) {
     if (!stateReferenceExists(targetRoot, moduleId, reference, distribution))

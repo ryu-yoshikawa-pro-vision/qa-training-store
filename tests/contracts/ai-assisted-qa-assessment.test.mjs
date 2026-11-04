@@ -1327,55 +1327,61 @@ process.exit(18);`;
 });
 
 for (const point of ["before", "after"]) {
-  it("recovers validated candidate after actual process death " + point + " publication", () => {
-    const attemptDirectory = path.join(tempRoot, "killed-validated-candidate-" + point);
-    fs.mkdirSync(attemptDirectory, { recursive: true });
-    const candidate = {
-      schema_version: 1,
-      objectives: [{ objective_id: "M04-01", status: "assessed", level: 2 }],
-    };
-    const candidatePath = path.join(attemptDirectory, "validated-candidate.json");
-    const moduleUrl = pathToFileURL(path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"));
-    const script = [
-      'import fs from "node:fs";',
-      'import path from "node:path";',
-      'import { persistValidatedCandidate } from ' + JSON.stringify(moduleUrl.href) + ";",
-      "const [attemptDirectory, point, candidateJson] = process.argv.slice(1);",
-      'const destinationPath = path.join(attemptDirectory, "validated-candidate.json");',
-      "const originalLink = fs.linkSync.bind(fs);",
-      "fs.linkSync = (source, destination) => {",
-      "  if (destination === destinationPath) {",
-      '    if (point === "after") originalLink(source, destination);',
-      '    if (process.platform === "win32") process.exit(87);',
-      '    process.kill(process.pid, "SIGKILL");',
-      "  }",
-      "  return originalLink(source, destination);",
-      "};",
-      "persistValidatedCandidate(attemptDirectory, JSON.parse(candidateJson));",
-      "process.exit(18);",
-    ].join("\n");
-    const child = spawnSync(
-      process.execPath,
-      ["--input-type=module", "-e", script, attemptDirectory, point, JSON.stringify(candidate)],
-      { encoding: "utf8", timeout: 10_000 },
-    );
-    expect(child.error).toBeUndefined();
-    if (process.platform === "win32") expect(child.status).toBe(87);
-    else expect(child.signal).toBe("SIGKILL");
-    expect(fs.existsSync(candidatePath)).toBe(point === "after");
-    const publishedBeforeRecovery = point === "after" ? fs.readFileSync(candidatePath) : null;
-    expect(() => persistValidatedCandidate(attemptDirectory, candidate)).not.toThrow();
-    const finalBytes = fs.readFileSync(candidatePath);
-    expect(JSON.parse(finalBytes.toString("utf8"))).toEqual(candidate);
-    if (publishedBeforeRecovery) expect(finalBytes).toEqual(publishedBeforeRecovery);
-    expect(() =>
-      persistValidatedCandidate(attemptDirectory, {
-        ...candidate,
-        objectives: [{ objective_id: "M04-02", status: "assessed", level: 2 }],
-      }),
-    ).toThrow(/differs from the resumed input/);
-    expect(fs.readFileSync(candidatePath)).toEqual(finalBytes);
-  }, 20_000);
+  it(
+    "recovers validated candidate after actual process death " + point + " publication",
+    () => {
+      const attemptDirectory = path.join(tempRoot, "killed-validated-candidate-" + point);
+      fs.mkdirSync(attemptDirectory, { recursive: true });
+      const candidate = {
+        schema_version: 1,
+        objectives: [{ objective_id: "M04-01", status: "assessed", level: 2 }],
+      };
+      const candidatePath = path.join(attemptDirectory, "validated-candidate.json");
+      const moduleUrl = pathToFileURL(
+        path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"),
+      );
+      const script = [
+        'import fs from "node:fs";',
+        'import path from "node:path";',
+        "import { persistValidatedCandidate } from " + JSON.stringify(moduleUrl.href) + ";",
+        "const [attemptDirectory, point, candidateJson] = process.argv.slice(1);",
+        'const destinationPath = path.join(attemptDirectory, "validated-candidate.json");',
+        "const originalLink = fs.linkSync.bind(fs);",
+        "fs.linkSync = (source, destination) => {",
+        "  if (destination === destinationPath) {",
+        '    if (point === "after") originalLink(source, destination);',
+        '    if (process.platform === "win32") process.exit(87);',
+        '    process.kill(process.pid, "SIGKILL");',
+        "  }",
+        "  return originalLink(source, destination);",
+        "};",
+        "persistValidatedCandidate(attemptDirectory, JSON.parse(candidateJson));",
+        "process.exit(18);",
+      ].join("\n");
+      const child = spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", script, attemptDirectory, point, JSON.stringify(candidate)],
+        { encoding: "utf8", timeout: 10_000 },
+      );
+      expect(child.error).toBeUndefined();
+      if (process.platform === "win32") expect(child.status).toBe(87);
+      else expect(child.signal).toBe("SIGKILL");
+      expect(fs.existsSync(candidatePath)).toBe(point === "after");
+      const publishedBeforeRecovery = point === "after" ? fs.readFileSync(candidatePath) : null;
+      expect(() => persistValidatedCandidate(attemptDirectory, candidate)).not.toThrow();
+      const finalBytes = fs.readFileSync(candidatePath);
+      expect(JSON.parse(finalBytes.toString("utf8"))).toEqual(candidate);
+      if (publishedBeforeRecovery) expect(finalBytes).toEqual(publishedBeforeRecovery);
+      expect(() =>
+        persistValidatedCandidate(attemptDirectory, {
+          ...candidate,
+          objectives: [{ objective_id: "M04-02", status: "assessed", level: 2 }],
+        }),
+      ).toThrow(/differs from the resumed input/);
+      expect(fs.readFileSync(candidatePath)).toEqual(finalBytes);
+    },
+    20_000,
+  );
 }
 
 it("reuses identical validated candidates but never silently replaces changed results", () => {
@@ -2236,9 +2242,7 @@ it("restores a completed result only with the matching candidate and passing cal
       },
     ],
   };
-  const caseResults = [
-    { case_id: "POS", decision: "pass", rationale: "supported" },
-  ];
+  const caseResults = [{ case_id: "POS", decision: "pass", rationale: "supported" }];
   const calibration = {
     id: calibrationId,
     status: "passed",
@@ -2311,17 +2315,11 @@ it("restores a completed result only with the matching candidate and passing cal
   );
   const wrongIdentity = JSON.parse(originalCalibrationCandidate.toString("utf8"));
   wrongIdentity.calibration_id = "other-calibration";
-  fs.writeFileSync(
-    path.join(attempt, "calibration-candidate.json"),
-    JSON.stringify(wrongIdentity),
-  );
+  fs.writeFileSync(path.join(attempt, "calibration-candidate.json"), JSON.stringify(wrongIdentity));
   expect(recover).toThrow(/candidate identity differs from pinned inputs/);
   const wrongDecision = JSON.parse(originalCalibrationCandidate.toString("utf8"));
   wrongDecision.case_results[0].decision = "fail";
-  fs.writeFileSync(
-    path.join(attempt, "calibration-candidate.json"),
-    JSON.stringify(wrongDecision),
-  );
+  fs.writeFileSync(path.join(attempt, "calibration-candidate.json"), JSON.stringify(wrongDecision));
   expect(recover).toThrow(/candidate hash differs from its result/);
   const invalidDecision = JSON.parse(originalCalibrationCandidate.toString("utf8"));
   delete invalidDecision.case_results[0].rationale;
@@ -2340,7 +2338,8 @@ it("restores a completed result only with the matching candidate and passing cal
   fs.unlinkSync(attemptCandidatePath);
   expect(recover).toThrow(/incomplete attempt calibration/);
   fs.unlinkSync(attemptCalibrationPath);
-  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+  // The remaining shared cache is failed; reject it at the calibration metadata gate.
+  expect(recover).toThrow(/saved model calibration cache metadata is invalid/);
   // A prior passing shared cache is valid when no per-attempt calibration was run.
   fs.writeFileSync(calibrationPath, JSON.stringify(calibration));
   expect(recover().completed).toBe(true);
@@ -2364,7 +2363,8 @@ it("restores a completed result only with the matching candidate and passing cal
   expect(recover).toThrow(/lacks consistent verified mastery evidence/);
   fs.writeFileSync(candidatePath, JSON.stringify(candidate));
   fs.writeFileSync(calibrationPath, JSON.stringify({ ...calibration, status: "failed" }));
-  expect(recover).toThrow(/lacks consistent verified mastery evidence/);
+  // A failed shared cache must be rejected before restoration can claim verified mastery.
+  expect(recover).toThrow(/saved model calibration cache metadata is invalid/);
 });
 
 it("bounds calibration and assessment prompts by UTF-8 byte length", () => {
@@ -3121,6 +3121,108 @@ describe("AI-assisted QA formal assessment contracts", () => {
         sourceSha: "a".repeat(40),
       }),
     ).toMatchObject({ status: "ungradable" });
+  });
+
+  it("rejects reversed initial/repeat receipts even when both runs pass", () => {
+    const { workspaceRoot } = writeM05RunEvidence(path.join(tempRoot, "m06-replay-order"));
+    const sourceModule = path.join(workspaceRoot, "M05");
+    const moduleRoot = path.join(workspaceRoot, "M06");
+    const specPath = path.join(moduleRoot, "new-case.spec.ts");
+    fs.mkdirSync(moduleRoot, { recursive: true });
+    fs.copyFileSync(path.join(sourceModule, "product-link.spec.ts"), specPath);
+    const sourceRun = path.join(
+      sourceModule,
+      "evidence",
+      "runs",
+      "123e4567-e89b-42d3-a456-426614174001",
+    );
+    const receiptPaths = new Map();
+    const runs = [
+      ["initial", "723e4567-e89b-42d3-a456-426614174000", "2026-10-27T00:00:02.000Z"],
+      ["repeat", "723e4567-e89b-42d3-a456-426614174001", "2026-10-27T00:00:04.000Z"],
+    ];
+    for (const [label, runId, startedAt] of runs) {
+      const targetRun = path.join(moduleRoot, "evidence", "runs", runId);
+      fs.cpSync(sourceRun, targetRun, { recursive: true });
+      const reportPath = path.join(targetRun, "playwright-result.json");
+      const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+      const originalSpec = report.suites[0].specs[0];
+      originalSpec.file = specPath;
+      report.suites[0].specs.push({ ...originalSpec, title: "second independent case" });
+      const reportBytes = Buffer.from(JSON.stringify(report));
+      fs.writeFileSync(reportPath, reportBytes);
+
+      const receiptPath = path.join(targetRun, "run-evidence.json");
+      const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+      Object.assign(receipt, {
+        module_id: "M06",
+        run_id: runId,
+        label,
+        spec_path: "workspace/M06/new-case.spec.ts",
+        source_snapshot_path: `workspace/M06/evidence/runs/${runId}/spec-snapshot.ts`,
+        report_path: `workspace/M06/evidence/runs/${runId}/playwright-result.json`,
+        report_sha256: sha256(reportBytes),
+        command:
+          "pnpm exec playwright test new-case.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0",
+        started_at: startedAt,
+        finished_at: new Date(Date.parse(startedAt) + 1000).toISOString(),
+        tests: report.suites[0].specs.map((entry) => ({
+          title: entry.title,
+          status: "passed",
+          expected_status: "passed",
+        })),
+      });
+      fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+      receiptPaths.set(label, receiptPath);
+    }
+
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "new-case.spec.ts",
+              label: "initial",
+              minimum_tests: 2,
+              expected_outcome: "passed",
+            },
+            {
+              spec: "new-case.spec.ts",
+              label: "repeat",
+              minimum_tests: 2,
+              expected_outcome: "passed",
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M06",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify().status).toBe("passed");
+
+    const repeatPath = receiptPaths.get("repeat");
+    const repeat = JSON.parse(fs.readFileSync(repeatPath, "utf8"));
+    repeat.started_at = "2026-10-27T00:00:00.000Z";
+    repeat.finished_at = "2026-10-27T00:00:01.000Z";
+    fs.writeFileSync(repeatPath, JSON.stringify(repeat));
+    const result = verify();
+    expect(result.status).toBe("ungradable");
+    expect(result.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "M06-INITIAL-REPEAT-new-case.spec.ts",
+          status: "ungradable",
+          runs_are_separate_and_ordered: false,
+        }),
+      ]),
+    );
   });
 
   it("rejects Playwright receipts from a different course distribution revision", () => {

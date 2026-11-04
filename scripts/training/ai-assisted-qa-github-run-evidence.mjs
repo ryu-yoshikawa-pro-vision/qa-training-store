@@ -55,11 +55,22 @@ export function validateGitHubRunEvidence(value) {
   return value;
 }
 
+function requireOnlyWorkflowFields(value, allowed, description) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).some((key) => !allowed.includes(key))
+  )
+    fail(`M10 workflow contains unapproved ${description} fields`);
+}
+
 export function validateCourseWorkflow(document, workflowPath, target) {
   const parsed = parseDocument(document, { uniqueKeys: true, maxAliasCount: 20 });
   if (parsed.errors.length) fail(`M10 workflow YAML is invalid: ${parsed.errors[0].message}`);
   const workflow = parsed.toJS();
   if (!workflow || typeof workflow !== "object") fail("M10 workflow must be a YAML object");
+  requireOnlyWorkflowFields(workflow, ["name", "on", "permissions", "jobs"], "top-level");
   if (/\bsecrets\s*\./i.test(document) || /\bdeploy\b/i.test(document))
     fail("M10 workflow must not access repository Secrets or deploy application code");
   const triggers = workflow.on;
@@ -81,6 +92,7 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     fail("M10 workflow must use the standard GitHub-hosted Linux runner");
   if (job.name !== undefined && job.name !== "course-e2e")
     fail("M10 workflow job must retain the course-e2e Check name");
+  requireOnlyWorkflowFields(job, ["name", "runs-on", "steps"], "job");
   const steps = Array.isArray(job.steps) ? job.steps : [];
   const allowedActions = new Set([
     "actions/checkout@v4",
@@ -90,18 +102,82 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   ]);
   if (steps.some((step) => step.uses && !allowedActions.has(step.uses)))
     fail("M10 workflow contains an unapproved action");
+  const requiredTestCommand = target
+    ? `pnpm run training:ai-assisted-qa:test -- ${target.test_file}`
+    : null;
   const allowedCommands = new Set([
     "pnpm install --frozen-lockfile",
     "pnpm exec playwright install --with-deps chromium",
     "mkdir -p output/training/ai-assisted-qa",
     'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
     "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
+    ...(requiredTestCommand ? [requiredTestCommand] : []),
+  ]);
+  const actionOptions = new Map([
+    ["actions/checkout@v4", ["ref", "persist-credentials"]],
+    ["pnpm/action-setup@v4", ["version"]],
+    ["actions/setup-node@v4", ["node-version", "cache"]],
+    ["actions/upload-artifact@v4", ["name", "path", "if-no-files-found"]],
   ]);
   for (const step of steps) {
-    if (typeof step.run !== "string") continue;
-    if (step.run.includes("pnpm run training:ai-assisted-qa:test")) continue;
-    if (!allowedCommands.has(step.run)) fail("M10 workflow contains an unapproved shell command");
+    const isAction = step && typeof step === "object" && typeof step.uses === "string";
+    requireOnlyWorkflowFields(
+      step,
+      isAction
+        ? step.uses === "actions/upload-artifact@v4"
+          ? ["uses", "with", "if"]
+          : ["uses", "with"]
+        : ["run", "env"],
+      "step",
+    );
+    if (isAction) {
+      requireOnlyWorkflowFields(step.with, actionOptions.get(step.uses) ?? [], "action options");
+      continue;
+    }
+    if (typeof step.run !== "string" || !allowedCommands.has(step.run))
+      fail("M10 workflow contains an unapproved shell command");
+    if (step.run === 'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"') {
+      requireOnlyWorkflowFields(step.env, ["EXPECTED_HEAD_SHA"], "SHA step environment");
+      if (step.env.EXPECTED_HEAD_SHA !== "${{ github.event.pull_request.head.sha }}")
+        fail("M10 workflow must verify the PR head SHA against the same checkout");
+    } else if (step.run === requiredTestCommand) {
+      requireOnlyWorkflowFields(step.env, ["PLAYWRIGHT_TEST_ROOT"], "test step environment");
+    } else if (step.env !== undefined) {
+      fail("M10 workflow contains unapproved shell environment variables");
+    }
   }
+  const reviewedStepOrder = [
+    "actions/checkout@v4",
+    "pnpm/action-setup@v4",
+    "actions/setup-node@v4",
+    "pnpm install --frozen-lockfile",
+    "pnpm exec playwright install --with-deps chromium",
+    'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
+    "mkdir -p output/training/ai-assisted-qa",
+    "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
+    requiredTestCommand,
+    "actions/upload-artifact@v4",
+  ];
+  if (steps.some((step, index) => (step.uses ?? step.run) !== reviewedStepOrder[index]))
+    fail("M10 workflow steps must follow the reviewed checkout, SHA, test, and upload order");
+  const pnpmSetup = steps.find((step) => step.uses === "pnpm/action-setup@v4");
+  const nodeSetup = steps.find((step) => step.uses === "actions/setup-node@v4");
+  if (
+    pnpmSetup.with.version !== "10.34.5" ||
+    nodeSetup.with["node-version"] !== 24 ||
+    nodeSetup.with.cache !== "pnpm"
+  )
+    fail("M10 workflow must retain the reviewed Node and pnpm versions");
+  if (
+    steps.length !== 10 ||
+    [...allowedActions].some(
+      (action) => steps.filter((step) => step.uses === action).length !== 1,
+    ) ||
+    [...allowedCommands].some(
+      (command) => steps.filter((step) => step.run === command).length !== 1,
+    )
+  )
+    fail("M10 workflow must contain exactly the reviewed actions and shell commands");
   const checkout = steps.find(
     (step) => typeof step.uses === "string" && step.uses.startsWith("actions/checkout@"),
   );
@@ -161,6 +237,35 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     sha256: createHash("sha256").update(document, "utf8").digest("hex"),
     check_name: "course-e2e",
   };
+}
+
+async function readResponseBytesBounded(response, limit, label) {
+  const headerSize = response.headers?.get?.("content-length");
+  if (headerSize !== undefined && headerSize !== null && Number(headerSize) > limit)
+    fail(`${label} exceeds the allowed size`);
+  if (!response.body?.getReader) {
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > limit) fail(`${label} exceeds the allowed size`);
+    return bytes;
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel();
+        fail(`${label} exceeds the allowed size`);
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+  return Buffer.concat(chunks, total);
 }
 
 export function readEvidenceZipEntries(archive) {
@@ -249,14 +354,54 @@ async function readJsonResponse(response, description) {
     fail(`BLOCKED: GitHub API is rate-limited or unavailable while reading ${description}`);
   if (response.status !== 200 || response.redirected)
     fail(`${description} was not returned by the expected GitHub API endpoint`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length === 0 || bytes.length > MAX_WORKFLOW_BYTES)
-    fail(`${description} response size is invalid`);
+  const bytes = await readResponseBytesBounded(
+    response,
+    MAX_WORKFLOW_BYTES,
+    `${description} response`,
+  );
+  if (bytes.length === 0) fail(`${description} response size is invalid`);
   try {
     return JSON.parse(bytes.toString("utf8"));
   } catch {
     fail(`${description} response is invalid JSON`);
   }
+}
+
+function verifyPlaywrightJsonTests(report, target) {
+  const allowedPaths = new Set([
+    target.test_file,
+    target.test_file.slice(target.test_root.length + 1),
+  ]);
+  let observed = 0;
+  const visit = (suite) => {
+    if (!suite || typeof suite !== "object" || Array.isArray(suite))
+      fail("ungradable: Playwright JSON suite is malformed");
+    for (const spec of suite.specs ?? []) {
+      if (!allowedPaths.has(spec?.file) || !Array.isArray(spec.tests) || !spec.tests.length)
+        fail("ungradable: Playwright JSON results do not contain only the selected spec");
+      for (const test of spec.tests) {
+        if (
+          test?.projectName !== "ai-assisted-qa-chromium" ||
+          test.expectedStatus !== "passed" ||
+          test.status !== "expected" ||
+          !Array.isArray(test.results) ||
+          test.results.length !== 1 ||
+          test.results[0]?.status !== "passed" ||
+          test.results[0].retry !== 0
+        )
+          fail(
+            "ungradable: selected Playwright spec has an unexpected project, retry, or unsuccessful test",
+          );
+        observed += 1;
+      }
+    }
+    for (const child of suite.suites ?? []) visit(child);
+  };
+  if (!Array.isArray(report.suites) || report.suites.length === 0)
+    fail("ungradable: Playwright JSON is missing the selected spec results");
+  for (const suite of report.suites) visit(suite);
+  if (observed === 0 || observed !== report.stats.expected)
+    fail("ungradable: Playwright JSON summary does not match the selected spec tests");
 }
 
 export async function verifyGitHubRunEvidence({
@@ -331,6 +476,8 @@ export async function verifyGitHubRunEvidence({
     fail(
       "ungradable: Actions Run is not a successful pull_request Run for this repository, PR, and workflow",
     );
+  if (!Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1)
+    fail("ungradable: Actions Run attempt is missing or invalid");
 
   const checkResponse = await requestJson(
     `${apiRoot}/commits/${run.head_sha}/check-runs?check_name=${encodeURIComponent(source.check_name)}&per_page=100`,
@@ -347,6 +494,29 @@ export async function verifyGitHubRunEvidence({
   if (matchingChecks.length !== 1)
     fail("ungradable: a successful Check Run tied to this exact Actions Run was not found");
 
+  const attemptJobs = await requestJson(
+    `${apiRoot}/actions/runs/${source.run_id}/attempts/${run.run_attempt}/jobs?per_page=100`,
+    "M10 Actions attempt jobs",
+  );
+  if (
+    attemptJobs.total_count !== 1 ||
+    !Array.isArray(attemptJobs.jobs) ||
+    attemptJobs.jobs.length !== 1
+  )
+    fail("ungradable: M10 Run attempt must contain exactly one dedicated course-e2e job");
+  const attemptJob = attemptJobs.jobs[0];
+  if (
+    attemptJob.id !== matchingChecks[0].id ||
+    attemptJob.run_id !== source.run_id ||
+    attemptJob.run_attempt !== run.run_attempt ||
+    attemptJob.name !== source.check_name ||
+    attemptJob.head_sha !== run.head_sha ||
+    attemptJob.status !== "completed" ||
+    attemptJob.conclusion !== "success" ||
+    attemptJob.check_run_url !== `${apiRoot}/check-runs/${attemptJob.id}`
+  )
+    fail("ungradable: the successful Check does not belong to the current Run attempt");
+
   const artifactResponse = await requestJson(
     `${apiRoot}/actions/runs/${source.run_id}/artifacts?per_page=100`,
     "M10 Artifact list",
@@ -360,6 +530,18 @@ export async function verifyGitHubRunEvidence({
   );
   if (artifacts.length !== 1)
     fail("ungradable: the required non-expired Artifact for this Run was not found");
+  const artifactCreatedAt = Date.parse(artifacts[0].created_at);
+  const jobStartedAt = Date.parse(attemptJob.started_at);
+  const jobCompletedAt = Date.parse(attemptJob.completed_at);
+  if (
+    !Number.isFinite(artifactCreatedAt) ||
+    !Number.isFinite(jobStartedAt) ||
+    !Number.isFinite(jobCompletedAt) ||
+    jobStartedAt > jobCompletedAt ||
+    artifactCreatedAt < jobStartedAt ||
+    artifactCreatedAt > jobCompletedAt
+  )
+    fail("ungradable: Artifact creation time does not belong to the current Run attempt");
   let archiveResponse;
   try {
     archiveResponse = await fetchImpl(`${apiRoot}/actions/artifacts/${artifacts[0].id}/zip`, {
@@ -374,15 +556,16 @@ export async function verifyGitHubRunEvidence({
     fail(
       "BLOCKED: the M10 Artifact download did not complete through GitHub's signed download URL",
     );
-  const archiveBytes = Buffer.from(await archiveResponse.arrayBuffer());
-  if (typeof artifacts[0].digest === "string") {
-    const [algorithm, expectedDigest] = artifacts[0].digest.split(":", 2);
-    if (
-      algorithm !== "sha256" ||
-      createHash("sha256").update(archiveBytes).digest("hex") !== expectedDigest
-    )
-      fail("ungradable: downloaded Artifact does not match the GitHub artifact digest");
-  }
+  const archiveBytes = await readResponseBytesBounded(
+    archiveResponse,
+    MAX_ARCHIVE_BYTES,
+    "ungradable: M10 GitHub Artifact archive",
+  );
+  const artifactDigest = artifacts[0].digest;
+  if (typeof artifactDigest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(artifactDigest))
+    fail("ungradable: GitHub Artifact SHA-256 digest is missing or invalid");
+  if (createHash("sha256").update(archiveBytes).digest("hex") !== artifactDigest.slice(7))
+    fail("ungradable: downloaded Artifact does not match the GitHub artifact digest");
   const files = readEvidenceZipEntries(archiveBytes);
   const targetShaFile = files.get("target-sha.txt");
   const playwrightFile = files.get("playwright-result.json");
@@ -409,6 +592,7 @@ export async function verifyGitHubRunEvidence({
     fail(
       "ungradable: Playwright JSON results contain no tests, failures, retries, skips, or malformed totals",
     );
+  verifyPlaywrightJsonTests(playwright, source);
   return {
     status: "passed",
     checks: [
@@ -422,17 +606,25 @@ export async function verifyGitHubRunEvidence({
         id: "M10-RUN",
         status: "passed",
         run_id: run.id,
+        run_attempt: run.run_attempt,
+        job_id: attemptJob.id,
         workflow_run_head_sha: run.head_sha,
         pull_request_head_sha: pullRequest.head.sha,
         event: run.event,
         conclusion: run.conclusion,
       },
-      { id: "M10-CHECK", status: "passed", check_name: matchingChecks[0].name },
+      {
+        id: "M10-CHECK",
+        status: "passed",
+        check_name: matchingChecks[0].name,
+        check_run_id: matchingChecks[0].id,
+      },
       {
         id: "M10-ARTIFACT",
         status: "passed",
         artifact_id: artifacts[0].id,
         artifact_name: artifacts[0].name,
+        digest: artifactDigest,
         target_sha: artifactSha,
       },
       {

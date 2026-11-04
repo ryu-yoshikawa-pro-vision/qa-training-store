@@ -749,6 +749,25 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         runs_are_separate_and_ordered: ordered,
       });
     }
+    // M06 repeat evidence must follow the initial run of the unchanged learner spec.
+    // Two passing receipts with reversed labels do not establish a rerun.
+    for (const requirement of requiredRuns) {
+      if (requirement.label !== "initial") continue;
+      const key = "workspace/" + moduleId + "/" + requirement.spec;
+      const initial = byKey.get(key + "|initial");
+      const repeat = byKey.get(key + "|repeat");
+      if (!initial || !repeat) continue;
+      const sameSpec = initial.record.spec_sha256 === repeat.record.spec_sha256;
+      const ordered = Date.parse(repeat.record.started_at) > Date.parse(initial.record.finished_at);
+      checks.push({
+        id: moduleId + "-INITIAL-REPEAT-" + requirement.spec,
+        status: sameSpec && ordered ? "passed" : "ungradable",
+        initial_run_id: initial.record.run_id,
+        repeat_run_id: repeat.record.run_id,
+        same_spec_sha256: sameSpec,
+        runs_are_separate_and_ordered: ordered,
+      });
+    }
     const statuses = checks.map((check) => check.status);
     return {
       status: statuses.includes("blocked")
