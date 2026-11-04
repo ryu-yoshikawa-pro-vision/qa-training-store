@@ -325,7 +325,7 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 
 - [`47c868f9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/47c868f9b2853c3ce97685dc7c2e6583dd1407cb)：`audit_branch_refs`未設定だった基本分析済み**13操作**に、正式仕様・画面/Native・Use Case・Repository・Seed・既存テストを追跡する**60参照**を追加。追加対象は登録成功遷移1、注文詳細スナップショット1、管理商品一覧→作成/編集遷移2、商品新規4、商品詳細4、管理在庫一覧1。既存`related_use_cases`や`use_case_evidence`、分析statusは変更しない。
 - [`cd02b39f`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/cd02b39f6a4c7ef5bff7799e671ce4797f551a33)：未受入`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`に**7参照**を追加。正式仕様`storefront.md:68-74`、Seed `metadata.ts:86-94`・`scenarios.ts:39-40`、Web UI `catalog-list-page.tsx:282-290,501-525`、パンくず実装`admin-patterns.tsx:4-18`、既存component `catalog-pages.test.tsx:305-316`を確認。
-- 追加**67/67参照**は、参照先18+5（重複込み）のソース集合についてファイル存在・`start_line/end_line`整数・範囲・非空のソースを独立検査済み。60参照と7参照の検査は別々の固定HEADに対して実施。**参照行の静的存在確認であり、実画面・DB・Role・製品適合を証明しない**。
+- 追加**67/67参照**は、参照先18＋6（重複込み）のソース集合についてファイル存在・`start_line/end_line`整数・範囲・非空のソースを独立検査済み。60参照と7参照の検査は別々の固定HEADに対して実施。**参照行の静的存在確認であり、実画面・DB・Role・製品適合を証明しない**。
 - 新台帳の`audit_branch_refs`は**208/208 Behavior**に設定され、総参照数**2,515**。`analyzed`で未設定は0。既存2,448参照の内容・実装意味を今回すべて再監査したわけではない。
 - `analysis_status`は基本分析**179/188操作**、非default **17/20状態**のまま。`source_commit`、79要件、76公開Use Case、実装・Seed・変換元624参照、公開Use Case296参照は不変更。
 
@@ -348,4 +348,9 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 - **Assessment/Style**：#211のAssessment Calibration期待値調停、#199 admin-users-listと#211 assessmentのPrettier修正、統合最終HEADで契約とStyle再実行。
 - **製品/実受入**：#210の認可/Version、決済runtime、Web/Native差、IndexedDB/SQLite全表前後、Maestro/Android、画像・keyboard/a11y。今回の参照補完で完了扱いしない。
 - **教材/配布/統合**：M00〜M10実演習・採点・Private CI・`course:sync`・ライセンス・各PRの競合調整、同一最終HEADの必須Web/Mobile CIと独立レビュー。merge/force push等は未実施。
+
+
+### 追加確認：60参照追加HEADのCI結論
+
+[`47c868f9` Web CI #41758131249](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758131249)は**completed/failure**。ジョブログを独立照合し、Vitest contracts は**1032 passed / 13 failed / 1 expected fail / 15 skipped**。失敗は従来どおり固定`review_required`期待12件＋Assessment復旧期待エラー1件。Style Qualityも既存`ai-assisted-qa-admin-users-list.test.mjs`、`ai-assisted-qa-assessment.test.mjs`の2ファイルのみ。コード品質、Integration、Repository、Component、Unit、Training runtime contracts、UI Review、主要Chromium E2E等は成功。今回追加した60件の`audit_branch_refs`自体に起因する新たな失敗はこのログでは検出されていない。ただし`cd02b39f`以降の最終HEAD成功とは別扱い。
 
