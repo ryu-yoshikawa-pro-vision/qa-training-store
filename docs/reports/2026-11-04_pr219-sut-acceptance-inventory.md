@@ -256,3 +256,13 @@
 - `tests/integration/pr219-cart-boundaries.test.ts`に`checkout-resume`固定Seed（`session-checkout`、Cart/Checkoutのversion一致、`checkout-active` status=active）を隔離DBへ読込み、既存Cartの数量6更新を拒否した後の`carts/cart_items/checkout_sessions`全レコードが**操作前と完全一致**することを検証する。
 - ClockはCheckoutが期限内の`2026-07-01T03:00:00Z`。以前のGuest CartではCheckout表にactive recordがないため、拒否後Checkout不変が空の比較になる可能性があった。このCaseはactive Checkoutを明示assertし、その欠落を補う。
 - 実CIで新Caseが成功し、他のstock0/1/5/6・数量上限縮小・stale version・Rank/Saleと一致したら10番の完了可否を再判定する。新CI結果未確認のため現時点では未チェック。
+
+## Cart商品/Rank/Sale/在庫・数量・version受入（タスクリスト10番完了）
+
+- 対象SUT/Test HEAD：`7cc39f22080ee7750694289e4b43b3bcb0960f1c`、[Web CI Run #41805391258](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41805391258)・Vitest (integration) job `126491204270`、コマンド`pnpm run test:integration`：`tests/integration/pr219-cart-boundaries.test.ts` **10/10件PASS**、Integration全体**146件PASS**、終了コード0。Style QualityとCode Qualityのjobもsuccess。**他CI job/Workflow全体の成功とは別**。
+- 商品公開とRole/Rank：Guestが未公開商品とGold会員用商品を追加すると`PERMISSION_DENIED`、前後`carts/cart_items/checkout_sessions`が不変。Gold会員はSale期間内`variant-running-shoes-one`を6400円で追加し、Sale終了後の`PRICE_CHANGED`、CAS指定で`acceptPriceChanges`すると8000円となることを確認。
+- stock境界：隔離DBでVariant stock=0/1/5/6をそれぞれ用意し、0件拒否、1件許可と2件拒否、5件許可と6件拒否、stock6でも購入上限5につき6件拒否をassert。Qtyの親Cart/itemVersionと最新値も検証。
+- 上限縮小：追加済み数量3に対してstockを2、次にpurchaseLimitを1へ縮小し、数量3/2更新をそれぞれ`QUANTITY_LIMIT_EXCEEDED`で拒否。CartとItemのstale versionは別ケースで`CONFLICT`拒否を確認。各拒否後の3表全レコードを`toArray()`で比較。
+- **active Checkout実レコード**：`checkout-resume`のregular customer、`session-checkout`、`checkout-active` status=activeとCart versionの一致を明示assert。数量6の拒否後にCart/Item/Checkoutの全レコードが完全一致することを検証。Clockは当該Checkout期限内。
+- 関連する既存Web E2E（別固定HEAD）：[Run #41792378802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802)、required Chromium job `126449277022`の`phase1-required.spec.ts`でGuest Cart数量・削除・購入上限、価格/在庫/Rank変更後のCheckout再確認がPASS。
+- **項目10番の列挙条件**は固定Seed・隔離DB Integrationと既存Web代表E2Eで実証したため完了とする。ただしCartの全採用Case/画面幅/Android・SQLite/成功時Trace/画像・ネットワーク/DB全表保存ファイルは別のタスク2・13〜15・20番として未受入。新しい製品修正や既存Seed変更なし。

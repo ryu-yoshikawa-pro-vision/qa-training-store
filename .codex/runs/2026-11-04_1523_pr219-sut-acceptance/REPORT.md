@@ -39,3 +39,5 @@
 - Cart受入7件：Run #41800985878のIntegration jobで7件成功/全134件成功。Style Quality違反はRun #41801523862で得た公式Prettier出力を適用し一時診断削除。新HEADのCI未確認。
 
 - Checkout Case別証拠：CI #41802885428（e5fc6a5）のIntegration jobで新規5件と既存10件が成功、CI #41792378802でWeb Notice Flow C実行PASS。未受入は別認証SessionでのWeb Noticeとconfirm-ready stale画面/Cart復帰、Android/SQLite。docs/reports/2026-11-04_pr219-checkout-case-evidence.mdへ記録。11番は未チェック。
+
+- タスク10番完了：SUT SHA `7cc39f2`、Web CI #41805391258のVitest integration job 126491204270で新規Cart 10件PASS、Integration全146件PASS。Style Quality/Code Qualityもsuccess。stock0/1/5/6、購入上限縮小、Rank/Sale価格、stale CAS、guest拒否、active Checkout付き顧客のCart失敗後3表不変をassert。全CaseやAndroidの実受入には換算しない。
