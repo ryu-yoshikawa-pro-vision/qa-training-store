@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import type { TestMetadata } from "@/application/contracts";
 import { AxeBuilder } from "@axe-core/playwright";
 import { addDefaultAddress, expect, login, test } from "./fixtures";
 
@@ -40,6 +41,22 @@ async function indexedDbTableDigests(page: Page, tableNames?: readonly string[])
       }
     },
     tableNames === undefined ? null : [...tableNames],
+  );
+}
+
+// Log only public scenario/build metadata. Never log credentials, user records or Session IDs.
+function logRuntimeMetadata(evidenceCaseKey: string, metadata: TestMetadata) {
+  console.log(
+    "PR219_RUNTIME_METADATA " +
+      JSON.stringify({
+        evidenceCaseKey,
+        scenario: metadata.scenario,
+        clockObservedAtReset: metadata.clock,
+        buildSha: metadata.buildSha,
+        appVersion: metadata.appVersion,
+        schemaVersion: metadata.schemaVersion,
+        seedVersion: metadata.seedVersion,
+      }),
   );
 }
 
@@ -366,7 +383,8 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     page,
     scenario,
   }, testInfo) => {
-    await scenario("regular-member");
+    const metadata = await scenario("regular-member");
+    logRuntimeMetadata("PR219-WEB-025", metadata);
     await prepareCheckoutStaleCart(page);
 
     // A rejected read of a stale Checkout must not create orders, payments,
@@ -414,7 +432,8 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     page,
     scenario,
   }, testInfo) => {
-    await scenario("regular-member");
+    const metadata = await scenario("regular-member");
+    logRuntimeMetadata("PR219-WEB-023", metadata);
     const recovery = await openCheckoutStaleCartConflict(page);
 
     // Independent visual/a11y validation: do not change the defect reproduction result.
@@ -628,7 +647,8 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
     page,
     scenario,
   }, testInfo) => {
-    await scenario("default");
+    const metadata = await scenario("default");
+    logRuntimeMetadata("PR219-WEB-024", metadata);
     await login(page, "operator@example.com", "/admin");
 
     // Isolated browser-only interleaving: suspension after authentication, before
