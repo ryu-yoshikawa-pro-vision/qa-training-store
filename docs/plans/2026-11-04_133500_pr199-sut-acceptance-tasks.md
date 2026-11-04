@@ -43,8 +43,8 @@ Scenario Shopは読み取り専用SUTとし、`src/**`、`app/**`、`docs/spec/*
 ## 未完了：#219で実施する準備・検証・引継ぎ（7件）
 
 - [ ] **専用ファイルの品質ゲートを整える。** 最新HEADのStyle Qualityで失敗した`docs/reports/2026-11-04_pr219-analysis-case-run-handoff.md:116`のMD012など、#219所有ファイルに起因するlint/formatter/契約テストを修正し、固定HEAD・該当job・結果を記録する。共有既存テストのflakyは原因と再現Runを#199へ渡し、独断で編集しない。
-- [ ] **分析台帳とCase候補を突き合わせる。** #213の79要件（直接参照のない29横断要件を含む）、188操作＋20状態、Risk/TR/Condition/Case候補、既存テストの実assertion/Role/State/Platformを照合。既存Case再利用・追加が必要・正式判断待ち・不要候補と根拠を列挙する。正式Case ID・採否は#213/#199の決定待ちとして明記する。
-- [ ] **利用可能なCase実行証拠を完成させる。** #219の専用CSVと固定GitHub Run/job/attempt、実測Clock、SUT/test HEAD、期待/観測、DB前後の実行済みassertion、存在するArtifactだけを照合・追記する。欠落したRole/Session/Trace/画像/動画/Networkを「収集済み」にせず、#199での取得条件・再実行Caseを残す。
+- [x] **分析台帳とCase候補を突き合わせる。** #213の79要件（直接参照のない29横断要件を含む）、188操作＋20状態、Risk/TR/Condition/Case候補、既存テストの実assertion/Role/State/Platformを照合。既存Case再利用・追加が必要・正式判断待ち・不要候補と根拠を列挙する。正式Case ID・採否は#213/#199の決定待ちとして明記する。 証拠：[29横断要件・実assertionの静的照合](../reports/2026-11-05_pr219-static-case-assertion-handoff.md)。正式Case採否・IDと残197動作の動的受入は#213/#199へ移管。
+- [x] **利用可能なCase実行証拠を完成させる。** #219の専用CSVと固定GitHub Run/job/attempt、実測Clock、SUT/test HEAD、期待/観測、DB前後の実行済みassertion、存在するArtifactだけを照合・追記する。欠落したRole/Session/Trace/画像/動画/Networkを「収集済み」にせず、#199での取得条件・再実行Caseを残す。 証拠：[50履歴/8 Runの参照と保存Artifact監査](../reports/2026-11-05_pr219-web-evidence-run-audit.md)。保存されていないTrace/動画/Network/DB実物は未取得として#199へ移管。
 - [ ] **自動化できる境界Caseを再確認する。** Web/Component/Integration/Contractsの既存Caseで必要な拒否・失効・stale・競合・rollbackのassertionを照合し、不足を#219専用テストで補完する。固定HEADで実行可能なCI結果と既知製品FAIL/TEST ERROR/未実行を切り分ける。製品修正後の最終再実行は#199へ渡す。
 - [ ] **Web視覚・a11yの事前比較を整理する。** 320/390/767/768/1023/1024/1440px、Empty/Loading/Error/Conflict、キーボード・Focus・axeと既存UI Review画像を照合。既存画像の差分と取得できない成功時Trace/PNG/動画/axe JSONを区別し、共有workflowでの保存方法・正式正本との最終判定条件を#199へ渡す。ここで視覚受入を確定しない。
 - [ ] **Android/SQLiteの最終実行手順を用意する。** 既存Native/Component/Maestro/SQLite/Sessionのテストと`.github/workflows/native-ci.yml`を確認し、端末・SDK/ADB・実行権限・Seed/Reset・Navigation/停止/再開/Forbidden/戻る・前後snapshotの手順、期待結果、証拠保存先とBLOCKED理由を整理する。端末を実行できなければPASSにしない。共有workflowは変更しない。
