@@ -1,5 +1,30 @@
 # PR #212 / PR #199 差分とCI契約の突合（2026-11-04）
 
+## 2026-11-04 引継ぎ後の全参照監査・補正（台帳HEAD `5fc0c345306d33bd6f5fc0cd13136fd7532b6275`）
+
+### 実施範囲・結果
+
+- 台帳の**208 Behavior / 79 requirements / 76公開Use Case**を新たに独立集計。基本分析は**179/188操作**（`action` 163件・`use_case` 16件）、非defaultは**17/20状態**、未完は**9操作＋3状態**で不変。79要件の`analysis_status`は全件`needs_content_review`。**要件内容の受入は済んでいない**。
+- `audit_branch_refs`の**2,515件**を154出典ファイルのGit blobへ突合。全ファイル存在・開始/終了行の数値は妥当だったが、**54件の末尾超過**（24ファイル、全て終了行が物理末尾+1）と、同一Behavior内の同一path・100〜110行の**重複1件**を発見。
+- [コミット `5fc0c345`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/5fc0c345306d33bd6f5fc0cd13136fd7532b6275)で**54件の`end_line`を実末尾へ修正**。`SCREEN-CHECKOUT-ADDRESSES-A02-01`の`src/presentation/pages/addresses-page.tsx:100-110`にある冗長な短い参照1件を削り、登録フォームまで説明する参照を残した。更新後は**2,514件（208/208 Behavior）**、重複0。出典ファイル・範囲の静的整合のみで、根拠が実際の主張を証明するかまでは全件認定しない。
+- 別系統のメソッド根拠として`use_case_evidence`**296/296**と公開メソッド一覧**76/76**を、現行9つのUse Caseソースの行番号・署名に照合（空白正規化あり）。加えて`implementation_evidence`**208/208**、`seed_evidence`**208/208**、`seed_evidence.transform`**208/208**を計25ソースの行番号・署名に照合。**合計996/996の単一行参照一致**。実Run・製品適合・DB状態・Seed意味の受入とは別。
+- 208 Behavior ID、79要件ID、76公開Use Case IDには重複なし。`requirement_refs`・`related_use_cases`・`use_case_evidence.id`・Use CaseからBehaviorへの`behavior_id`は**未登録IDへの参照0件**。関連Use Caseと明示証拠の配列が一致しない操作・状態は6件（下記）だが、呼出し関係と補助・準備責務は区別して再判断する。
+
+### 最終網羅監査で確認を要する点
+
+- **要件79件のうち29件**は`behaviors[*].requirement_refs`から直接参照されていない（Native BR/AC 4件、Role/Rank/Status、各種状態遷移、UI、Scopeなどの横断要件）。直接紐付けのないことだけでは要件未対応と断定できない。Role×Platform×State×Error×Version×Dataの受入マトリクスに照らし、全体契約で検証するものとBehaviorに明示するものを区分する。
+- 公開Use Case 76件中、`AuthUseCases.getCurrentUser`は`related_use_cases`から直接参照がない。呼出し元と認証状態表示の役割を確認し、独立Behaviorまたは既存操作の根拠に含めるか判定する。形式的な1対1対応のためには追加しない。
+- `related_use_cases`中に直接`use_case_evidence`を持たないものがある6件：`SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`、`SCREEN-ORDERS-DETAIL-A01-03`、`SCREEN-ORDERS-DETAIL-A02-02`、`SCREEN-ORDERS-DETAIL-S-reviewable`、`SCREEN-REVIEWS-EDITOR-A02-01`、`SCREEN-ADMIN-ORDERS-A02-01`。それぞれ「画面から直接呼ぶ」「別操作が呼ぶ」「fixture/前提操作でのみ必要」を、個別の直接実行・Caseと照合する。
+- 台帳の`source_commit=383efc91...`と本監査HEADでは、出典154ファイルのうち**9ファイルのBlobが異なる**（component 1、UI 1、学習用contract 7）。現行HEADで参照整合を証明したが、9ファイルの参照を`source_commit`でも成立するとは主張しない。元commitに存在しない学習契約も含むため、固定SHAとブランチ増補証拠の役割を保持する。
+- #199比較HEAD `493a403b...`とは引き続き**124 Behavior差**：基本分析ステータス差58、ステータス以外のみ66。#212単独の修正で#199のStatus契約12箇所は解消しない。
+
+### Validator・CIへの引継ぎ
+
+- #199 `scripts/training/validate-supported-behaviors.mjs`の`verifyAuditSource()`は実装・Seedの参照行を検査するが、`use_case_evidence`のメソッドID・path・行・署名の真正性は検証していない。上記296/296は**今回の独立監査結果**であり、継続的なCIによる回帰防止ではない。#199で公開メソッド一覧を正本としてID/path/line/signatureの整合と負例（誤ID・別メソッドへのすり替え・誤path・古い行・署名不一致）を追加し、担当ブランチのContracts jobへ組み込む。
+- [Web CI #41759859801](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41759859801)（前HEAD `00b68816`）は**completed/failure**。29 jobs中22 success、4 failure（Style Quality / Vitest contracts / verify / validate）、3 skipped。`5fc0c345`の[Web CI #41761106845](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41761106845)は記録時点でin_progress。後続CIは完了してから固定HEADで受入する。
+- この追加作業は台帳の参照補正1コミットと本報告書のみ。#199/#210/#211のコード、製品SUT・仕様・Seed/Reset・既存製品テストを変更していない。実行証拠がない12件は`review_required`のまま。merge/force pushなし。
+
+
 ## 2026-11-04 引継ぎ時HEADのWeb CI確定（`3b0da3ea9742dee0db26f776cde9fb8eaddebdf4`）
 
 - [Web CI #41758911771](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758911771)は **completed/failure**。この結果は上記固定HEADのもので、後続コミットのPASSを保証しない。
