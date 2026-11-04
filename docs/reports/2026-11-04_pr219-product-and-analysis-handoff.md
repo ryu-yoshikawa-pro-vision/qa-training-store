@@ -41,3 +41,20 @@
 - 旧SUTの競合再現、停止staffのコンポーネント期待失敗、商品0件画面の追加E2Eは新規ソースを追加したが、固定HEADでのCI検証と証拠収集を継続する。
 - Webのスクリーンショット・Traceの常時保存、IndexedDB/SQLite全表前後、Android実機・エミュレータ、アクセシビリティと視覚正本の比較は不足。Runのテスト成功を代替証拠にしない。
 - このPRでは製品実装・正式仕様・既存Seed/Reset・既存製品テスト/CIの変更を行わない。差分は専用受入テスト・レポート・タスクリスト・作業記録に限定する。
+
+## 教材への影響と重大度（現時点の暫定評価）
+
+| Case | 重大度 | 教材・受入上の影響 | 証拠区分 |
+| --- | --- | --- | --- |
+| `SCREEN-ADMIN-USER-DETAIL-A02-03` | 高 | 権限失効と管理操作が競合するCaseを単純な自己変更拒否のPASSで代替すると、未認可操作を見逃す。#199/#210 HEADごとの再認可テストが必要 | 静的差分確認、旧#199の動的競合結果はCI確認待ち |
+| `SCREEN-BOUNDARY-FORBIDDEN-A01-01` Web | 中 | 停止staffのアクセス拒否と戻り導線が一致しない可能性があり、Roleだけでなくstatusの画面確認が必要 | 静的差分、コンポーネント期待失敗のCI確認待ち |
+| `SCREEN-BOUNDARY-FORBIDDEN-A01-01` Android | 中（仮） | 正本が期待する権限不足メッセージと現在のNative対象外画面との関係が未確定。現段階でNative教材のPASSにできない | 静的差分、実機未実行 |
+| `SCREEN-ADMIN-USERS-A01-02` | 要判断 | 補助UIのRank絞込/日付sortと現行UI差の採否が曖昧だと、学習用期待結果を確定できない | 静的差分、正式仕様との判定待ち |
+| `SCREEN-ADMIN-PRODUCTS-A01-02` | 中（仮） | 画面外選択が残ると、一括操作の再現・実際の対象数・失敗結果が期待と異なる可能性がある | 未実証仮説。実WebとDB前後が必要 |
+
+## 引継ぎ実施記録
+
+- #210のPR会話へ[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210#issuecomment-6625665762)を投稿。製品修正担当へ対象、証拠、未実施の境界を明記。
+- #213のPR会話へ[分析引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/213#issuecomment-6625666592)を投稿。各Caseの採否と953条件参照行の注意点を明記。
+- PR #219 `172caabc8b17592d07b05f8920f20709929249f1`とbase `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`をGitHub差分比較。変更12ファイルは新規受入用テスト、`docs/reports/2026-11-04_pr219-*`、専用タスクリストと作業記録だけ。`src/**`、`app/**`、`docs/spec/**`、分析台帳、既存Seed/Reset、製品用テスト、workflow、lockfileの変更は**0**。
+- これにより「現時点で検出した候補・再現済み結果・未実証仮説の整理と担当PRへの引継ぎ」を完了。新たな不具合が判明したら本レポートを追記し、実際のRunと製品HEADを区別して再度引き継ぐ。

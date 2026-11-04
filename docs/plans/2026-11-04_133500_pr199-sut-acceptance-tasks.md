@@ -37,7 +37,7 @@ Scenario Shopは読み取り専用のSUT。変更可能なのは**新規の学�
 - [ ] Android実機または妥当なエミュレータ上のNavigation、停止/再開、Role/Session/SQLite/戻る、画面とNative境界をMaestro等で検証。実行環境がなければ未実施理由を記録
 - [ ] IndexedDB/Dexie・SQLite/Session・Order/Payment/Shipment/Historyなどの前後snapshot、失敗注入、transaction rollbackと機密非露出を確認
 - [x] 既存CIのrequired Chromium E2E成功は維持しつつ、本タスクで追加のCaseを実行・追跡。CI成功を「全208動作の実受入済み」に換算しない
-- [ ] 仕様不適合候補・再現できた問題・未実証仮説を区別し、Case/証拠/教材阻害/重大度を分析担当とPR #210用に引継ぐ。変更した製品ファイルがないことを確認
+- [x] 仕様不適合候補・再現できた問題・未実証仮説を区別し、Case/証拠/教材阻害/重大度を分析担当とPR #210用に引継ぐ。変更した製品ファイルがないことを確認
 
 ## 受入と引継ぎ
 
