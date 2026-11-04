@@ -4,40 +4,43 @@ import { addDefaultAddress, expect, login, test } from "./fixtures";
 
 // Read-only, per-table digests; never attach record contents or authentication secrets.
 async function indexedDbTableDigests(page: Page, tableNames?: readonly string[]) {
-  return page.evaluate(async (requestedTables: string[] | null) => {
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("ec-automation-training");
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    try {
-      const names = (requestedTables ?? Array.from(database.objectStoreNames)).sort();
-      const transaction = database.transaction(names, "readonly");
-      const rowsByTable = await Promise.all(
-        names.map(
-          (name) =>
-            new Promise<unknown[]>((resolve, reject) => {
-              const request = transaction.objectStore(name).getAll();
-              request.onsuccess = () => resolve(request.result);
-              request.onerror = () => reject(request.error);
-            }),
-        ),
-      );
-      const entries = await Promise.all(
-        names.map(async (name, index) => {
-          const bytes = new TextEncoder().encode(JSON.stringify(rowsByTable[index]));
-          const digest = await crypto.subtle.digest("SHA-256", bytes);
-          const hash = Array.from(new Uint8Array(digest))
-            .map((byte) => byte.toString(16).padStart(2, "0"))
-            .join("");
-          return [name, hash] as const;
-        }),
-      );
-      return Object.fromEntries(entries);
-    } finally {
-      database.close();
-    }
-  }, tableNames === undefined ? null : [...tableNames]);
+  return page.evaluate(
+    async (requestedTables: string[] | null) => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("ec-automation-training");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        const names = (requestedTables ?? Array.from(database.objectStoreNames)).sort();
+        const transaction = database.transaction(names, "readonly");
+        const rowsByTable = await Promise.all(
+          names.map(
+            (name) =>
+              new Promise<unknown[]>((resolve, reject) => {
+                const request = transaction.objectStore(name).getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+              }),
+          ),
+        );
+        const entries = await Promise.all(
+          names.map(async (name, index) => {
+            const bytes = new TextEncoder().encode(JSON.stringify(rowsByTable[index]));
+            const digest = await crypto.subtle.digest("SHA-256", bytes);
+            const hash = Array.from(new Uint8Array(digest))
+              .map((byte) => byte.toString(16).padStart(2, "0"))
+              .join("");
+            return [name, hash] as const;
+          }),
+        );
+        return Object.fromEntries(entries);
+      } finally {
+        database.close();
+      }
+    },
+    tableNames === undefined ? null : [...tableNames],
+  );
 }
 
 test.describe("PR #219: WEB Role and direct-route acceptance", () => {
