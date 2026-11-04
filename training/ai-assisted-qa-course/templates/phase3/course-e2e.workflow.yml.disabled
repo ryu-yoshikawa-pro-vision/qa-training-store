@@ -19,6 +19,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Verify pinned learner distribution before browser setup
+        run: |
+          test -s course/shop/index.html
+          test -s .course/distribution-manifest.json
+          node scripts/training/ai-assisted-qa-course.mjs verify-distribution
       - run: pnpm exec playwright install --with-deps chromium
       - run: mkdir -p output/training/ai-assisted-qa
       - run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
@@ -28,6 +33,7 @@ jobs:
       - run: pnpm run training:ai-assisted-qa:test -- workspace/M07/repaired-assertion.spec.ts
         env:
           PLAYWRIGHT_TEST_ROOT: workspace/M07
+          PLAYWRIGHT_USE_PREBUILT_DIST: "true"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

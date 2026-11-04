@@ -391,6 +391,7 @@ CI環境（GitHub Actionsのrunner）でも全く同じことが行われます�
    - 本格的なWebアプリケーション全体をゼロからビルド（`build:web` など）すると、それだけで膨大なCPU資源と数分〜十数分の時間がかかってしまいます。
    - 事前配布済みの `course/shop/` と `.course/distribution-manifest.json` がCIのcheckout先にも存在し、配布物検証が成功した場合に限り、専用Playwright設定 `playwright.ai-assisted-qa.config.ts` の `webServer` がそのShopを配信できます。workflowに独立したServe stepを追加する必要はありません。
    - **現行の完成見本だけでは、この前提を満たすとは限りません。** `actions/checkout`は`course:sync`で生成したShopや配布manifestを自動復元しません。現行Configは両方がないと`pnpm run build:web`を経由するため、「事前ビルド済みShopだけを使用したCI」とは判定できません。片方だけある場合も配布物検証に失敗します。
+   - 完成見本のworkflowは`course/shop/index.html`と`.course/distribution-manifest.json`の存在・`verify-distribution`による整合検証を先に要求し、`PLAYWRIGHT_USE_PREBUILT_DIST=true`で製品ソースのビルドへ暗黙に切り替わることを防ぎます。**これは配布ファイルをCI Runnerへ取得・配置する機能ではありません**。両ファイルがcheckout先に実在しない場合、検証段階で失敗します。
    - M09ではworkflowを`.disabled`のまま保持し、M10で有効化する前に、本人Private repoのCIで配布物をどう取得・配置・検証するかを確認してください。出所・固定revision・配置先・検証結果が未確認なら`BLOCKED`とし、ビルドへ切り替わったRunを事前配布Shopの受入証拠にしません。
 2. **環境変数 `PLAYWRIGHT_TEST_ROOT` でテスト範囲を限定する**
    - 環境変数 `PLAYWRIGHT_TEST_ROOT` で探索対象のディレクトリを絞り、テスト実行コマンド末尾に `-- workspace/M07/repaired-assertion.spec.ts` のように**許可された1つのspec**を指定して実行範囲を限定します。ディレクトリだけでは複数の `.spec.ts` が実行される可能性があります。

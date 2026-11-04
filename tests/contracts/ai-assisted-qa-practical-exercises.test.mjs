@@ -9,6 +9,20 @@ const modules = Array.from({ length: 11 }, (_, index) => `M${String(index).padSt
 const distributedFiles = new Set(manifest.local_files.map((entry) => entry.source_path));
 
 describe("AI協働QAの反復実践と正式評価の契約", () => {
+  it("M10の無効化されたCI見本が固定配布Shopの不在と不整合を拒否する", () => {
+    const workflow = read(
+      "training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled",
+    );
+    expect(workflow).toContain("test -s course/shop/index.html");
+    expect(workflow).toContain("test -s .course/distribution-manifest.json");
+    expect(workflow).toContain(
+      "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+    );
+    expect(workflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
+    expect(workflow).toContain("persist-credentials: false");
+    expect(workflow).not.toContain("pull_request_target");
+  });
+
   for (const moduleId of modules) {
     it(`${moduleId}の別条件演習・提出欄・採点根拠が揃っている`, () => {
       const directory = `training/ai-assisted-qa-course/exercises/${moduleId}`;
