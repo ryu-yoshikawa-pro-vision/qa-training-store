@@ -113,7 +113,9 @@ function validateLoadFileBindings(loadFiles, distributionTargets) {
     const moduleSource = entry.source_path.match(
       /^course\/(?:modules|exercises|states)\/(M(?:0[0-9]|10))\/|^course\/quizzes\/(M(?:0[0-9]|10))\.json$/,
     );
-    if (moduleSource && (moduleSource[1] ?? moduleSource[2]) !== entry.module_id)
+    if (!moduleSource)
+      fail(`load source_path must be a module-scoped course file: ${entry.source_path}`);
+    if ((moduleSource[1] ?? moduleSource[2]) !== entry.module_id)
       fail(`load source_path belongs to another module: ${entry.source_path}`);
     if (
       entry.target_path !== entry.source_path &&

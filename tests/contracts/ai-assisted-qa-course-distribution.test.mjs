@@ -560,6 +560,10 @@ describe("AI-assisted QA distribution contract", () => {
         reason: /load source_path belongs to another module/,
       },
       {
+        entry: { ...m05, source_path: "workspace/.gitignore" },
+        reason: /load source_path must be a module-scoped course file/,
+      },
+      {
         entry: { ...m05, target_path: "workspace/M06/unexpected.spec.ts" },
         reason: /load target_path must stay within its module workspace/,
       },
@@ -609,6 +613,39 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/load target_path must stay within its module workspace/);
     expect(fs.existsSync(path.join(fixture.target, "workspace/M01/unexpected.md"))).toBe(false);
     expect(fs.existsSync(path.join(fixture.target, "workspace/M00/submission.md"))).toBe(false);
+  });
+
+  it("rejects a forged cross-scope module load source before creating learner files", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "a".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const moduleEntry = distribution.load_files.find(
+      (entry) =>
+        entry.module_id === "M00" && entry.target_path === "workspace/M00/submission.md",
+    );
+    expect(moduleEntry).toBeDefined();
+    distribution.load_files = distribution.load_files.map((entry) =>
+      entry === moduleEntry ? { ...entry, source_path: "workspace/.gitignore" } : entry,
+    );
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /load source_path must be a module-scoped course file/,
+    );
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /load source_path must be a module-scoped course file/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
   });
 
   it("rejects invalid Skill sizes and oversized downloads", async () => {
