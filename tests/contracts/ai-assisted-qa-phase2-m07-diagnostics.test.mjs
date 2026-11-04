@@ -45,7 +45,9 @@ describe("M07-02/04：診断素材と修正対象の実行境界", () => {
   it("M07の失敗証拠は専用Configの条件付きTrace/画像と別Runで保存する", () => {
     expect(config).toContain('trace: "retain-on-failure"');
     expect(config).toContain('screenshot: "only-on-failure"');
-    expect(config).toContain('["json", { outputFile: path.join(outputRoot, "playwright-result.json") }]');
+    expect(config).toContain(
+      '["json", { outputFile: path.join(outputRoot, "playwright-result.json") }]',
+    );
     expect(lesson).toContain("pnpm course:run M07 repaired-assertion.spec.ts --label before");
     expect(lesson).toContain("pnpm course:run M07 repaired-assertion.spec.ts --label after");
     expect(lesson).toContain("同じ配布`source_sha`");
