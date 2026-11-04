@@ -2400,7 +2400,9 @@ describe("AI-assisted QA distribution contract", () => {
     for (const { moduleId, stateName, change } of scenarios) {
       const statePath = `course/states/${moduleId}/${stateName}.json`;
       const originalState = fs.readFileSync(path.join(fixture.target, statePath));
-      const altered = Buffer.from(JSON.stringify(change(JSON.parse(originalState.toString("utf8")))));
+      const altered = Buffer.from(
+        JSON.stringify(change(JSON.parse(originalState.toString("utf8")))),
+      );
       writeFixtureFile(fixture.target, statePath, altered);
       const manifest = JSON.parse(originalManifest);
       const entry = manifest.files.find((file) => file.target_path === statePath);
