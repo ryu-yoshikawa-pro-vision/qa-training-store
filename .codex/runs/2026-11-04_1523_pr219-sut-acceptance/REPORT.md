@@ -41,3 +41,5 @@
 - Checkout Case別証拠：CI #41802885428（e5fc6a5）のIntegration jobで新規5件と既存10件が成功、CI #41792378802でWeb Notice Flow C実行PASS。未受入は別認証SessionでのWeb Noticeとconfirm-ready stale画面/Cart復帰、Android/SQLite。docs/reports/2026-11-04_pr219-checkout-case-evidence.mdへ記録。11番は未チェック。
 
 - タスク10番完了：SUT SHA `7cc39f2`、Web CI #41805391258のVitest integration job 126491204270で新規Cart 10件PASS、Integration全146件PASS。Style Quality/Code Qualityもsuccess。stock0/1/5/6、購入上限縮小、Rank/Sale価格、stale CAS、guest拒否、active Checkout付き顧客のCart失敗後3表不変をassert。全CaseやAndroidの実受入には換算しない。
+
+- 管理ユーザー受入タスク5・最後の管理者競合タスク6：固定HEAD e5fc6a5、Run #41802885428のIntegration 8+6+2件・Web関連Caseを照合し、actor失効競合は製品FAILとして区別。専用報告書 docs/reports/2026-11-04_pr219-admin-user-acceptance-completion.md に記録。タスク5/6は検証と結果分類の完了としてチェックし、製品合格を意味しない。
