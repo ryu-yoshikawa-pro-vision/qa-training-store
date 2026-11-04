@@ -39,3 +39,10 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する
 - [ ] Phase 1/2はGit/PRを必須にせず結果の安全なエクスポートと復習後の再挑戦ができること
 - [ ] 評価関連の直接契約テスト、実モデル校正、必要なCIを固定HEADで証拠化し、未確認のPrivate Codespaces・本人モデル認証は後続受入として明示
+
+## 実行証拠の真正性・チューターとの分離（補完）
+
+- [ ] M06の本人specについて、正式評価の決定論的処理が受入済みPlaywright Config・許可したspec/依存で**評価時に必要な新しいRunを実行/取得**し、Seed/Reset、Case・Assertion、spec/依存コードのハッシュ、test IDと実際の結果を対応付けることを正例/旧ログ・手入力PASS・別spec負例で検証。任意の既存ファイルのSHA-256一致を実行証明に代えない
+- [ ] M07の修正前後の**別Run**、Page Object/fixtureの実装とimport・業務Assertionの維持を、実行元/コード/結果の組で照合。評価器が実行権限を持つNode側と、Shell/edit/Web等を拒否されたAI意味評価の権限分離を実証
+- [ ] M10は本人非公開リポジトリの**実際のGitHub API**で最新PR head SHA、対象workflow、Run ID/attempt、Check、Artifactと対象spec/依存を取得・照合。merge ref/旧SHA/別workflow/偽ログ/取得不能Artifactを拒否し、TokenはAI入力・ログへ送らない。本人Private repo実操作は後続の本人作業であり、#199では実行経路・検証可能な範囲を校正
+- [ ] 通常のOpenCode AIチューターの回答・ヒント・学習セッションを正式評価の採点根拠/権限へ流用しないことを確認。Phase別の別条件課題、本人回答、未達時の復習・再挑戦/履歴の接続を教材担当・#218と照合
