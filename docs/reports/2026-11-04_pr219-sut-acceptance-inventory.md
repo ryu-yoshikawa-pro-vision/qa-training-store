@@ -96,3 +96,12 @@
 - 対象：`SCREEN-BOUNDARY-FORBIDDEN-A01-01`、`BR-AUTH-001/002`、`SCREEN-ADMIN-USER-DETAIL-A01-02`。guest/customer/operator/admin、suspended/withdrawn、他人の注文表示拒否、Role変更後の古いSessionを直接URLで検証する。
 - 元Seedのユーザーと注文データだけを使用し、Role更新は隔離したPlaywright Browser Context内の通常UI操作に限定。各テストは既存`scenario()`からResetしてから開始する。
 - 期待と判定：顧客・管理機能のルート分離、他人の注文詳細の非露出、Role変更後のSession失効。実CIのPlaywright実Runが成功するまで未実行扱い。画面/DBの全条件を満たすまでタスクリスト4番は未完了。
+
+## 固定Seed・隔離DB・障害注入の実行結果（タスクリスト3番完了）
+
+- 実行SUT/Test SHA：`b8798bb25083c7a3812cf9281a8c39c24eacc17c`。Web CI Run：[41790169454](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41790169454)、Vitest (integration) job `126441617077`。
+- 実行コマンド（CI）：`pnpm run test:integration`。終了ステータス：ジョブsuccess（exit 0）。`tests/integration/pr219-isolated-fixtures.test.ts` **4/4 PASS**、`tests/integration/pr219-admin-user-acceptance.test.ts` **2/2 PASS**、Integration全体**117件PASS**。Style Qualityもsuccess。
+- `out-of-stock`でVariant `variant-basic-shirt-02`のstock 0、`low-stock`でstock 3を孤立したDexie DBから検証。通常操作は`checkout-resume`の顧客停止によりSession削除・Checkout abandoned・Cart不変をassert。
+- 障害注入は隔離Dexie DBの`checkout_sessions.hook("updating")`が書込み中に例外を投げる方法。変更を試みたUser/Session/CheckoutとCartの操作前後が一致することをassert。先行するrole変更のstale CAS fixtureも対象者・Session不変をassertしている。
+- 成功証拠はVitestのassertとCIログ。ブラウザTrace/Video/NetworkはIntegration検証には該当せず、Android/実Web・全表snapshotは別項目の未実行条件。成功Run全体では、新コミットによるキャンセルで一部jobがcancelledとなり`verify`/`validate`もfailure。**IntegrationのPASSをRun全体の合格と呼ばない**。
+- 変更範囲は新規受入専用テスト・調査レポート・タスクリストに限定。`src/**`、`app/**`、`docs/spec/**`、既存Seed/Reset・既存製品テストは不変更。#199側と#210側の製品差分は混ぜていない。

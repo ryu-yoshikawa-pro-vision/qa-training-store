@@ -15,3 +15,5 @@
 - #2/20 Case追跡：分析台帳Blob `3143b229afd6dddad52ef7c09a9e91c5995af07f`から208動作・953条件参照行（未採番58動作）をCSV生成。全行未受入、採用Case確定と実Run証拠は継続。
 
 - Web認可受入：`e2e/web/pr219-cross-role-lifecycle.spec.ts`に8Case定義。直接Web実行証拠は次回`cross-role-chromium` CIで確認。
+
+- タスク3番完了：Web CI Run #41790169454（SUT SHA `b8798bb`）Vitest integration 117件成功、新規fixture4件と既存専用2件が成功。隔離DBで通常操作・stock固定値・transaction失敗注入・stale versionを検証。実ブラウザ、Android、全ケース証拠とは区別。
