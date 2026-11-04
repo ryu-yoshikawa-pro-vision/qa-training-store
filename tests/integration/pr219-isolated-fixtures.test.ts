@@ -69,13 +69,15 @@ describe("PR #219: isolated Seed and failure-injection acceptance", () => {
   it.each([
     ["out-of-stock", 0],
     ["low-stock", 3],
-  ] as const)("recreates fixed %s inventory without modifying shared Seed", async (scenario, stock) => {
-    await seed(scenario);
+  ] as const)(
+    "recreates fixed %s inventory without modifying shared Seed",
+    async (scenario, stock) => {
+      await seed(scenario);
 
-    const variant = await database.product_variants.get("variant-basic-shirt-02");
-    expect(variant?.stockQuantity).toBe(stock);
-
-  });
+      const variant = await database.product_variants.get("variant-basic-shirt-02");
+      expect(variant?.stockQuantity).toBe(stock);
+    },
+  );
 
   it("suspends a customer, invalidates Session and abandons Checkout, keeping Cart", async () => {
     await seed("checkout-resume");
@@ -145,17 +147,5 @@ describe("PR #219: isolated Seed and failure-injection acceptance", () => {
     );
     expect(await database.checkout_sessions.get(checkoutBefore!.id)).toEqual(checkoutBefore);
     expect(await database.carts.get(checkoutBefore!.cartId)).toEqual(cartBefore);
-  });
-
-  it("temporarily provides canonical Prettier output for this new test", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const path = "tests/integration/pr219-isolated-fixtures.test.ts";
-    const config = await prettier.resolveConfig(path);
-    const output = await prettier.format(await readFile(path, "utf8"), {
-      ...config,
-      filepath: path,
-    });
-    console.log("PR219_FIXTURE_FORMAT_JSON=" + JSON.stringify(output));
   });
 });
