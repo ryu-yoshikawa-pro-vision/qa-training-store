@@ -30520,7 +30520,38 @@
             "line": 111
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-HOME-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CATEGORY-A02-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30580,7 +30611,38 @@
             "line": 111
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30640,7 +30702,43 @@
             "line": 23
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-05",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30700,7 +30798,38 @@
             "line": 111
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-HOME-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CATEGORY-A02-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30760,7 +30889,44 @@
             "line": 111
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30820,7 +30986,47 @@
             "line": 23
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30880,7 +31086,47 @@
             "line": 220
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-SIGNUP-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30940,7 +31186,38 @@
             "line": 101
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A02-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A01-02",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -30994,7 +31271,37 @@
             "line": 101
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31048,7 +31355,32 @@
             "line": 20
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A02-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31102,7 +31434,36 @@
             "line": 22
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-03",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31156,7 +31517,41 @@
             "line": 22
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "UC-CART-MERGE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31216,7 +31611,47 @@
             "line": 220
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "UC-CART-ACCEPT-PRICES",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31270,7 +31705,36 @@
             "line": 22
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-03",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31324,7 +31788,41 @@
             "line": 22
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "UC-CART-MERGE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31378,7 +31876,37 @@
             "line": 22
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "UC-CART-ACCEPT-PRICES",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31438,7 +31966,47 @@
             "line": 107
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31498,7 +32066,50 @@
             "line": 311
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31558,7 +32169,49 @@
             "line": 504
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-FAILED-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-COMPLETE-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31618,7 +32271,51 @@
             "line": 107
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31678,7 +32375,51 @@
             "line": 311
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31738,7 +32479,51 @@
             "line": 508
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-FAILED-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-FAILED-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31792,7 +32577,43 @@
             "line": 656
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31846,7 +32667,44 @@
             "line": 458
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31900,7 +32758,43 @@
             "line": 656
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -31948,7 +32842,32 @@
             "line": 458
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32008,7 +32927,56 @@
             "line": 656
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-REVIEWS-EDITOR-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32068,7 +33036,54 @@
             "line": 193
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "UC-REVIEW-DELETE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32122,7 +33137,44 @@
             "line": 57
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-REVIEWS-EDITOR-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32182,7 +33234,56 @@
             "line": 252
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32236,7 +33337,44 @@
             "line": 415
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32296,7 +33434,56 @@
             "line": 337
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-NEW-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32350,7 +33537,44 @@
             "line": 337
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-NEW-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32410,7 +33634,56 @@
             "line": 415
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-NEW-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32464,7 +33737,44 @@
             "line": 69
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32518,7 +33828,44 @@
             "line": 69
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32572,7 +33919,44 @@
             "line": 69
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32626,7 +34010,44 @@
             "line": 69
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32680,7 +34101,44 @@
             "line": 293
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDERS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32734,7 +34192,44 @@
             "line": 458
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32800,7 +34295,68 @@
             "line": 618
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32860,7 +34416,54 @@
             "line": 618
           }
         ],
-        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。"
+        "dynamic_acceptance": "未実施。#219で採用Caseの実Web/Native/DB/Visual・対象HEAD・Case IDを確認する。製品修正・仕様判断は#210が担当。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       }
     },
     {
@@ -32921,7 +34524,48 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:9 とtests/contracts/native-runtime-service-surface.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -32977,7 +34621,41 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-sqlite-transactions.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:13 とtests/contracts/native-sqlite-transactions.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33039,7 +34717,52 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:25 とtests/contracts/native-runtime-service-surface.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33095,7 +34818,42 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-ci-workflow.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/features/native-customer.md:31 とtests/contracts/native-ci-workflow.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33153,7 +34911,53 @@
         ],
         "cross_cutting_contract": "tests/component/route-guard.test.tsx",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-HOME-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:7 とtests/component/route-guard.test.tsxの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33211,7 +35015,48 @@
         ],
         "cross_cutting_contract": "tests/integration/auth-account.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-ACCOUNT-PROFILE-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:8 とtests/integration/auth-account.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33269,7 +35114,55 @@
         ],
         "cross_cutting_contract": "tests/integration/auth-account.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:9 とtests/integration/auth-account.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33327,7 +35220,56 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-admin-users-list.test.mjs",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-DASHBOARD-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USERS-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:10 とtests/contracts/ai-assisted-qa-admin-users-list.test.mjsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33385,7 +35327,56 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-DASHBOARD-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USERS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:11 とtests/integration/review-user-use-cases.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33443,7 +35434,48 @@
         ],
         "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-HOME-A01-05",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:15 とtests/integration/checkout-order-use-cases.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33501,7 +35533,50 @@
         ],
         "cross_cutting_contract": "tests/integration/auth-account.test.ts",
         "assignment": "Behavior直接参照42件に横断契約を併用",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-AUTH-ACCOUNT-PROFILE-A02-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USERS-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:19 とtests/integration/auth-account.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33559,7 +35634,54 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorと既存横断契約へ責務を割当。形式的なrequirement_refsを捏造しない",
-        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。"
+        "dynamic_acceptance": "#219で採用Caseの実行証拠（Case/HEAD/Run/DB/画面）を確認。今回の静的コード読解はPASS証拠ではない。",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-AUTH-LOGIN-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 正式原文 docs/spec/roles-and-permissions.md:23 とtests/integration/review-user-use-cases.test.tsの契約対象、代表Behavior/SeedとRole/Platformを個別照合。CaseとRiskの意味的分析完了。実Run、製品適合は未受入。"
     },
@@ -33611,7 +35733,44 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-product-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A01-05",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:9 の正式原文・tests/integration/admin-product-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33663,7 +35822,43 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:10 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33721,7 +35916,51 @@
         ],
         "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:11 の正式原文・tests/integration/checkout-order-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33773,7 +36012,44 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-CHECKOUT-FAILED-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:12 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33825,7 +36101,43 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDER-DETAIL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:13 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33883,7 +36195,54 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-REVIEWS-A02-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "UC-REVIEW-DELETE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:14 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33941,7 +36300,45 @@
         ],
         "cross_cutting_contract": "tests/integration/cart-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "UC-CART-MERGE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A02-03",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-PROCESSING-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:15 の正式原文・tests/integration/cart-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -33999,7 +36396,53 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCT-DETAIL-A02-03",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "UC-REVIEW-DELETE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:17 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34051,7 +36494,37 @@
         ],
         "cross_cutting_contract": "tests/integration/seeds.test.ts",
         "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:21 の正式原文・tests/integration/seeds.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34103,7 +36576,42 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-test-control-reset.test.mjs",
         "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:23 の正式原文・tests/contracts/ai-assisted-qa-test-control-reset.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34161,7 +36669,44 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:27 の正式原文・tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34213,7 +36758,36 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-runtime-service-surface.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/state-and-scenarios.md:31 の正式原文・tests/contracts/native-runtime-service-surface.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34265,7 +36839,38 @@
         ],
         "cross_cutting_contract": "e2e/web/mobile-boundary.spec.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-DASHBOARD-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:5 の正式原文・e2e/web/mobile-boundary.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34317,7 +36922,38 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-visual-contract.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-DASHBOARD-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:9 の正式原文・tests/contracts/native-visual-contract.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34375,7 +37011,50 @@
         ],
         "cross_cutting_contract": "e2e/web/accessibility.spec.ts",
         "assignment": "Behavior直接参照9件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USER-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:13 の正式原文・e2e/web/accessibility.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34433,7 +37112,44 @@
         ],
         "cross_cutting_contract": "tests/component/catalog-pages.test.tsx",
         "assignment": "Behavior直接参照5件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/ui-ux-contract.md:17 の正式原文・tests/component/catalog-pages.test.tsxの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34491,7 +37207,38 @@
         ],
         "cross_cutting_contract": "tests/integration/catalog-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-03",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-A01-02",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-SEARCH-A01-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:19 の正式原文・tests/integration/catalog-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34549,7 +37296,51 @@
         ],
         "cross_cutting_contract": "tests/integration/checkout-order-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-CART-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "UC-CART-MERGE",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:20 の正式原文・tests/integration/checkout-order-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34607,7 +37398,54 @@
         ],
         "cross_cutting_contract": "tests/integration/review-user-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-02",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-REVIEWS-EDITOR-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:21 の正式原文・tests/integration/review-user-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34671,7 +37509,67 @@
         ],
         "cross_cutting_contract": "tests/integration/admin-operations-use-cases.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCTS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-INVENTORIES-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-ORDERS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-USERS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:22 の正式原文・tests/integration/admin-operations-use-cases.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34723,7 +37621,42 @@
         ],
         "cross_cutting_contract": "tests/contracts/ai-assisted-qa-test-control-reset.test.mjs",
         "assignment": "Behavior直接参照4件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A01-04",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:23 の正式原文・tests/contracts/ai-assisted-qa-test-control-reset.test.mjsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34781,7 +37714,47 @@
         ],
         "cross_cutting_contract": "e2e/web/accessibility.spec.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-BOUNDARY-NOT-FOUND-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-DASHBOARD-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:24 の正式原文・e2e/web/accessibility.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34839,7 +37812,49 @@
         ],
         "cross_cutting_contract": "e2e/web/mobile-boundary.spec.ts",
         "assignment": "Behavior直接参照9件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-ADMIN-DASHBOARD-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6",
+                "C7"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ADMIN-PRODUCTS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:11 の正式原文・e2e/web/mobile-boundary.spec.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34898,7 +37913,47 @@
         ],
         "cross_cutting_contract": "tests/contracts/native-ci-workflow.test.ts",
         "assignment": "Behavior直接参照なし。代表Behaviorに横断検証を割り当て、requirement_refsへ架空の直接リンクを追加しない",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-STOREFRONT-PRODUCT-LIST-A01-01",
+              "condition_refs": [
+                null
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-ADDRESS-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-ORDERS-DETAIL-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:15 の正式原文・tests/contracts/native-ci-workflow.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     },
@@ -34950,7 +38005,41 @@
         ],
         "cross_cutting_contract": "tests/contracts/architecture.test.ts",
         "assignment": "Behavior直接参照2件を持ち、代表動作に横断条件を適用",
-        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ"
+        "dynamic_acceptance": "現時点の受入は静的分析のみ。#219へCase ID・Run/HEAD・実Web/Native/DB/Visual確認を依頼、製品修正/正式仕様判断は#210へ",
+        "sut_case_trace": {
+          "source_pr": 219,
+          "source_path": "docs/reports/2026-11-04_pr219-case-traceability.csv",
+          "source_blob_sha": "7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea",
+          "reference_columns": [
+            "behavior_id",
+            "condition_ref"
+          ],
+          "row_keys": [
+            {
+              "behavior_id": "SCREEN-TEST-CONTROL-A02-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5",
+                "C6"
+              ]
+            },
+            {
+              "behavior_id": "SCREEN-CHECKOUT-CONFIRM-A01-01",
+              "condition_refs": [
+                "C1",
+                "C2",
+                "C3",
+                "C4",
+                "C5"
+              ]
+            }
+          ],
+          "acceptance_status": "未受入",
+          "case_id_status": "未確定（#219のCSVにはcase_id列がないため、behavior_idとcondition_refの組で照合する）"
+        }
       },
       "analysis_progress": "2026-11-04 docs/spec/product-scope.md:28 の正式原文・tests/contracts/architecture.test.tsの静的試験対象・代表BehaviorのUse Case/Seed調査を照合。リスク・採用Case・責任範囲を確定。実Run未受入。"
     }
