@@ -310,3 +310,11 @@
 - **変更範囲**：新規テスト2本のみ。教材は既存記述と対応しているため変更せず、参考`assessment/**`、製品`src/**`、共通実行器も変更しない。
 - **CI**：契約テストを追加したHEAD`b9f937938782e199eea12ee4c5bfdd40a08ea87d`の[Web CI #41864156811](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41864156811)は確認時点で`queued`。CI完了待ちはしない。前回までの`training-web-baseline`成功は専用8082での実行証拠へ転用しない。
 - **判定**：PR #215技術項目の`M05-01`と`M05-02`は教材・参考spec・コード対応と固有回帰テストを整備したため完了。実行環境・Runが必要な`M05-05`および公開参考specの専用Chromium実行、#199実受入は未完了。
+
+## 2026-11-05 M05-05の専用Config・証拠経路の技術照合
+
+- **確認した設定**：`playwright.ai-assisted-qa.config.ts`（Blob `2f7b6ee0d09bee89a6e2ab9f57f9eca202add000`）は`PLAYWRIGHT_TEST_ROOT`を設定解決器へ渡し、`testDir: settings.testDir`、`project=ai-assisted-qa-chromium`、`AI_QA_OUTPUT_ROOT`配下の`playwright-result.json`・HTML report・失敗時Trace/screenshotを定義。設定解決器`scripts/training/ai-assisted-qa-playwright-settings.ts`（Blob `4bc9b1ff7c901a287a60719796fb4f44e464089f`）はloopback HTTP 8082のみ許可し、認証情報・追加パスを拒否する。`.devcontainer/devcontainer.json`（Blob `5d7528b65e9d415593677bfee5d9960979db6657`）の転送対象は8081/6080であり、学習用8082を外部公開済みと誤解しない。同期された配布物がある場合は`verify-distribution`が先に実行される。
+- **証拠の違い**：`scripts/training/ai-assisted-qa-run-evidence.mjs`（Blob `d7c88233102c9402db268b65a3ac37039856051e`）の`course:run M05`許可specは`product-link.spec.ts`のみ。`run-evidence.json`に`run_id`、`source_sha`、`spec_sha256`、snapshot、JSON report、開始/終了、実行結果が記録される。これに対し本人作成P05の`p05-cart-locator.spec.ts`は専用Configで直接実行する別経路であり、`course:run`のreceiptを自動生成しない。教材・提出欄に区別が記載済み。
+- **回帰条件**：新規`tests/contracts/ai-assisted-qa-phase2-m05-config-evidence.test.mjs`にポート境界、testDir/Reporter/Trace、配布検証、P05直接実行と`course:run`の許可spec・証拠の相違を固定。ソースと設定文字列の対応は静的に確認した。新規契約テストのGitHub CI実行結果・専用Chromiumでの実Runは未確認。SUT/Config/共通実行器そのものは変更していない。
+- **担当外の残件**：共有実行器`reportSpecs()`がPlaywright JSON reporterの`rootDir`相対パスをリポジトリルート基準で扱う問題は未修正。既存の[PR #217引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)へ技術条件を記載済み。専用Shopの実Chromium・run receipt成功は#199最後の実受入で検証する。今回の技術タスクは静的な照合と専用契約テストの追加までとする。
+- **変更後CI**：HEAD`8ed8c3c970df9d8e1408476d14357da06d92e50d`の[Web CI #41864643385](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41864643385)は確認時`queued`。完了待ちはしない。
