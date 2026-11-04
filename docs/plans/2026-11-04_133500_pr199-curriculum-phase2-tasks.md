@@ -38,6 +38,7 @@
 ## 学習用実行・横断的な確認
 
 - [ ] M05 P03の型検査が誤型で非0/修正で0を返し、P05の2明細Locator参照specが専用Configで実Chromium実行できることを固定HEAD/ログで確認
+  - [x] P03の教材コマンド相当を隔離短コードで実行し、誤型はTS2345/終了コード2、修正後は終了コード0を確認。専用Vitestへ回帰条件を追加（本人P03とP05実Chromiumは未実施）
 - [ ] M06の`CASE-CART-004`（削除）・`CASE-CART-005`（数量1→2、再読込保持）を新specの独立Caseとして初回・再実行それぞれ2件以上の実Runで確認。Web数量UIはselectであり、Web数量0変更を架空の操作にしない
 - [ ] M07保守前の2件以上・保守後の独立3件以上を別Runで実証。学習者固有の変更と公開参照spec・完成状態の用途を分ける
 - [ ] 8082配布Shop Serve/Reset、report/Trace/fixtureの独立性・新旧テスト混入を検証。配布元ファイル/manifestの不備は配布ブランチへ証拠を引継ぐ
@@ -49,7 +50,9 @@
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`の設問/正答/誤答理由/復習先を15目標と理解事項に照合。コードを読む・書く・実Runする技能を定義問題やAI自己報告だけで達成扱いにしない
 - [x] `knowledge-graph.json`のM05〜M07の理解事項ごとに、前提の飛躍、教材節、`can_do`、実技の観測、評価基準を意味的に確認。未レビューの`draft_requires_content_review`は承認済みに変更せず、必要な関係/ノード更新を#199に引継ぐ
 - [ ] M04→M05の確定Case・初期Role/State/Data・BR/ACと、M07→M08の本人spec・Config・Reset・Trace/Run/成果物のID/revisionを実ファイルで照合し、別の公開開始サンプルを本人の過去修了証拠とみなさない
+  - [x] M04→M05→M06→M07→M08の状態JSONを静的照合。各遷移の入力ID/path/revision/contractが直前出力に一致する専用契約テストを追加（本人の実ファイルは未確認）
 - [ ] 通常のOpenCodeの段階ヒント・失敗後の復習が本人の実装/診断を奪わないか確認。Phase 2のspec、Trace、Run記録をGit/PRなしで安全にエクスポートする手順を教材に記載・検証。共通配布機構は#218、正式評価時の再実行は#217へ引継ぐ
+  - [x] M07の保全一覧とアーカイブが再実行で既存証拠を上書きする問題を修正。既存ファイル拒否とtar/SHA検証の回帰テストを追加（実Codespacesでの保全・OpenCode協働は未実施）
 
 ## 2026-11-04 静的確認の証拠・未完了理由
 
@@ -124,3 +127,11 @@
 - `course:run`共通実行器でも同じ相対パスをリポジトリルート基準で扱っている問題を発見し、[PR #217へ引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)。共有scriptは本PRで変更しない。
 - 作業済みの内部変更は各親項目の下へチェックを追加した。**親のM05-05/M06-04/M07-05は実Runが未実施のため未完了**。25件の受入チェック計算に内部変更のチェックを加算しない。
 - **Progress: 32% (8/25)**。残り17件。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に対象Blob、テストとCIの状況、実Run制約を記録。
+
+## 2026-11-04 継続：P03型検査・M07保全の非上書き・Phase 2引継ぎ
+
+- 前HEAD `4f0da6d1b21ffb26da54e34bb5156ee16edc70dc`の[Web CI #41847988398](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41847988398)は`success`。
+- M05 P03：`--noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext`で隔離した誤型短コードは`TS2345`/非0、修正後は終了コード0。新規専用テストはGitHub CIでの検証待ち。本人受入ではない。
+- M07：手順3の再実行で既存の`phase2-files.txt`が消失し、手順5で既存`phase2.tgz`が上書きされる問題に対して、Bashの`set -C`で既存ファイルを保護。専用契約テストに新規作成、既存一覧保持、アーカイブ/チェックサム非上書きを追加。
+- Phase間：M04→M05（2入力）、M05→M06（1入力）、M06→M07（2入力）、M07→M08（3入力）の参照関係を実際の状態JSONで照合し、専用契約テストを追加。公開fallbackや参照されない出力を、本人の修了証拠とは扱わない。
+- 親の受入項目は学習者実Run、実Codespacesでの保全、OpenCode協働等の条件が未達のため**未チェック**。内部完了チェックのみ追加。**Progress: 32% (8/25)**、未完了17件。詳細は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)を参照。
