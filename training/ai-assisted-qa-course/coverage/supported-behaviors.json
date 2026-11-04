@@ -24672,13 +24672,13 @@
       "expected": "顧客会員ランクの変更が規約どおり反映され、staff roleとmembershipRankを混同しない",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "会員ランク変更実施前後で、顧客会員ランクの変更が規約どおり反映され、staff roleとmembershipRankを混同しないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、会員ランク変更の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "会員ランク変更が権限逸脱や不正データ更新を引き起こさないことを示すため",
+      "risk": "High: 顧客Rank変更後の旧Checkout継続・割引再計算不一致、権限失効した操作者による変更。Medium: stale Versionの競合、退会/非customerへの不正Rank付与、Checkout破棄失敗時の部分更新、Web選択状態と再読込表示の不一致。",
+      "test_condition": "C1 defaultのregular/gold/platinum顧客をadminが変更し、Rank・version 1→2・旧Checkout abandoned・Cart保持、再開始したCheckoutの価格/送料再計算を前後比較。C2 operator/adminへのRank付与とwithdrawnのRank変更はINVALID_ROLEで拒否、対象User/Checkout/Cart/Session不変。C3 stale expectedVersionはCONFLICTで拒否し全表不変。C4 Checkout破棄の失敗注入でchange-user-access transaction rollback（Rank/version不変）。C5 actorがrequireAdmin後・transaction前に失効する競合を別途検証（現mainのrequireAdminはtransaction外）。C6 Webはcustomerのみランク選択を表示し、同値変更ボタンdisabled、成功後のversion再取得と拒否理由を確認。C7 desktop/tablet/keyboard/a11y/Traceと割引値、注文確認再計算を照合。",
+      "test_responsibility": "Web AdminUserDetailFormのcustomer専用rank UI→AdminUserUseCases.changeMembershipRank→Dexie User/Checkout Repository、change-user-access transaction、Seedのcustomer3ランクを照合。Role変更時のSession破棄とは区別する。",
+      "case_policy": "C1〜C7採用。Rankの状態遷移と旧Checkout破棄は本操作、最終注文価格の保証はCheckout側にも関連付け、製品適合と実Runの成功を別判定。",
+      "case_selection_reason": "正常Rank遷移、非customer/withdrawn、Version競合、transaction失敗、権限失効、UI・再Checkoutの金額を独立条件として選定。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/75-79とroles-and-permissions.md:13-23、review-user-pages.tsx:655-685/715-751、review-user-use-cases.ts:542-565/642-671、transaction-runner.ts:99、default-dataset.ts:730-772、既存integration:276-295を突合。顧客Rankだけを変更しCheckoutをabandonedへ、Cartは保持。User.version CASを確認。既存integrationはregular→goldとCheckout破棄のみで、全3Rank・stale・rollback・再購入金額・actor権限失効の検証不足。requireAdminがtransaction外にある競合は静的懸念として#210判断事項。実Run/製品適合未確認のためreview_required維持。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -24686,7 +24686,7 @@
       "related_use_cases": [
         "AdminUserUseCases.changeMembershipRank"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-04: A01-03のRole/State/Data、rank更新→Checkout破棄→Cart保持、Version CAS、3Rank Seed/既存テストを静的に確定。C1〜C7を整理。実Web/DB前後/価格再計算/失効競合・最終CI未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -24716,6 +24716,97 @@
           "line": 542,
           "signature": "async changeMembershipRank(input: ChangeMembershipRankRequest): Promise<UserAdminDto> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "正式BR/ACの変更境界と拒否UI"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 49,
+          "end_line": 51,
+          "reason": "ユーザー詳細の操作UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 75,
+          "end_line": 79,
+          "reason": "AC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role・Rank・accountStatusの正式定義"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 655,
+          "end_line": 685,
+          "reason": "操作UIのcurrentUserとエラー表示"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 686,
+          "end_line": 835,
+          "reason": "readOnly/Role/Rank/Statusの選択・確認ダイアログ"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 542,
+          "end_line": 639,
+          "reason": "管理ユーザーの3更新メソッド"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 671,
+          "reason": "actor requireAdminとtarget version照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 57,
+          "end_line": 63,
+          "reason": "User version CAS"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 126,
+          "end_line": 131,
+          "reason": "Session全削除"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 98,
+          "end_line": 99,
+          "reason": "change-user-accessのtables境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 772,
+          "reason": "defaultの3Rank/停止/退会/管理者データ"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 276,
+          "end_line": 351,
+          "reason": "既存integrationのRank/Role/Statusと拒否範囲"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 405,
+          "end_line": 507,
+          "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
+        }
       ]
     },
     {
@@ -24733,13 +24824,13 @@
       "expected": "activeとsuspendedの許可された状態変更のみ反映し、withdrawnへの管理変更を拒否する",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "状態変更実施前後で、activeとsuspendedの許可された状態変更のみ反映し、withdrawnへの管理変更を拒否することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、状態変更の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "状態変更が権限逸脱や不正データ更新を引き起こさないことを示すため",
+      "risk": "High: 利用停止しても対象Session/進行中Checkoutが残る、最後のadmin停止、停止対象の途中更新。Medium: 旧Version競合、withdrawnの不正復帰、利用再開時のSession自動復活誤解、UI確認ダイアログと実際の無効化範囲の差。",
+      "test_condition": "C1 checkout-resumeのactive customerをsuspendedへ更新し、User.version増加・全対象Session削除・active Checkout abandoned・Cart保持をDB前後で確認。C2 suspended→activeを更新し、古いSession/Checkoutは再有効化されず再ログインを要することを確認。C3 active operator/adminを変更するとSession削除、自己停止SELF_CHANGE_FORBIDDEN、最後のactive admin停止LAST_ADMIN_PROTECTEDを確認。C4 withdrawn→active/suspendedと同一状態の変更はINVALID_STATEで拒否。C5 stale Version CONFLICT、Session/Checkout更新の失敗注入→transaction rollback・他表不変。C6 guest/customer/operator/停止adminによる直接UseCase拒否と機密情報不露出。C7 Web停止/再開ConfirmDialog、説明、成功/失敗表示、desktop/tablet/a11y/Trace。",
+      "test_responsibility": "Web AdminUserDetailFormのstatus確認→AdminUserUseCases.changeSuspension→change-user-access transactionのusers/sessions/checkouts→Dexie Repositoryを追跡。User/Session/Checkout/Cartの前後不変を個別に検証。",
+      "case_policy": "C1〜C7採用。停止/再開の副作用をRole別に分け、Checkout破棄はcustomer停止時だけの現実装として検証。last-adminや自己変更はA02の独立操作とも突合。",
+      "case_selection_reason": "停止/再開の正常系・遷移拒否・Session/Checkout副作用・Version競合・transaction rollback・Role保護・UIを採用。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/75-79、roles-and-permissions.md:5-23、review-user-pages.tsx:798-835、review-user-use-cases.ts:600-639、transaction-runner.ts:99、basic-repositories.ts:57-63/126-131、default-dataset.ts:755-772、integration:297-351、component:459-475を照合。変更はactive↔suspendedだけ。User更新と全Session削除は同一transaction、customer停止時のみCheckoutをabandon。既存integrationは昇格したoperatorの停止、withdrawn拒否を確認するが、customer停止でのCheckout/Cart前後、再開後の古いSession、失敗注入・last-admin非self・実Webは未確認。基本分析と実Runを分離してreview_required維持。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -24747,7 +24838,7 @@
       "related_use_cases": [
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "analysis_progress": "2026-11-04: A01-04のStatus遷移、Session無効化、customer停止時Checkout abandoned、rollback/last-admin/Version条件を静的追跡。C1〜C7を具体化。直接動的実行・状態不変・実画面受入は未完了。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -24777,6 +24868,97 @@
           "line": 600,
           "signature": "async changeSuspension(input: ChangeAccountSuspensionRequest): Promise<UserAdminDto> {"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "正式BR/ACの変更境界と拒否UI"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 49,
+          "end_line": 51,
+          "reason": "ユーザー詳細の操作UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 75,
+          "end_line": 79,
+          "reason": "AC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role・Rank・accountStatusの正式定義"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 655,
+          "end_line": 685,
+          "reason": "操作UIのcurrentUserとエラー表示"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 686,
+          "end_line": 835,
+          "reason": "readOnly/Role/Rank/Statusの選択・確認ダイアログ"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 542,
+          "end_line": 639,
+          "reason": "管理ユーザーの3更新メソッド"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 671,
+          "reason": "actor requireAdminとtarget version照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 57,
+          "end_line": 63,
+          "reason": "User version CAS"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 126,
+          "end_line": 131,
+          "reason": "Session全削除"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 98,
+          "end_line": 99,
+          "reason": "change-user-accessのtables境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 772,
+          "reason": "defaultの3Rank/停止/退会/管理者データ"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 276,
+          "end_line": 351,
+          "reason": "既存integrationのRank/Role/Statusと拒否範囲"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 405,
+          "end_line": 507,
+          "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
+        }
       ]
     },
     {
@@ -24794,19 +24976,22 @@
       "expected": "管理者自身の自己降格/自己停止を拒否し、操作後の管理権限を消失させない",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "自己権限破壊を拒否実施前後で、管理者自身の自己降格/自己停止を拒否し、操作後の管理権限を消失させないことを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、自己権限破壊を拒否の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "自己権限破壊を拒否が権限逸脱や不正データ更新を引き起こさないことを示すため",
+      "risk": "High: 管理者本人のRole降格・自己停止で管理権限を失い、管理機能が操作不能になる。Medium: UI disabledだけで直接Use Caseの自己変更が通る、拒否時にUser.version/Sessionが変わる、失効したactorの競合。",
+      "test_condition": "C1 defaultのuser-admin本人がchangeRole(operator)を直接実行しSELF_CHANGE_FORBIDDEN、User.role/versionとSessionが不変。C2 同一人物がchangeSuspension(suspended)を直接実行しSELF_CHANGE_FORBIDDEN、User.status/versionとSession不変。C3 Webのadmin本人詳細でRole選択と役割変更、利用停止/再開のボタンdisabled、説明表示、ConfirmDialogが起動しないことを確認。C4 operator/customer/guest/停止adminからの管理変更をPERMISSION_DENIED/認証・状態エラーで拒否し、他UserとSessionを変更しない。C5 別adminを追加した場合にも自己変更禁止が変わらないこと、CAS/複数更新競合でlast-admin保護とは別に自己拒否が優先することを検証。C6 desktop/tablet/keyboard/a11y/Traceのフォーカス・文言を確認。",
+      "test_responsibility": "AdminUserDetailFormのisSelf表示制御と、AdminUserUseCases.changeRole/changeSuspensionの自己IDガードを照合。Seed admin1名、User/Session/Checkoutの変更前後を隔離DBで検証。",
+      "case_policy": "C1〜C6採用。Web disabledとUseCase SELF_CHANGE_FORBIDDENの二重境界を分離。最終管理者ではない本人でも自己変更は禁止し、A02-03のlast-admin判定と混同しない。",
+      "case_selection_reason": "正常な禁止判定、直接呼出し、UI、Role別拒否、複数admin条件、画面/a11yを採用。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:5-23、review-user-pages.tsx:655-665/752-812、review-user-use-cases.ts:567-570/600-604/700-705、default-dataset.ts:730-772、integration:322-334を確認。role変更は本人IDでSELF_CHANGE_FORBIDDEN、suspendedへの変更も同エラーを投げる。Webは本人Role/状態の操作ボタンをdisabledにする。既存integrationは本人role変更拒否のみで、本人停止・UI・DB/Session非変更・複数admin下の直接呼出しを実証しないためreview_required維持。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminUserUseCases.changeRole",
+        "AdminUserUseCases.changeSuspension"
+      ],
+      "analysis_progress": "2026-11-04: A02-01を自己Role変更と自己停止の二経路に分割し、UI disabled・Applicationガード・Seed/既存integrationを照合。未検証の状態不変・Web/a11y・並列競合を個別Case化。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -24829,7 +25014,98 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "正式BR/ACの変更境界と拒否UI"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 49,
+          "end_line": 51,
+          "reason": "ユーザー詳細の操作UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 75,
+          "end_line": 79,
+          "reason": "AC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role・Rank・accountStatusの正式定義"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 655,
+          "end_line": 685,
+          "reason": "操作UIのcurrentUserとエラー表示"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 686,
+          "end_line": 835,
+          "reason": "readOnly/Role/Rank/Statusの選択・確認ダイアログ"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 542,
+          "end_line": 639,
+          "reason": "管理ユーザーの3更新メソッド"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 671,
+          "reason": "actor requireAdminとtarget version照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 57,
+          "end_line": 63,
+          "reason": "User version CAS"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 126,
+          "end_line": 131,
+          "reason": "Session全削除"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 98,
+          "end_line": 99,
+          "reason": "change-user-accessのtables境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 772,
+          "reason": "defaultの3Rank/停止/退会/管理者データ"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 276,
+          "end_line": 351,
+          "reason": "既存integrationのRank/Role/Statusと拒否範囲"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 405,
+          "end_line": 507,
+          "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A02-02",
@@ -24846,19 +25122,23 @@
       "expected": "withdrawnユーザーのrole/rank/status変更は拒否し、読み取り専用の状態を維持する",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
-      "risk": "不正な権限昇格、最終管理者喪失、自己破壊的操作",
-      "test_condition": "退会済の変更を拒否実施前後で、withdrawnユーザーのrole/rank/status変更は拒否し、読み取り専用の状態を維持することを操作UIとUse Case結果から確認する",
-      "test_responsibility": "管理権限、退会済の変更を拒否の入力妥当性、状態遷移と保存結果を検証する",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "退会済の変更を拒否が権限逸脱や不正データ更新を引き起こさないことを示すため",
+      "risk": "High: withdrawnユーザーのRole/Rank/Statusを直接変更できると、退会状態が破壊され権限・個人情報が再露出する。Medium: UIのread-onlyとUseCase認可が不一致、Version/Session/Checkoutや関連履歴が誤更新される。",
+      "test_condition": "C1 withdrawn Seed=user-customer-withdrawnにadminがchangeMembershipRank(gold)→INVALID_ROLE、changeSuspension(active)→INVALID_STATEでUser/version/Session/Checkout/Cart/Orders/Reviews/Historyが不変。C2 withdrawnのRole変更はcustomer役割でも拒否されINVALID_ROLE、withdrawn属性を持つoperator/admin fixtureでもrole変更・status変更を拒否することを確認。C3 Web詳細画面で『退会済みユーザーは読取専用』表示、Rank/Role/Status変更のsectionとConfirmDialogがないことを確認。C4 stale Version・存在しないIDを別Caseで検証し、NOT_FOUND/CONFLICTとwithdrawn拒否の優先順位を正確に判定。C5 guest/customer/operator/停止adminの直接操作拒否、機密情報・履歴非露出。C6 desktop/tablet/a11y/TraceとDB前後差を確認。",
+      "test_responsibility": "Web AdminUserDetailFormのreadOnly分岐、AdminUserUseCases.changeMembershipRank/changeRole/changeSuspension、Dexie User/Session/Checkout transaction、default withdrawn Seedを照合。拒否時のUser以外の表も不変であることを直接検証。",
+      "case_policy": "C1〜C6採用。Seed内のwithdrawn customerと学習用fixtureのwithdrawn staffを区別し、固定Seedを書き換えない。正常な顧客status遷移はA01-04、Role変更はA01-02と分離。",
+      "case_selection_reason": "withdrawnの全3操作、UI read-only、VersionとNOT_FOUND、Role別拒否、関連表不変を対象とする。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "元の仕様文言と部門共通テンプレートのみでは、個別の期待結果とRole/State/Dataが確定しない。実装/Seed照合が必要。",
+      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:21-23、review-user-pages.tsx:686-716/752-835、review-user-use-cases.ts:542-563/567-598/600-635、default-dataset.ts:755-772、integration:322-350を確認。Webではwithdrawnで操作sectionが非表示、ApplicationではRank/RoleはINVALID_ROLE、statusはINVALID_STATEを返す。既存integrationはwithdrawn→activeのstatus拒否のみ。Rank/Roleの直接拒否、withdrawn staff fixture、失敗後の多表不変、Web/a11yは未受入。review_required維持。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
       ],
-      "related_use_cases": [],
-      "analysis_progress": "動作別の期待・入力候補を整理。実在Seed条件とサービス境界の意味レビュー待ち",
+      "related_use_cases": [
+        "AdminUserUseCases.changeMembershipRank",
+        "AdminUserUseCases.changeRole",
+        "AdminUserUseCases.changeSuspension"
+      ],
+      "analysis_progress": "2026-11-04: A02-02のwithdrawn customer/staffに対するRank・Role・Statusの全経路とWeb read-only、既存status拒否テストを整理。詳細な拒否結果/非変更Caseを定義、実Runは未確認。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -24881,7 +25161,98 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": []
+      "use_case_evidence": [],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
+      ],
+      "audit_branch_refs": [
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 9,
+          "end_line": 15,
+          "reason": "正式BR/ACの変更境界と拒否UI"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 49,
+          "end_line": 51,
+          "reason": "ユーザー詳細の操作UI契約"
+        },
+        {
+          "path": "docs/spec/features/admin-users.md",
+          "start_line": 75,
+          "end_line": 79,
+          "reason": "AC-ADMINUSER-001"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 5,
+          "end_line": 23,
+          "reason": "Role・Rank・accountStatusの正式定義"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 655,
+          "end_line": 685,
+          "reason": "操作UIのcurrentUserとエラー表示"
+        },
+        {
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "start_line": 686,
+          "end_line": 835,
+          "reason": "readOnly/Role/Rank/Statusの選択・確認ダイアログ"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 542,
+          "end_line": 639,
+          "reason": "管理ユーザーの3更新メソッド"
+        },
+        {
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "start_line": 642,
+          "end_line": 671,
+          "reason": "actor requireAdminとtarget version照合"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 57,
+          "end_line": 63,
+          "reason": "User version CAS"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/basic-repositories.ts",
+          "start_line": 126,
+          "end_line": 131,
+          "reason": "Session全削除"
+        },
+        {
+          "path": "src/infrastructure/database/dexie/transaction-runner.ts",
+          "start_line": 98,
+          "end_line": 99,
+          "reason": "change-user-accessのtables境界"
+        },
+        {
+          "path": "src/seeds/default-dataset.ts",
+          "start_line": 730,
+          "end_line": 772,
+          "reason": "defaultの3Rank/停止/退会/管理者データ"
+        },
+        {
+          "path": "tests/integration/review-user-use-cases.test.ts",
+          "start_line": 276,
+          "end_line": 351,
+          "reason": "既存integrationのRank/Role/Statusと拒否範囲"
+        },
+        {
+          "path": "tests/component/review-user-pages.test.tsx",
+          "start_line": 405,
+          "end_line": 507,
+          "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
+        }
+      ]
     },
     {
       "id": "SCREEN-ADMIN-USER-DETAIL-A02-03",
