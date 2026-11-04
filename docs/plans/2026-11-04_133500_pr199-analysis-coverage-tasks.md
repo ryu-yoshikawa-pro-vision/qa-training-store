@@ -21,9 +21,9 @@
 - [x] `SCREEN-ADMIN-USER-DETAIL-A01-02`：Role変更の昇格/降格、version CAS、Session失効、自己/withdrawn/権限失効拒否、rollbackとC1〜C7を照合。既存学習用CaseのCI成功と未実行の直接Caseを区別
 - [x] `SCREEN-ADMIN-USER-DETAIL-A01-03`：3 Rank、Checkout abandoned、Cart保持、変更後の価格、stale・actor失効・rollbackの証拠と不足条件を確定
 - [x] `SCREEN-ADMIN-USER-DETAIL-A01-04`：active/suspended、全Session無効化、customer Checkout破棄、旧Session拒否、transaction failure、last-admin境界を整理
-- [ ] `SCREEN-ADMIN-USER-DETAIL-A02-01`：自己Role変更・自己停止のUI禁止とUse Case拒否、Session/全DB不変、別admin存在時を照合
-- [ ] `SCREEN-ADMIN-USER-DETAIL-A02-02`：withdrawn customer/staffへのRank/Role/Statusの各拒否、Web read-only、非書込みと期待エラーを照合
-- [ ] `SCREEN-ADMIN-USER-DETAIL-A02-03`：有効adminの2→1は許可、本人変更は自己拒否、actor権限失効/並行競合は別条件として静的・実行可能な根拠を整理。成立しない「非self最後のadmin」fixtureを作らない
+- [x] `SCREEN-ADMIN-USER-DETAIL-A02-01`：自己Role変更・自己停止のUI禁止とUse Case拒否、Session/全DB不変、別admin存在時を照合
+- [x] `SCREEN-ADMIN-USER-DETAIL-A02-02`：withdrawn customer/staffへのRank/Role/Statusの各拒否、Web read-only、非書込みと期待エラーを照合
+- [x] `SCREEN-ADMIN-USER-DETAIL-A02-03`：有効adminの2→1は許可、本人変更は自己拒否、actor権限失効/並行競合は別条件として静的・実行可能な根拠を整理。成立しない「非self最後のadmin」fixtureを作らない
 - [ ] `SCREEN-BOUNDARY-FORBIDDEN-A01-01`：停止staffの戻りリンク循環、Web/Native拒否理由差、別Role・直URL・情報保護とCase採否を確定
 
 ## 残3状態の基本分析
@@ -84,3 +84,21 @@
 - 固定照合HEAD：`35b862fb934d363def4311bc8b4cb52400e1a21c`。正式BR/AC・Role/State/Data、Web→UseCase→Dexie transaction・Seed・Risk/TR/C1〜C7の**静的基本分析を完了**し、台帳の同IDを `analyzed` に更新。
 - 根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:655-835`、`src/application/use-cases/review-user-use-cases.ts:542-640`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`、`tests/integration/review-user-use-cases.test.ts:276-351`。具体的な条件・既存Caseとの差・判断先は `supported-behaviors.json` の `basic_analysis_review` / `case_policy` に記録。
 - 未実行：直接Vitest・実Web/DB全表前後・Version/actor失効・故障注入rollback・Visual/a11y/Trace。#219へ実行証拠を依頼し、#210の製品修正/transaction内再認可は未統合として別判定。未実施をPASSにしない。
+
+### `SCREEN-ADMIN-USER-DETAIL-A02-01`（2026-11-04）
+
+- 固定照合HEAD：`662179776bda57a33ec58aecdb2c8d105348fceb`。正式BR/AC/Role/State、Web詳細→AdminUserUseCases→Dexie/Session/Checkout、default Seed・Version・Case採否・拒否時の不変条件を静的照合し、基本分析 `analyzed` に更新。台帳 `basic_analysis_review` を正本として実装根拠・既存Caseの有無を記録。
+- 主な根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:618-835`、`src/application/use-cases/review-user-use-cases.ts:542-714`、`src/infrastructure/database/dexie/basic-repositories.ts:57-63,108-133`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`。
+- 結果：静的基本分析のみ完了。採用Caseの直接テスト・実Web/DB全表前後・並行競合/注入失敗・Visual/a11y/Traceと製品適合は**未受入**。実Runは#219、未マージ製品修正と仕様判断は#210へ引き継ぎ、CI成功を推認しない。
+
+### `SCREEN-ADMIN-USER-DETAIL-A02-02`（2026-11-04）
+
+- 固定照合HEAD：`662179776bda57a33ec58aecdb2c8d105348fceb`。正式BR/AC/Role/State、Web詳細→AdminUserUseCases→Dexie/Session/Checkout、default Seed・Version・Case採否・拒否時の不変条件を静的照合し、基本分析 `analyzed` に更新。台帳 `basic_analysis_review` を正本として実装根拠・既存Caseの有無を記録。
+- 主な根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:618-835`、`src/application/use-cases/review-user-use-cases.ts:542-714`、`src/infrastructure/database/dexie/basic-repositories.ts:57-63,108-133`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`。
+- 結果：静的基本分析のみ完了。採用Caseの直接テスト・実Web/DB全表前後・並行競合/注入失敗・Visual/a11y/Traceと製品適合は**未受入**。実Runは#219、未マージ製品修正と仕様判断は#210へ引き継ぎ、CI成功を推認しない。
+
+### `SCREEN-ADMIN-USER-DETAIL-A02-03`（2026-11-04）
+
+- 固定照合HEAD：`662179776bda57a33ec58aecdb2c8d105348fceb`。正式BR/AC/Role/State、Web詳細→AdminUserUseCases→Dexie/Session/Checkout、default Seed・Version・Case採否・拒否時の不変条件を静的照合し、基本分析 `analyzed` に更新。台帳 `basic_analysis_review` を正本として実装根拠・既存Caseの有無を記録。
+- 主な根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:618-835`、`src/application/use-cases/review-user-use-cases.ts:542-714`、`src/infrastructure/database/dexie/basic-repositories.ts:57-63,108-133`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`。
+- 結果：静的基本分析のみ完了。採用Caseの直接テスト・実Web/DB全表前後・並行競合/注入失敗・Visual/a11y/Traceと製品適合は**未受入**。実Runは#219、未マージ製品修正と仕様判断は#210へ引き継ぎ、CI成功を推認しない。

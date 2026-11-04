@@ -25558,11 +25558,11 @@
       "source_line": 51,
       "source_text": "自己破壊的変更、退会済み（withdrawn）ユーザーに対する変更操作、最後の管理者に対する変更操作をUI上で操作可能に見せない。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 自己権限破壊を拒否",
+      "role": "active admin本人の自己Role変更／自己停止を拒否（Web管理詳細、Native管理画面は対象外）。別active adminが存在しても自己変更禁止は維持。非admin actorはUse Case/Guardで別に拒否。",
+      "scenario": "default active user-admin本人（admin1・operator1）、actor Sessionを明示してVersion1/Session/全DB snapshotを保存。operator→admin昇格後adminが2人の条件でも本人自己Role変更/停止を実行。停止admin/guest/customer/operator actor・stale Version・Web button disabledを独立条件。",
+      "data": "Web AdminUserDetailFormはcurrentUser.id===userIdの場合、Role変更と利用停止/再開ボタンをdisabledと説明付きで描画しConfirmDialogは起動しない。Application changeRoleはrequireAdmin直後actor.id===input.userIdならSELF_CHANGE_FORBIDDEN、changeSuspensionは自己かつtargetStatus=suspendedなら同エラー。いずれもこの拒否ではtransaction/users.update/Session削除を開始しない。その他の拒否経路はactor/targetの状態・Versionに依存し、自己拒否とLAST_ADMIN_PROTECTEDを混同しない。",
       "action": "自己権限破壊を拒否",
-      "expected": "管理者自身の自己降格/自己停止を拒否し、操作後の管理権限を消失させない",
+      "expected": "本人adminのRole降格・停止はUIで操作不可で、Use Case直接呼出しもSELF_CHANGE_FORBIDDEN、User/Session/全DB snapshot不変。管理者が2人以上でも本人拒否が優先。停止actorはrequireCurrentEntityが先にACCOUNT_SUSPENDEDを返す。Version競合・他者Role変更・last-admin評価は別IDで追跡。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
       "risk": "High: 管理者本人のRole降格・自己停止で管理権限を失い、管理機能が操作不能になる。Medium: UI disabledだけで直接Use Caseの自己変更が通る、拒否時にUser.version/Sessionが変わる、失効したactorの競合。",
@@ -25570,8 +25570,8 @@
       "test_responsibility": "AdminUserDetailFormのisSelf表示制御と、AdminUserUseCases.changeRole/changeSuspensionの自己IDガードを照合。Seed admin1名、User/Session/Checkoutの変更前後を隔離DBで検証。",
       "case_policy": "C1〜C6採用。Web disabledとUseCase SELF_CHANGE_FORBIDDENの二重境界を分離。最終管理者ではない本人でも自己変更は禁止し、A02-03のlast-admin判定と混同しない。",
       "case_selection_reason": "正常な禁止判定、直接呼出し、UI、Role別拒否、複数admin条件、画面/a11yを採用。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:5-23、review-user-pages.tsx:655-665/752-812、review-user-use-cases.ts:567-570/600-604/700-705、default-dataset.ts:730-772、integration:322-334を確認。role変更は本人IDでSELF_CHANGE_FORBIDDEN、suspendedへの変更も同エラーを投げる。Webは本人Role/状態の操作ボタンをdisabledにする。既存integrationは本人role変更拒否のみで、本人停止・UI・DB/Session非変更・複数admin下の直接呼出しを実証しないためreview_required維持。 2026-11-04補足: 既存related_use_casesに登録されていた公開メソッドの定義行・署名をuse_case_evidenceへ追加。Role/DB/画面・実CI/実端末受入は未完了、review_required維持。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD 662179776bda57a33ec58aecdb2c8d105348fceb に対する静的基本分析。admin-users.md:9-25,43-79、roles-and-permissions.md:1-28、review-user-pages.tsx:655-685/752-835（isSelf・disabled・説明/ConfirmDialogを出さない）、review-user-use-cases.ts:567-604/642-651/700-714（role自己拒否、suspended自己拒否、actor認可）、session-identity-resolver.ts:27-58、default-dataset.ts:730-773（admin1、operator1）を照合。既存integration review-user-use-cases.test.ts:322-334とcontract ai-assisted-qa-admin-users-list.test.mjs:289-301は自己Role変更のみの拒否・全表不変のテストコードあり。自己停止・admin2人条件・実Web/a11y/Trace・全DB不変の直接実行は未実施。Case C1〜C6の採否は台帳test_condition/case_policy。製品適合/動的PASS未受入、#219実Runへ引継ぎ。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25580,7 +25580,7 @@
         "AdminUserUseCases.changeRole",
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "2026-11-04: A02-01を自己Role変更と自己停止の二経路に分割し、UI disabled・Applicationガード・Seed/既存integrationを照合。未検証の状態不変・Web/a11y・並列競合を個別Case化。 | 2026-11-04: 関連公開UseCaseの定義行・署名を証拠として追加（静的照合のみ）。",
+      "analysis_progress": "2026-11-04 基本静的分析analyzed：自己Role変更/自己停止UI disabledとUseCase SELF_CHANGE_FORBIDDEN、default/admin2名条件、全DB・Session不変の必要Case、別Role/競合境界を確認。動的受入・CIは未確定。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -25717,11 +25717,11 @@
       "source_line": 51,
       "source_text": "自己破壊的変更、退会済み（withdrawn）ユーザーに対する変更操作、最後の管理者に対する変更操作をUI上で操作可能に見せない。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 退会済の変更を拒否",
+      "role": "active adminがwithdrawn targetのRank/Role/Status変更を試みた場合を拒否。固定Seedのwithdrawn customerに加え隔離DB内のwithdrawn operator/adminを別fixtureで検証。本人退会・停止actorは管理権限なし。",
+      "scenario": "default withdrawn customer=user-customer-withdrawn、追加のwithdrawn operator/adminを隔離Dexieで設定。Rank regular/gold、Role operator/admin、Status active/suspendedの各変更リクエストはexpectedVersion正値/誤値、target欠損、Web readOnly、非admin actorで条件を分ける。",
+      "data": "Web AdminUserDetailFormはwithdrawnでreadOnly=true、Rank・管理Role・Statusの変更sectionを描画せず通知のみ表示。Application changeMembershipRankはcustomerでもwithdrawnならINVALID_ROLE、changeRoleはoperator/adminでなければINVALID_ROLEかwithdrawnならINVALID_ROLE、changeSuspensionはwithdrawnまたは不正遷移でINVALID_STATE。各メソッドはtarget/versionを検査してから状態拒否するためstale Versionが先ならCONFLICT、欠損IDはNOT_FOUNDとなる。拒否時のusers/sessions/checkouts更新は行わない。",
       "action": "退会済の変更を拒否",
-      "expected": "withdrawnユーザーのrole/rank/status変更は拒否し、読み取り専用の状態を維持する",
+      "expected": "withdrawnは読み取り専用で、Web変更操作は存在せず、直接Use CaseのRank/Role/Status更新は許可しない。正しいVersionのwithdrawn customerはRank/Role→INVALID_ROLE、Status→INVALID_STATE、withdrawn staffはRole→INVALID_ROLE、Status→INVALID_STATE、Rank→INVALID_ROLE。誤Version/欠損Target/actor拒否は優先判定別。User.version、Session/Checkout/Cart/Orders/Reviews/Historyは拒否時不変。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
       "risk": "High: withdrawnユーザーのRole/Rank/Statusを直接変更できると、退会状態が破壊され権限・個人情報が再露出する。Medium: UIのread-onlyとUseCase認可が不一致、Version/Session/Checkoutや関連履歴が誤更新される。",
@@ -25729,8 +25729,8 @@
       "test_responsibility": "Web AdminUserDetailFormのreadOnly分岐、AdminUserUseCases.changeMembershipRank/changeRole/changeSuspension、Dexie User/Session/Checkout transaction、default withdrawn Seedを照合。拒否時のUser以外の表も不変であることを直接検証。",
       "case_policy": "C1〜C6採用。Seed内のwithdrawn customerと学習用fixtureのwithdrawn staffを区別し、固定Seedを書き換えない。正常な顧客status遷移はA01-04、Role変更はA01-02と分離。",
       "case_selection_reason": "withdrawnの全3操作、UI read-only、VersionとNOT_FOUND、Role別拒否、関連表不変を対象とする。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:21-23、review-user-pages.tsx:686-716/752-835、review-user-use-cases.ts:542-563/567-598/600-635、default-dataset.ts:755-772、integration:322-350を確認。Webではwithdrawnで操作sectionが非表示、ApplicationではRank/RoleはINVALID_ROLE、statusはINVALID_STATEを返す。既存integrationはwithdrawn→activeのstatus拒否のみ。Rank/Roleの直接拒否、withdrawn staff fixture、失敗後の多表不変、Web/a11yは未受入。review_required維持。 2026-11-04補足: 既存related_use_casesに登録されていた公開メソッドの定義行・署名をuse_case_evidenceへ追加。Role/DB/画面・実CI/実端末受入は未完了、review_required維持。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD 662179776bda57a33ec58aecdb2c8d105348fceb の静的基本分析。admin-users.md:9-25/43-79、roles-and-permissions.md:5-28（withdrawn読取専用）、review-user-pages.tsx:686-716/752-835（readOnly通知と全変更section非表示）、review-user-use-cases.ts:542-565/567-598/600-639（各withdrawn拒否、target取得/Version確認順）、basic-repositories.ts:57-63（CAS）、transaction-runner.ts:98-99/130-141（失敗時全scope原子性）、default-dataset.ts:764-770（固定withdrawn customer）を確認。既存integration review-user-use-cases.test.ts:322-350にはwithdrawn status拒否のみ、withdrawn staff/3操作全拒否・stale/NOT_FOUND優先・Web実操作・全表 snapshotの直接Caseは未実行。C1〜C6の採否と学習用fixture/Seed保護を台帳に記録し#219へ引継ぎ。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25740,7 +25740,7 @@
         "AdminUserUseCases.changeRole",
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "2026-11-04: A02-02のwithdrawn customer/staffに対するRank・Role・Statusの全経路とWeb read-only、既存status拒否テストを整理。詳細な拒否結果/非変更Caseを定義、実Runは未確認。 | 2026-11-04: 関連公開UseCaseの定義行・署名を証拠として追加（静的照合のみ）。",
+      "analysis_progress": "2026-11-04 基本静的分析analyzed：withdrawn customer/staffに対するRank/Role/Status拒否コード、Web読取専用、stale/欠損target優先、全DB不変の検証条件を確定。実Web/全表・a11yは未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -25883,11 +25883,11 @@
       "source_line": 51,
       "source_text": "自己破壊的変更、退会済み（withdrawn）ユーザーに対する変更操作、最後の管理者に対する変更操作をUI上で操作可能に見せない。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "default Seedはactive admin=user-adminが1名、active operator=user-operatorが1名、sessions=[]。管理者として認証した本人のrole/status変更は自己変更ガードで拒否。別管理者を用意するにはoperatorをadminへ昇格させ、active adminが2名の状態を作る。countActiveAdminsはrole=adminかつaccountStatus=activeだけを数える。最終管理者ガードの非self負例には通常Seedとは別の制御された状態が必要",
+      "role": "active admin actorによる他のactive adminのRole降格/停止、最後の本人の自己降格/停止、失効actorの並行競合。operator/customer/guest/停止actorは直接操作禁止。",
+      "scenario": "default admin1/operator1からoperatorをadminに昇格してactive admin2名を作る。admin actorが別adminを降格または停止させactive admin2→1の正常系、残り1名の本人拒否、actor失効のinterleaving・stale Version・同時更新を別fixture。通常の非self最後のactive adminは認可されたactive admin actorがいるなら成立しない。",
+      "data": "UseCase changeRole:567-598・changeSuspension:600-639はactorをtransaction前にrequireAdminし自己変更を拒否、transaction内でtarget version CAS・active admin countActiveAdminsを検証しUser更新と対象Session削除を実行。countActiveAdminsはactiveかつrole=adminのみ数える。targetがadminかつ降格/停止の場合count<=1でLAST_ADMIN_PROTECTEDだが、正常なnonself actor+targetなら有効admin数2以上のため2→1許可。#199現実装はactor失効をtransaction内で再認可しないため同時操作競合で管理者数が0になる危険が残り得る。#210製品専用HEADのassertActorStillAuthorizedはtransaction内でuser/Session/Role/Status再照合するが、#199に未マージなので別判定。",
       "action": "最終管理者の変更を拒否",
-      "expected": "AdminUserUseCases.changeRoleは最後のactive adminをoperatorへ降格する場合、changeSuspensionは最後のactive adminをsuspendedへ変更する場合にLAST_ADMIN_PROTECTEDを返し、transaction内で更新・セッション削除を実施しない。本人変更はSELF_CHANGE_FORBIDDENを優先する。Web UIは本人の役割/状態変更をdisabledにし、拒否コードは具体的な日本語理由へ変換する。実Run/製品適合は未確認",
+      "expected": "有効admin2→1の他者降格/停止をVersion CAS・対象Session失効付きで許可。唯一のactive admin本人のRole降格/自己停止はSELF_CHANGE_FORBIDDEN、DB/Session不変。失効actorの管理操作はtransaction内の再認可なしでは競合リスクがあり、#210の修正差を別HEADと直接Runで判定する必要がある。LAST_ADMIN_PROTECTEDの分岐だけを人工Repositoryで通した単体試験を、実在する認可状態の証拠に転用しない。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
       "risk": "High:有効な管理者本人の降格/停止、権限失効後に旧actorが別adminを降格/停止してactive adminを0人へ減らす競合、Version/CAS・Session/他表の不整合。Medium:非selfのLAST_ADMIN_PROTECTEDを通常の正常actor/targetの2者状態から再現できると誤認するテスト設計、UI保護理由とApplicationの優先拒否コードの不一致。",
@@ -25895,8 +25895,8 @@
       "test_responsibility": "BR-ADMINUSER-001/AC-ADMINUSER-001、Web admin guard→AdminUserDetailForm→AdminUserUseCases.changeRole/changeSuspension→Dexie User/Session Repositoryを照合。UI自己変更禁止とApplicationの最後の管理者数検証を別境界として検査",
       "case_policy": "C1〜C7を採用。本人拒否・2→1人許可・権限失効の時点差・同時更新・直接UseCase/実Webを分離。人工RepositoryによるLAST_ADMIN_PROTECTED分岐テストはコード単体の根拠としてのみ扱い、現実の有効actor経路の実行証拠と混同しない。製品差分は#210へ委ねる。",
       "case_selection_reason": "有効なactorと非selfのactive admin targetが存在する正常な状態ではcountActiveAdmins>=2のため、LAST_ADMIN_PROTECTEDの非self分岐をそのまま達成する隔離Seedは正しい認可条件と両立しない。#199のtransaction外requireAdmin後のactor失効と、#210のtransaction内再認可を比較しないと危険な並行更新を見逃す。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "admin-users.md:7-15/49-51/78-84、roles-and-permissions.md:5-23、review-user-use-cases.ts:567-635/708-715、basic-repositories.ts:108-112、review-user-pages.tsx:618-830、default-dataset.ts:730-774、review-user-use-cases integration:322-360、review-user-pages component:485-505を静的照合。最後のadmin保護はApplicationに存在するが、非self条件でのLAST_ADMIN_PROTECTED実Run・DB不変・並行更新・UI最終admin事前表示の証拠がない。analysis_status=review_required維持、製品適合は未確認 2026-11-04の独立再監査では、active admin actorと他者active admin targetが同時に有効ならcountActiveAdmins>=2、最後の1名本人への変更はSELF_CHANGE_FORBIDDENが先に成立することを確認した。非selfのLAST_ADMIN_PROTECTED再現を単純なSeed必須条件から外し、actor失効のtransaction前後比較・2→1の許可・並行競合へ修正した。#210の再認可変更は同PR未マージの別HEADであり、この台帳の製品適合PASSには含めない。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD 662179776bda57a33ec58aecdb2c8d105348fceb の静的基本分析。admin-users.md:9-15/49-79とroles-and-permissions.md:5-28、review-user-use-cases.ts:567-639/700-714（self guard、transaction外requireAdmin、last admin分岐）、basic-repositories.ts:108-112（active admin件数）、default-dataset.ts:730-773（admin1/operator1）、review-user-pages.tsx:655-685/752-835（self disabled/拒否表示）、contract ai-assisted-qa-admin-users-list.test.mjs:228-330（admin2→1降格/Session無効化・self拒否のコード）、component review-user-pages.test.tsx:477-505（LAST_ADMIN_PROTECTEDはmock表示のみ）を確認。非self最後のadmin fixtureは通常のactive actor経路と矛盾し、実行条件から除外。#210製品ブランチ review-user-use-cases.ts:574-620はtransaction内assertActorStillAuthorizedを呼ぶが、PR #199では同修正未統合。actor失効interleaving、同時更新、Web/DB実Runと最終CIは未実施。C1〜C7の静的Case採否・他者への引継ぎを確定したが製品適合は未受入。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25905,7 +25905,7 @@
         "AdminUserUseCases.changeRole",
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "正式BR/AC、Role/Status、default Seed実値、Web UI→Application→Dexie countActiveAdminsの静的追跡を実施。既存integrationの実負例不足とcomponent mockの限界を識別。非self最後のadmin実Runが必要で基本分析未完 | 2026-11-04: 通常成立しない非self最後のadmin固定fixtureを修正し、旧#199と#210の権限失効時点差をC4へ分離。実行・製品適合は未受入。",
+      "analysis_progress": "2026-11-04 基本静的分析analyzed：active admin2→1許可、唯一admin本人SELF_CHANGE_FORBIDDEN、非self last adminの不成立、actor失効の競合リスクと#210のtransaction内再認可差、C1〜C7を確定。動的Run/実装の受入は未実施。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
