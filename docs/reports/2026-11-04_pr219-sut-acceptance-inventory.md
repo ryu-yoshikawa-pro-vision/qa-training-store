@@ -212,3 +212,10 @@
 
 - [Web CI #41800985878](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41800985878)固定HEAD `cbb5f7d49b8a5987a7516a4f71d9eec721e97bed`で`pr219-cart-boundaries.test.ts` **7/7成功**、Vitest (integration) **134件成功**、Code Quality success。ただし**Style Qualityは本テストファイルのPrettier違反で失敗**しており、全体成功ではない。
 - [Web CI #41801523862](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41801523862)のIntegration job `126478752655`で同じファイルのPrettier整形結果を取得。整形済みソースを反映して一時診断テストを削除した。**この修正後HEADのCI成功は別途確認が必要**。上記7件の実行成功を最新HEADに流用しない。
+
+## Checkout再開・隔離・期限・stale versionの受入（11番：準備）
+
+- 新規独立テスト`tests/integration/pr219-checkout-boundaries.test.ts`に、同一顧客の別ログインSessionによる同じCheckoutの`resumed`、別顧客のCheckout参照拒否（`NOT_FOUND`、DB不変）、Checkout version競合の全表不変、ちょうど24時間での`CHECKOUT_EXPIRED`とOrder/Payment/在庫履歴不変の**4つの実ケース**を追加。対象は新規の隔離Dexie DBだけで、製品実装やSeedは変更しない。
+- 固定Clock：`2026-07-01T04:00:00.000Z`の開始、`2026-07-02T03:59:59.000Z`の有効、`2026-07-02T04:00:00.000Z`の失効境界。通常のSession Store差替えは同一userId内の再開、他userIdでは拒否をassert。
+- 既存`tests/integration/checkout-order-use-cases.test.ts`では決済`TEST-SUCCESS/DECLINED/INSUFFICIENT/AUTH-FAILED`、再試行、二重確定、在庫競合、OrderItem Snapshotを既に検証しているため重複作成しない。UIの住所再開通知・ブラウザReload/Reset、Android・SQLiteの実証、DB全表Snapshotファイルの永続保存は未受入のまま。
+- 最終成果物に残さないPrettier診断Caseを同じファイルへ一時挿入。CIのIntegration jobでコード整形を確認したら診断を削除する。実行確認前は11番未チェック。
