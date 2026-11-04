@@ -25248,11 +25248,11 @@
       "source_line": 50,
       "source_text": "ユーザー詳細と、許可されたロール／ランク／ステータスの操作を表示する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 会員ランク変更",
+      "role": "active adminによるactive customerのregular/gold/platinum Rank変更のみ。非customer operator/admin、withdrawn customer、非admin actor/停止・失効Sessionは拒否。Web管理画面が対象でNative管理UIなし。",
+      "scenario": "defaultのregular/gold/platinumの各顧客・active admin、checkout-resume（active checkoutとcustomer Cart）を区別。Rank変更前後のCart/Checkout、価格計算の基準時刻、actor Sessionと別user Session、Version1→2、stale・障害注入は隔離DBで別条件。",
+      "data": "Web AdminUserDetailFormはcustomerでのみRank selector/変更ボタンを表示し、同じRankをdisabled、操作時はexpectedVersion=user.versionを送信し成功後DTOを再取得。AdminUserUseCases.changeMembershipRank:542-565はrequireAdmin後のchange-user-access transaction（users/sessions/checkout_sessions）で対象を再取得しVersion CAS、customerかつ非withdrawnを確認、checkouts.abandonActiveByUser→users.updateでrank/version変更。Cart自体は変更しない。CheckoutOrderUseCases.start:108-138は次回active customerランクを指定してCart DTOとblockingIssuesを取得する。旧Checkoutはabandonedとなり直接再利用できないが、新ランクの価格/送料の提示と購入確定時の金額不変はこの分析だけでは実証しない。#210ではtransaction内部にactor再認可が追加されているが#199 SUTには未反映。",
       "action": "会員ランク変更",
-      "expected": "顧客会員ランクの変更が規約どおり反映され、staff roleとmembershipRankを混同しない",
+      "expected": "BR-ADMINUSER-001/AC-ADMINUSER-001はcustomerのみRankを変更でき、withdrawn/非customer/失効actor・競合時は全表不変。旧active Checkoutはabandoned、Cartの商品・個数は保持し、新たなCheckoutで変更後Rankの価格・送料が適用されるか実行確認が必要。Version CAS/rollbackは別条件。正式仕様・UI差と製品適合判断は#210、採用Case実証は#219へ渡す。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
       "risk": "High: 顧客Rank変更後の旧Checkout継続・割引再計算不一致、権限失効した操作者による変更。Medium: stale Versionの競合、退会/非customerへの不正Rank付与、Checkout破棄失敗時の部分更新、Web選択状態と再読込表示の不一致。",
@@ -25260,8 +25260,8 @@
       "test_responsibility": "Web AdminUserDetailFormのcustomer専用rank UI→AdminUserUseCases.changeMembershipRank→Dexie User/Checkout Repository、change-user-access transaction、Seedのcustomer3ランクを照合。Role変更時のSession破棄とは区別する。",
       "case_policy": "C1〜C7採用。Rankの状態遷移と旧Checkout破棄は本操作、最終注文価格の保証はCheckout側にも関連付け、製品適合と実Runの成功を別判定。",
       "case_selection_reason": "正常Rank遷移、非customer/withdrawn、Version競合、transaction失敗、権限失効、UI・再Checkoutの金額を独立条件として選定。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/75-79とroles-and-permissions.md:13-23、review-user-pages.tsx:655-685/715-751、review-user-use-cases.ts:542-565/642-671、transaction-runner.ts:99、default-dataset.ts:730-772、既存integration:276-295を突合。顧客Rankだけを変更しCheckoutをabandonedへ、Cartは保持。User.version CASを確認。既存integrationはregular→goldとCheckout破棄のみで、全3Rank・stale・rollback・再購入金額・actor権限失効の検証不足。#199のmain基準ではrequireAdminがtransaction外だが、#210 HEAD 03bd4c8aではtransaction内にassertActorStillAuthorizedを追加済み。#199への反映前後を分けて受入する。実Run/製品適合未確認のためreview_required維持。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD 35b862fb934d363def4311bc8b4cb52400e1a21c の静的基本分析。admin-users.md:9-15/43-79、roles-and-permissions.md:5-28、Web review-user-pages.tsx:655-750（Rank選択と同値disabled/Version）、UseCase review-user-use-cases.ts:542-565（admin認可→transaction、customer/withdrawnチェック、Checkout破棄→rank更新）、Dexie basic-repositories.ts:57-63とtransaction-runner.ts:98-99/130-141（CAS/原子性）、checkout-order-use-cases.ts:108-138（再Checkoutのcurrent membershipRank）、default-dataset.ts:730-773（3Rank）、scenarios.ts:367-395（checkout-resume）、既存integration review-user-use-cases.test.ts:276-295（rank更新とCheckout破棄/Cart存在）、component review-user-pages.test.tsx:296-340,405-424（Rank UIと同値disabled）を静的照合。3Rank全遷移、再Checkout価格/送料の正しい前後額、actor失効時点差、stale CAS、Checkout破棄注入rollback、Session/Cart/DB全表、Web/Visual/a11yの実Runは未実施。#210側にはtransaction内actor再認可があるがPR #199へ未マージ。採用C1〜C7の観測値は#219へ引継ぎ、実テスト未実施をPASSにしない。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25269,7 +25269,7 @@
       "related_use_cases": [
         "AdminUserUseCases.changeMembershipRank"
       ],
-      "analysis_progress": "2026-11-04: A01-03のRole/State/Data、rank更新→Checkout破棄→Cart保持、Version CAS、3Rank Seed/既存テストを静的に確定。C1〜C7を整理。実Web/DB前後/価格再計算/失効競合・最終CI未受入。",
+      "analysis_progress": "2026-11-04 基本静的分析analyzed：3Rank/Role・UI→UseCase→Dexie・checkout-abandoned/Cart保持・Version CAS・再Checkoutでのcurrent rank参照、stale/actor失効/rollback C1〜C7を証拠付きで確定。動的DB前後/価格一致/CIと製品適合は未受入。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -25389,6 +25389,12 @@
           "start_line": 405,
           "end_line": 507,
           "reason": "既存componentのRank・停止ダイアログ・LastAdmin表示"
+        },
+        {
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "start_line": 108,
+          "end_line": 138,
+          "reason": "再Checkoutでcurrent membershipRankをCartDtoに渡す静的経路"
         }
       ]
     },
@@ -25400,11 +25406,11 @@
       "source_line": 50,
       "source_text": "ユーザー詳細と、許可されたロール／ランク／ステータスの操作を表示する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user,最後のAdmin。Operator/Adminの許可差、対象ID、状態versionを確認。操作: 状態変更",
+      "role": "active adminが他のactive/suspended customer/operator/adminに対してstatusをactive↔suspendedで変更するWeb管理操作。withdrawn/同一状態/自己停止、非admin actor・失効Sessionを拒否。",
+      "scenario": "defaultのactive customer/operator/admin、suspended customerとcheckout-resume（active Checkout）、2名adminはoperator昇格で作成して別admin停止2→1、唯一admin本人の自己停止はSELF_CHANGE_FORBIDDEN。再開後は旧Sessionが復活しない。stale Version/失敗注入/actor失効は独立隔離DB条件。",
+      "data": "Web AdminUserDetailFormはwithdrawnをreadOnly、actor本人の利用停止/再開ボタンdisabled、他者にはConfirmDialogとSession全無効化の説明。AdminUserUseCases.changeSuspension:600-640はrequireAdmin・自己停止拒否→change-user-access transactionでtarget/Version/active↔suspended妥当性・最後admin数を確認し、User.status/version変更→対象Sessionを全削除→customer suspendedのときのみactive Checkout abandoned。customer Cartは触らない。Dexie transaction対象users/sessions/checkout_sessions。User再開では過去Session/Checkoutを復活させない。#199のactor認可はtransaction外、#210にはtransaction内再認可が追加されるが別HEAD。",
       "action": "状態変更",
-      "expected": "activeとsuspendedの許可された状態変更のみ反映し、withdrawnへの管理変更を拒否する",
+      "expected": "active↔suspendedのみ許可し成功時User.version増加・対象全Session失効、customer停止時のactive Checkout abandoned・Cart保持。再開は本人の新規ログインを要し過去Session/Checkoutは復活しない。withdrawn・同一状態・stale CAS・自己停止・Role不正・transaction失敗は拒否して全表不変。2人active adminから他者停止2→1は許可、最後のadmin本人はSELF_CHANGE_FORBIDDENであり通常成立しない非self last-admin fixtureを求めない。Web説明、認可競合と観測実行結果は#219へ、製品修正/仕様判断は#210へ。",
       "rule_refs": [],
       "route": "`/admin/users/[userId]`",
       "risk": "High: 利用停止しても対象Session/進行中Checkoutが残る、最後のadmin停止、停止対象の途中更新。Medium: 旧Version競合、withdrawnの不正復帰、利用再開時のSession自動復活誤解、UI確認ダイアログと実際の無効化範囲の差。",
@@ -25412,8 +25418,8 @@
       "test_responsibility": "Web AdminUserDetailFormのstatus確認→AdminUserUseCases.changeSuspension→change-user-access transactionのusers/sessions/checkouts→Dexie Repositoryを追跡。User/Session/Checkout/Cartの前後不変を個別に検証。",
       "case_policy": "C1〜C7採用。停止/再開の副作用をRole別に分け、Checkout破棄はcustomer停止時だけの現実装として検証。last-adminや自己変更はA02の独立操作とも突合。",
       "case_selection_reason": "停止/再開の正常系・遷移拒否・Session/Checkout副作用・Version競合・transaction rollback・Role保護・UIを採用。",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/75-79、roles-and-permissions.md:5-23、review-user-pages.tsx:798-835、review-user-use-cases.ts:600-639、transaction-runner.ts:99、basic-repositories.ts:57-63/126-131、default-dataset.ts:755-772、integration:297-351、component:459-475を照合。変更はactive↔suspendedだけ。User更新と全Session削除は同一transaction、customer停止時のみCheckoutをabandon。既存integrationは昇格したoperatorの停止、withdrawn拒否を確認するが、customer停止でのCheckout/Cart前後、再開後の古いSession、失敗注入・last-admin非self・実Webは未確認。基本分析と実Runを分離してreview_required維持。 2026-11-04補足: 唯一のactive admin本人停止はSELF_CHANGE_FORBIDDENが先行。非self LAST_ADMIN_PROTECTEDは通常の有効actor/target条件では作れないため、actor失効競合時の#199旧版/#210再認可と分けた。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD 35b862fb934d363def4311bc8b4cb52400e1a21c の静的基本分析。admin-users.md:9-25/43-79、roles-and-permissions.md:1-28、Web review-user-pages.tsx:665-685/798-835（自己disabled・ConfirmDialog・Session無効化案内）、UseCase review-user-use-cases.ts:600-640/642-714（self/status/last-admin/Version/checkout放棄）、Dexie basic-repositories.ts:57-63/115-133、transaction-runner.ts:98-99/130-141、default-dataset.ts:730-773、scenarios.ts:367-395、既存integration review-user-use-cases.test.ts:297-351、component review-user-pages.test.tsx:459-475を照合。静的にcustomer停止のみcheckouts.abandonActiveByUser、成功停止/再開はtarget全Session削除、Cart非変更。C1〜C7のVersion/Role/許否/rollback/2→1/admin/実Web/DB/Visual/a11yは一部の既存Caseコードのみ・今回の直接テストと実Run未実施。#210側のactor再認可とは別HEAD、動的PASS・製品適合未受入。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25421,7 +25427,7 @@
       "related_use_cases": [
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "2026-11-04: A01-04のStatus遷移、Session無効化、customer停止時Checkout abandoned、rollback/last-admin/Version条件を静的追跡。C1〜C7を具体化。直接動的実行・状態不変・実画面受入は未完了。 | 2026-11-04: C3のlast-admin期待を自己拒否・2→1許可・actor競合の区別へ訂正。実Web/DBは未受入。",
+      "analysis_progress": "2026-11-04 基本静的分析analyzed：Status active↔suspended、customer Checkout abandoned/Cart保持、全Session無効化、再開時旧Session不可、stale Version・rollback・自己/last-admin保護・失効actor差を確認。動的受入は#219、製品修正判断は#210。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,

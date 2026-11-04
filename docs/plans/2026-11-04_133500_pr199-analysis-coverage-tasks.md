@@ -19,8 +19,8 @@
 - [x] `SCREEN-ADMIN-PRODUCTS-A01-02`：SKU・カテゴリー・ブランド絞込の正式仕様とUI/Repositoryの差、選択Set残留・空一括更新・page残留・SKU0件の価格境界を特定し、Case採否と未決の判断主体を記録
 - [x] `SCREEN-ADMIN-USERS-A01-02`：Rank/filter・sortの正式要求とUIの欠落、Role/Status変更後page残留、管理権限・DB不変の根拠を整理
 - [x] `SCREEN-ADMIN-USER-DETAIL-A01-02`：Role変更の昇格/降格、version CAS、Session失効、自己/withdrawn/権限失効拒否、rollbackとC1〜C7を照合。既存学習用CaseのCI成功と未実行の直接Caseを区別
-- [ ] `SCREEN-ADMIN-USER-DETAIL-A01-03`：3 Rank、Checkout abandoned、Cart保持、変更後の価格、stale・actor失効・rollbackの証拠と不足条件を確定
-- [ ] `SCREEN-ADMIN-USER-DETAIL-A01-04`：active/suspended、全Session無効化、customer Checkout破棄、旧Session拒否、transaction failure、last-admin境界を整理
+- [x] `SCREEN-ADMIN-USER-DETAIL-A01-03`：3 Rank、Checkout abandoned、Cart保持、変更後の価格、stale・actor失効・rollbackの証拠と不足条件を確定
+- [x] `SCREEN-ADMIN-USER-DETAIL-A01-04`：active/suspended、全Session無効化、customer Checkout破棄、旧Session拒否、transaction failure、last-admin境界を整理
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A02-01`：自己Role変更・自己停止のUI禁止とUse Case拒否、Session/全DB不変、別admin存在時を照合
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A02-02`：withdrawn customer/staffへのRank/Role/Statusの各拒否、Web read-only、非書込みと期待エラーを照合
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A02-03`：有効adminの2→1は許可、本人変更は自己拒否、actor権限失効/並行競合は別条件として静的・実行可能な根拠を整理。成立しない「非self最後のadmin」fixtureを作らない
@@ -72,3 +72,15 @@
 - 対象・固定照合HEAD：`ee94a27bbb545f21e5e2c7cf3ea0e840e6230073`。台帳基本分析は182/188操作・17/20状態に更新（79要件の内容レビューは未完）。`Role/State/Data`、Web→UseCase→Dexie/Session、正式BR/AC・Seed・Risk/TR/C1〜C7を照合。
 - 直接根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:618-835`、`src/application/use-cases/review-user-use-cases.ts:567-598,642-714`、`src/infrastructure/database/dexie/basic-repositories.ts:57-63,115-133`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`、`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs:182-330`。既存契約C1/2、拒否Caseは**コード確認のみ**。固定HEADでの個別テスト成功は未確認。
 - 判定：静的基本分析は完了。通常のactive adminから他者adminを2→1降格するのは許可、最後の本人はSELF_CHANGE_FORBIDDENであり、非self last-adminの成立しないfixtureは作らない。Run/DB故障注入/actor失効競合/Visual/a11yは未実施で#219へ依頼。製品#210のtransaction内再認可は#199へ未反映として別評価。製品適合・動的受入・最終CIはPASS扱いしない。
+
+### `SCREEN-ADMIN-USER-DETAIL-A01-03`（2026-11-04）
+
+- 固定照合HEAD：`35b862fb934d363def4311bc8b4cb52400e1a21c`。正式BR/AC・Role/State/Data、Web→UseCase→Dexie transaction・Seed・Risk/TR/C1〜C7の**静的基本分析を完了**し、台帳の同IDを `analyzed` に更新。
+- 根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:655-835`、`src/application/use-cases/review-user-use-cases.ts:542-640`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`、`tests/integration/review-user-use-cases.test.ts:276-351`。具体的な条件・既存Caseとの差・判断先は `supported-behaviors.json` の `basic_analysis_review` / `case_policy` に記録。
+- 未実行：直接Vitest・実Web/DB全表前後・Version/actor失効・故障注入rollback・Visual/a11y/Trace。#219へ実行証拠を依頼し、#210の製品修正/transaction内再認可は未統合として別判定。未実施をPASSにしない。
+
+### `SCREEN-ADMIN-USER-DETAIL-A01-04`（2026-11-04）
+
+- 固定照合HEAD：`35b862fb934d363def4311bc8b4cb52400e1a21c`。正式BR/AC・Role/State/Data、Web→UseCase→Dexie transaction・Seed・Risk/TR/C1〜C7の**静的基本分析を完了**し、台帳の同IDを `analyzed` に更新。
+- 根拠：`docs/spec/features/admin-users.md:9-25,43-79`、`src/presentation/pages/review-user-pages.tsx:655-835`、`src/application/use-cases/review-user-use-cases.ts:542-640`、`src/infrastructure/database/dexie/transaction-runner.ts:98-99,130-141`、`src/seeds/default-dataset.ts:730-773`、`tests/integration/review-user-use-cases.test.ts:276-351`。具体的な条件・既存Caseとの差・判断先は `supported-behaviors.json` の `basic_analysis_review` / `case_policy` に記録。
+- 未実行：直接Vitest・実Web/DB全表前後・Version/actor失効・故障注入rollback・Visual/a11y/Trace。#219へ実行証拠を依頼し、#210の製品修正/transaction内再認可は未統合として別判定。未実施をPASSにしない。
