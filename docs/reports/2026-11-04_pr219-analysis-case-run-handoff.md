@@ -66,3 +66,11 @@
 - #219専用E2Eへ`SCREEN-CHECKOUT-CONFIRM-S-stale-cart: rejected confirmation preserves DB transaction tables`を追加。Web `regular-member` Seed（固定Clock期待値`2026-07-01T03:00:00.000Z`）、Cart数量変更でconfirm-ready Checkoutをstaleにした後、拒否画面表示だけで10表（Cart/Checkout/Order/Payment/Shipment/各History）のdigestが変わらないことをassertする。変更範囲は受入用Webテストのみ。
 - 既存のCheckout競合画面・停止staff循環についても、成功時のPlaywright添付ArtifactをCIが保持しないため、**結果の真偽だけ**を含む`PR219_CASE_EVIDENCE`ログを追加。実テーブル値・hash値・Session IDを出力しない。`c0821559ea3cc776f945893e7e45cad3cc54c807`以降の新E2EはCI未実行扱いとする。
 - 208動作・41行の過去のWeb証拠、#213の分析台帳は変更していない。採用Case確定・全件DB前後・成功時Trace/動画/画面画像保存・Android/SQLiteは保留。タスクリストのチェックは14/21のまま。
+
+## DB10表不変の固定実行証拠とCI失敗の切分け（2026-11-04）
+
+- 固定SUT `46cd014e`、テストHEAD `681e55c7105e436b045c59a65d5fdd64d5b27723`、CI #41824802868、cross-role job `126557496126`はsuccess。新規Web Caseのstale Checkout拒否前後でIndexedDB **10表（Cart/Checkout/Order/Payment/Shipment/各History）のSHA-256一致を確認**。支払ボタン・注文確認見出しの非表示も検証。ジョブログ`PR219_CASE_EVIDENCE`には`tableCount=10`と不変判定のみ記録。元データ・Session ID・ハッシュ本体は出力しない。
+- 同じジョブで停止operatorの旧SessionによるForbidden循環（全23表不変）とCheckout競合の320〜1440px/axe/Keyboardを個別PASSとして再確認。ただし誘導ループと`/checkout/payment`への誤った復帰先は**製品FAIL再現**。成功時の画像・Trace・JSON添付は永続化されていない。
+- Web実行証拠CSVに`PR219-WEB-025`を追加し、**41→42履歴行、34列**とした。旧41行・全列は変更なし。208動作一覧の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`への対応キーを更新。正式Case採否・79要件（29横断を含む）との網羅的な対応は未決定。
+- #41824802868のworkflow全体はPrettier違反でfailure。Style Quality `126556819280`の原因を専用E2Eだけに限定し、`6455a4d`の別Run #41826050155 Style Quality `126560935572`でsuccessを確認。既存cross-roleでは`getByRole("status")`が完了メッセージとLoadingに二重一致するTEST ERRORが継続。#199へ[原因と修正候補を引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6630183604)済み。所有外の既存E2Eは変更しない。
+- タスク2/7/13/14/15/19/20は残る。Android実機/SQLite、正式画像差の承認・全CaseのTrace/Network/Console/実測Clock、独立レビュー未実施をPASSにしない。
