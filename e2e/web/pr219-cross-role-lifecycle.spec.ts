@@ -284,7 +284,7 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
   test("KNOWN DEFECT REPRO: confirmed Checkout returns to payment instead of Cart", async ({
     page,
     scenario,
-  }) => {
+  }, testInfo) => {
     await scenario("regular-member");
     await addDefaultAddress(page);
     await page.goto("/checkout/address");
@@ -311,6 +311,45 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     await expect(page.getByRole("heading", { name: "注文内容を確認" })).toHaveCount(0);
     const recovery = page.getByRole("link", { name: "戻って確認する" });
     await expect(recovery).toHaveAttribute("href", "/checkout/payment");
+
+    // Capture the existing conflict screen at each required responsive boundary.
+    // A green defect-reproduction assertion does not mean the product was accepted.
+    for (const viewport of [
+      { width: 320, height: 700 },
+      { width: 390, height: 844 },
+      { width: 767, height: 900 },
+      { width: 768, height: 900 },
+      { width: 1023, height: 900 },
+      { width: 1024, height: 900 },
+      { width: 1440, height: 1000 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await expect(page.getByRole("heading", { name: "購入手続きを続けられません" })).toBeVisible();
+      await expect(recovery).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await testInfo.attach(`pr219-checkout-stale-conflict-${viewport.width}`, {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
+      if (viewport.width === 320 || viewport.width === 1024) {
+        const axe = await new AxeBuilder({ page }).analyze();
+        await testInfo.attach(`pr219-checkout-stale-conflict-axe-${viewport.width}`, {
+          body: JSON.stringify(axe.violations, null, 2),
+          contentType: "application/json",
+        });
+        const blocking = axe.violations.filter((issue) =>
+          ["serious", "critical"].includes(issue.impact ?? ""),
+        );
+        expect(blocking).toEqual([]);
+      }
+    }
+
+    await recovery.focus();
+    await expect(recovery).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/checkout\/payment$/);
   });
 });
 
