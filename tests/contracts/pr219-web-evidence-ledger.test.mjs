@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const WEB_CASES = "docs/reports/2026-11-04_pr219-web-case-run-evidence.csv";
 const BEHAVIORS = "docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv";
+const CROSS_CUTTING =
+  "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
 
 // Quoted commas, escaped quotes and multiline fields are valid CSV.
 function parseCsv(source) {
@@ -125,6 +127,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       // A historical evidence key can appear in several runs, but cannot
       // silently change which Behavior it represents.
       expect(new Set(previous.map((entry) => entry.behavior_id)).size).toBe(1);
+      expect(new Set(previous.map((entry) => entry.case_id)).size).toBe(1);
     }
     expect(byKey.size).toBeGreaterThanOrEqual(27);
 
@@ -153,6 +156,35 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
         return refs.includes(item.evidence_case_key);
       });
       expect(incorrectlyLinked).toBe(false);
+    }
+  });
+
+
+  it("traces 29 cross-cutting requirements without claiming unadopted Cases", () => {
+    const matrix = readCsv(CROSS_CUTTING);
+    const webCases = readCsv(WEB_CASES).rows;
+    expect(matrix.header).toHaveLength(11);
+    expect(matrix.rows).toHaveLength(29);
+    const ids = matrix.rows.map((row) => row.requirement_id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const row of matrix.rows) {
+      expect(row.source_analysis_blob_sha).toMatch(/^[a-f0-9]{40}$/);
+      expect(row.representative_behavior_ids).not.toBe("");
+      expect(row.existing_cross_cutting_test).not.toBe("");
+      expect(row.source_test_condition).not.toBe("");
+      expect(row.source_case_policy).not.toBe("");
+      expect(row.dynamic_acceptance).toBe("未受入");
+      expect(row.formal_case_id_status).toContain("未確定");
+      const behaviors = row.representative_behavior_ids.split(";");
+      const keys = row.matching_web_evidence_key_candidates
+        ? row.matching_web_evidence_key_candidates.split(";")
+        : [];
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const key of keys) {
+        const related = webCases.filter((item) => item.evidence_case_key === key);
+        expect(related.length).toBeGreaterThan(0);
+        expect(related.every((item) => behaviors.includes(item.behavior_id))).toBe(true);
+      }
     }
   });
 
