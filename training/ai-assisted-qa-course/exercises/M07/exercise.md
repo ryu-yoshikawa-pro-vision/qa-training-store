@@ -70,15 +70,15 @@ pnpm course:run M07 maintenance.spec.ts --label after
 
 ### Git/PRを使わないPhase 2成果物の保全
 
-Phase 1/2の提出物やTraceを公開リポジトリへpushしません。M08へ移る前に、本人が保管先を決め、**必要なファイルを個別に選び、機密情報を確認してから**手元に保存してください。GitHubのcommit/PRや正式AI評価の実行は、この保全作業の前提ではありません。
+Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保管用ファイルは配布済みの`workspace/.gitignore`でGit管理対象外の`M07/`配下に置きます。**生成されるアーカイブは暗号化されない**ため、外部共有・公開先へのpushをせず、本人のみがアクセスできる領域で扱ってください。M08へ移る前に、本人が保管先を決め、**必要なファイルを個別に選び、機密情報を確認してから**手元に保存してください。GitHubのcommit/PRや正式AI評価の実行は、この保全作業の前提ではありません。
 
 1. `workspace/M05/`〜`workspace/M07/`にある本人の提出物とspecを確認します。Runの記録は各モジュールの`evidence/runs/<実際のrun_id>/`内にあり、`run-evidence.json`、`spec-snapshot.ts`、`playwright-result.json`、必要に応じてTrace・画像等のattachmentを選びます。修正前後の**別Run**と`source_sha`・`spec_sha256`を取り違えないよう、まず`phase2-handoff.md`へ実際の識別子を記録します。
 2. Run内のJSON、Trace、画像、標準出力にはURL、認証状態、個人情報等が含まれる可能性があります。内容を確認できないものは外部へ持ち出さず、**未保全と理由**を記録します。`.env*`、トークン、ブラウザの認証プロファイル、`workspace/.course-assessments/`、非公開採点資料、無関係な生成物を含めません。
 3. Codespacesのターミナルで、リポジトリルートから次のように、本人の成果物**だけ**を一覧にします。ファイルが未作成なら原因を確認し、架空の出力や空のファイルを作って完了扱いにしません。
 
    ```bash
-   mkdir -p workspace/exports
-   cat > workspace/exports/phase2-files.txt <<'EOF'
+   mkdir -p workspace/M07/exports
+   cat > workspace/M07/exports/phase2-files.txt <<'EOF'
    workspace/M05/submission.md
    workspace/M05/product-link.spec.ts
    workspace/M06/submission.md
@@ -103,20 +103,20 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。M08�
      test -f "$file" && test ! -L "$file" || {
        echo "存在しないか、symlinkです: $file"; exit 1;
      }
-   done < workspace/exports/phase2-files.txt
+   done < workspace/M07/exports/phase2-files.txt
 
-   tar -czf workspace/exports/phase2.tgz -T workspace/exports/phase2-files.txt
-   sha256sum workspace/exports/phase2.tgz > workspace/exports/phase2.tgz.sha256
-   sha256sum -c workspace/exports/phase2.tgz.sha256
-   tar -tzf workspace/exports/phase2.tgz
+   tar -czf workspace/M07/exports/phase2.tgz -T workspace/M07/exports/phase2-files.txt
+   sha256sum workspace/M07/exports/phase2.tgz > workspace/M07/exports/phase2.tgz.sha256
+   sha256sum -c workspace/M07/exports/phase2.tgz.sha256
+   tar -tzf workspace/M07/exports/phase2.tgz
    ```
 
 6. `phase2.tgz`と`phase2.tgz.sha256`をCodespacesから本人だけがアクセスできるローカル保管先へダウンロードします。実際に保管したアーカイブのSHA-256を照合し、信頼できる**空の非公開ディレクトリ**で解凍して提出物・Run記録を読み取れることを確認します。公開URLやGitHub PRへ貼り付けず、`phase2-handoff.md`に保存先（個人情報・秘密情報を含まない表記）、SHA、復元確認の結果を記録します。
 
    ```bash
-   mkdir -p workspace/exports/restore-check
-   tar -xzf workspace/exports/phase2.tgz \
-     -C workspace/exports/restore-check --no-same-owner --no-same-permissions
+   mkdir -p workspace/M07/exports/restore-check
+   tar -xzf workspace/M07/exports/phase2.tgz \
+     -C workspace/M07/exports/restore-check --no-same-owner --no-same-permissions
    ```
 
 この手順の確認項目は**ファイルの保全・同一性・読取り**です。コピーしたRun記録だけで未実施のテストをPASSにしたり、実際の製品や本人の修了を証明したりはできません。Codespacesでアーカイブ作成・ダウンロード・復元が行えなかった場合は未実施/BLOCKEDと書き、手順を実施したと偽らないでください。
