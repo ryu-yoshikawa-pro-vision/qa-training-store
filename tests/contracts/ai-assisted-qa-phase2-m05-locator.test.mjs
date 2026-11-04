@@ -43,7 +43,9 @@ describe("M05-02：2明細のLocatorを実装と参照specで照合する", () =
     );
     expect(reference).toContain("await expect(mugRemove).toHaveCount(1)");
     expect(reference).toContain("await expect(mugRemove).toBeEnabled()");
-    expect(reference).toContain('await expect(page.locator("article.cart-item")).toHaveCount(2)');
+    expect(reference).toContain(
+      'await expect(page.locator("article.cart-item")).toHaveCount(2)',
+    );
     expect(reference).not.toMatch(/mugRemove\.click\(/);
   });
 
