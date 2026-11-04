@@ -58,7 +58,7 @@
 
 ## クイズ・理解事項・自習・引継ぎ（補完）
 
-- [ ] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
+- [x] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
 - [ ] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
 - [ ] 通常のOpenCode AIチューターについて、初学者が説明→段階ヒント→別条件練習→誤解別の復習→再挑戦を進められる内容と実操作を検証。学習側Agentの正しい説明だけで本人の達成にせず、M04の独立正式AI採点と混同しない
 - [ ] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
@@ -122,3 +122,11 @@ GitHubの最新ファイルを再取得し、M02の5目標すべてについて�
 - 本文中の存在しない「カート更新API」をUse Case→Dexie/IndexedDBへ訂正。別システムのメール再設定例は架空と明記。専用`tests/contracts/ai-assisted-qa-phase1-m04-review.test.mjs`を追加。
 
 GitHubから再取得した教材・P課題・提出・評価条件・クイズ・start/endの静的照合に限る。**Vitest、実M06入力Caseの実行可能性、本人の正式Phase 1評価、CIは未受入**。実行なしでPhase修了とはしない。
+
+## 2026-11-04 M00〜M04クイズ32問の確認
+
+`M00=6/M01=5/M02=8/M03=9/M04=4`、計32問の問題文・4選択肢・正答・誤答理由をレビューし、22学習目標に対する`objective_ids`と`knowledge_ids`の対応を確認。全問で選択肢値4種が重複せず、正答は4種のうち1つ、説明は空欄なし。復習先は**既存`scripts/spec/slug-heading.ts`のNFKC正規化・ハイフン連続圧縮に従って**見出しと照合し32/32一致。独自の簡易slug判定による誤検出は採用しない。
+
+`M04-Q02`の正答はIntegration/Componentをまとめて「連携点」としていたため、Unit=計算、Integration=保存連携、Component=UI部品、Web E2E=導線へ修正（`M04.json@b70ef11ab0af57a2b5c7ea88bd9be507c2b8cbab`）。M02-Q03の復習リンクは既存slug実装では元の1ハイフンが正しいためその状態へ戻し、追加変更なし。
+
+クイズは**知識の確認**に過ぎず、本人のP課題・固定Skill実行・独立した正式AI評価によるLevel 2を証明しない。既存の横断リンク契約テストはコードを読んだが、Vitest・CIでの実行は未確認。
