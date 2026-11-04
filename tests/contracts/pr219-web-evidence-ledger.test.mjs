@@ -156,4 +156,19 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     expect(() => parseCsv('case,key\n"unfinished')).toThrow("Unclosed CSV quote");
     expect(() => parseCsv("case,key\none\n")).toThrow("Inconsistent CSV column count");
   });
+
+  // Temporary diagnostics: records the exact formatter output in the job log.
+  it("diagnoses the exact formatter output for this contract", async () => {
+    const file = join(process.cwd(), "tests/contracts/pr219-web-evidence-ledger.test.mjs");
+    const contents = readFileSync(file, "utf8");
+    const prettier = await import("prettier");
+    const config = await prettier.resolveConfig(file);
+    const result = await prettier.format(contents, {
+      ...config,
+      filepath: file,
+    });
+    if (contents !== result) {
+      console.log("PR219_PRETTIER_EXPECTED " + JSON.stringify(result));
+    }
+  });
 });
