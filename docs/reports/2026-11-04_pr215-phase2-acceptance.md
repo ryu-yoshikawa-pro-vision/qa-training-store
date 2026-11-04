@@ -282,3 +282,12 @@
 **報告項目の判定**：対象テスト、CIの確定結果と未確定結果、Playwright実Runの未実施範囲、必要な再開条件を固定HEADで報告した。**受入チェック25件のうち「対象テスト、Playwrightの実Run、CI、証拠/残リスクを固定HEADで報告。実行環境がない項目は未実行として残す」は報告業務として完了**。M05/M06/M07の実Run・本人技能達成を完了に変更しない。
 
 **Progress: 32% (8/25)**。未完了17件。
+
+## 2026-11-04 継続：Playwright JSON reporterの相対パス受入修正
+
+- **開始HEAD**：`d4081e0d0ac4faf8d3e432c594b922358954ef08`。その[Web CI #41846124524](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41846124524)で`Vitest (contracts)`・`Training runtime contracts`・`Style Quality`・`Code Quality`・`Chromium E2E (training-web-baseline)`各jobの`success`を個別確認。確認時点でworkflow全体は`in_progress`。通常training baselineのChromium成功はM05〜M07本人実行とは異なる。
+- **不整合**：Playwright v1.62.0のJSON reporter `packages/playwright/src/reporters/json.ts` は`spec.file`を`path.relative(this.config.rootDir, location.file)`で保存する（[v1.62.0原本](https://github.com/microsoft/playwright/blob/v1.62.0/packages/playwright/src/reporters/json.ts)）。新課程のConfigでは`rootDir`が選択された`PLAYWRIGHT_TEST_ROOT`（例：`workspace/M05`）なので、JSONの`spec.file`は`p05-cart-locator.spec.ts`等の相対パスになる。前バージョンのM05教材内検証は`path.resolve(spec.file)`でリポジトリルートから解決し、正常なレポートの対象specを誤って拒否する。
+- **今回の修正**：`exercises/M05/exercise.md`（Blob `f4d4d198f73c36e20d73c5e0a4771d3e540f6f57`）はreportの`config.rootDir`が本人specの親ディレクトリと一致することを検証し、各`spec.file`をそのrootから解決するよう変更。前回の「対象test1件以上・全件passed・期待結果passed・別spec拒否」を維持。`tests/contracts/ai-assisted-qa-phase2-direct-run.test.mjs`（Blob `c59ba8d8b6cb78beaf9b7288a937b954338159aa`）の正常stubをPlaywrightの`rootDir`相対形式に修正。rootDir不一致、別spec、0件、skip、期待FAIL、実行中ソース変更、report欠落、非0終了、symlinkの負例は保持。
+- **共有実行器の同種問題（未修正・担当外）**：`scripts/training/ai-assisted-qa-run-evidence.mjs`の`reportSpecs()`は`path.resolve(root, spec.file ?? "")`で`rootDir`相対ファイルをリポジトリルートから解決するため、`course:run`の実行が成功しても抽出テスト数が0となり`outcome=ungradable`へ誤判定する可能性がある。同じ抽出関数はRun再検証でも使う。[PR #217の引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)へPlaywrightの根拠、コード経路、修正案、回帰条件を記載済み。共通scriptと正式評価を#215では変更しない。
+- **追加変更HEAD**：`169e280c5501b17f65aa3aea0fc517ef6a16514a`。対応する[Web CI #41847121287](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41847121287)の`Style Quality`と`Code Quality`は確認時成功、`Vitest (contracts)`等は進行中。変更後のCI全体/本人Playwright実Runは未確認。本人Private Codespaces・配布manifest固定SHAによる本番受入は未実施。
+- **チェック判定**：reporterのファイル照合修正と契約テスト更新は技術的前進だが、M05-05等の実Runを含む完了条件を満たしていない。**Progress: 32% (8/25)**を維持し、未完了17件をそのまま残す。
