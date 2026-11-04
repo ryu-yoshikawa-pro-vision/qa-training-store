@@ -173,3 +173,12 @@
 - `M07-01`の完了は**失敗分類と切分け手順の整備**に限定する。`M07-02`の実失敗Trace・Screenshot・別Run、`M07-04/05`の修正前後実Run、受講者自身の診断達成を意味しない。
 
 **Progress: 20% (5/25)**。`M07-01`の分類手順整備を追加で1件チェックし、実Chromium、固定配布Shop、受講者本人の成果物が必要な20項目は未完了。
+
+### 製品Web実装との照合と今回の教材修正
+
+- 確認対象HEAD：`eabe951e7d8ee59ba9df389e8a5f8403089b5cda`。製品SUTは読み取り専用で、`src/presentation/pages/cart-page.tsx` Blob `2718f5e23af7bc6362652969771ce15b9931d1f5`を確認。Web数量UIは`<select>`であり、変更は`cartUseCases.updateQuantity`を呼ぶ。M06教材に、Web版のデータはブラウザ内のIndexedDBを使うと明記されている。
+- M07教材の「数量+ボタン」例、存在を確認していない「カート更新APIの200/500」を前提にした根拠、Run metadataの「対象コミットSHA」を、実際のWeb実装と`course:run` receipt（配布元`source_sha`、`spec_sha256`）に整合する表現へ修正。一般的なサーバー型システムのAPI 500例は、演習対象Scenario Shop Web版の診断と区別した。
+- `modules/M06/README.md`の`run_id`例「run-2026...」は、実際の`ai-assisted-qa-run-evidence.mjs`の`randomUUID()`形式と一致しなかったため、UUIDである旨へ修正。実行していないRun IDの見本値は記載しない。
+- 以上は教材の事実整合を改善する変更であり、本人によるPlaywright実RunやM05〜M07の学習目標達成を意味しない。共有runnerの調停：[PR #217への連絡](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6630325393)、統合：[PR #199への連絡](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6630333042)。
+
+**Progress: 20% (5/25)**。実Runが必要な20項目のチェックは維持せず、未完了のまま残す。
