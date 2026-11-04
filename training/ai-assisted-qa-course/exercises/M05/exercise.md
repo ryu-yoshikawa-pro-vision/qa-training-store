@@ -80,12 +80,14 @@ P05では本人のspecが存在することを確認し、以下のとおり**�
 ```bash
 mkdir -p workspace/M05/evidence
 p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)"
+p05_exit=0
 PLAYWRIGHT_TEST_ROOT=workspace/M05 \
   AI_QA_OUTPUT_ROOT="$p05_output" \
   pnpm exec playwright test p05-cart-locator.spec.ts \
     --config=playwright.ai-assisted-qa.config.ts \
-    --project=ai-assisted-qa-chromium --retries=0
-p05_exit=$?
+    --project=ai-assisted-qa-chromium --retries=0 \
+    > "$p05_output/console.log" 2>&1 || p05_exit=$?
+cat "$p05_output/console.log"
 printf 'exit_code=%s\noutput_root=%s\n' "$p05_exit" "$p05_output"
 sha256sum workspace/M05/p05-cart-locator.spec.ts
 ```
