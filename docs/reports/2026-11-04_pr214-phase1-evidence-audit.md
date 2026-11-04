@@ -1,0 +1,69 @@
+# PR #214 Phase 1教材と評価証拠の照合（2026-11-04）
+
+## 対象と実施方法
+
+対象ブランチ：`work/pr199-curriculum-phase1`。照合基準HEAD：`7ec8e6f92da31ac25516cce62794b7ae8e4f1964`。GitHubから各原本を直接取得し、ID、必要課題、提出欄、採点条件、復習先、状態契約をJavaScriptで静的に確認した。検証対象はM00〜M04の22学習目標である。
+
+**実行したもの**：GitHub上のJSON/Markdownの値と参照先の直接照合。**実行していないもの**：Vitest、Codespacesの手動操作、モデルによるSkill実行、本人採点、GitHub Actions完了判定。静的確認は学習者のLevel 2修了を証明しない。
+
+## 22目標の対応
+
+以下のP番号は、各モジュール`assessment/scoring-tests/<module>.json`の`required_evidence[0]`から取得した。全P番号について、`exercises/<module>/exercise.md`のP見出しと`submission-template.md`の同じ番号の提出行を確認した。
+
+| 学習目標 | 採点条件 | 必須P課題 |
+| --- | --- | --- |
+| M00-01 | M00-CR-01 | P01 / P02 / P05 |
+| M00-02 | M00-CR-02 | P03 / P06 |
+| M00-03 | M00-CR-03 | P04 |
+| M00-04 | M00-CR-04 | P05 / P06 |
+| M01-01 | M01-CR-01 | P01 / P02 / P03 |
+| M01-02 | M01-CR-02 | P04 |
+| M01-03 | M01-CR-03 | P06 |
+| M01-04 | M01-CR-04 | P05 |
+| M02-01 | M02-CR-01 | P01 / P02 / P03 |
+| M02-02 | M02-CR-02 | P01 / P02 / P03 |
+| M02-03 | M02-CR-03 | P06 |
+| M02-04 | M02-CR-04 | P04 |
+| M02-05 | M02-CR-05 | P05 |
+| M03-01 | M03-CR-01 | P01 |
+| M03-02 | M03-CR-02 | P02 |
+| M03-03 | M03-CR-03 | P03 |
+| M03-04 | M03-CR-04 | P04 |
+| M03-05 | M03-CR-05 | P05 / P06 |
+| M04-01 | M04-CR-01 | P01 / P02 / P03 |
+| M04-02 | M04-CR-02 | P04 |
+| M04-03 | M04-CR-03 | P05 |
+| M04-04 | M04-CR-04 | P06 |
+
+**結果**：採点対象22/22、対応P見出しと提出欄22/22。M00-04の実操作が未完了であることと、P番号・提出欄の存在は別の判定である。
+
+## 復習先と開始・終了状態
+
+| モジュール | 学習目標数 | クイズ数 | 開始・終了契約 |
+| --- | ---: | ---: | --- |
+| M00 | 4 | 6 | ai-assisted-qa-course-v3 / 一致 |
+| M01 | 4 | 5 | ai-assisted-qa-course-v3 / 一致 |
+| M02 | 5 | 8 | ai-assisted-qa-course-v3 / 一致 |
+| M03 | 5 | 9 | ai-assisted-qa-course-v3 / 一致 |
+| M04 | 4 | 4 | ai-assisted-qa-course-v3 / 一致 |
+
+22/22目標は各教材本文とクイズから参照できる。32問すべての`review_path`に指定された見出しは、既存`scripts/spec/slug-heading.ts`のNFKC正規化・連続ハイフン圧縮と同じ規則で再計算して照合し、32/32一致した。各モジュールの`states/<module>/start.json`と`end.json`について、22/22の`expected.objective_ids`が一致し、差分なし。クイズの正答は実技の合格判定に換算しない。
+
+追加した固有の回帰テストは`tests/contracts/ai-assisted-qa-phase1-objective-evidence.test.mjs`。22目標・P番号・P見出し・提出欄・採点条件・クイズ・教材目標ID・開始/終了stateの関係をテスト時に検査する。**テストソース追加と本記録の静的検証は実施済みだが、Vitestの実行結果は未取得。**
+
+## 固定Skillのソース照合と実行できなかった範囲
+
+`training/course-sync/manifest.json`は`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`を指定。GitHubの指定commitにおけるGitツリー（`truncated=false`）と配布定義の**104ファイル**を`source_path`・Git Blob SHA・byte sizeで直接照合した結果、104/104一致、欠落0。内訳：SKILL.md 13、scripts 43、assets 28、references 20。M02/M03に必要なspec-analysis、test-analysis、test-requirement-design、test-condition-design、test-case-design、coverage-analysisのSKILL.mdも存在した。
+
+これは**配布元ソースの整合**であり、受講者の`.agents/skills/`への実コピー、Python 3.11でのhelper実行、モデル依存Skill runtime、出力envelope・fingerprint・current参照のPASSではない。環境へ配置済みとは判断していない。M02→M03の統合受入とSkill-localの実行項目は未チェックで残す。
+
+M00の`loadModule`は異なる既存学習者ファイルを検出すると`existing learner files differ; nothing was overwritten`で拒否する設計で、既存`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`にはM00の`submission.md`へ文字列を追記して再ロード拒否・内容保持を確認するテストがある。ただし**本作業でそのテストは実行していない**。Private 6080ポート、利用者の支払者/利用枠、実モデル料金画面の観測を代替できない。M00-04は未チェックのまま残す。
+
+## 不一致・引継ぎ
+
+- `M00-CR-03`：M00 P04の「架空の誤回答を実AI回答と区別して本人が独立訂正する」条件が、採点基準には独立した提出・合格要件として明示されていない。誤PASS防止の必要性をPR #217へ引き継いだ。
+- `M01-CR-04` / `M04-CR-02`：4テスト層すべてに独立した採否/限界/費用を提出させる教材の条件と、採点側のLevel 2判定の粒度をPR #217で照合する必要がある。
+- `M03-CR-04`：通常のゲスト→会員Cart統合と、P04の数量変更状態遷移を採点時に混同しないことをPR #217へ引継いだ。
+- 共通知識グラフの復習先・Cartへの適用関係の修正候補は、別途PR #199へ引継ぎ済み。
+
+関連実行方法：`pnpm test:contracts`で本リポジトリの契約テストを実行する。Codespaces本人によるP05/P06、固定Skill M02→M03、OpenCode AIチューター、正式M04評価は、それぞれ独立した実証拠が得られるまで未完了とする。
