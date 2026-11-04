@@ -243,3 +243,10 @@
 
 - `tests/integration/pr219-cart-boundaries.test.ts`に、`gold-member`でSale期間内に`variant-running-shoes-one`を購入Cartへ追加→期間外に`getCart`すると`PRICE_CHANGED`→CartとItemの最新versionで`acceptPriceChanges`し、価格スナップショットが6400→8000へ更新されるCaseを追加。
 - ClockはSale内`2026-07-01T03:00:00Z`、Sale外`2026-07-15T03:00:00Z`。Checkout表の前後不変もassertし、Rank・Saleの表示金額を時点別に区別する。実CIのCase成功は別途確認する。
+
+## 管理商品Repositoryの検索・SKU0価格・空bulkの受入（8番の継続）
+
+- 新規`tests/integration/pr219-admin-product-query.test.ts`に4件追加。Operatorの隔離Dexie環境で、商品コード/stock0/公開状態/Rankなし/価格1200のAND検索を検証。別Caseで有効SKUの文字列`P-0001-01`が現`AdminProductUseCases.search`に一致しないことを**既知不具合の再現**としてassert。
+- `product-mug`の唯一のVariantをテストDB内でinactiveにすると、`DexieAdminProductQueryRepository.search`は`Math.min(...[])`/`Math.max(...[])`で`Infinity`/`-Infinity`を返す。この異常値も**不具合再現（製品適合PASSではない）**として直接assertする。
+- targetIds空配列の`bulkChangeStatus`が`VALIDATION`拒否し、Products/Variants表を変更しないことを検証する。Webの表示外選択→空bulk未処理Promise経路は別のブラウザCaseで判定する。
+- 現時点で新規4件の実行は未確認。正式UIが要求するSKU/カテゴリ/ブランドフィルターの採否、many-productsのpage/sort・選択残留・一括部分成功、実画像/a11y/Traceは引き続き未受入。製品SUTへの変更は行わない。
