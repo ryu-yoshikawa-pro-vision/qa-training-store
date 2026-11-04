@@ -4,6 +4,12 @@
 >
 > 自分の所有ファイル以外（製品SUT、正式仕様、Seed/Reset、既存製品テストを含む）は直接変更しない。必要な変更はPR上で#199または#210へ引継ぎ。課金・外部公開・PRマージ・force push・branch削除は実施しない。
 
+## この環境のエージェントが担当する範囲
+
+#218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
+
+現状0/21件（HEAD `ce332fc1b14e`）。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。実配布の手順と必要なSHA/manifest/ログ・負例は#199へ引き継ぐ。
+
 ## 変更範囲
 
 編集：`training/course-sync/**`、`scripts/training/ai-assisted-qa-course-core.mjs`、`scripts/training/prepare-learner-template.mjs`、配布固有の新規契約テスト・監査レポート。共通`scripts/training/ai-assisted-qa-course.mjs`、`package.json`/lockfile、各モジュール、`assessment/**`、Phase 3無効workflow、知識グラフは統合先/他担当が所有。
@@ -13,25 +19,25 @@
 ## 配布物の生成と固定SHA
 
 - [ ] `training/course-sync/manifest.json`のallowlist、外部Skill元、`source_sha`、`generated.shop_build`と実ファイル依存閉包（import/asset/runtime）を全件照合
-- [ ] cleanな指定commitから`course:sync`→`verify-distribution`→Shop Build→配布物照合を実行し、HEAD/manifest/file Hash・コマンド・出力と失敗を記録
+- [ ] cleanな固定commitを入力とする`course:sync`→`verify-distribution`→Shop Build→SHA/manifest照合を既存のGitHub Actions・契約テストで確認し、実行ログ/結果/失敗を記録。学習者個人の実配布は#199へ引継ぐ
 - [ ] 同一固定SHAからの同期を再実行して成果物が一致し、作業中ファイル/未commit差分・別branch差が混入しないことを検証
 - [ ] 許可外path、欠落、Symlinkによる領域逸脱、重複/衝突、無効SHA、途中失敗、改ざん済みmanifestやgenerated Shopを負例で拒否
-- [ ] 配布済みShop`course/shop/**`と`.course/distribution-manifest.json`の照合、8082 Serve/Seed/Resetへの実行入口を確認。受講者に製品フルBuildを要求しない
+- [ ] Shop/manifest照合と8082 Serve/Seed/Resetの起動契約・入口・全Buildへのfallback禁止を既存コード/CIで検査。本人Codespacesでの実Port/Browser操作は#199へ渡す
 - [ ] M09→M10のRunner取得方式をPhase 3担当へ提供（許可ファイル・固定SHA・Hash/manifest検証のインターフェース）。Phase 3のworkflowはこのブランチでは変更しない
 
 ## 学習者のロード・非破壊性
 
 - [ ] `course:load` がM00〜M10の単一IDのみ受理し、未知/複数ID・パストラバーサルを拒否すること
-- [ ] 全11モジュールの正しい開始入力・必要Skill-localファイル・start/end revision/契約を検査。M03でAuthority/Risk/Scope/技法runtimeを欠く状態を事前拒否
+- [ ] 全11モジュールの開始入力・Skill-localファイル・start/end revisionをmanifest/validator/契約テストで検査し、M03のAuthority/Risk/Scope欠落を拒否。学習者による実ロード・修了の判定は#199へ渡す
 - [ ] 同じID再ロード・他モジュールを含む既存workspace・提出/Trace/個人評価履歴を上書き・削除しないことを成功/途中失敗の両方で確認
 - [ ] 先行成果物を失った場合でも、公開可能な独立開始入力で着手でき、本人の前Phase修了を架空に復元しないこと
-- [ ] Web教材・クイズと学習用Templateの配布版が確認でき、Web再読込や再回答が本人のworkspaceを変更しないこと
+- [ ] Web生成物と学習Templateが同一のMarkdown/クイズJSON・固定SHA/revisionに対応することを静的/CIで検証し、異版時のBLOCKEDと再読込非上書き契約を確認。公開Webの実ブラウザ受入は#199へ渡す
 
 ## 配布除外・法的条件・安全性
 
 - [ ] `assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec、正式workflow、旧教材、個人成績、`.env`/credential/secretがTemplate・Web・Build/Artifactへ混入しないことを検証
 - [ ] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の必要`SKILL.md/references/assets/scripts`全ファイルと改変有無を照合。不要な`evals/**`や内部評価runtimeを配布しない
-- [ ] 固定Skillと第三者依存ライブラリ/画像/フォント/生成物のライセンス・著作権者・再配布許諾・NOTICE原典を取得・確認し、必要な文面/同梱条件と配布ファイルの対応を記録。出典未確認を「許諾済み」にしない
+- [ ] 固定Skillと第三者素材/生成物のライセンス原典・権利者・再配布条件・NOTICEを一次資料で調査し、出典と未確認項目を台帳化。許諾の最終判断・不足時の公開可否は#199へ引継ぎ、未確認のまま「許諾済み」にしない
 - [ ] 外部AI送信対象（本人回答・関連節・Run要約）の明示、Token/個人情報/無関係な内容の除外・サイズ上限、Git外保存の実装と説明が一致すること。評価エンジン固有の処理は正式評価担当へ引継ぐ
 - [ ] `prepare-learner-template.mjs`の出力許可リスト・Hash・Secret・禁止ファイル、repo外生成先の安全性、コピー後に不足がないことを検証（外部GitHub repo作成・公開は行わない）
 - [ ] 依存/配布の契約・異常系テスト、Build/Serve、検証証拠を固定HEADで報告。未確認事項を元Planに引継ぐ
@@ -44,6 +50,14 @@
 ## Web・AIチューター・成果物保全との接続（補完）
 
 - [ ] 公開Webと学習用Templateが同一教材Markdown/クイズJSONの版を参照し、`source_sha`/revisionの不一致を受講者へ説明・受入可能にする契約を検証。Web画面の一問ずつの操作・アクセシビリティ・共通生成処理の修正は**#199本体**へ引継ぎ、製品画面の実受入である#219と混同しない
-- [ ] Phase 1/2で作った分析Markdown、spec/Config、Trace、Run、非公開の評価結果を**Git/PRなしで**本人がダウンロード/保全できる経路を配布済み環境と手順で検証。後続の`course:load`、再ロード、停止/再作成で既存成果物の消去・上書きをしない
-- [ ] 通常OpenCodeチューターの認証・無料モデル/料金確認・段階ヒント・復習用入力の配布境界と、独立正式評価の権限・外部送信・結果履歴を分けて検証。Secret/不要データ送信・モデルの自動有料切替・AI自己申告による修了を拒否し、採点エンジン固有の実装は#217へ渡す
-- [ ] 現ブランチが参照する11モジュールの公開開始/終了状態22件、前後の成果物ID・revision・公開開始サンプル・評価資料の配布除外について、非破壊ロードと構造照合を実施。#214〜#217の改訂後に必要な再検証条件は#199へ引き継ぎ、**全ブランチ統合後の最終版検証は#199が担当**。意味的なLevel 2評価とは区別
+- [ ] Phase 1/2の提出Markdown・spec/Config・Trace/Run・非公開評価結果についてGit/PR不要のエクスポート手順・保存先・除外・再ロード非破壊性をfixture/契約・CIで検証。本人のダウンロード・復元は#199へ渡す
+- [ ] 通常OpenCodeチューターの無料モデル/Secret・段階ヒント・復習用入力と正式評価の外部送信/権限/履歴の分離を、配布ファイルと公開設定/契約テストで検証。実モデル認証・料金/実対話は#199へ渡す
+- [ ] 現ブランチの11モジュール・22状態のID/revision/公開サンプル/評価資料除外を固定版manifest・契約テストで照合。#214〜#217更新後の統合版を用いた実ロード/非破壊性の最終実受入は#199へ引継ぐ
+
+## #199最後に実施する実受入（このPRのチェック対象外）
+
+- 本人Private学習環境へ固定Shop/11モジュール/Skillを同期し、実Portで起動・ロード・再ロード・提出物保持を確認
+- 本人のGit/PR不要の成果物ダウンロードと復元、Web教材とのrevision照合、実OpenCodeの料金/権限/Secretを確認
+- 外部Skill・第三者素材の再配布権利と公開条件の最終判断。Public Template公開自体は従来どおり#199マージ後の本人作業
+
+配布元の固定commit・ファイルSHA/manifest・期待結果・実行手順・未確認原典を#199に引き継ぐ。
