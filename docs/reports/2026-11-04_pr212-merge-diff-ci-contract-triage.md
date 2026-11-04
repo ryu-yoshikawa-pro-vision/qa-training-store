@@ -1,5 +1,12 @@
 # PR #212 / PR #199 差分とCI契約の突合（2026-11-04）
 
+## 2026-11-04 再計算：131 Behavior差への更新（#199固定HEAD `493a403b...`）
+
+- 現行#212台帳（`1f60df35`時点）と#199 `493a403b6449ae908117a23b4d631132a7d6d098`の**同一208 ID**をフィールド単位で再比較した結果、**131件の相違（分析Status差58件、その他のみ73件）**。以前の124件（Status差58件、その他66件）は54参照行補正・重複整理・補助認証紐付け**前**の値であり、最新値として使わない。
+- 124→131に増えた7 IDは`SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`、`SCREEN-ORDERS-DETAIL-A01-03`、`SCREEN-REVIEWS-EDITOR-A01-01`、`SCREEN-REVIEWS-EDITOR-A02-02`、`SCREEN-ADMIN-BRANDS-A01-03`、`SCREEN-ADMIN-ORDER-DETAIL-A01-01`、`SCREEN-ADMIN-ORDER-DETAIL-A02-01`。前者は関連Use Case/分析記録/参照追加、残り6件は既存参照の終了行補正のみ。
+- #199単独で`analyzed`の操作を#212が`review_required`に下げたものは0。**58件のStatus差は静的基本分析の結果差**であり、製品適合・実Runでの合格を示さない。全量統合時に同一HEADでID＋フィールド比較を再実行する。
+
+
 ## 2026-11-04 追加：補助・別操作・前提操作の6件を個別調停
 
 `related_use_cases`に含まれるが`use_case_evidence`に直接行がない6 Behaviorについて、台帳の動作・期待・Case・出典経路を再点検。**`related_use_cases`は依存・準備・後続操作も列挙する一方、`use_case_evidence`は当該UI動作の直接Use Caseを指す**という責務を維持し、機械的な配列一致・参照追加を行わない。
@@ -41,7 +48,7 @@
 - 公開Use Case 76件中、`AuthUseCases.getCurrentUser`は`related_use_cases`から直接参照がない。呼出し元と認証状態表示の役割を確認し、独立Behaviorまたは既存操作の根拠に含めるか判定する。形式的な1対1対応のためには追加しない。
 - `related_use_cases`中に直接`use_case_evidence`を持たないものがある6件：`SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`、`SCREEN-ORDERS-DETAIL-A01-03`、`SCREEN-ORDERS-DETAIL-A02-02`、`SCREEN-ORDERS-DETAIL-S-reviewable`、`SCREEN-REVIEWS-EDITOR-A02-01`、`SCREEN-ADMIN-ORDERS-A02-01`。それぞれ「画面から直接呼ぶ」「別操作が呼ぶ」「fixture/前提操作でのみ必要」を、個別の直接実行・Caseと照合する。
 - 台帳の`source_commit=383efc91...`と本監査HEADでは、出典154ファイルのうち**9ファイルのBlobが異なる**（component 1、UI 1、学習用contract 7）。現行HEADで参照整合を証明したが、9ファイルの参照を`source_commit`でも成立するとは主張しない。元commitに存在しない学習契約も含むため、固定SHAとブランチ増補証拠の役割を保持する。
-- #199比較HEAD `493a403b...`とは引き続き**124 Behavior差**：基本分析ステータス差58、ステータス以外のみ66。#212単独の修正で#199のStatus契約12箇所は解消しない。
+- #199比較HEAD `493a403b...`とは補正前比較では**124 Behavior差**：基本分析ステータス差58、ステータス以外のみ66。最新の131件は上記再計算を参照。#212単独の修正で#199のStatus契約12箇所は解消しない。
 
 ### Validator・CIへの引継ぎ
 
