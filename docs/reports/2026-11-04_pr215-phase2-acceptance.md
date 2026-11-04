@@ -257,4 +257,3 @@
 **判定**：M05-05、横断P03/P05実Chromium、M05-01/02、M06/M07本人実Runは実受入証拠が不足し、チェックを変更しない。次は最新HEADのStyle Quality・追加Vitestを確認し、本人Codespacesまたは同等の配布Shop環境でP05を実行する。
 
 **Progress: 28% (7/25)**。未完了18件。
-
