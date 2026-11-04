@@ -23,3 +23,9 @@
 
 - **タスクリスト13番は未チェック**。Empty以外のLoading/Error/Conflictを含む正式画像の比較、Mobileの重なりの実操作上の影響、全必要画面幅でのFocus順とaxe結果の収集が残る。
 - Native/Androidの実行証拠はタスク14、IndexedDB/SQLiteの前後証拠は15、全採用Caseごとの記録は2・20で扱う。#219では製品コード・既存CI/workflow・正式仕様は変更しない。
+
+## Checkout競合画面の7幅受入追加（CI未実行）
+
+- 専用E2E `e2e/web/pr219-cross-role-lifecycle.spec.ts`で、`regular-member`のCheckoutがconfirm-readyとなった後、Cart数量を更新して`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`の競合表示を作る。製品の既知不具合（戻り先が`/checkout/payment`）の再現Caseと、視覚/a11yのCaseは独立したテストに分けた。
+- 追加の視覚Caseは320/390/767/768/1023/1024/1440pxで競合見出し・戻りリンクの表示、横スクロールなし、各幅のPNG添付を確認する。320/1024pxではaxe重大違反をassertし、Focus→Enterで戻る導線を確認する。
+- 更新SHA `84d3a455acc831efb3b3d24c1a950a9734e8ec1e`。**当該HEADの実ブラウザCIは未確認でありPASSではない。** 成功時のTestInfo添付がCI Artifactに保持されない点は#199へ報告済み。正式競合画面の正本画像との比較、Loading/Error・他画面の視覚とa11y、Android、実Viewportの固定ナビ操作阻害は未受入で、タスクリスト13番は未チェック。
