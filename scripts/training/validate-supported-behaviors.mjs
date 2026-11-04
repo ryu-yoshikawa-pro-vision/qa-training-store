@@ -336,9 +336,7 @@ function completeRequirement(item, root, behaviorById, directlyLinkedRequirement
       !Array.isArray(row.condition_refs) ||
       row.condition_refs.length === 0 ||
       new Set(row.condition_refs).size !== row.condition_refs.length ||
-      !row.condition_refs.every(
-        (condition) => condition === null || /^C[0-9]+$/.test(condition),
-      )
+      !row.condition_refs.every((condition) => condition === null || /^C[0-9]+$/.test(condition))
     ) {
       return false;
     }

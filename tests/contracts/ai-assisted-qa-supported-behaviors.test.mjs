@@ -95,9 +95,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     const result = validateCoverage({ root });
     expect(result.unreviewed_requirements).toBe(0);
     expect(data.requirements).toHaveLength(79);
-    const directlyLinked = new Set(
-      data.behaviors.flatMap((item) => item.requirement_refs ?? []),
-    );
+    const directlyLinked = new Set(data.behaviors.flatMap((item) => item.requirement_refs ?? []));
     const crossCutting = data.requirements.filter((item) => !directlyLinked.has(item.id));
     expect(crossCutting).toHaveLength(29);
     for (const item of data.requirements) {
@@ -105,9 +103,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(item.requirement_analysis.representative_behaviors.length).toBeGreaterThan(0);
       if (!directlyLinked.has(item.id)) {
         expect(item.requirement_analysis.assignment).toContain("直接参照なし");
-        expect(item.requirement_analysis.cross_cutting_contract).toMatch(
-          /^(tests|e2e)\//,
-        );
+        expect(item.requirement_analysis.cross_cutting_contract).toMatch(/^(tests|e2e)\//);
       }
     }
   });
@@ -1149,9 +1145,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry.use_case_evidence ?? []).toHaveLength(0);
     }
     const changed = mutated((next) => {
-      const entry = next.behaviors.find(
-        (item) => item.id === "SCREEN-SUPPORTING-GUIDE-A02-01",
-      );
+      const entry = next.behaviors.find((item) => item.id === "SCREEN-SUPPORTING-GUIDE-A02-01");
       delete entry.use_case_relation_review;
     });
     expect(() => validateCoverage({ root, data: changed })).toThrow(
@@ -1210,9 +1204,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       const item = next.behaviors.find((entry) => entry.id === "SCREEN-ADMIN-USERS-A01-02");
       item.related_use_cases.push("UnknownUseCase.list");
     });
-    expect(() => validateCoverage({ root, data: changed })).toThrow(
-      /unknown related Use Case/,
-    );
+    expect(() => validateCoverage({ root, data: changed })).toThrow(/unknown related Use Case/);
   });
 
   it("tracks 79 requirements to unaccepted case conditions", () => {
