@@ -236,3 +236,13 @@
 
 **Progress: 28% (7/25)**。未チェック18件は保持する。
 
+
+### 今回追加の隔離Linux保全・復元確認
+
+- 固定HEAD：`c030f1ffa7bbe5bba04c957df905aae360cf9bec`。リポジトリ全体や実受講者環境ではなく、この作業用Linuxの一時ディレクトリで、M07演習のアーカイブ検査と同じBash処理を7つのダミーファイルに対して実行した。
+- 対象：M05`submission.md`、`p03-type-error.ts`、`p05-cart-locator.spec.ts`、`evidence/p05-direct-sample/console.log`、`playwright-result.json`、M06`new-case.spec.ts`、M07`diagnosis.md`。この`sample`はダミー出力で、実Runではない。
+- `bash -e -c <演習の保全ガード>`：終了コード0。`tar --create --gzip --verbatim-files-from --no-recursion --files-from`が7ファイルを保管し、`sha256sum -c`が`workspace/M07/exports/phase2.tgz: OK`を返した。`tar -xzf`終了コード0。復元した7ファイルのバイト列が各元ファイルと一致（7/7）。
+- この確認はファイルの選択・アーカイブの同一性だけ。P05を実Chromiumで動かしたこと、実際のTraceを取得したこと、GitHub Codespacesからダウンロードしたこと、個人の保管先へ保存したこと、OpenCodeの学習支援を検証したことを示さない。
+- 新規契約テストを含む最新HEADの`pnpm test:contracts`とCIは本追記時点で未確認。前HEAD `9d13270637a49005cd121230f5fc7f9da4d9ab04`のCI successを今回の新規テストPASSとは扱わない。
+
+**Progress: 28% (7/25)**。残り18件。実Run依存のチェックは付けない。
