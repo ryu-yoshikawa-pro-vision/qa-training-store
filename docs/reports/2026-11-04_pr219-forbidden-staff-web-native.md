@@ -22,3 +22,9 @@
 - リンク表示/DB不変は個別CIの固定HEAD・jobを確認後に追記する。Fixture内のDB内容やPassword Hashをログに転記しない。DB前後のdigestだけを比較する。
 - Native文言は製品#210と分析#213へ証拠を渡し、正式な文言/導線は彼らの仕様採用判断に従う。変更許可なく#219で修正しない。
 - **タスクリスト7番は未チェック**：Component/CIだけではAndroid実機拒否画面・SQLite不変を受入できない。実行できない理由を明示し、端末/ビルド/権限が揃った時に実施する。
+
+## IndexedDB表別digestとKeyboard復帰の追補
+
+- PR #219専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`で、停止staffの旧Session残留Fixtureに対するIndexedDB全表の比較を、単一結合digestから**表名順の表別SHA-256**へ変更した。戻りリンクはFocus→EnterでForbiddenへ再遷移する経路を対象とし、全表の前後hashを`pr219-forbidden-indexeddb-digests`として`testInfo.attach`する。レコード実値・Password Hash・Session IDは添付しない。
+- 変更コミット：[`a2f0ea9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/a2f0ea9dabbbdec6c98135d61603132ade2a9fa9)。**新HEADのWeb E2E CIは未確認**。検証成功・DB不変を実証済みとは記載しない。加えて現行Web CIはcross-role成功時にPlaywright添付をArtifactへ保存しないため、証拠の永続化について[#199に引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6629144117)済み。
+- Android実機のNavigation/拒否文言・SQLite実物の前後比較は未実行。タスク7・15はいずれも未チェックとする。
