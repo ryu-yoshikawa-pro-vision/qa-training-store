@@ -7,7 +7,31 @@
 - 今回の成果は両HEADを固定した静的な台帳差分とGitHub Actionsの既存実行結果の調査。merge、base更新、製品コード・正式仕様・Seed/Reset・既存テストの編集は行わない。両HEADが変化した場合は必ず再計算する。
 - `analysis_status=analyzed` は基本静的分析の状態であり、製品適合・実Run・Android実機・受入済みではない。既存契約テストの「製品未判断ならreview_required」と意味が異なるため、ステータスを無条件に変更しない。
 
-## 台帳差分と統合可能性
+## 2026-11-04 追加監査：管理ユーザー詳細4操作と最終HEAD CI
+
+比較基準：PR #199 `8734c53814a4092839d4a9dff605e43b4b4096e6`、PR #212台帳 `d03c018ee5cf73abec5ec1833c90de32560bd6de`。旧比較時点の99件とは異なり、**差分103件**（分析ステータス差58件、説明・根拠差45件）になった。操作総数188/非default20、#212の`analyzed`は179/188・17/20で変わらない。4件の静的監査記述追加は実行合格を意味しない。
+
+PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・Dexie/transaction・default Seed・既存テストの行範囲まで追跡し、`risk`/`test_condition`/`test_responsibility`/`case_policy`/`case_selection_reason`/`basic_analysis_review`/`analysis_progress`/`reviewed_against`/`audit_branch_refs`を補完。A02-01/A02-02の`related_use_cases`も実際の3更新メソッドに対応させた。
+
+| 操作ID | 確認できた静的経路 | 実行・受入で残ること |
+| --- | --- | --- |
+| `SCREEN-ADMIN-USER-DETAIL-A01-03` | 顧客Rankだけ変更、User.version CAS、旧Checkout abandon、Cart保持。既存integrationはregular→goldとCheckout破棄を部分検証 | 3Rank遷移、staff/withdrawn/旧Version、Checkout破棄rollback、価格・送料再計算、Web操作。#210でactorのtransaction内再認可が既に追加されているので重複実装しない |
+| `SCREEN-ADMIN-USER-DETAIL-A01-04` | active↔suspended、Session全削除、customer停止時のみCheckout abandon、last-admin/自己停止保護 | 停止/再開のSessionとCheckout前後差、旧Session再利用拒否、複数admin、失敗注入rollback、Webダイアログと表示 |
+| `SCREEN-ADMIN-USER-DETAIL-A02-01` | 本人role変更・本人停止の`SELF_CHANGE_FORBIDDEN`、Web本人ボタンdisabled | 両Use Caseの直接拒否、User/version/Session不変、2名adminでも自己拒否、画面/キーボード/a11y。既存integrationは本人roleのみ |
+| `SCREEN-ADMIN-USER-DETAIL-A02-02` | withdrawn時のWeb read-only、Rank/Roleは`INVALID_ROLE`、Statusは`INVALID_STATE` | customer/staffの3更新経路の直接拒否、User/Checkout/Session/履歴不変、Web表示。既存integrationはwithdrawn→activeだけ |
+
+**PR #210との比較**：製品ブランチHEAD `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79` の`review-user-use-cases.ts`では`changeMembershipRank`、`changeRole`、`changeSuspension`のすべてが`assertActorStillAuthorized`をtransaction内で実行する。#199のmainベースへまだ取り込まれていないため、ベースの静的懸念と#210の実装修正・実行受入を分けて扱う。
+
+### 新たに確認したGitHub Actionsの結論
+
+- [PR #212 Web CI #41740409345](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41740409345)（commit `128d4f0be601b5cb777dab5873f18147d3949b0d`）は**completed/failure**。Vitest (contracts)は**13 failed / 1031 passed / 1 expected fail / 15 skipped**。このうち12件は`ai-assisted-qa-supported-behaviors.test.mjs`の固定`review_required`と台帳`analyzed`の衝突、残る1件は`ai-assisted-qa-assessment.test.mjs`のCalibration復旧エラー期待値の差。`Style Quality`は`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`と`tests/contracts/ai-assisted-qa-assessment.test.mjs`の2ファイルでPrettier不一致。verify/validateもfailure。
+- [PR #199 Web CI #41699602011](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41699602011)（commit `8734c53814a4092839d4a9dff605e43b4b4096e6`）もcompleted/failure。Style QualityとVitest (contracts)が失敗。根本原因と固定IDごとの衝突は同一HEADではないため別途区別する。
+- [PR #211 Web CI #41740613524](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41740613524)（commit `8c4f2219c711bb049f6b3cd4c4eaec7a26e69f15`）はcompleted/failureだが、**Vitest (contracts)成功**。`Style Quality`は`ai-assisted-qa-admin-users-list.test.mjs`のみ不一致。`ai-assisted-qa-assessment.test.mjs`の書式・評価契約は#211側の既存修正との取り込み優先度を確認する。
+- 3PRともIntegration/Component/Unit/Repository、Code Quality、主要Chromium E2Eは成功。ただし上記CIは**今回の追記コミット後のPR #212最終HEADを検証したRunではない**。
+
+契約テストが未解決の製品差分と基本静的分析完了を同じstatusで管理している点の調停は未了。CI成功目的で`analyzed`へ戻す/下げる、固定期待値を一括緩和することはしない。分析台帳の4件は`review_required`のまま、最終的な操作数・状態数の分母は不変。製品実装・正式仕様・Seed・既存テストを編集しない。
+
+## 台帳差分と統合可能性（旧比較：#212 715b422f、#199 8734c538）
 
 | 検査 | PR #212 | PR #199（最新比較） |
 | --- | ---: | ---: |
@@ -90,7 +114,7 @@
 - `UC-REVIEW-DELETE`：`test_condition`、`basic_analysis_review`、`analysis_progress`、`audit_branch_refs`
 - `UC-CART-MERGE`：`test_condition`、`basic_analysis_review`、`analysis_progress`、`audit_branch_refs`
 
-## 現時点のWeb CI（コミットに固定）
+## 前回比較時点のWeb CI（コミットに固定）
 
 - PR #212 HEAD `715b422fbf9d4daf07548f1ca8301959dedcc157` の [Web CI run 41662121176](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41662121176)：**completed/failure**。
 - `Vitest (contracts)`：失敗。`Style Quality`：Format check失敗。`verify`/`validate`は必須ジョブ失敗を受けて失敗。`deploy-preview`/`deploy-production`はskipped。
