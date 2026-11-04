@@ -52,9 +52,9 @@
       "options": [
         {
           "value": "A",
-          "label": "計算規則はUnit、連携点はIntegration/Component、少数の導線はWeb E2Eを検討する",
-          "meaning": "計算規則はUnit、連携点はIntegration/Component、少数の導線はWeb E2Eを検討する",
-          "reason": "各層の責務と費用を分け、必要なE2Eだけ残せます。"
+          "label": "計算規則はUnit、保存連携はIntegration、UI部品はComponent、少数の導線はWeb E2Eを検討する",
+          "meaning": "計算規則はUnit、保存連携はIntegration、UI部品はComponent、少数の導線はWeb E2Eを検討する",
+          "reason": "計算、保存連携、UI部品、利用者導線の責務と費用を分け、必要なE2Eだけ残せます。"
         },
         {
           "value": "B",
