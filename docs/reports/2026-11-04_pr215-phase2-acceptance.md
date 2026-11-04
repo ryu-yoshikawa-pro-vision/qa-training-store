@@ -360,3 +360,10 @@
 - **M06-02既存実装**：`training/playwright/support/reset-scenario.ts`（Blob `d9bd8c183f4cfb89e0aaccad6c35eb617bca2749`）は、現在の`page`から`__TEST_API__.reset({scenario})`、reload、metadataのscenario一致検証を実施する。新しいBrowser Contextを生成する処理はない。Playwrightのtest`page` fixtureと、同一Context内のIndexedDB/Seed初期化は別の責務。既存の`tests/contracts/ai-assisted-qa-test-control-reset.test.mjs`はTestControlServiceのSeed・時計・Session/Guest Identity復元と、Reset失敗時の非破壊を検証済みであり重複実装しない。
 - **M06-02追加契約**：`tests/contracts/ai-assisted-qa-phase2-m06-reset-isolation.test.mjs`で`resetScenario`を隔離したモックPageで実行し、通常時の`goto→API reset→reload→metadata`順、default/low-stockの独立したcontext模擬状態、metadata不一致の例外、固定3+参考004/005の各test開始時Resetと`--retries=0`を検証する。fixtureは**実ChromiumやIndexedDB実接続の代替ではない**。教材`exercises/M06/exercise.md`のP04へContextとResetの境界、逆順実行の実Run証拠条件を追記した。
 - **判定**：PR #215のM06-02技術作業（実装と教材照合、隔離契約テスト追加）は完了。実Shopで順序を入れ替えた本人の初回/再RunやChromium環境の検証は#199最終実受入へ引き継ぐ。最新HEADのCIは未確認、完了待ちしない。
+
+## 2026-11-05 M06-03弱いAssertionの負例
+
+- **根拠**：`docs/spec/features/cart.md`の`BR-CART-001`/`AC-CART-001`は上限超過時の操作拒否と変更前数量維持を要求する。M06教本§3.1・3.2も、追加ボタンの可視性や通知だけではCartの業務状態を保証できないことを説明している。固定参考specには001の数量1、002の拒否後数量1、003の拒否後数量3のAssertionがある。
+- **今回の回帰条件**：`tests/contracts/ai-assisted-qa-phase2-m06-fixed-cases.test.mjs`に、固定3 Caseそれぞれの参考specから数量Assertionを意図的に削除した場合は、そのCaseの契約上の必須Assertionを満たさなくなる負例を追加。元の参考specは同条件を満たすことを同じテストで確認する。通知・クリックだけの偽PASSを形式的に受け入れない。公開参考specと製品SUTは変更しない。
+- **限界**：この負例は**ソース契約の変異検証**であり、Chromium上で不具合を再現した証拠でも、実際の製品が誤数量を返したという発見でもない。学習者のbefore/afterと正式AI評価は#199最後の実受入に残す。CIの実行完了はまだ確認していない。
+
