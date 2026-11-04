@@ -2486,6 +2486,104 @@ describe("AI-assisted QA distribution contract", () => {
     });
   }, 120_000);
 
+  it("rejects forged fallback references before copying learner files", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "6".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const statePath = "course/states/M00/start.json";
+    const state = JSON.parse(fs.readFileSync(path.join(fixture.target, statePath), "utf8"));
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const manifestText = fs.readFileSync(manifestPath, "utf8");
+    for (const change of [
+      { public: false },
+      { path: "inputs/M01/start.md" },
+      { revision: "" },
+    ]) {
+      const altered = Buffer.from(
+        JSON.stringify({ ...state, public_fallback: { ...state.public_fallback, ...change } }),
+      );
+      writeFixtureFile(fixture.target, statePath, altered);
+      const manifest = JSON.parse(manifestText);
+      const record = manifest.files.find((file) => file.target_path === statePath);
+      record.sha256 = createHash("sha256").update(altered).digest("hex");
+      record.bytes = altered.length;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+      expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+        /invalid M00 start input: invalid-public-fallback/,
+      );
+      expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+      expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
+  });
+
+  it("rejects a forged predecessor end state before copying the next module", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "7".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const statePath = "course/states/M00/end.json";
+    const state = JSON.parse(fs.readFileSync(path.join(fixture.target, statePath), "utf8"));
+    const altered = Buffer.from(JSON.stringify({ ...state, read_only: false }));
+    writeFixtureFile(fixture.target, statePath, altered);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const record = manifest.files.find((file) => file.target_path === statePath);
+    record.sha256 = createHash("sha256").update(altered).digest("hex");
+    record.bytes = altered.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+    expect(() => loadModule({ root: fixture.target, moduleId: "M01" })).toThrow(
+      /invalid M01 start input: revision-mismatch/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M01"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("rejects an invalid predecessor load receipt without copying the next module", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "8".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const loaded = loadModule({
+      root: fixture.target,
+      moduleId: "M00",
+      now: new Date("2026-11-04T00:00:00.000Z"),
+    });
+    fs.writeFileSync(path.join(fixture.target, "workspace/M00/submission.md"), "learner answer");
+    const receiptPath = path.join(fixture.target, loaded.receipt);
+    const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+    receipt.source_sha = "a".repeat(40);
+    fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+
+    expect(() => loadModule({ root: fixture.target, moduleId: "M01" })).toThrow(
+      /invalid M01 start input: revision-mismatch/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M01"))).toBe(false);
+    expect(fs.readFileSync(path.join(fixture.target, "workspace/M00/submission.md"), "utf8")).toBe(
+      "learner answer",
+    );
+  });
+
   it("uses the module's public start sample when a predecessor artifact is absent", async () => {
     const fixture = courseFixture();
     await syncCourse({
@@ -2556,11 +2654,14 @@ describe("AI-assisted QA distribution contract", () => {
       allowUncommittedFixture: true,
     });
     for (const { moduleId, expectedReason } of predecessorCases) {
-      loadModule({
-        root: fixture.target,
-        moduleId,
-        now: new Date(`2026-10-22T05:0${moduleId.slice(2)}:00.000Z`),
-      });
+      expect(() =>
+        loadModule({
+          root: fixture.target,
+          moduleId,
+          now: new Date(`2026-10-22T05:0${moduleId.slice(2)}:00.000Z`),
+        }),
+      ).toThrow(new RegExp(`invalid ${moduleId} start input:.*${expectedReason}`));
+      expect(fs.existsSync(path.join(fixture.target, `workspace/${moduleId}`))).toBe(false);
       expect(checkState({ root: fixture.target, moduleId, stateName: "start" })).toMatchObject({
         status: "mismatch",
         reasons: [expect.stringContaining(expectedReason)],

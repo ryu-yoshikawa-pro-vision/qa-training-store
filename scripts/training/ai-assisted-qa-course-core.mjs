@@ -1222,6 +1222,9 @@ function detectPreviousInput(root, moduleId, state, distribution) {
     priorState.state !== "end" ||
     priorState.revision !== distribution.state_contract_revision ||
     priorState.source_sha !== distribution.source_sha ||
+    priorState.public_contract !== true ||
+    priorState.read_only !== true ||
+    !hasValidPublicStateDistribution(priorState) ||
     !Array.isArray(priorState.outputs)
   )
     return {
@@ -1348,6 +1351,8 @@ export function loadModule({ root, moduleId, now = new Date() }) {
   )
     fail(`pinned ${moduleId} start state does not match its distribution contract`);
   const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
+  if (!["module-public-sample", "learner-previous-artifact"].includes(selectedInput.source))
+    fail(`invalid ${moduleId} start input: ${selectedInput.source}; ${(selectedInput.reasons ?? []).join("; ")}`);
   const receiptTime = now.toISOString();
   const receiptPath = `.course-load/${moduleId}-${receiptTime.replace(/[:.]/g, "-")}.json`;
   const receiptDestination = assertNoSymlinkPath(targetRoot, receiptPath, false);
