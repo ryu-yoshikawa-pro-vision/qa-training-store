@@ -258,3 +258,11 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 - PR #212 HEAD `775cf53c2ae4104ebb9b483994e6575a578f6748` のWeb CI [#41743735380](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41743735380)は**completed/failure**。Vitest contractsは**1032 passed、13 failed（supported-behaviorsの固定status12、Assessment Calibration1）**、Style Qualityは `tests/contracts/ai-assisted-qa-admin-users-list.test.mjs`と`ai-assisted-qa-assessment.test.mjs`の2ファイルで不合格。今回の新HEADにこの古い実行のPASS/FAILを流用しない。
 - 親#199比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098`との旧比較結果はステータス差58件、説明・根拠のみ45件（合計103件）。今回の1件のUse Case関連付けと7参照の更新で**フィールド差の件数ではなく内容が増えた可能性**があるため、統合時にID・フィールド単位で再計算する。
 - 今回の変更でデータ全体の分母・基本分析statusを変更していない。ローカルNode/Vitest/Prettier/Playwright/Androidは実行しておらず、**CIの新HEAD結果確認と実Run受入は残る**。
+
+### 追加確認：同一最終HEADの参照整合と比較差分
+
+- #212の修正HEAD `5b9d246e598758e5e731974ec71f0298908d863f`に対し、208 Behavior全件の`implementation_evidence`・`seed_evidence`・`seed_evidence.transform`を25ファイルから**624/624件**照合し、行番号/署名はすべて一致。
+- 同一HEADの公開Use Case根拠は、上記修正7箇所と配送先読取1参照追加の後、**284/284件一致**。計**908/908参照の行・署名一致**を独立確認（メソッドの振る舞い、Role/DB/画面受入は別）。
+- #199の比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098`と修正HEAD `5b9d246e598758e5e731974ec71f0298908d863f`を実データで再比較し、ID集合は同一208件、基本分析status差**58操作**、status以外の差**51件**、計**109件**。従来の99/103件は前の比較時点の値として扱う。内訳は58操作が#212のみ`analyzed`（#199のみは0件）、非default状態のstatus差は0件。
+- `SCREEN-ADMIN-USER-DETAIL-A02-03`に残っていた「正常な非self最後のadminへ変更要求する」固定fixtureは、validなactive admin actorとactive admin targetが別人ならadmin数が2名以上となるため成立しない。A01-02/A01-04/A02-03のCaseを、自己変更拒否、2→1許可、認可後にactorを失効させる競合に分割して台帳へ訂正。**3操作ともreview_requiredを維持**し、直接UseCase/DB/Playwright/Androidの実受入は未完了。
+- #212を取り込む際は#210の認可修正が既に#199へ入っていると仮定しないこと。旧#199と#210は異なるHEADで、実行検証・製品側の仕様判断は権限あるブランチで行う。
