@@ -42,6 +42,7 @@ function makeFixture() {
     "workspace/M05/submission.md",
     "workspace/M05/p03-type-error.ts",
     "workspace/M05/p05-cart-locator.spec.ts",
+    "workspace/M05/evidence/p05-direct-sample/spec-snapshot.ts",
     "workspace/M05/evidence/p05-direct-sample/console.log",
     "workspace/M05/evidence/p05-direct-sample/playwright-result.json",
     "workspace/M06/new-case.spec.ts",
@@ -96,6 +97,7 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
     expect(backupSection).toContain(
       "workspace/M05/evidence/p05-direct-<実際の識別子>/playwright-result.json",
     );
+    expect(backupSection).toContain("spec-snapshot.ts");
     expect(backupSection).toContain("console.log");
     expect(backupSection).toContain("直接実行のJSONを`course:run`のreceiptとして");
   });
