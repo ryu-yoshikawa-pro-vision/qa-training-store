@@ -92,3 +92,10 @@
 - M05 P05で本人が新規作成する`p05-cart-locator.spec.ts`、直接Playwright実行の`console.log`・`playwright-result.json`とP03型検査ファイルが、M07のGit/PR不要の保全例から漏れていたため、教材・引継ぎテンプレート・Linux専用の保全回帰テストへ追記。M05 P05にTODOで確実に失敗する最小spec入口を追加し、既存`product-link.spec.ts`と編集対象を分離した。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に根拠を記録。
 - **未完了**：本人の8082実Chromium、正式`course:run`、通常OpenCodeでの段階ヒント、Codespacesでの保全・復元、追加後のCI成功は確認していない。複合チェックは実施証拠が揃うまで変更しない。
 - **Progress: 28% (7/25)**。未完了18項目。
+
+## 2026-11-04 継続：CI修正・M05 P05直接実行の証拠照合
+
+- 前HEAD `bd9cb860793634c88e6eb4162932f109dafa0ea0`の[Web CI #41833867254](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41833867254)は`Style Quality`の`MD012`（M05演習・受入レポート各1件）で失敗。修正済み。後続の`verify`・`validate`は派生失敗であり、実Playwright不具合とは判定していない。
+- M05 P05の直接Playwright実行を、実行前のspec snapshotと直前・直後SHA-256の一致、JSON report存在、非0終了の伝播に対応。M05提出欄、M07へのGit不要の保全例・handoff欄も同じ証拠を保存する形に修正。新規固有の契約テスト`tests/contracts/ai-assisted-qa-phase2-direct-run.test.mjs`を追加した。[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に隔離Bash/stub検証と制約を記録。
+- **未完了**：CIでの新規契約テスト・Style Quality、本人の8082専用Configでの実Chromium、`course:run`による正式receipt、M06/M07の別Run、Codespaces保全。実行済みのstub検証を学習者の実Runと取り違えず、チェックを変更しない。
+- **Progress: 28% (7/25)**。未完了18項目。
