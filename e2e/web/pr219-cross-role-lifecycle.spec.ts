@@ -60,6 +60,66 @@ function logRuntimeMetadata(evidenceCaseKey: string, metadata: TestMetadata) {
   );
 }
 
+// The shared fixture keeps full console details in TestInfo attachments. These
+// limited per-case counters are safe to retain in the CI job log on successful runs.
+interface CaseRuntimeCounters {
+  consoleErrors: number;
+  pageErrors: number;
+  failedRequests: number;
+  http5xxResponses: number;
+}
+
+const caseRuntimeCounters = new WeakMap<Page, CaseRuntimeCounters>();
+
+test.beforeEach(async ({ page }) => {
+  const counters: CaseRuntimeCounters = {
+    consoleErrors: 0,
+    pageErrors: 0,
+    failedRequests: 0,
+    http5xxResponses: 0,
+  };
+  caseRuntimeCounters.set(page, counters);
+  page.on("console", (message) => {
+    if (message.type() === "error") counters.consoleErrors += 1;
+  });
+  page.on("pageerror", () => {
+    counters.pageErrors += 1;
+  });
+  page.on("requestfailed", () => {
+    counters.failedRequests += 1;
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 500) counters.http5xxResponses += 1;
+  });
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+  const metadata = await page
+    .evaluate(() => window.__TEST_API__?.getMetadata() ?? null)
+    .catch(() => null);
+  const counters = caseRuntimeCounters.get(page);
+  // Playwright may return an expected failure for a known product defect.
+  // Always report the test outcome and product acceptance separately.
+  console.log(
+    "PR219_CASE_RUN " +
+      JSON.stringify({
+        caseName: testInfo.title,
+        project: testInfo.project.name,
+        testStatus: testInfo.status,
+        expectedStatus: testInfo.expectedStatus,
+        retry: testInfo.retry,
+        scenario: metadata?.scenario ?? null,
+        clockObservedAtEnd: metadata?.clock ?? null,
+        buildSha: metadata?.buildSha ?? null,
+        consoleErrors: counters?.consoleErrors ?? null,
+        pageErrors: counters?.pageErrors ?? null,
+        failedRequests: counters?.failedRequests ?? null,
+        http5xxResponses: counters?.http5xxResponses ?? null,
+        productAcceptance: "not-evaluated-by-this-summary",
+      }),
+  );
+});
+
 test.describe("PR #219: WEB Role and direct-route acceptance", () => {
   test("SCREEN-BOUNDARY-FORBIDDEN-A01-01: guest direct routes do not expose protected UI", async ({
     page,
