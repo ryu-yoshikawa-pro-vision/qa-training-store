@@ -121,10 +121,10 @@
       ],
       "correct_value": "A",
       "source_refs": [
-        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#1-caseのどの部分をコードにするか",
+        "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む",
         "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_assessment.md"
       ],
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#1-caseのどの部分をコードにするか",
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む",
       "knowledge_ids": [
         "K-M06-01",
         "K-M06-03"
