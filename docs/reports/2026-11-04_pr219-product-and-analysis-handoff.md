@@ -6,7 +6,7 @@
 - 製品修正の参照HEAD：PR #210 `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79`。未マージのため、#199の合格証拠としては扱わない。
 - 分析正本：`training/ai-assisted-qa-course/coverage/supported-behaviors.json`。編集責務は#213。#219から直接変更しない。
 - 証拠：Web CI [41792378802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802)（Chromium cross-role 15/15・Integration 123件成功、ただしStyle Quality失敗。後続のPrettier修正済み）。別Run [41790967187](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41790967187)（Chromium cross-role 12/12成功）。旧Runの成功を現在HEAD全体のPASSに流用しない。
-- 判定区分：実行での確認結果／実装・仕様の静的差分／再現未完了の仮説。CIの`it.fails`は意図した拒否がまだ成立しないことを表す既知不具合再現用であり、製品適合PASSには数えない。
+- 判定区分：実行での確認結果／実装・仕様の静的差分／再現未完了の仮説。現在のactor失効競合テスト2件は通常の`it`で、旧#199 SUTにおける**不正な操作成功・対象User変更**をassertする。テスト成功は既知不具合の再現であり、製品適合PASSには数えない。
 
 ## 検証で確認できた内容
 
@@ -21,13 +21,13 @@
 
 | 状態 | Case・対象 | 根拠と影響 | 担当先の確認内容 |
 | --- | --- | --- | --- |
-| 静的差分を確認。動的再現は要CIログ | `SCREEN-ADMIN-USER-DETAIL-A02-03`など（High） | #199の`AdminUserUseCases.changeRole/changeSuspension`は`requireAdmin()`とtransactionの間にactorの権限失効を再検査しない。#210の同ファイルでは`assertActorStillAuthorized`がtransaction内にある。失効済みactorが別ユーザー変更を継続する危険性 | #219 `tests/integration/pr219-actor-revocation.test.ts`の`it.fails`を旧#199 HEADで実行して失敗期待を確認し、#210 HEADでは通常`it`へ変更した独立テストで拒否コード・User/Session全表不変を確認する |
+| 旧#199 SUTでの動的再現はCIで確認。#210の修正後は未受入 | `SCREEN-ADMIN-USER-DETAIL-A02-03`など（High） | #199の`AdminUserUseCases.changeRole/changeSuspension`は`requireAdmin()`とtransactionの間にactorの権限失効を再検査しない。#210の別HEADには`assertActorStillAuthorized`のtransaction内再認可実装があるが、#199へ未統合。旧SUTでは失効済みactorが別ユーザーを更新できる | #219 `tests/integration/pr219-actor-revocation.test.ts`の`KNOWN DEFECT REPRO`通常`it`2件で**不正な更新が成功すること**を旧#199 SUTの固定CIで再現。#210の修正HEADでは別の受入テストで権限拒否コード、対象User・Sessionの全表不変、競合時のrollbackをassertし、修正後のRun/HEADを保存する |
 | 静的差分を確認。実ブラウザの停止staff再現は未実行 | `SCREEN-BOUNDARY-FORBIDDEN-A01-01`（Medium） | `RouteGuard`はactiveを要求するが、`app/forbidden.tsx`の管理画面へのリンク表示はroleだけで判定。停止operatorの`currentUser`が残るケースでForbidden→admin→Forbiddenの循環を招く可能性 | #219 `tests/component/pr219-forbidden-route.test.tsx`の既知期待失敗Caseを確認し、権限外の管理リンクを表示せず安全な導線を提示するかを実ブラウザで判定 |
 | 仕様判断待ち | `SCREEN-ADMIN-USERS-A01-02`（Medium） | #213の条件にはRank絞込み・作成/更新日sortの補助UI契約への言及がある一方、#199のAdminUsers Web画面はkeyword・Role・Statusのみを提供。正式BR/ACと補助UI仕様の優先関係は未確定 | #213で採否を確定し、仕様不適合と判定された場合のみ#210で画面・テストを修正 |
 | 静的差分を確認。Android実行は未実施 | `SCREEN-BOUNDARY-FORBIDDEN-A01-01` Native（Medium） | `app/forbidden.native.tsx`はNative対象外の案内画面。正式`docs/spec/roles-and-permissions.md`の権限不足説明・安全な戻り導線との対応が未検証 | Android実機/エミュレータ上で文言、戻り先、DB不変、フォーカス・a11yを確認 |
 | 未再現仮説 | `SCREEN-ADMIN-PRODUCTS-A01-02`（Medium） | `AdminProductsContent`のselectedが絞込みやページ移動時に残る一方、bulkは表示中のrowsのみに絞る。画面外の選択だけが残ると空のtargetIdsでbulk要求される可能性。SKU検索とカテゴリー/ブランド絞込についても実装・仕様差を要確認 | `many-products`の実ブラウザで表示外選択/空target/ページ正規化・拒否理由を再現し、DB前後を記録するまで不具合確定しない |
 
-上表は実際に確認した全製品不具合の確定リストではない。未実行Caseで発見される問題は別途追記する。テストコードへの`it.fails`適用を製品修正や合格証拠として扱わない。
+上表は実際に確認した全製品不具合の確定リストではない。未実行Caseで発見される問題は別途追記する。既知不具合の発生をassertする通常の`it`が成功しても、製品修正や受入PASSとして扱わない。
 
 ## 分析担当#213への依頼
 
