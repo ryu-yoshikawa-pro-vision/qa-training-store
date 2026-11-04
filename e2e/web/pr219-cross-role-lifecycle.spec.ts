@@ -613,6 +613,102 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
     { width: 1440, height: 1000 },
   ];
 
+  test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: browser Loading stays accessible while an IndexedDB read is blocked", async ({
+    page,
+    context,
+    scenario,
+  }, testInfo) => {
+    await scenario("empty-catalog");
+    const before = await indexedDbTableDigests(page);
+    const blocker = await context.newPage();
+    try {
+      await blocker.goto("/", { waitUntil: "domcontentloaded" });
+      await blocker.waitForFunction(() => window.__TEST_API__ !== undefined);
+      await blocker.evaluate(async () => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("ec-automation-training");
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        // An open readwrite transaction blocks catalog reads in another tab.
+        // Repeated get requests keep it active; there are no data writes.
+        const transaction = database.transaction("products", "readwrite");
+        const products = transaction.objectStore("products");
+        let released = false;
+        (window as Window & { __pr219ReleaseCatalogLock?: () => void }).__pr219ReleaseCatalogLock =
+          () => {
+            released = true;
+          };
+        const keepTransactionOpen = () => {
+          if (released) {
+            database.close();
+            return;
+          }
+          const request = products.get("__pr219_lock_probe__");
+          request.onsuccess = keepTransactionOpen;
+        };
+        keepTransactionOpen();
+      });
+
+      for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        await page.goto("/products", { waitUntil: "domcontentloaded" });
+        const loading = page.locator(".product-grid--loading").getByRole("status");
+        await expect(loading).toHaveText("商品一覧を読み込んでいます。");
+        await expect(page.locator('.catalog-results[aria-busy="true"]')).toBeVisible();
+        await expect(page.locator(".state-panel--error")).toHaveCount(0);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        ).toBe(true);
+        await testInfo.attach(`pr219-catalog-loading-${viewport.width}`, {
+          body: await page.screenshot({ fullPage: true }),
+          contentType: "image/png",
+        });
+        if (viewport.width === 320 || viewport.width === 1024) {
+          const axe = await new AxeBuilder({ page }).analyze();
+          const violations = axe.violations.filter((item) =>
+            ["critical", "serious"].includes(item.impact ?? ""),
+          );
+          expect(violations).toEqual([]);
+        }
+        console.log(
+          "PR219_CASE_EVIDENCE " +
+            JSON.stringify({
+              behavior: "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+              condition: "catalog-loading-blocked-indexeddb-read",
+              width: viewport.width,
+              loadingVisible: true,
+              ariaBusy: true,
+            }),
+        );
+      }
+    } finally {
+      await blocker
+        .evaluate(() =>
+          (window as Window & { __pr219ReleaseCatalogLock?: () => void })
+            .__pr219ReleaseCatalogLock?.(),
+        )
+        .catch(() => undefined);
+      await blocker.close();
+    }
+
+    await expect(
+      page.getByRole("heading", { name: "現在、表示できる商品はありません" }),
+    ).toBeVisible();
+    const after = await indexedDbTableDigests(page);
+    expect(after).toEqual(before);
+    console.log(
+      "PR219_CASE_EVIDENCE " +
+        JSON.stringify({
+          behavior: "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+          condition: "catalog-loading-release-no-db-mutation",
+          tablesChecked: Object.keys(before).length,
+          allTablesUnchanged: true,
+          recoveredTo: "empty-catalog",
+        }),
+    );
+  });
+
   test("SCREEN-STOREFRONT-PRODUCT-LIST-S-empty: browser IndexedDB failure shows Error and Retry at responsive widths", async ({
     page,
     scenario,
