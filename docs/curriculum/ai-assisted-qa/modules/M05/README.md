@@ -820,6 +820,33 @@ Locatorに関する失敗には、要素が見つからず待機時間を超え�
 | **Assertion失敗** | 期待した結果と実際の結果が不一致 | `Expected: 1, Received: 0` | テストが期待している値と、実際の画面の表示内容 |
 | **接続・起動失敗** | サーバーやポートに接続できない | `net::ERR_CONNECTION_REFUSED` | テストサーバー（8082）が起動しているか |
 
+### 8.1 Web-first assertion・Actionの自動待機と失敗の区別（M05-04）
+
+以下の「保存」画面は、**Playwrightの仕組みを説明する架空のHTML**です。Scenario Shopに「保存」ボタンや数量表示があると仮定して実行するコードではありません。実ShopのCartは数量`select`を使用します。
+
+```ts
+// ボタンが存在するが一時的にdisabledなら、clickは操作可能になるのを待つ。
+await page.getByRole("button", { name: "保存", exact: true }).click();
+
+// 状態が後から変化する場合、Web-first assertionは期待値になるまで再試行する。
+await expect(page.getByRole("status")).toHaveText("数量: 1");
+```
+
+`click()`の自動待機は、Locatorの一意性・表示・有効性などの**Actionability**を確認します。一方、`await expect(locator).toHaveText(...)`や`toHaveCount(...)`は、Assertionが成立するかを一定時間再試行します。`locator.count()`のように現在の件数を一度読み取る操作と、Web-first assertionを混同しません。いずれも「業務仕様上、その数量になるべきか」は自動的には判断しません。
+
+| 失敗／状態 | 観測するエラー・事実 | 先に確認すること |
+| --- | --- | --- |
+| 後から有効になるボタン | `click()`が操作可能になるまで待ち、成功する場合がある | 有効化された条件・クリック後の業務結果。待機成功だけで仕様PASSとはしない |
+| 指定したRole/Nameの要素がない | Locatorの待機タイムアウト | 現画面、Role、アクセシブル名、遷移・Reset状態 |
+| 同じLocatorが2件に一致 | `strict mode violation` | 商品や領域でLocatorをscopeする。待機時間延長では重複は直らない |
+| 存在する要素が無効・覆われている | Actionabilityの待機タイムアウト | `disabled`、可視性、重なり、遷移中の状態 |
+| 対象の数量が期待値に変化しない | Web-first Assertionの期待/実際の不一致、タイムアウト | 正式BR/ACと対象商品、Reset、処理後の観測。Assertion自体は削除しない |
+| JS/TSの構文・型・実行時エラー | `SyntaxError`、`TS2345`、`TypeError`など | コマンドが`node --check`、`tsc --noEmit`、Node実行のどの段階か。PlaywrightのLocatorエラーに読み替えない |
+
+`page.waitForTimeout(5000)`を追加しても、**間違ったRole/Name、複数一致、間違った仕様期待値**は修正できません。原因が固定時間ではなく非同期表示なら、必要な状態を`await expect(...)`で観測します。自動待機があるからといって、Resetや対象商品の選び方が正しいとまでは言えません。
+
+M05の演習P03/P04/P06では、実際のエラー文・終了コード・検査対象ファイルを別々に記録してください。PlaywrightのAction失敗とAssertion失敗を区別する場合は、専用Configの**対象specの実Run**とレポートで確認し、ここに示す架空HTMLの説明をScenario Shopの実行証拠へ流用しません。
+
 ## 9. 学習用の実行環境とポート契約
 
 この教材リポジトリでは、用途に応じて複数のポート（通信の出入口となる番号）が厳密に使い分けられています。
