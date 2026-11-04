@@ -14,14 +14,15 @@ const backupSection = exercise
   ?.split("### 固定Skillとの協働")[0];
 const fence = String.fromCharCode(96).repeat(3);
 const codeBlockPattern = new RegExp(fence + "bash\\n([\\s\\S]*?)\\n\\s*" + fence, "g");
-const commandBlocks = Array.from(
-  (backupSection ?? "").matchAll(codeBlockPattern),
-  (match) => match[1].replace(/^ {3}/gm, ""),
+const commandBlocks = Array.from((backupSection ?? "").matchAll(codeBlockPattern), (match) =>
+  match[1].replace(/^ {3}/gm, ""),
 );
 const initializeManifest = commandBlocks.find(
   (block) => block.includes("phase2-files.txt <<'EOF'") && block.includes("set -C"),
 );
-const guardAndArchive = commandBlocks.find((block) => block.includes("tar --create --gzip --file=-"));
+const guardAndArchive = commandBlocks.find((block) =>
+  block.includes("tar --create --gzip --file=-"),
+);
 
 const temporaryDirectories = [];
 afterEach(() => {
@@ -115,9 +116,7 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
     fs.rmSync(manifestFile);
     const created = runManifestInitialization(fixture);
     expect(created.status, created.stderr + created.stdout).toBe(0);
-    expect(fs.readFileSync(manifestFile, "utf8")).toContain(
-      "workspace/M07/phase2-handoff.md",
-    );
+    expect(fs.readFileSync(manifestFile, "utf8")).toContain("workspace/M07/phase2-handoff.md");
     const repeated = runManifestInitialization(fixture);
     expect(repeated.status).not.toBe(0);
   });
