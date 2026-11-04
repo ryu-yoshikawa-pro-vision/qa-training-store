@@ -166,6 +166,54 @@ describe("PR #219: Checkout Session isolation and 24-hour expiry", () => {
     }).toEqual(before);
   });
 
+  it("refuses confirm-ready Checkout after Cart version changes, preserving DB tables", async () => {
+    const useCases = service("pr219-regular-a");
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    expect(cart).toBeDefined();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    const addressed = await useCases.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address: ADDRESS,
+    });
+    const ready = await useCases.setPayment({
+      checkoutSessionId: addressed.id,
+      checkoutExpectedVersion: addressed.version,
+      paymentMethodCode: "TEST-SUCCESS",
+    });
+
+    expect(await database.carts.update(cart!.id, { version: cart!.version + 1 })).toBe(1);
+    const before = {
+      carts: await database.carts.toArray(),
+      checkouts: await database.checkout_sessions.toArray(),
+      orders: await database.orders.toArray(),
+      payments: await database.payments.toArray(),
+      variants: await database.product_variants.toArray(),
+      histories: await database.inventory_histories.toArray(),
+    };
+
+    await expect(useCases.getConfirmation(ready.id)).rejects.toMatchObject({
+      code: "CART_VERSION_CHANGED",
+    });
+    await expect(
+      useCases.beginOrder({
+        checkoutSessionId: ready.id,
+        checkoutActionVersion: ready.version,
+      }),
+    ).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+    expect({
+      carts: await database.carts.toArray(),
+      checkouts: await database.checkout_sessions.toArray(),
+      orders: await database.orders.toArray(),
+      payments: await database.payments.toArray(),
+      variants: await database.product_variants.toArray(),
+      histories: await database.inventory_histories.toArray(),
+    }).toEqual(before);
+  });
+
   it("expires exactly at 24 hours without producing Order, Payment or Inventory changes", async () => {
     const useCases = service("pr219-regular-a");
     const started = await useCases.start({ cartVersion: await activeCartVersion() });

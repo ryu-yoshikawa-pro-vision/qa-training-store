@@ -219,3 +219,9 @@
 - 固定Clock：`2026-07-01T04:00:00.000Z`の開始、`2026-07-02T03:59:59.000Z`の有効、`2026-07-02T04:00:00.000Z`の失効境界。通常のSession Store差替えは同一userId内の再開、他userIdでは拒否をassert。
 - 既存`tests/integration/checkout-order-use-cases.test.ts`では決済`TEST-SUCCESS/DECLINED/INSUFFICIENT/AUTH-FAILED`、再試行、二重確定、在庫競合、OrderItem Snapshotを既に検証しているため重複作成しない。UIの住所再開通知・ブラウザReload/Reset、Android・SQLiteの実証、DB全表Snapshotファイルの永続保存は未受入のまま。
 - 最終成果物に残さないPrettier診断Caseを同じファイルへ一時挿入。CIのIntegration jobでコード整形を確認したら診断を削除する。実行確認前は11番未チェック。
+
+## 確認画面到達後のCart version変更とDB不変（11番の補完）
+
+- `tests/integration/pr219-checkout-boundaries.test.ts`に`regular`顧客が`start→setAddress→setPayment`を終えてconfirm-readyになった状態でCart versionを+1してから、`getConfirmation`と`beginOrder`が両方`CART_VERSION_CHANGED`を返すことを検証するCaseを追加。
+- 固定Seed`cart-version-invalidates-checkout`の`unlockedStep=address`をそのまま確認画面の代用にせず、**実際に確認画面到達後にCartだけ変更**する。Cart/Checkout/Order/Payment/Inventory/Historyを操作前後で比較して拒否後の不変性をassert。
+- 既存の確認画面エラーからCartへ戻る導線・視覚正本/a11yと、Web上の二重押下は別に実行証拠が必要。追加CaseのCI結果と併せて確認するまで11番は保留。
