@@ -629,23 +629,28 @@ describe("AI-assisted QA distribution contract", () => {
     const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
     const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     const moduleEntry = distribution.load_files.find(
-      (entry) =>
-        entry.module_id === "M00" && entry.target_path === "workspace/M00/submission.md",
+      (entry) => entry.module_id === "M00" && entry.target_path === "workspace/M00/submission.md",
     );
     expect(moduleEntry).toBeDefined();
-    distribution.load_files = distribution.load_files.map((entry) =>
-      entry === moduleEntry ? { ...entry, source_path: "workspace/.gitignore" } : entry,
-    );
-    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
 
-    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
-      /load source_path must be a module-scoped course file/,
-    );
-    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
-      /load source_path must be a module-scoped course file/,
-    );
-    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
-    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    for (const sourcePath of ["workspace/.gitignore", "course/shop/index.html"]) {
+      const forged = {
+        ...distribution,
+        load_files: distribution.load_files.map((entry) =>
+          entry === moduleEntry ? { ...entry, source_path: sourcePath } : entry,
+        ),
+      };
+      fs.writeFileSync(manifestPath, JSON.stringify(forged));
+
+      expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+        /load source_path must be a module-scoped course file/,
+      );
+      expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+        /load source_path must be a module-scoped course file/,
+      );
+      expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+      expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
   });
 
   it("rejects invalid Skill sizes and oversized downloads", async () => {
