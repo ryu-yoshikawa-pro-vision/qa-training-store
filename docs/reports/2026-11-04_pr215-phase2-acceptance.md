@@ -396,3 +396,12 @@
 - **配布固定条件と保護**：manifestの`source_sha`は同期時に埋める`${SOURCE_SHA}`で、state契約revisionは`ai-assisted-qa-course-v3`。`generated.shop_build`は`pnpm run build:web`から`course/shop/**`を生成する。通常配布の`forbidden_paths`は`assessment/reference-solutions/**`・`scoring-tests/**`・`completed-states/**`、`.env*`、Secret、評価資料、GitHub workflow等を禁止する。正式採点用の`assessment_asset_allowlist`とは別経路である。
 - **検証と非破壊性**：`verifySyncedCourseDistribution`は配布ファイルごとのSHA-256、source SHA/revision、状態遷移の入力/出力、Shop indexとmanifest照合を検証する。`loadModule`は事前に配布sourceを検証し、学習者ファイルに既存の異内容があればコピー前に拒否する。`checkState`は状態/参照を確認するが、環境の起動や本人実Runは`execution.status=unverified`と返す。専用Playwright設定はHTTP loopback `127.0.0.1:8082`等に限定され、8081/6080とは区別する。
 - **判断と残件**：M05〜M07教材の配布先・固定Shop/Resetの前提・Run出力先・機密情報の境界について、現時点の静的なソース契約に矛盾は見つからない。#218の専用タスクリスト自体は確認時`0/21`であり、配布生成・外部Skill全件・シークレット検査の実実行を今回再確認したわけではない。#215でmanifestや共有スクリプトを変更せず、配布実受入は#218/#199に残す。
+
+## 2026-11-05 #217の共有実行器・正式評価・M07参考specの未解決照合
+
+- **確認元**：#217 Draft HEAD `5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`、共有`scripts/training/ai-assisted-qa-run-evidence.mjs`（Blob `d7c88233102c9402db268b65a3ac37039856051e`）、`assessment/playwright/M07/maintenance-after/cart.spec.ts`（Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`）。どちらも#215の比較対象と同じBlob。#215では読み取りのみ。
+- **未修正1：JSON reporterの相対パス**：`reportSpecs`は現在も`path.resolve(root, spec.file ?? "")`を使う。一方、Playwright JSON reporterの`spec.file`は`config.rootDir`相対であり、実specの集約・`readRunRecord`の照合で誤った`ungradable`を生むおそれがある。報告済み：[#217コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6633137546)。実Chromiumでの再現結果は未取得。
+- **未修正2：M05 P05の証拠境界**：`MODULE_SPECS.M05`は現在も`product-link.spec.ts`のみ。P05の本人作成`p05-cart-locator.spec.ts`は教材側の直接Playwright実行に限定され、正式`course:run`のreceiptがない。正式評価で直接実行証拠を受け入れるか、独立receiptを要求するかは#217判断待ち。報告済み：[#217コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6630325393)。
+- **未修正3：M07 P05の参照3件目**：参照`maintenance-after/cart.spec.ts`は2件→3件でtest/fixture/業務Assertionはあるが、3件目は`page.reload()`のみ。教材と提出欄が求める「Cart以外へ移動してCartへ戻る」に一致しない。報告済み：[#217コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6632850727)。#215のM07-05完了チェックは付けない。
+- **追加の正式採点境界**：M06固定3件のTODO例外削除だけでPlaywright 0終了となり得ること、004/005の独立test・初回/repeatの両Run・業務Assertionを確認する必要性も[#217へ連絡済み](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6635799444)。
+- **今回の判定**：#217への引継ぎ内容・固定HEAD・未修正状態の照合という#215技術タスクは完了。#217の実装修正、正式評価、参考specのM07-05適合、実Playwrightの証拠は**未完了**。#215で共有scriptや採点資産を変更せず、後続#199最終受入で#217の採用HEADを再照合する。
