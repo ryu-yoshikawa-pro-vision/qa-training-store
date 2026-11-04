@@ -2,6 +2,44 @@ import type { Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 import { addDefaultAddress, expect, login, test } from "./fixtures";
 
+// Read-only, per-table digests; never attach record contents or authentication secrets.
+async function indexedDbTableDigests(page: Page, tableNames?: readonly string[]) {
+  return page.evaluate(async (requestedTables: string[] | null) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("ec-automation-training");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const names = (requestedTables ?? Array.from(database.objectStoreNames)).sort();
+      const transaction = database.transaction(names, "readonly");
+      const rowsByTable = await Promise.all(
+        names.map(
+          (name) =>
+            new Promise<unknown[]>((resolve, reject) => {
+              const request = transaction.objectStore(name).getAll();
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            }),
+        ),
+      );
+      const entries = await Promise.all(
+        names.map(async (name, index) => {
+          const bytes = new TextEncoder().encode(JSON.stringify(rowsByTable[index]));
+          const digest = await crypto.subtle.digest("SHA-256", bytes);
+          const hash = Array.from(new Uint8Array(digest))
+            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .join("");
+          return [name, hash] as const;
+        }),
+      );
+      return Object.fromEntries(entries);
+    } finally {
+      database.close();
+    }
+  }, tableNames === undefined ? null : [...tableNames]);
+}
+
 test.describe("PR #219: WEB Role and direct-route acceptance", () => {
   test("SCREEN-BOUNDARY-FORBIDDEN-A01-01: guest direct routes do not expose protected UI", async ({
     page,
@@ -281,7 +319,7 @@ test.describe("PR #219: admin product list and selected-filter boundary", () => 
   });
 });
 
-async function openCheckoutStaleCartConflict(page: Page) {
+async function prepareCheckoutStaleCart(page: Page) {
   await addDefaultAddress(page);
   await page.goto("/checkout/address");
   await page.locator('input[name="address"]').check();
@@ -301,7 +339,10 @@ async function openCheckoutStaleCartConflict(page: Page) {
   const quantity = page.getByLabel("数量").first();
   await quantity.selectOption("3");
   await expect(quantity).toHaveValue("3");
+}
 
+async function openCheckoutStaleCartConflict(page: Page) {
+  await prepareCheckoutStaleCart(page);
   await page.goto("/checkout/confirm");
   await expect(page.getByRole("heading", { name: "購入手続きを続けられません" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "注文内容を確認" })).toHaveCount(0);
@@ -316,6 +357,54 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     await scenario("regular-member");
     const recovery = await openCheckoutStaleCartConflict(page);
     await expect(recovery).toHaveAttribute("href", "/checkout/payment");
+  });
+
+  test("SCREEN-CHECKOUT-CONFIRM-S-stale-cart: rejected confirmation preserves DB transaction tables", async ({
+    page,
+    scenario,
+  }, testInfo) => {
+    await scenario("regular-member");
+    await prepareCheckoutStaleCart(page);
+
+    // A rejected read of a stale Checkout must not create orders, payments,
+    // shipments or histories, nor change Cart/Checkout versions or inventory.
+    const tables = [
+      "carts",
+      "cart_items",
+      "checkout_sessions",
+      "orders",
+      "order_items",
+      "daily_sequences",
+      "payments",
+      "shipments",
+      "order_status_histories",
+      "inventory_histories",
+    ] as const;
+    const before = await indexedDbTableDigests(page, tables);
+
+    await page.goto("/checkout/confirm");
+    await expect(page.getByRole("heading", { name: "購入手続きを続けられません" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "注文内容を確認" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /を支払う$/ })).toHaveCount(0);
+
+    const after = await indexedDbTableDigests(page, tables);
+    await testInfo.attach("pr219-stale-confirm-rejected-db-digests", {
+      body: JSON.stringify({ tables, before, after }, null, 2),
+      contentType: "application/json",
+    });
+    expect(after).toEqual(before);
+
+    // Print only the equality result, never DB contents/hashes, for durable
+    // GitHub job-log evidence when successful attachments are not uploaded.
+    console.log(
+      "PR219_CASE_EVIDENCE " +
+        JSON.stringify({
+          behavior: "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+          condition: "rejected-confirm-no-db-mutation",
+          tableCount: tables.length,
+          allTablesUnchanged: true,
+        }),
+    );
   });
 
   test("SCREEN-CHECKOUT-CONFIRM-S-stale-cart: conflict widths, axe and keyboard recovery", async ({
@@ -559,42 +648,7 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
       }
     });
 
-    const tableDigests = () =>
-      page.evaluate(async () => {
-        const database = await new Promise<IDBDatabase>((resolve, reject) => {
-          const request = indexedDB.open("ec-automation-training");
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-        try {
-          const names = Array.from(database.objectStoreNames).sort();
-          const transaction = database.transaction(names, "readonly");
-          const rowsByTable = await Promise.all(
-            names.map(
-              (name) =>
-                new Promise<unknown[]>((resolve, reject) => {
-                  const request = transaction.objectStore(name).getAll();
-                  request.onsuccess = () => resolve(request.result);
-                  request.onerror = () => reject(request.error);
-                }),
-            ),
-          );
-          const entries = await Promise.all(
-            names.map(async (name, index) => {
-              const bytes = new TextEncoder().encode(JSON.stringify(rowsByTable[index]));
-              const digest = await crypto.subtle.digest("SHA-256", bytes);
-              const hash = Array.from(new Uint8Array(digest))
-                .map((byte) => byte.toString(16).padStart(2, "0"))
-                .join("");
-              return [name, hash] as const;
-            }),
-          );
-          return Object.fromEntries(entries);
-        } finally {
-          database.close();
-        }
-      });
-    const before = await tableDigests();
+    const before = await indexedDbTableDigests(page);
     await page.reload();
     await expect(page).toHaveURL(/\/forbidden$/);
     await expect(
@@ -610,7 +664,7 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/forbidden$/);
     await expect(returnLink).toBeVisible();
-    const after = await tableDigests();
+    const after = await indexedDbTableDigests(page);
     await testInfo.attach("pr219-forbidden-indexeddb-digests", {
       body: JSON.stringify({ before, after }, null, 2),
       contentType: "application/json",
