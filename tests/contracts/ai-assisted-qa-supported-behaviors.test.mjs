@@ -1174,4 +1174,43 @@ describe("サポート機能の仕様と実装の追跡", () => {
     );
   });
 
+  it("tracks all 76 public Use Case methods and validates 297 evidence references", () => {
+    expect(data.use_case_methods).toHaveLength(76);
+    const methods = new Map(data.use_case_methods.map((method) => [method.id, method]));
+    let evidenceCount = 0;
+    for (const behavior of data.behaviors) {
+      for (const evidence of behavior.use_case_evidence ?? []) {
+        evidenceCount += 1;
+        const method = methods.get(evidence.id);
+        expect(evidence).toEqual({
+          id: method.id,
+          path: method.source_path,
+          line: method.source_line,
+          signature: method.signature,
+        });
+      }
+      for (const relation of behavior.related_use_cases ?? []) {
+        expect(methods.has(relation)).toBe(true);
+      }
+    }
+    expect(evidenceCount).toBe(297);
+    for (const id of [
+      "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
+      "SCREEN-ORDERS-DETAIL-A01-03",
+      "SCREEN-ORDERS-DETAIL-A02-02",
+      "SCREEN-ORDERS-DETAIL-S-reviewable",
+      "SCREEN-REVIEWS-EDITOR-A02-01",
+      "SCREEN-ADMIN-ORDERS-A02-01",
+    ]) {
+      expect(data.behaviors.find((entry) => entry.id === id)?.indirect_use_case_review).toBeTruthy();
+    }
+    const changed = mutated((next) => {
+      next.behaviors.find((entry) => entry.id === "SCREEN-ADMIN-USERS-A01-02")
+        .related_use_cases.push("UnknownUseCase.list");
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /unknown related Use Case/,
+    );
+  });
+
 });

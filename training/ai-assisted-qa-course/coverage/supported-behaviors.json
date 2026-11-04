@@ -4085,7 +4085,8 @@
           "end_line": 359,
           "reason": "全SKU0のDTO mockでdisabled UIを確認する既存component（固定Seedではない）"
         }
-      ]
+      ],
+      "indirect_use_case_review": "CartUseCases.addItemは在庫0の購入を試したときの下流の認可/拒否経路。状態表示のProductDetailViewは直接addItemを呼ばず、カート追加ボタン操作が別の親動作で扱う。関連する検証責任は維持する。"
     },
     {
       "id": "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-low-stock",
@@ -15349,7 +15350,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "indirect_use_case_review": "CustomerReviewUseCases.getEligibility/create/updateは注文詳細のレビューLinkから遷移するEditorで実行する下流操作。注文詳細表示自身の直接読取はCheckoutOrderUseCases.getMyCustomerOrderであり、投稿/編集の直接呼出しと混同しない。"
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-A02-01",
@@ -15634,7 +15636,8 @@
         "specification",
         "implementation",
         "seed"
-      ]
+      ],
+      "indirect_use_case_review": "AdminProductUseCases.updateとAccountUseCases.updateAddressは過去注文のSnapshot不変を証明するための別Role/別画面での事前操作。注文詳細表示自身の直接呼出しではなく、実験入力として関連づける。"
     },
     {
       "id": "SCREEN-ORDERS-DETAIL-S-reviewable",
@@ -15797,7 +15800,8 @@
           "end_line": 180,
           "reason": "教材Seed2/3対実Seed1/5の差"
         }
-      ]
+      ],
+      "indirect_use_case_review": "CustomerReviewUseCases.getEligibility/createはレビュー導線から遷移したEditorの処理。Orders Detailのreviewable UI状態自身はgetMyCustomerOrderのReviewState表示を担当する。"
     },
     {
       "id": "SCREEN-REVIEWS-EDITOR-A01-01",
@@ -16306,7 +16310,8 @@
           "end_line": 205,
           "reason": "default hidden eligible=trueの既存部分証拠・cross-owner安全性は未実証"
         }
-      ]
+      ],
+      "indirect_use_case_review": "AdminReviewUseCases.changeVisibilityはpublished/hiddenの初期条件・状態遷移を作る管理者側の操作。Customer Review Editor画面の状態表示が直接呼び出すものではない。"
     },
     {
       "id": "SCREEN-REVIEWS-EDITOR-A02-02",
@@ -23594,7 +23599,8 @@
           "end_line": 227,
           "reason": "後続配送version/原子更新の部分証拠"
         }
-      ]
+      ],
+      "indirect_use_case_review": "startPreparation/ship/completeDeliveryは注文詳細へ遷移した後の状態更新UseCase。管理注文一覧の注文番号Link/詳細読込自体はsearchOrders/getOrderであり、画面遷移では管理状態変更を実行しない。"
     },
     {
       "id": "SCREEN-ADMIN-ORDER-DETAIL-A01-01",

@@ -392,6 +392,9 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     for (const ref of item.requirement_refs ?? []) {
       assert(requirementIds.has(ref), `unknown requirement reference: ${item.id} -> ${ref}`);
     }
+    for (const id of item.related_use_cases ?? []) {
+      assert(methods.has(id), `unknown related Use Case: ${item.id} -> ${id}`);
+    }
     if (item.role === "platform_rolesを参照") {
       assert(
         item.platform_roles?.web && item.platform_roles?.android,
