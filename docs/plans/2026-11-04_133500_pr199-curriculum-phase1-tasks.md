@@ -55,3 +55,10 @@
 - [ ] M03で`condition_structure(direct)`→適用技法runtime→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→`verify_runtime_evidence`を実入力で通す。終了コード0だけでなく結果envelope・`valid=true`・未解決・current fingerprintを確認。model依存評価は別ゲート
 - [ ] Skill-local`SKILL.md/references/assets/scripts` の固定版、Python helperの実行、必要なruntimeが学習環境に存在することを確認。M02→M03の不足は配布ブランチへ引継ぐ
 - [ ] 22目標すべてについて教材→演習→提出→評価条件→復習先、`start/end`状態と対応を全量照合し、固有テスト・検証ログを残す。内容未受入の目標を一括完了にしない
+
+## クイズ・理解事項・自習・引継ぎ（補完）
+
+- [ ] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
+- [ ] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
+- [ ] 通常のOpenCode AIチューターについて、初学者が説明→段階ヒント→別条件練習→誤解別の復習→再挑戦を進められる内容と実操作を検証。学習側Agentの正しい説明だけで本人の達成にせず、M04の独立正式AI採点と混同しない
+- [ ] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
