@@ -317,3 +317,35 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 
 これらは全て**追加5参照のコミット前のCI**。新HEADに成功/失敗結果を流用しない。#212の変更境界に従い、#199側の固定status契約/Validator、#211 Assessment修正と各PR担当のPrettierはこのPRで編集しない。新HEADのCI、実Web/Android/DB/Session/Trace、製品適合、教材と配布の技術受入は引き続き別ゲート。
 
+## 2026-11-04 継続：未設定audit_branch_refs 13操作＋未受入状態1件の補完
+
+対象HEAD：`cd02b39f6a4c7ef5bff7799e671ce4797f551a33`。対象は分析台帳と本レポートのみ。製品SUT・正式仕様・Seed/Reset・既存テストと#199/#210/#211は変更していない。
+
+### 実施内容
+
+- [`47c868f9`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/47c868f9b2853c3ce97685dc7c2e6583dd1407cb)：`audit_branch_refs`未設定だった基本分析済み**13操作**に、正式仕様・画面/Native・Use Case・Repository・Seed・既存テストを追跡する**60参照**を追加。追加対象は登録成功遷移1、注文詳細スナップショット1、管理商品一覧→作成/編集遷移2、商品新規4、商品詳細4、管理在庫一覧1。既存`related_use_cases`や`use_case_evidence`、分析statusは変更しない。
+- [`cd02b39f`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/cd02b39f6a4c7ef5bff7799e671ce4797f551a33)：未受入`SCREEN-STOREFRONT-PRODUCT-LIST-S-empty`に**7参照**を追加。正式仕様`storefront.md:68-74`、Seed `metadata.ts:86-94`・`scenarios.ts:39-40`、Web UI `catalog-list-page.tsx:282-290,501-525`、パンくず実装`admin-patterns.tsx:4-18`、既存component `catalog-pages.test.tsx:305-316`を確認。
+- 追加**67/67参照**は、参照先18+5（重複込み）のソース集合についてファイル存在・`start_line/end_line`整数・範囲・非空のソースを独立検査済み。60参照と7参照の検査は別々の固定HEADに対して実施。**参照行の静的存在確認であり、実画面・DB・Role・製品適合を証明しない**。
+- 新台帳の`audit_branch_refs`は**208/208 Behavior**に設定され、総参照数**2,515**。`analyzed`で未設定は0。既存2,448参照の内容・実装意味を今回すべて再監査したわけではない。
+- `analysis_status`は基本分析**179/188操作**、非default **17/20状態**のまま。`source_commit`、79要件、76公開Use Case、実装・Seed・変換元624参照、公開Use Case296参照は不変更。
+
+### empty-catalogの不適合断定を訂正
+
+従来の`basic_analysis_review`は「空状態に戻り導線なし」としていたが、Web `CatalogListContent`は`Breadcrumbs(items=[{label:"ホーム",href:"/"}, ...])`を常設しており、`Breadcrumbs`自身は`href`を持つ項目をExpo Routerの`<Link>`にする。一方`showUnfilteredEmptyState`の`StatePanel`は`action={null}`であり、componentテストもパネル内CTAなしを期待。フィルタで0件の場合は別途「条件をすべて解除」CTAがある。
+
+確定しているのは**パネル内CTAがないこと**と**パンくずのホームリンクが存在すること**。正式仕様の「元の画面に戻る導線」にパンくずが含まれるか、正本画像・実Webでの見え方とkeyboard/a11yから判断する必要がある。「画面全体に戻り導線がない」と断定せず、`risk`/`test_condition`/`basic_analysis_review`/`analysis_progress`を修正。**`review_required`は維持**し、#210の製品UI/正式仕様は変更しない。
+
+### 親PRとの比較、CIの扱い
+
+- #199比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098`との差分は、**124 Behavior ID**＝status差58件、status差を持たないその他の差66件。status差の58件も追加情報の差を含む。旧111件は追加67参照前の比較履歴に限定。
+- #212前HEAD `68d49e61` の [Web CI #41756435741](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41756435741) は**completed/failure**。契約・Style Qualityが失敗、verify/validateもfailure。Integration/Repository/Component/Unit、Code Quality、Web required/cross-role/accessibility/mobile-boundary/training-web-baseline等は成功。これらは本変更後のHEADのCI結果ではない。
+- 新コミット `47c868f9` の [Web CI #41758131249](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758131249) は確認時点で進行中、`cd02b39f` の [Web CI #41758571989](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41758571989) はpending。最終HEADの合否は未確定として扱う。
+
+### 残る受入作業
+
+- **基本分析**：9操作（管理商品一覧1、管理ユーザー一覧1、管理ユーザー詳細6、禁止境界1）と3非default状態（商品一覧empty、住所resume通知、confirmのstale Cart）の実Web/DB/競合・仕様判断。
+- **分析契約**：#199の6操作ID/12箇所固定`review_required`期待と基本分析statusの衝突、`validate-supported-behaviors.mjs`のUse Case path/行/署名検査追加。変更先は#199。
+- **Assessment/Style**：#211のAssessment Calibration期待値調停、#199 admin-users-listと#211 assessmentのPrettier修正、統合最終HEADで契約とStyle再実行。
+- **製品/実受入**：#210の認可/Version、決済runtime、Web/Native差、IndexedDB/SQLite全表前後、Maestro/Android、画像・keyboard/a11y。今回の参照補完で完了扱いしない。
+- **教材/配布/統合**：M00〜M10実演習・採点・Private CI・`course:sync`・ライセンス・各PRの競合調整、同一最終HEADの必須Web/Mobile CIと独立レビュー。merge/force push等は未実施。
+
