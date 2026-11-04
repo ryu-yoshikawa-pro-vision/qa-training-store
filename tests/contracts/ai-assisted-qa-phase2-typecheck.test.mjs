@@ -9,6 +9,7 @@ const exercise = fs.readFileSync(
   "utf8",
 );
 const flags = [
+  "--ignoreConfig",
   "--noEmit",
   "--strict",
   "--skipLibCheck",
@@ -38,7 +39,7 @@ function typecheck(file) {
 describe("M05 P03のTypeScript型診断（隔離した短コードのみ）", () => {
   it("教材はworkspaceの対象ファイルを明示し、ルート全体の型検査と区別する", () => {
     expect(exercise).toContain(
-      "pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext workspace/M05/p03-type-error.ts",
+      "pnpm exec tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext workspace/M05/p03-type-error.ts",
     );
     expect(exercise).toContain("tsx");
     expect(exercise).toContain("型検査");
