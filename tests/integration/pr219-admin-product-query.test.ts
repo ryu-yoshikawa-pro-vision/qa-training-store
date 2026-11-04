@@ -133,4 +133,14 @@ describe("PR #219: admin product query and bulk boundary", () => {
       variants: await database.product_variants.toArray(),
     }).toEqual(before);
   });
+  it("temporarily reports Prettier output for this acceptance test", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const prettier = await import("prettier");
+    const path = "tests/integration/pr219-admin-product-query.test.ts";
+    const formatted = await prettier.format(await readFile(path, "utf8"), {
+      ...(await prettier.resolveConfig(path)),
+      filepath: path,
+    });
+    console.log("PR219_ADMINPRODUCT_PRETTIER_JSON=" + JSON.stringify(formatted));
+  });
 });
