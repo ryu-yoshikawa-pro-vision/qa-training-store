@@ -44,3 +44,11 @@
 - 対象表は`carts`、`cart_items`、`checkout_sessions`、`orders`、`order_items`、`daily_sequences`、`payments`、`shipments`、`order_status_histories`、`inventory_histories`の10表。読み取り専用IndexedDB transactionから表別SHA-256を計算し、拒否画面表示の前後で一致をassertする。支払ボタンが表示されないことも確認する。
 - 認証情報・個人情報・レコード実値はCIログへ出さない。TestInfoへの添付はdigestのみ、jobログへは条件・表数・一致判定のみを出力する。既存Forbidden Caseでも同じdigestヘルパーを再利用し、テスト内の重複実装を削減した。
 - テスト追加コミット`b9a032b6d690eaea5dbb7e02276cf3d2971cba47`、ログ補完`c0821559ea3cc776f945893e7e45cad3cc54c807`。**新E2EはCI未確認であり、DB10表不変はまだ実証済みではない。** 既存Web E2Eの製品不具合（stale Cartの戻り先が`/checkout/payment`）は別判定。Android SQLite/実機や他のCaseのDB前後・取引rollbackまでは検証しない。
+
+## 固定CI #41824802868：DB10表不変Caseの実証（2026-11-04）
+
+- 実行時のPR #219 HEAD：`681e55c7105e436b045c59a65d5fdd64d5b27723`。製品SUT：#199 base `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`。Linux Chromium、`pnpm exec playwright test --project=cross-role-chromium`。Run [#41824802868](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41824802868)、cross-role job [#126557496126](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41824802868/job/126557496126)は**success**。
+- 新規Case `SCREEN-CHECKOUT-CONFIRM-S-stale-cart: rejected confirmation preserves DB transaction tables`（当該HEADの`e2e/web/pr219-cross-role-lifecycle.spec.ts:362`）が**1回目PASS**。ログの`PR219_CASE_EVIDENCE`に`condition=rejected-confirm-no-db-mutation`、`tableCount=10`、`allTablesUnchanged=true`。拒否画面の見出しと確認見出し/支払ボタン非表示もassert済み。10表のbefore/afterハッシュ一致の実証であり、Native SQLite、DB外通信、他経路の失敗注入・rollbackを実証したわけではない。
+- 同ジョブでは7幅/axe/KeyboardのCheckout競合表示もPASSしたが、実際の戻り先は依然`/checkout/payment`（既知の製品不具合）。Forbidden停止staff循環は全23表ハッシュ不変を再確認したが、誘導ループ自体は製品不具合のまま。
+- 当該Runは**workflow全体failure**。Style Quality job `126556819280`が専用E2EのPrettier違反でfailure、既存cross-role E2Eに2件の初回失敗→retry成功がある。Prettier整形修正コミット `6455a4df31190e00cfff0d2f3cce795170d579a0`の別Run #41826050155ではStyle Quality job `126560935572`が**success**。後続RunをDB Caseの再実行実績と混同しない。
+- 今回の証拠キーは`PR219-WEB-025`。Web証拠表は42履歴行、208動作一覧の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`へ連携。キーは正式採用Case IDではなく、#213側のBR/AC/Condition/Case判断待ち。成功時TestInfo添付のハッシュ本体・Trace・動画はCI Artifactに公開されておらず、ジョブログには結果真偽のみを残している。
