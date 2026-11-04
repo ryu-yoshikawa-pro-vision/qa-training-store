@@ -23,3 +23,5 @@
 - タスク5番の実ブラウザ補完：管理ユーザーの検索/Rank/Status 3件のE2Eを追加。CI結果確認と例外条件が揃うまでは未完了。
 
 - タスク5番の不足補完：管理ユーザー検索/自己停止/withdrawn/rank-status stale 4件、Rank保存失敗によるCheckout rollback 1件を隔離Integrationテストへ追加。CI実行待ち。
+
+- タスク6番の競合再現：新規隔離DBテストを追加。旧#199の許可時点差を`it.fails`で証明する予定。固定CIが成功するまで再現断定せず、製品適合PASSには数えない。

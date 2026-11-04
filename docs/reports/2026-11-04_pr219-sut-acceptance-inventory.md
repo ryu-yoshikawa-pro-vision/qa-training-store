@@ -139,3 +139,11 @@
 - `tests/integration/pr219-isolated-fixtures.test.ts`に、`checkout-resume` SeedでRank変更時のCheckout abandoned後、User保存に障害注入してtransaction rollbackを検証する1件を追加。いずれも隔離Dexie DB内だけの操作。
 - `src/presentation/pages/review-user-pages.tsx`ではRank絞り込みと登録日/更新日のsort UIが提供されていない。正式仕様と補助UI仕様の優先関係を#213/#210へ照会する前提で、現行SUTに対するE2E・Use Caseの挙動のみ受入テストとする。
 - 追加5件はCIで実Runを確認するまで未実行扱い。タスクリスト5番はまだ未完了。
+
+## 認可後・transaction前のactor失効競合（タスクリスト6番は未完了）
+
+- 新規`tests/integration/pr219-actor-revocation.test.ts`はPR #199旧SUTで予想される認可時点差を隔離Dexie DBで再現する。actor=`user-admin`が`requireAdmin()`を通過した後、`change-user-access` transaction開始直前にactorをoperatorまたはsuspendedにしてSessionを削除する。
+- `changeRole(user-operator→admin)`と`changeSuspension(user-customer-regular→suspended)`の両方で**拒否と対象User不変**を正しい受入期待値とする。
+- #199 HEADの`AdminUserUseCases`は`requireAdmin()`をtransactionの外で1度行うだけで、開始時の再認可が存在しない。#210の`product/scenario-shop-maintenance` HEAD `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79`には`assertActorStillAuthorized`があるが、別HEADで未マージ。
+- 旧実装に対するテストは`it.fails`で**期待した拒否が成立しないことを検知する既知不具合再現用**。テストランナーのgreenには含まれても、製品適合PASSに絶対に換算しない。#210で修正された製品HEADを独立検証するとき、`it.fails`を通常の`it`へ変更し、拒否コード・全表不変・同時更新の証拠で受入する。実CI前は現象の動的再現は未確認。
+- このテストは固定Seedを書き換えず、隔離DBでのみactor権限とSessionを変更する。DB全表の網羅や、実ブラウザ・Androidの動的判定とは別。
