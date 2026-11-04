@@ -6,7 +6,7 @@
 
 ## エージェント担当と実モデル校正の境界
 
-#217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
+PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
 確認済みは0/22件（HEAD `e026edb3e8bd`。現在の差分はタスクリストのみ）。古いCIのMarkdown lintは#199基点の既修正表記に起因し、評価器のテストが失敗した証拠ではない。各項目は実装・契約/異常系CI・#199への実受入手順の整備でチェックする。
 
