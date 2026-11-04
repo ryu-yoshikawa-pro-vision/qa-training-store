@@ -81,3 +81,11 @@
 - テストCase：`SCREEN-STOREFRONT-PRODUCT-DETAIL-A02-01`のstock0/3状態、`SCREEN-ADMIN-USER-DETAIL-A01-04`の顧客停止→Session削除・Checkout abandoned・Cart不変、障害注入後のUser/Session/Checkout/Cartロールバック。
 - Clockは`2026-07-15T03:00:00.000Z`の`TestClock`。障害注入は隔離DBの`checkout_sessions.hook("updating")`に限り、製品実装・既存Seed/Reset・既存テストに手を加えていない。
 - 追加テストの実行は最新HEADのVitest (integration) CIで確認するまで未実行扱い。DBスナップショットはassertionベースでありファイルとして保存していない。直接Web/Android実Runの代わりにはならない。
+
+## Case追跡表の生成（タスクリスト2番・20番は未完了）
+
+- 追跡表：`docs/reports/2026-11-04_pr219-case-traceability.csv`。元データ：`training/ai-assisted-qa-course/coverage/supported-behaviors.json`、Blob `3143b229afd6dddad52ef7c09a9e91c5995af07f`（#219 HEAD `e81f4c090c755d60dc8b90a120c704e1dda7a900`で取得）。
+- 元台帳の188操作・20状態＝208動作、79要件を確認した。条件表現`C1`等を参照として抽出した`953`行（うち元台帳で番号が明示されていない動作`58`件を1行ずつ含む）。**`953`件の採用Caseが確定したという意味ではない**。各条件の採否・分割・統合は元台帳の`test_condition`、`case_policy`、BR/ACを照合して確定する。
+- 各行にBehavior ID、条件参照、Platform、Role、Scenario、要件、元台帳の期待結果と固定SUT SHAを記録した。未実行の観測・DB前後・Trace/動画/画像・Console/Network・Run・exit codeは空欄、判定はすべて**未受入**。既存の2件のIntegration PASSはCase単位の証拠として上記のCI節で管理しており、部分条件だけで候補行全体をPASSに変更しない。
+- 元台帳の`source_commit`は`383efc9107ef3d5f78c5659473277166c1bba2de`であり現行#199 HEAD `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`とは異なる。台帳の更新・採否は#213に委ね、#219はCaseと実Runの対応のみ追加する。
+- 再開：各候補について元台帳の採否を読み、実Runと固定HEAD・期待/観測・DB前後を紐付けた後に判定を更新する。未実施とBLOCKEDはPASSにしない。番号未付与を即座に仕様漏れと断定しない。

@@ -11,3 +11,5 @@
 - タスクリスト16番：PR #219 HEAD `63ebb7f`のWeb CI Run #41787879720において新規Vitest Integration2件・全Integration113件・既存必須Chromium E2E、Style Quality、Code Quality、verifyが成功。テスト実施を確認し16番のみ追加チェック。未受入の動的Web/Android証拠をPASSにしない。
 
 - #3隔離fixtureの作成：固定Seed/障害注入/正常操作を新規Integrationテストに実装。実行結果は次のCI確認後に記録する。
+
+- #2/20 Case追跡：分析台帳Blob `3143b229afd6dddad52ef7c09a9e91c5995af07f`から208動作・953条件参照行（未採番58動作）をCSV生成。全行未受入、採用Case確定と実Run証拠は継続。
