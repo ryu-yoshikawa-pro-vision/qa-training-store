@@ -11993,7 +11993,7 @@
       "case_policy": "Cart版変更後の確認ページ表示拒否と修正リンクを採用。価格差分はA02-02に区別し重複分母としない",
       "case_selection_reason": "通常時にはないCartの不一致状態から、意図しない注文確定を防ぎ安全にカートへ戻ることを確認するため",
       "analysis_status": "review_required",
-      "basic_analysis_review": "checkout-and-payment.md:126-153のstale-cart画面契約、checkoutScenario(dataset,true):367-395の旧Cart/Session差、getConfirmation/UseCase・Web/Native Repository・WebのCheckoutLoadError、関連回帰テストを照合。Seedの未完了Stepと確認画面上の版不一致再現条件を混同しない",
+      "basic_analysis_review": "checkout-and-payment.md:126-153のstale-cart画面契約、checkoutScenario(dataset,true):367-395の旧Cart/Session差、getConfirmation/UseCase・Web/Native Repository・WebのCheckoutLoadError、関連回帰テストを照合。Seedの未完了Stepと確認画面上の版不一致再現条件を混同しない 2026-11-04補足: 既存related_use_casesに登録されていた公開メソッドの定義行・署名をuse_case_evidenceへ追加。Role/DB/画面・実CI/実端末受入は未完了、review_required維持。",
       "requirement_refs": [
         "BR-CHECKOUT-002",
         "AC-CHECKOUT-002"
@@ -12004,7 +12004,7 @@
       ],
       "covered_by": "SCREEN-CHECKOUT-CONFIRM-A02-01",
       "coverage_role": "action_state_condition",
-      "analysis_progress": "仕様とWeb UIの古いCart導線、Cart-versionの固定Seedと確定直前にVersionを変更するテスト入力を分離。視覚正本との実ブラウザ比較は未完了 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。",
+      "analysis_progress": "仕様とWeb UIの古いCart導線、Cart-versionの固定Seedと確定直前にVersionを変更するテスト入力を分離。視覚正本との実ブラウザ比較は未完了 | #210への製品差分分離後、main画面の同一定義行へ参照更新。画面の内部ロジック・分岐・Web/Native・Case採否はmainで再照合するまで旧分析のPASSを継承しない。 | 2026-11-04: 関連公開UseCaseの定義行・署名を証拠として追加（静的照合のみ）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/checkout-order-pages.tsx",
         "line": 311,
@@ -12024,7 +12024,20 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": [],
+      "use_case_evidence": [
+        {
+          "id": "CheckoutOrderUseCases.getConfirmation",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 176,
+          "signature": "async getConfirmation(checkoutSessionId?: string): Promise<CheckoutConfirmationDto> {"
+        },
+        {
+          "id": "CheckoutOrderUseCases.beginOrder",
+          "path": "src/application/use-cases/checkout-order-use-cases.ts",
+          "line": 185,
+          "signature": "async beginOrder(request: CreateOrderForPaymentRequest): Promise<BeginOrderResult> {"
+        }
+      ],
       "reviewed_against": [
         "specification",
         "implementation",
@@ -25015,7 +25028,7 @@
       "case_policy": "C1〜C6採用。Web disabledとUseCase SELF_CHANGE_FORBIDDENの二重境界を分離。最終管理者ではない本人でも自己変更は禁止し、A02-03のlast-admin判定と混同しない。",
       "case_selection_reason": "正常な禁止判定、直接呼出し、UI、Role別拒否、複数admin条件、画面/a11yを採用。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:5-23、review-user-pages.tsx:655-665/752-812、review-user-use-cases.ts:567-570/600-604/700-705、default-dataset.ts:730-772、integration:322-334を確認。role変更は本人IDでSELF_CHANGE_FORBIDDEN、suspendedへの変更も同エラーを投げる。Webは本人Role/状態の操作ボタンをdisabledにする。既存integrationは本人role変更拒否のみで、本人停止・UI・DB/Session非変更・複数admin下の直接呼出しを実証しないためreview_required維持。",
+      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:5-23、review-user-pages.tsx:655-665/752-812、review-user-use-cases.ts:567-570/600-604/700-705、default-dataset.ts:730-772、integration:322-334を確認。role変更は本人IDでSELF_CHANGE_FORBIDDEN、suspendedへの変更も同エラーを投げる。Webは本人Role/状態の操作ボタンをdisabledにする。既存integrationは本人role変更拒否のみで、本人停止・UI・DB/Session非変更・複数admin下の直接呼出しを実証しないためreview_required維持。 2026-11-04補足: 既存related_use_casesに登録されていた公開メソッドの定義行・署名をuse_case_evidenceへ追加。Role/DB/画面・実CI/実端末受入は未完了、review_required維持。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25024,7 +25037,7 @@
         "AdminUserUseCases.changeRole",
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "2026-11-04: A02-01を自己Role変更と自己停止の二経路に分割し、UI disabled・Applicationガード・Seed/既存integrationを照合。未検証の状態不変・Web/a11y・並列競合を個別Case化。",
+      "analysis_progress": "2026-11-04: A02-01を自己Role変更と自己停止の二経路に分割し、UI disabled・Applicationガード・Seed/既存integrationを照合。未検証の状態不変・Web/a11y・並列競合を個別Case化。 | 2026-11-04: 関連公開UseCaseの定義行・署名を証拠として追加（静的照合のみ）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -25047,7 +25060,20 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": [],
+      "use_case_evidence": [
+        {
+          "id": "AdminUserUseCases.changeRole",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 567,
+          "signature": "async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeSuspension",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 600,
+          "signature": "async changeSuspension(input: ChangeAccountSuspensionRequest): Promise<UserAdminDto> {"
+        }
+      ],
       "reviewed_against": [
         "specification",
         "implementation",
@@ -25161,7 +25187,7 @@
       "case_policy": "C1〜C6採用。Seed内のwithdrawn customerと学習用fixtureのwithdrawn staffを区別し、固定Seedを書き換えない。正常な顧客status遷移はA01-04、Role変更はA01-02と分離。",
       "case_selection_reason": "withdrawnの全3操作、UI read-only、VersionとNOT_FOUND、Role別拒否、関連表不変を対象とする。",
       "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:21-23、review-user-pages.tsx:686-716/752-835、review-user-use-cases.ts:542-563/567-598/600-635、default-dataset.ts:755-772、integration:322-350を確認。Webではwithdrawnで操作sectionが非表示、ApplicationではRank/RoleはINVALID_ROLE、statusはINVALID_STATEを返す。既存integrationはwithdrawn→activeのstatus拒否のみ。Rank/Roleの直接拒否、withdrawn staff fixture、失敗後の多表不変、Web/a11yは未受入。review_required維持。",
+      "basic_analysis_review": "2026-11-04 PR #212静的監査: admin-users.md:9-15/49-51/75-79、roles-and-permissions.md:21-23、review-user-pages.tsx:686-716/752-835、review-user-use-cases.ts:542-563/567-598/600-635、default-dataset.ts:755-772、integration:322-350を確認。Webではwithdrawnで操作sectionが非表示、ApplicationではRank/RoleはINVALID_ROLE、statusはINVALID_STATEを返す。既存integrationはwithdrawn→activeのstatus拒否のみ。Rank/Roleの直接拒否、withdrawn staff fixture、失敗後の多表不変、Web/a11yは未受入。review_required維持。 2026-11-04補足: 既存related_use_casesに登録されていた公開メソッドの定義行・署名をuse_case_evidenceへ追加。Role/DB/画面・実CI/実端末受入は未完了、review_required維持。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -25171,7 +25197,7 @@
         "AdminUserUseCases.changeRole",
         "AdminUserUseCases.changeSuspension"
       ],
-      "analysis_progress": "2026-11-04: A02-02のwithdrawn customer/staffに対するRank・Role・Statusの全経路とWeb read-only、既存status拒否テストを整理。詳細な拒否結果/非変更Caseを定義、実Runは未確認。",
+      "analysis_progress": "2026-11-04: A02-02のwithdrawn customer/staffに対するRank・Role・Statusの全経路とWeb read-only、既存status拒否テストを整理。詳細な拒否結果/非変更Caseを定義、実Runは未確認。 | 2026-11-04: 関連公開UseCaseの定義行・署名を証拠として追加（静的照合のみ）。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 618,
@@ -25194,7 +25220,26 @@
         },
         "review_scope": "固定シナリオの登録・変換入口および当該動作のデータ要求。追加操作で作る状態は入力条件に別記"
       },
-      "use_case_evidence": [],
+      "use_case_evidence": [
+        {
+          "id": "AdminUserUseCases.changeMembershipRank",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 542,
+          "signature": "async changeMembershipRank(input: ChangeMembershipRankRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeRole",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 567,
+          "signature": "async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {"
+        },
+        {
+          "id": "AdminUserUseCases.changeSuspension",
+          "path": "src/application/use-cases/review-user-use-cases.ts",
+          "line": 600,
+          "signature": "async changeSuspension(input: ChangeAccountSuspensionRequest): Promise<UserAdminDto> {"
+        }
+      ],
       "reviewed_against": [
         "specification",
         "implementation",

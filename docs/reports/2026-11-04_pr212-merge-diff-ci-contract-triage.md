@@ -266,3 +266,10 @@ PR #212の分析台帳で次の4操作を、正式仕様・Web UI・Use Case・D
 - #199の比較HEAD `493a403b6449ae908117a23b4d631132a7d6d098`と修正HEAD `5b9d246e598758e5e731974ec71f0298908d863f`を実データで再比較し、ID集合は同一208件、基本分析status差**58操作**、status以外の差**51件**、計**109件**。従来の99/103件は前の比較時点の値として扱う。内訳は58操作が#212のみ`analyzed`（#199のみは0件）、非default状態のstatus差は0件。
 - `SCREEN-ADMIN-USER-DETAIL-A02-03`に残っていた「正常な非self最後のadminへ変更要求する」固定fixtureは、validなactive admin actorとactive admin targetが別人ならadmin数が2名以上となるため成立しない。A01-02/A01-04/A02-03のCaseを、自己変更拒否、2→1許可、認可後にactorを失効させる競合に分割して台帳へ訂正。**3操作ともreview_requiredを維持**し、直接UseCase/DB/Playwright/Androidの実受入は未完了。
 - #212を取り込む際は#210の認可修正が既に#199へ入っていると仮定しないこと。旧#199と#210は異なるHEADで、実行検証・製品側の仕様判断は権限あるブランチで行う。
+
+### 追加監査：Use Case参照の補完と判断保留
+
+- 台帳の`related_use_cases`と`use_case_evidence`を全208件で比較したところ、`related_use_cases`の登録自体と追加根拠のIDに差がある操作/状態は14件。**関連Use Case全件に必ず直接メソッド定義の証拠が必要という契約は現validatorにない**ため、機械的に不合格または全件追加としない。
+- このうち `SCREEN-CHECKOUT-CONFIRM-S-stale-cart` の `CheckoutOrderUseCases.getConfirmation:176` / `beginOrder:185`、`SCREEN-ADMIN-USER-DETAIL-A02-01` の `AdminUserUseCases.changeRole:567` / `changeSuspension:600`、`SCREEN-ADMIN-USER-DETAIL-A02-02` の `changeMembershipRank:542` / `changeRole:567` / `changeSuspension:600` は、各Caseが直接境界として検査対象とする公開メソッドなので**計7参照**を追加。これら3件は全て`review_required`のまま。
+- 残る**11件**については参照の意味を再点検する。①表示に必要な読取/副作用メソッド: `SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock`、`SCREEN-STOREFRONT-CART-A02-03`、`SCREEN-CHECKOUT-ADDRESS-A02-01`、`SCREEN-CHECKOUT-PAYMENT-A01-01`、`SCREEN-ADMIN-INVENTORIES-A01-03`、②主要UseCase以外の情報取得: `SCREEN-AUTH-ACCOUNT-PROFILE-A01-01`、③関連する別操作/実行用fixtureと直接画面呼出しの分離: `SCREEN-ORDERS-DETAIL-A01-03`、`SCREEN-ORDERS-DETAIL-A02-02`、`SCREEN-ORDERS-DETAIL-S-reviewable`、`SCREEN-REVIEWS-EDITOR-A02-01`、`SCREEN-ADMIN-ORDERS-A02-01`。一律に`related_use_cases`を削除したり、実行したと偽って`use_case_evidence`を追加したりしない。
+- 追加した参照は台帳の**静的な情報源**。既存`audit_branch_refs`の意味一致、最終HEADのValidator/Tests、Use Caseの直接Run、DBの前後証拠は引き続き独立受入条件。
