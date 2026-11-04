@@ -236,6 +236,75 @@ function completeAnalysis(behavior) {
   );
 }
 
+function completeRequirement(item, root, behaviorById, directlyLinkedRequirements) {
+  if (item.analysis_status !== "analyzed") return false;
+  const required = [
+    "expected",
+    "risk",
+    "test_condition",
+    "test_responsibility",
+    "case_policy",
+    "case_selection_reason",
+    "analysis_progress",
+  ];
+  if (required.some((field) => typeof item[field] !== "string" || !item[field].trim())) {
+    return false;
+  }
+  if (!["specification", "implementation", "seed"].every((source) =>
+    item.reviewed_against?.includes(source)
+  )) {
+    return false;
+  }
+  const audit = item.requirement_analysis;
+  if (audit?.source?.path !== item.source_path || audit.source.line !== item.source_line) {
+    return false;
+  }
+  const lines = readLines(root, item.source_path);
+  let expected;
+  if (item.kind === "rule") {
+    const paragraphs = [];
+    for (let index = item.source_line; index < lines.length; index += 1) {
+      const line = lines[index].trim();
+      if (/^#{2,6} /.test(line)) break;
+      if (!line || /^関連(?:ビジネスルール|業務ルール|BR):/.test(line)) continue;
+      paragraphs.push(line);
+    }
+    expected = paragraphs.join(" ");
+  } else {
+    expected = lines[item.source_line - 1]?.trim();
+  }
+  if (!expected || item.expected !== expected) return false;
+  const ids = audit.representative_behaviors;
+  if (!Array.isArray(ids) || ids.length === 0 || new Set(ids).size !== ids.length) {
+    return false;
+  }
+  if (!Array.isArray(audit.implementation_refs) || audit.implementation_refs.length !== ids.length) {
+    return false;
+  }
+  for (const id of ids) {
+    const behavior = behaviorById.get(id);
+    const evidence = audit.implementation_refs.find((ref) => ref.behavior_id === id);
+    if (!behavior || !evidence ||
+        evidence.path !== behavior.implementation_evidence?.path ||
+        evidence.line !== behavior.implementation_evidence?.line) {
+      return false;
+    }
+  }
+  if (!directlyLinkedRequirements.has(item.id)) {
+    const contract = audit.cross_cutting_contract;
+    if (
+      typeof contract !== "string" ||
+      !(contract.startsWith("tests/") || contract.startsWith("e2e/")) ||
+      contract.split("/").includes("..") ||
+      !fs.existsSync(path.join(root, contract)) ||
+      !audit.assignment?.includes("直接参照なし")
+    ) {
+      return false;
+    }
+  }
+  return /未実施|未受入/.test(audit.dynamic_acceptance ?? "");
+}
+
 export function validateCoverage({ root = ROOT, data } = {}) {
   const document = data ?? JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
   assert(document?.schema_version === 2, "unsupported coverage schema");
@@ -383,8 +452,19 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     );
     assert(behaviorIds.has(item.behavior_id), `Use Case has no behavior: ${item.id}`);
   }
+  const directlyLinkedRequirements = new Set(
+    document.behaviors.flatMap((item) => item.requirement_refs ?? []),
+  );
+  for (const item of document.requirements) {
+    if (item.analysis_status === "analyzed") {
+      assert(
+        completeRequirement(item, root, behaviorById, directlyLinkedRequirements),
+        `requirement analysis lacks verified evidence: ${item.id}`,
+      );
+    }
+  }
   const unreviewedRequirements = document.requirements.filter(
-    (item) => item.analysis_status !== "analyzed",
+    (item) => !completeRequirement(item, root, behaviorById, directlyLinkedRequirements),
   ).length;
   const operations = document.behaviors.filter((item) => item.kind !== "state");
   const analyzed = operations.filter(completeAnalysis).length;

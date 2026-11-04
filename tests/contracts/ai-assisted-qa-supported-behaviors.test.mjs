@@ -91,6 +91,58 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
+  it("requires reviewed source expectations and evidence for all 79 requirements", () => {
+    const result = validateCoverage({ root });
+    expect(result.unreviewed_requirements).toBe(0);
+    expect(data.requirements).toHaveLength(79);
+    const directlyLinked = new Set(
+      data.behaviors.flatMap((item) => item.requirement_refs ?? []),
+    );
+    const crossCutting = data.requirements.filter((item) => !directlyLinked.has(item.id));
+    expect(crossCutting).toHaveLength(29);
+    for (const item of data.requirements) {
+      expect(item.analysis_status).toBe("analyzed");
+      expect(item.requirement_analysis.representative_behaviors.length).toBeGreaterThan(0);
+      if (!directlyLinked.has(item.id)) {
+        expect(item.requirement_analysis.assignment).toContain("直接参照なし");
+        expect(item.requirement_analysis.cross_cutting_contract).toMatch(
+          /^(tests|e2e)\//,
+        );
+      }
+    }
+  });
+
+  it("rejects incorrect requirement expectations or fabricated traceability", () => {
+    for (const edit of [
+      (item) => {
+        item.expected = "formal business rule";
+      },
+      (item) => {
+        item.requirement_analysis.source.line += 1;
+      },
+      (item) => {
+        item.requirement_analysis.representative_behaviors = ["NOT-AN-EXISTING-BEHAVIOR"];
+      },
+      (item) => {
+        item.requirement_analysis.implementation_refs[0].line += 1;
+      },
+    ]) {
+      const changed = mutated((next) => {
+        edit(next.requirements.find((item) => item.id === "AC-STOREFRONT-001"));
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /requirement analysis lacks verified evidence/,
+      );
+    }
+    const crossCutting = mutated((next) => {
+      next.requirements.find((item) => item.id === "ROLE-01")
+        .requirement_analysis.cross_cutting_contract = "tests/contracts/not-found.ts";
+    });
+    expect(() => validateCoverage({ root, data: crossCutting })).toThrow(
+      /requirement analysis lacks verified evidence/,
+    );
+  });
+
   it("tracks Signup Web/Native destinations without claiming runtime PASS", () => {
     const signup = data.behaviors.find((entry) => entry.id === "SCREEN-AUTH-SIGNUP-A02-03");
     expect(signup?.analysis_status).toBe("analyzed");
@@ -1047,9 +1099,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
   });
   it("checks each behavior's Use Case evidence against the current public method registry", () => {
     const method = data.use_case_methods.find((item) => item.id === "AdminUserUseCases.search");
-    const behavior = data.behaviors.find(
-      (item) => item.id === "SCREEN-ADMIN-USERS-A01-02",
-    );
+    const behavior = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
     expect(method).toBeDefined();
     expect(behavior?.use_case_evidence?.[0]).toMatchObject({
       id: method.id,

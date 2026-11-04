@@ -35,8 +35,8 @@
 ## 全件照合・回帰防止
 
 - [x] 正式仕様（product-scope、screen-catalog、各feature、Role/State/UI/Native）と188操作・20状態の分母を再監査。抜け・同義重複と除外根拠を確定し、分母が変わる場合は理由と契約テストを更新
-- [ ] 79要件の原文解釈・正式期待・Risk/TR/Condition/Case採否を全件確認し、分析状態を証拠付きで更新（29件の直接未参照も含む）
-- [ ] 直接参照のない29横断要件（Native4、権限7、状態遷移10、UI2、範囲6）をBehavior個別または横断契約に割り当て、対応する検証方法・残リスクを記録。形式を揃えるためだけの架空の参照は追加しない
+- [x] 79要件の原文解釈・正式期待・Risk/TR/Condition/Case採否を全件確認し、分析状態を証拠付きで更新（29件の直接未参照も含む）
+- [x] 直接参照のない29横断要件（Native4、権限7、状態遷移10、UI2、範囲6）をBehavior個別または横断契約に割り当て、対応する検証方法・残リスクを記録。形式を揃えるためだけの架空の参照は追加しない
 - [ ] 分析済み全196 Behaviorの説明・Risk/TR/Condition/Case採否・参照根拠を監査し、形式的な空欄検査と意味上の十分性を区別
 - [ ] `use_case_evidence`の公開メソッドID/path/line/signatureを現在HEADの76メソッドと照合する継続validator/負例（誤ID・古い行・署名違い・別メソッド）を追加
 - [ ] 分析済みだが`related_use_cases`が空の23件をUI専用等として個別判定し、追加が必要なものだけ追跡。補助・準備用Use Caseを直接呼出しと誤記しない
@@ -128,3 +128,9 @@
 - 確認HEAD：`9646a1441b6e1d644b1881a78a9af127fddcb4a7`。正式16ファイル（`docs/spec/features/*.md` 11件＋`product-scope.md`／`screen-catalog.md`／`roles-and-permissions.md`／`state-and-scenarios.md`／`ui-ux-contract.md`）から抽出した画面カタログ38画面、73機能行、20非default状態、46 BR/AC見出しを台帳へ直接照合。画面操作172件（73機能行のRole/条件別動作）＋公開Use Case固有16件＝188操作。非default20状態は`covered_by`で関連動作に結び、操作として二重加算しない。欠落画面・機能行・状態行・BR/AC・未分類Action・同じ画面/動作/Role/Platform/Scenarioの完全重複は検出0件。
 - 除外：Native管理画面・ゲストCheckout、iOSのAndroid同等実Run保証、製品スコープ外の取消/返金等は操作へ加算しない。視覚`-`の状態は機能非対応とはしない。公開Use Case 76メソッドはすべてカタログとして追跡するが、内部非公開関数を独立操作として水増ししない。79横断要件は要件分母であり操作に加算しない。
 - 判定：現行188+20の分母変更は不要。source line・段階的分割の意味的レビューは既存196件の品質監査で継続。根拠は正式16ファイルと同HEADの`supported-behaviors.json`、`validate-supported-behaviors.mjs` の仕様抽出・重複拒否規則。今回の直接`pnpm`コマンドは未実行であり、実Run・79要件内容レビュー・製品受入は別判定。
+
+### 79要件の原文・横断契約照合（2026-11-04）
+
+- 対象固定HEAD：`a0562a63b0979f43ed1aa5c443031cdc6bb77ecb`。正式仕様の46 BR/ACと権限8・状態遷移12・UI4・対象範囲9の計79要件について、期待文を元文書の該当行/本文と照合し、要件ID別のRisk/条件/採用Case/代表Behavior/実装参照と未実行条件を同じ`supported-behaviors.json`に記録した。正式原文との文字列不一致0件。個別の`requirement_analysis`に行番号・代表Behavior・実装位置・横断契約を保存。
+- 直接参照なし29件（Native4、Role7、状態遷移10、UI2、対象範囲6）は、既存Behaviorの代表条件と`tests/`/`e2e/`の横断契約を割り当てた。`behavior.requirement_refs`は形式合わせで増やしていない。関連テストの静的存在・既存契約と実行受入を区別し、実Runと残リスクの採否は#219、製品修正や仕様優先順位の判断は#210に引き継ぐ。
+- 検証：今回の直接pnpmは未実行。要件の原文/参照/代表Behavior/横断契約の検証を`validate-supported-behaviors.mjs`へ追加し、誤期待・参照先ID/行・存在しない横断契約を拒否する負例を同専有契約テストへ追加。変更HEADのCI結果は別途受入とする。
