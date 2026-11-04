@@ -146,7 +146,36 @@ test -s "$p05_output/playwright-result.json" && \
   test ! -L "$p05_output/playwright-result.json" || {
     echo "Playwright JSON reportがありません、または不正です"; exit 1;
   }
-test "$p05_exit" -eq 0
+test "$p05_exit" -eq 0 || {
+  echo "Playwrightが非0で終了したためP05は未達です"; exit 1;
+}
+node - "$p05_output/playwright-result.json" "$p05_spec" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const targetSpec = path.resolve(process.argv[3]);
+const tests = [];
+function visit(suite) {
+  for (const spec of suite.specs ?? []) {
+    if (path.resolve(spec.file ?? "") !== targetSpec) {
+      throw new Error("別のspecがreportへ混入しました: " + String(spec.file));
+    }
+    for (const test of spec.tests ?? []) {
+      tests.push({
+        title: spec.title,
+        expected: test.expectedStatus,
+        actual: test.results?.at(-1)?.status,
+      });
+    }
+  }
+  for (const child of suite.suites ?? []) visit(child);
+}
+for (const suite of report.suites ?? []) visit(suite);
+if (tests.length === 0 || tests.some((test) => test.actual !== "passed" || test.expected !== "passed")) {
+  throw new Error("P05の対象testが0件、未実行、またはPASS以外です: " + JSON.stringify(tests));
+}
+console.log("P05対象test件数=" + tests.length + "、全件PASS");
+NODE
 ```
 
 `$p05_output/spec-snapshot.ts`は実行前に保存した本人specのコピーです。実行直前と直後のspec SHA-256がそのコピーと一致することを確認します。不一致なら、そのJSON reportを該当specの成功証拠として採用しません。`$p05_output/playwright-result.json`の対象test名・件数・結果、実行前後の画面、必要なTrace/画像、spec SHA-256、終了コードを提出欄へ記録します。Playwrightの終了コードが非0、reportがない、対象testが一致しない場合はPASS扱いしません。成功した場合でも、これは`course:run`が生成する`run-evidence.json`（Run ID、`source_sha`等）とは**別の直接実行**です。後で正式なRunが必要な項目の代用にせず、受入側では取得方法の違いを明示します。
