@@ -118,7 +118,7 @@ describe("M06-02：Resetとtest間独立性の技術契約", () => {
   it("course:runは再試行で失敗を隠さず、別Runを作成する", () => {
     expect(runner).toContain('"--retries=0"');
     expect(runner).toContain("const runId = randomUUID()");
-    expect(runner).toContain('label,');
+    expect(runner).toContain("label,");
     expect(runner).toContain("spec_unchanged_during_run:");
   });
 });
