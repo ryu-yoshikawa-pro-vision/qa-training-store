@@ -67,9 +67,7 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
   }
 
   it("preserves OrderItem, Address, Rank and Payment snapshots across shipment transitions", async () => {
-    const operations = new AdminOperationsUseCases(
-      dependencies(await session("user-operator")),
-    );
+    const operations = new AdminOperationsUseCases(dependencies(await session("user-operator")));
     const orderBefore = await database.orders.get("order-paid");
     expect(orderBefore).toBeDefined();
     const itemsBefore = await database.order_items.where("orderId").equals("order-paid").toArray();
@@ -150,9 +148,7 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
       title: "受入レビュー",
       body: "配送後に評価しました。",
     });
-    const gold = new CustomerReviewUseCases(
-      dependencies(await session("user-customer-gold")),
-    );
+    const gold = new CustomerReviewUseCases(dependencies(await session("user-customer-gold")));
     expect(await gold.getEligibility(chosen.id)).toMatchObject({
       eligible: false,
       reason: "NOT_OWNER",
@@ -197,7 +193,9 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
     );
     const delivered = await database.orders.where("status").equals("delivered").first();
     expect(delivered).toBeDefined();
-    const chosen = (await database.order_items.where("orderId").equals(delivered!.id).toArray()).at(-1)!;
+    const chosen = (await database.order_items.where("orderId").equals(delivered!.id).toArray()).at(
+      -1,
+    )!;
     expect(await database.reviews.where("orderItemId").equals(chosen.id).first()).toBeUndefined();
     const before = {
       reviews: await database.reviews.toArray(),
@@ -224,15 +222,5 @@ describe("PR #219: Order, Shipment and Review snapshot acceptance", () => {
       histories: await database.review_status_histories.toArray(),
       summaries: await database.product_review_summaries.toArray(),
     }).toEqual(before);
-  });
-  it("temporarily prints CI-standard order-review formatting", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const prettier = await import("prettier");
-    const path = "tests/integration/pr219-order-review-boundaries.test.ts";
-    const formatted = await prettier.format(await readFile(path, "utf8"), {
-      ...(await prettier.resolveConfig(path)),
-      filepath: path,
-    });
-    console.log("PR219_ORDER_REVIEW_FORMAT_JSON=" + JSON.stringify(formatted));
   });
 });
