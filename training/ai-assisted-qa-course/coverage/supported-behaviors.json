@@ -24285,20 +24285,20 @@
       "source_line": 23,
       "source_text": "ユーザーのロール、ランク、アカウントステータス、および絞り込み条件を表示する。",
       "platform": "web",
-      "role": "Admin",
-      "scenario": "default",
-      "data": "Seed/条件: default,suspended-user,withdrawn-user。Operator/Adminの許可差、対象ID、状態versionを確認。操作: ユーザーの絞り込み",
+      "role": "active admin（Webのみ）。operator/customer/guest/停止・退会・無効Sessionの一覧参照は拒否。管理者だけが個人情報を含むUserAdminListItemを参照する。",
+      "scenario": "default 7固定ユーザー（regular/gold/platinum customer、operator/admin、suspended/withdrawn）、必要なら追加ユーザーを隔離DBに用意して20件以上のpage境界を作る。suspended-user/withdrawn-userは操作者権限の拒否条件として検証、admin Sessionは別途用意する。",
+      "data": "Web AdminUsersPage→AdminUsersContentはkeyword(email/displayName)/role/status/pageだけをAdminUserUseCases.searchへ渡す。membershipRanksとsortの入力UIは存在しないがrankは結果列に表示される。Use Caseはkeyword/roles/membershipRanks/accountStatuses/sort(created_desc既定)/page/pageSize(20既定)をDexieUserRepositoryへ渡す。Repositoryはemail/displayNameを正規化照合し、role/rank/statusとAND、created_desc/updated_desc/email_ascで並べ替えIDをtie-breakに使う。keyword変更だけsetPage(1)、role/status変更ではpageがそのままで、過大page時に空一覧になり得る。検索はDBを更新しない読み取り操作で、version CAS/Session invalidationなど更新の責務は各User変更動作に分離する。",
       "action": "ユーザーの絞り込み",
-      "expected": "ロール・ランク・状態でユーザーを絞り込み、条件外の利用者を表示しない",
+      "expected": "正式admin-users.md:17-30はadmin向けユーザー一覧とRole/Rank/Statusおよび絞り込み条件表示を要求。補助UI仕様docs/05_ui/ui_specifications.md:169-170,174-183はRole/Rank/Statusの絞込と登録日/更新日sortを明記。現Webはrole/status/keywordのみでRank filterとsortを提供しない。Use Case/Repositoryにはrankとsortが存在する。許可admin以外の一覧取得は拒否し、個人情報・passwordHash等を露出しないこと。Role/Statusフィルター変更後のpage残留が誤解を生じないこと。仕様の優先判断・製品適合は#210に引き継ぎ、基本分析は実装差と検証条件の確定で完了とする。",
       "rule_refs": [],
       "route": "`/admin/users`",
       "risk": "High:ユーザー情報の他Role露出・停止/退会アカウントでの検索許可。Medium:補助UI仕様で要求されたRank絞込・登録日/更新日sortがWebにない、検索の非keyword条件変更でpageが前のページに残り一覧が空に見える、別Role/Status条件とのANDの取り違え。",
       "test_condition": "C1 adminがkeyword(email/displayName)、role(customer/operator/admin)、status(active/suspended/withdrawn)の組合せで、RepositoryのAND結果と一致。C2 固定Seedのregular/gold/platinum、operator/admin、停止/退会を用い、補助UI仕様のRank絞込と作成日/更新日sortがUI未提供である差を画面正本と照合して採否判断。C3 Application直接searchではmembershipRanks と sort(created_desc/updated_desc)をサポートすることを隔離DBで検証。C4 page>1からrole/status/keyword変更したときのpage正規化、表示総数/empty/再選択と20件境界。C5 operator/customer/guest/suspended/withdrawnでPERMISSION_DENIED/認証要求、DB/Session不変・本人情報非露出。C6 Web desktop/tablet/keyboard/焦点/Traceの受入。C7 無害な検索でも一覧取得時の個人データ表示とログの漏出を確認。",
-      "test_responsibility": "AdminUsersContent:516-616のUIはkeyword/role/statusのみ、rankは表示列にあるが入力がない、sort UIもない。keyword onChange:545-549だけsetPage(1)、Role/Status:553-569はpageをリセットしない。AdminUserUseCases.search:520-535はroles/membershipRanks/accountStatuses/sortを受け付けrequireAdmin:642-651。DexieUserRepository.search:65-105はAND filterとcreated_desc/updated_descのsort。補助UI仕様:169-170,174-183。",
-      "case_policy": "許可Role、許可状態、入力不正・対象外、version競合の代表条件を採用",
-      "case_selection_reason": "ユーザーの絞り込みが権限逸脱や不正データ更新を引き起こさないことを示すため",
-      "analysis_status": "review_required",
-      "basic_analysis_review": "2026-11-03 PR #212独立監査：admin-users.md:17-30、補助UI仕様docs/05_ui/ui_specifications.md:169-170,174-183、Web AdminUsersContent:516-616、AdminUserUseCases.search:520-535/requireAdmin:642-651、DexieUserRepository.search:65-105、既存componentおよびadmin-users-list contractテストを読解。UIはkeyword/role/statusのみ・Rank/filterとsort欠落、非keyword filter変更はpageが残る。UseCaseはRank/sortを実装済み。正式なUI仕様の優先順位・Rank/sort必須性の決定、直接Web表示/Role/境界・DB不変の実証前のためreview_required。既存テストは今回未実行。",
+      "test_responsibility": "UIの入力条件→AdminUserUseCases.search→DexieUserRepository.search、RouteGuard/requireAdmin/SessionIdentityResolverの拒否境界、read-onlyのDB不変、ページ境界、個人情報非露出をそれぞれ切り分ける。現行UIのRank/sort欠落と非keyword page残留は静的確認済み。採用C1〜C7の実Browser/DB/Session/視覚は#219、製品改修と仕様判断は#210、横断受入は#199に引き継ぐ。",
+      "case_policy": "C1採用：adminのemail/displayName×role×status複合条件とRepository AND。C2採用：regular/gold/platinum・operator/admin・suspended/withdrawnと補助仕様のRankフィルター/登録日・更新日sortの画面可用性を照合。C3採用：UseCase直接membershipRanks/created_desc/updated_descの隔離DB結果（Webに欠落する入力とは別判定）。C4採用：20件以上のpage最終→role/status/keyword変更、総件数と空一覧の復帰。C5採用：active admin以外のRole/AccountStatus/Session拒否、DB・Session不変と個人情報非開示。C6採用：Web desktop/tablet、キーボード・フォーカス/Trace。C7採用：検索結果・ログへの不要な個人データ露出防止。version競合やrole/status更新によるSession削除は検索操作の責務外であり、A01-02の独立Caseとして数えない（他の更新操作IDに引き継ぐ）。",
+      "case_selection_reason": "一覧検索は個人情報と管理者専用権限を含む。固定7ユーザーの正常表示だけではRank/sort要件、フィルター組合せ、20件超ページ境界、停止や権限違反の非露出を証明できないため、C1〜C7に分離した。検索時のVersion CAS・Session失効は非該当として独立変更Caseへ分離。",
+      "analysis_status": "analyzed",
+      "basic_analysis_review": "2026-11-04 固定HEAD c52d7a0ace31763a97dd3c15e49d94a51f70a4ca の静的基本分析。正式admin-users.md:9-30,80-90およびroles-and-permissions.md:1-28、補助UI仕様docs/05_ui/ui_specifications.md:169-170/174-186を照合。Web review-user-pages.tsx:508-616のAdminUsersContentはkeyword/role/statusだけ、keyword変更のみsetPage(1)、Rankは表示列で絞り込み・sort入力なし。UseCase review-user-use-cases.ts:520-535/642-651はadmin認可とRank/Sort入力あり。Dexie basic-repositories.ts:65-105はkeyword/Role/Rank/StatusのANDとcreated_desc/updated_desc/email_asc（ID tie-break）。SessionIdentityResolver:27-57はactiveのみ。Seed default7名はtests/contracts/ai-assisted-qa-admin-users-list.test.mjs:47-114で静的確認、既存component review-user-pages.test.tsx:296-324は一覧→詳細リンクに限定。今回の直接Vitest、実Web/DB/Session、動的個人情報非露出、Visual/a11yは未実行。補助仕様と正式製品仕様の採否は#210が担当し、本PRの基本分析と製品適合の判定を分離する。",
       "requirement_refs": [
         "BR-ADMINUSER-001",
         "AC-ADMINUSER-001"
@@ -24306,7 +24306,7 @@
       "related_use_cases": [
         "AdminUserUseCases.search"
       ],
-      "analysis_progress": "PR #212: UIとUseCase/Repository・補助仕様との差を特定し、Rank・sort欠落、Role/Status変更後page残留、認可・セキュリティをC1-C7に分離。基本分析の正式適合と実Web/DB/CIは未受入。",
+      "analysis_progress": "2026-11-04 基本分析完了（静的照合）：Rank/sortのWeb UI欠落、RepositoryにRank/sortあり、role/status変更後page残留、active admin認可、7固定Seed、C1〜C7採否と未決判断先を整理。#219動的Web/DB、#210製品判断は未受入。直接コマンド実行は未実施、CI結果は別項目で確認。",
       "implementation_evidence": {
         "path": "src/presentation/pages/review-user-pages.tsx",
         "line": 508,
@@ -24391,7 +24391,24 @@
           "start_line": 47,
           "end_line": 94,
           "reason": "7固定ユーザー/認可拒否の既存contractテスト（フィルタ未網羅）"
+        },
+        {
+          "path": "docs/spec/roles-and-permissions.md",
+          "start_line": 1,
+          "end_line": 28,
+          "reason": "admin限定の個人情報・ユーザー管理権限"
+        },
+        {
+          "path": "src/application/identity/session-identity-resolver.ts",
+          "start_line": 27,
+          "end_line": 57,
+          "reason": "Active以外を拒否するセッション境界"
         }
+      ],
+      "reviewed_against": [
+        "specification",
+        "implementation",
+        "seed"
       ]
     },
     {

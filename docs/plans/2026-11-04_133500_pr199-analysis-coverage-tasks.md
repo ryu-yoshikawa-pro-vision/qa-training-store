@@ -17,7 +17,7 @@
 各IDについて正式BR/AC・Role/State/Data、画面→Use Case→Repository、Seed、Risk/TR/Condition/Case採否を独立に照合する。**実Web/NativeのPASSと基本分析は別判定**。
 
 - [x] `SCREEN-ADMIN-PRODUCTS-A01-02`：SKU・カテゴリー・ブランド絞込の正式仕様とUI/Repositoryの差、選択Set残留・空一括更新・page残留・SKU0件の価格境界を特定し、Case採否と未決の判断主体を記録
-- [ ] `SCREEN-ADMIN-USERS-A01-02`：Rank/filter・sortの正式要求とUIの欠落、Role/Status変更後page残留、管理権限・DB不変の根拠を整理
+- [x] `SCREEN-ADMIN-USERS-A01-02`：Rank/filter・sortの正式要求とUIの欠落、Role/Status変更後page残留、管理権限・DB不変の根拠を整理
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A01-02`：Role変更の昇格/降格、version CAS、Session失効、自己/withdrawn/権限失効拒否、rollbackとC1〜C7を照合。既存学習用CaseのCI成功と未実行の直接Caseを区別
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A01-03`：3 Rank、Checkout abandoned、Cart保持、変更後の価格、stale・actor失効・rollbackの証拠と不足条件を確定
 - [ ] `SCREEN-ADMIN-USER-DETAIL-A01-04`：active/suspended、全Session無効化、customer Checkout破棄、旧Session拒否、transaction failure、last-admin境界を整理
@@ -60,3 +60,9 @@
 - 対象・固定照合HEAD：`6c569e8646de740a6424b8bb05231b9c7a1e6dba`。台帳 `supported-behaviors.json` の同IDを `analyzed` に更新。分類分母は188操作＋20状態、当該更新後の基本分析は180/188操作・17/20状態。79要件は引き続き内容未レビュー。
 - 直接参照：`docs/spec/features/admin-catalog.md:59-74`、`docs/05_ui/ui_specifications.md:174-186`、`src/presentation/pages/admin-product-pages.tsx:56-104,122-269`、`src/application/use-cases/admin-product-use-cases.ts:80-101,223-250,524-534`、`src/infrastructure/database/dexie/product-repositories.ts:417-508`、`src/seeds/metadata.ts:75-106`、`src/seeds/scenarios.ts:424-476`。静的照合結果とC1〜C7採否・Risk/TR・未決の判断先は台帳 `basic_analysis_review` / `case_policy` に記録。
 - 検証結果：GitHub上の固定ファイル・実装・既存テストのコード読解による静的基本分析を完了。今回の `pnpm` / Playwright実行は**未実施**であり、既存CIや他CaseのPASSを流用していない。`#219`に実Web/DB/Session/視覚/a11y/Traceの採用Caseの動的証拠、`#210`にSKU/カテゴリー/ブランドのUI契約・選択Set・空bulk・page・SKU0価格の製品適合判断を引き継ぐ。これは製品適合や動的受入のPASSを意味しない。
+
+### `SCREEN-ADMIN-USERS-A01-02`（2026-11-04）
+
+- 対象・固定照合HEAD：`c52d7a0ace31763a97dd3c15e49d94a51f70a4ca`。`supported-behaviors.json` の同IDを `analyzed` とし、基本分析は181/188操作・17/20状態（79要件の内容レビューは未完）。
+- 直接参照：`docs/spec/features/admin-users.md:9-30,80-90`、`docs/05_ui/ui_specifications.md:169-170,174-186`、`src/presentation/pages/review-user-pages.tsx:508-616`、`src/application/use-cases/review-user-use-cases.ts:520-535,642-651`、`src/infrastructure/database/dexie/basic-repositories.ts:65-105`、`src/application/identity/session-identity-resolver.ts:27-57`、`tests/contracts/ai-assisted-qa-admin-users-list.test.mjs:47-114`。静的な差分・Risk/TR・C1〜C7採否と責務分離は台帳を正本とする。
+- 検証結果：GitHub上の固定コードと仕様・既存テストの**静的照合は完了**。今回の `pnpm` / Web E2E / DB前後比較コマンドは未実行。Role/Status変更後page残留、Rank/sortのWeb UI欠落は製品側#210へ、採用Caseの実Web・Role・DB/Session・個人情報非露出・Visual/a11yは#219へ依頼し、動的PASSや製品適合を推認しない。
