@@ -79,3 +79,7 @@
 - Prettierの修正試行：`cc5e008`で既存の複合式を整形したが、Run #41831922016 Style Qualityでは同ファイルの違反が残存し、workflowは後続更新でキャンセル。`10fb7c299d1d5e8367590c8d3165183d8198bb94`で複雑なfilter/map連結やネストされたassertionを明確な逐次処理へ整理。新HEADでのStyle Quality/契約テスト再検証は未確認。
 - Case #219 Web3件 `PR219-WEB-023/024/025` に、既存の `scenario()` が返すTestMetadataから、Reset時のClock実測値、buildSha、app/schema/seed version、scenarioだけを `PR219_RUNTIME_METADATA` としてCIジョブログに記録する専用helperを追加（`4327ad1`）。実データ、認証情報、Session IDをログに出さない。新ログの実測値はまだ未取得、従来CSVのclock_basisは期待値のまま保持。正式Case決定、Android/SQLite、成功時Artifact、全採用Caseの独立レビューは依然未完。
 - Progress: 67% (14/21)。今回チェックの追加なし。
+
+- CI #41832718832のWeb cross-role jobは29件PASS（job `126584626212`、テストHEAD `e4a36f5`、SUT `46cd014e`）。`PR219-WEB-023/024/025`のReset時Clockを`PR219_RUNTIME_METADATA`から実測（いずれも2026-07-01T03:00:00.000Z、runtime buildSha=f3f269a、appVersion=0.1.0、schemaVersion=1、seedVersion=11）。Checkout競合の誤復帰、停止staffのForbidden循環は製品FAIL再現、DB10/23表不変のみassertion成功。workflow全体は後続コミットでcancelled、Style Qualityはfailure。
+- Web証拠CSVへClock実測の固定Run3履歴を追記（48行/34列、過去45行不変、キー25種類）。行番号は同HEADの実際の`025:382`、`023:431`、`024:646`に訂正、workflow cancelledとcross-role successを明確に分離。
+- CI #41833700883のVitest contractsには新規証拠契約1件failure（旧Clock検証が未実測のみ許しており、実測3行を拒否）。Style Qualityは`byKey.get(key)?.some(...)`のPrettier改行でfailure。診断用テストからPrettierの正確な出力を確認し、元の証拠契約テストへ反映後、診断用テストを削除。`4b44f17`で実測/未実測を条件別に検査するよう修正し、最低48履歴行をassert。`b32213d`で3行の証拠補正。**新HEADの品質ゲート成功は未確認**。14/21件の完了チェックは変更せず。
