@@ -7,3 +7,5 @@
 - 制限：GitHub接続による作業のためローカル`scripts/new-run.sh`は実行できない。直接作成が禁止された`run.json`は作らず、マニフェストなしの作業記録とする。
 
 - 次の採用Caseの準備：`tests/integration/pr219-admin-user-acceptance.test.ts`を新規に追加し、管理者2→1とstale CAS・状態不変の独立Integrationケースを定義。CI実行の成否は未確認、タスクリストの追加チェックなし。
+
+- タスクリスト16番：PR #219 HEAD `63ebb7f`のWeb CI Run #41787879720において新規Vitest Integration2件・全Integration113件・既存必須Chromium E2E、Style Quality、Code Quality、verifyが成功。テスト実施を確認し16番のみ追加チェック。未受入の動的Web/Android証拠をPASSにしない。

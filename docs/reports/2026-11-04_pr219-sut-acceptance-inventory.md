@@ -62,3 +62,15 @@
 - Seed：`default`、固定時刻：`2026-07-15T03:00:00.000Z`。Roleとversionの競合fixtureはテスト専用Dexie DB内でのみ作成する。
 - 実行入口：`pnpm run test:integration`（`vitest run tests/integration`）。現時点では**CI結果・終了コード・実Run証拠は未確認**。追加ソースを実行済みPASSとしない。
 - 制限：Web UI、Android、真正の同時actor競合、非self最終admin拒否はこのIntegrationテストで検証していない。チェックリストの認証/管理ユーザー実証項目は未完了のまま。
+
+## CIによる追加Caseの実行結果（タスクリスト16番）
+
+- 対象Run：Web CI [#41787879720](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41787879720)
+- 実行対象SUT/検証コードSHA：`63ebb7f01711ea295dd94e2533afcf9788693e86`（PR #219）。親PR #199 baseは`46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`。#210の製品修正は含まない。
+- 新規Case：`tests/integration/pr219-admin-user-acceptance.test.ts`（2件）。`SCREEN-ADMIN-USER-DETAIL-A02-03`／`BR-ADMINUSER-001`・`AC-ADMINUSER-001`対応。Vitest (integration)で2件PASS、既存を含むIntegration計113件PASS。
+- 観測1：actor=user-admin（有効なactive admin）、target=user-operatorを隔離DB内でadminにしてactive adminが2名の状態を作成。targetをoperatorに降格してactive adminが1名残り、targetのSessionが0になる。残った唯一のadminの自己降格は`SELF_CHANGE_FORBIDDEN`で拒否、actor DB変更なし。
+- 観測2：target versionを事前に進め、古いexpectedVersionでの変更を`CONFLICT`拒否。target UserとSessionsが変更されない。
+- 固定条件：`default` Seed、`2026-07-15T03:00:00.000Z` TestClock、Vitest実行、隔離Dexie DB。終了コードはCI Vitestジョブsuccess（0）。
+- 既存必須E2E：同Runの`Chromium E2E (required)`がsuccess。Style Quality、Code Quality、verifyもsuccess。追加Case実行と既存必須CI維持のみをタスクリスト16番として完了する。
+- Trace/動画/画像：本追加2件はIntegration testでありブラウザ操作を伴わないため対象外。Console/Network：同様にブラウザ証拠なし。詳細な実行ログとテスト結果は上記GitHub Actions Runの`Vitest (integration)`ジョブログ。個別DB前後はassert結果で確認し、snapshotファイルは未生成。AndroidとWeb UIの直接証拠は未取得。
+- 制約：タスクリスト2番・4〜15番・18〜21番などに必要な全採用Case実Run・Trace/DB全表前後・Android証拠・独立レビューは未完了。CI成功は基本分析208動作の全件受入PASSを意味しない。
