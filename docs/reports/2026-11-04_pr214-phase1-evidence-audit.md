@@ -67,3 +67,19 @@ M00の`loadModule`は異なる既存学習者ファイルを検出すると`exis
 - 共通知識グラフの復習先・Cartへの適用関係の修正候補は、別途PR #199へ引継ぎ済み。
 
 関連実行方法：`pnpm test:contracts`で本リポジトリの契約テストを実行する。Codespaces本人によるP05/P06、固定Skill M02→M03、OpenCode AIチューター、正式M04評価は、それぞれ独立した実証拠が得られるまで未完了とする。
+
+## 続行：実動作確認を除く修正と受入準備（2026-11-04）
+
+実動作確認（Codespaces、ポート、請求、モデルによる対話、本人の学習効果）は人間の担当とする。以下はGitHub上の正本と固定Skillコードから確認・修正した範囲であり、**テストやモデルを実行したことを示さない**。
+
+1. `training/ai-assisted-qa-course/exercises/M03/exercise.md`：`case-runtime-evidence.json`を誤って`test-condition-design` helperへ渡していた。Case専用`test-case-design/scripts/runtime_contract.py`へ修正。固定helperの`verify_runtime_evidence`は`valid=false`でも終了コード0を返すため、出力JSONに対して`valid=true`、`issues/missing/extra/incomplete_pairs/duplicates`、Entity不足・重複、`current_structure_state.runtime_results`の存在を検査するコマンドを追加。Case/Conditionのrequestと結果を別々に保存し、実モデル依存の技法生成を省略しない。
+2. `training/ai-assisted-qa-course/inputs/M03/start.md`：正式`docs/spec/features/cart.md`の`BR-CART-001/AC-CART-001`をAuthority正規化helperへ渡す**未実行の入力候補**を追加。`SCOPE-101`、Source、実際のdistribution SHA、既存`RISK-CART-001`（Impact 4、Likelihood 2）の区別と、ScopeをMachine Entityとして生成しない条件を維持。`authority_entities.py`の入力フィールドは指定commitの固定helperと照合した。
+3. `docs/curriculum/ai-assisted-qa/modules/M03/README.md`とM04 README：M03のシェルで特殊文字となる`--model <...>`を実行可能な`--model provider/model-id`例へ修正。M04の引数不足した`course:tutor M04`例にも必須`--model`を追加。
+4. M00〜M04の`training/ai-assisted-qa-course/exercises/Mxx/exercise.md`：各章固有の題材で説明→段階ヒント→別条件練習→誤解別の復習→再挑戦を明示。本人が予測・原文照合・再判断を行う条件を付け、チューターの説明やAI回答を正式AI採点・本人Level 2に換算しない。
+5. 新規`tests/contracts/ai-assisted-qa-phase1-pinned-skill-entry.test.mjs`：固定配布104件の一意性、M02/M03に必要なSkillとruntimeスクリプト、Riskの実CSV行、Scope分離、M03 Authority入力JSON、Condition/Case検証先と`valid`検査、M00〜M04のチューター起動コマンド・反復段階を回帰契約へ追加。前回追加の`ai-assisted-qa-phase1-objective-evidence.test.mjs`も維持。
+
+**この作業中の直接照合結果**：GitHubから現行教材10ファイルを取得して44条件を直接照合し、全44件一致。固定manifest、Cart仕様、M02/M03開始サンプル、Risk CSV、2種類のruntime requestテンプレート、新テストを取得して13条件を照合し、全13件一致。これはJavaScriptによる文字列・JSON構造・参照の照合であり、`pnpm test:contracts`またはPython 3.11 helperの実行結果ではない。
+
+**OpenCode V2仕様調査**：`mini --model ... --prompt ...`は正式なCLIコマンド。V2権限規則では`*`が`/`を含むため、入れ子ファイルを`*`だけを理由に読めないとは断定しない。V2の更新設定はglobalの`update: "disable"`であり、共有`tutor-core.mjs`の`autoupdate: false`だけで更新停止を保証できない。この確認をPR #199へ訂正して引継ぎ済み（issuecomment-6629143533）。共通runtime/manifest/評価エンジンは変更していない。
+
+**残る人間の実動作確認**：M00の個人Codespacesの支払者・Private Port・学習者ファイルの前後比較、固定SkillのM02→M03全runtime実行・Python 3.11の実在・fingerprint、OpenCode本人による段階ヒントと再挑戦。元の5件の受入項目にはこれらが含まれるため、関連する静的準備を完了しても項目全体のチェックは付けない。CIは完了待ちしていない。
