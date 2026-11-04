@@ -54,7 +54,7 @@
 - [ ] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324` のM02 `spec-analysis/test-analysis` から実在Authority/Risk/Scopeと検証責務を作り、出典/revisionを記録
 - [ ] M03で`condition_structure(direct)`→適用技法runtime→`materialize_coverage(artifact)`→`case_structure(適切なmode)`→`verify_runtime_evidence`を実入力で通す。終了コード0だけでなく結果envelope・`valid=true`・未解決・current fingerprintを確認。model依存評価は別ゲート
 - [ ] Skill-local`SKILL.md/references/assets/scripts` の固定版、Python helperの実行、必要なruntimeが学習環境に存在することを確認。M02→M03の不足は配布ブランチへ引継ぐ
-- [ ] 22目標すべてについて教材→演習→提出→評価条件→復習先、`start/end`状態と対応を全量照合し、固有テスト・検証ログを残す。内容未受入の目標を一括完了にしない
+- [x] 22目標すべてについて教材→演習→提出→評価条件→復習先、`start/end`状態と対応を全量照合し、固有テスト・検証ログを残す。内容未受入の目標を一括完了にしない
 
 ## クイズ・理解事項・自習・引継ぎ（補完）
 
@@ -144,3 +144,11 @@ M04終了`states/M04/end.json@bc54b5f494525f9654b9e0ab808653a324fa1597`とM05開
 M04演習と提出テンプレートに、承認Caseの元ID、Risk/TR・Scope・BR/AC、revision、Role/State/Data/Seed・Reset・不変条件・未決事項と、M05へ渡す2 Markdownの保存確認を明記。M02分析・M03設計・Skill runtime証拠をM05の2ファイル契約で検査したという誤認を避ける。M04教材へM00〜M04の本人MarkdownをGit/PRなしでCodespaceからDownload（表示されない環境ではUTF-8全文コピー）し、PCで開き直して照合する手順を追加。M03 runtime JSONは別に保持する。契約の回帰防止として`tests/contracts/ai-assisted-qa-phase1-handoff.test.mjs`を追加（**Vitest未実行**）。
 
 配布・取り出し・M00再ロード保護/2-core Private Codespacesの**実行不足**を[PR #218](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/218#issuecomment-6628409789)に、本人の**正式AI評価未受入**を[PR #217](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6628410571)に引継ぎ済み。Markdown持ち帰りや正式M04評価を実施済みと報告しない。学習配布/評価の完了判定と最終CIは担当PR側で別に確認する。
+
+## 2026-11-04 続行：22学習目標・配布元Skill・残条件の再検証
+
+固定した静的検証記録：[`docs/reports/2026-11-04_pr214-phase1-evidence-audit.md`](../../reports/2026-11-04_pr214-phase1-evidence-audit.md)。学習目標22/22について採点条件の必須P番号→実演習P見出し→提出P欄の対応一致。開始/終了stateの22/22目標IDとrevision一致。復習先はリポジトリの`slug-heading.ts`規則で32/32一致。`tests/contracts/ai-assisted-qa-phase1-objective-evidence.test.mjs`に固有の回帰テストを追加。**テストソースはあるがVitest実行は未確認**。
+
+固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のソース104/104はGitツリーとのblob SHA・サイズ・パス一致を直接照合。ただし、実受講環境のSkillコピー・helper実行は未検証。M00再ロードの競合拒否は既存`loadModule`と関連テストに実装されていることを読取確認したが、Ports/費用/本人再ロードの**実行証拠はなし**。これらの未完項目はチェックしない。
+
+**この22目標横断照合項目のチェックは対応付けのレビュー完了のみを指す。** M00-04単独の本人実環境受入、M02→M03固定Skill統合、OpenCodeチューター、正式AI評価のLevel 2まで一括で完了としない。評価基準の独立性不足は[PR #217のコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6628709053)に引継ぎ済み。
