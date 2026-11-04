@@ -4,8 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const WEB_CASES = "docs/reports/2026-11-04_pr219-web-case-run-evidence.csv";
 const BEHAVIORS = "docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv";
-const CROSS_CUTTING =
-  "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
+const CROSS_CUTTING = "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
 
 // Quoted commas, escaped quotes and multiline fields are valid CSV.
 function parseCsv(source) {
@@ -158,7 +157,6 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       expect(incorrectlyLinked).toBe(false);
     }
   });
-
 
   it("traces 29 cross-cutting requirements without claiming unadopted Cases", () => {
     const matrix = readCsv(CROSS_CUTTING);
