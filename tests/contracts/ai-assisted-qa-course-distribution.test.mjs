@@ -9,6 +9,7 @@ import {
   checkState,
   loadCourseManifest,
   loadModule,
+  readVerifiedCourseSource,
   syncCourse,
   validateCourseManifest,
   verifySyncedCourseDistribution,
@@ -1929,6 +1930,51 @@ describe("AI-assisted QA distribution contract", () => {
       );
       expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
       expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+    }
+  });
+
+  it("rejects forged Skill contents even when distribution SHA-256 is updated", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "c".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const original = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const skill = original.files.find((file) => file.origin === "external-skill");
+    const altered = Buffer.from("modified external Skill content\n");
+    writeFixtureFile(fixture.target, skill.target_path, altered);
+
+    const forged = structuredClone(original);
+    const forgedSkill = forged.files.find((file) => file.target_path === skill.target_path);
+    forgedSkill.sha256 = createHash("sha256").update(altered).digest("hex");
+    forgedSkill.bytes = altered.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(forged));
+
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /external Skill blob SHA mismatch/,
+    );
+    expect(() =>
+      readVerifiedCourseSource({ root: fixture.target, sourcePath: skill.source_path }),
+    ).toThrow(/external Skill blob SHA mismatch/);
+
+    for (const invalid of ["missing-blob", "false-origin"]) {
+      const modified = structuredClone(forged);
+      const entry = modified.files.find((file) => file.target_path === skill.target_path);
+      if (invalid === "missing-blob") delete entry.blob_sha;
+      else entry.origin = "local";
+      fs.writeFileSync(manifestPath, JSON.stringify(modified));
+      expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+        /external Skill (source path or blob SHA is invalid|origin and target disagree)/,
+      );
+      expect(() =>
+        readVerifiedCourseSource({ root: fixture.target, sourcePath: skill.source_path }),
+      ).toThrow(/external Skill (source path or blob SHA is invalid|origin and target disagree)/);
     }
   });
 

@@ -708,6 +708,25 @@ function resolveWithin(root, relativePath) {
   return assertNoSymlinkPath(root, normalized);
 }
 
+function validateExternalSkillDistributionEntry(entry) {
+  const isSkillTarget = entry.target_path.startsWith(".agents/skills/");
+  if (isSkillTarget !== (entry.origin === "external-skill"))
+    fail(`external Skill origin and target disagree: ${entry.target_path}`);
+  if (!isSkillTarget) return;
+  const source = /^skills\/([^/]+)\/(.+)$/.exec(entry.source_path);
+  if (
+    !source ||
+    entry.target_path !== `.agents/skills/${source[1]}/${source[2]}` ||
+    !/^[a-f0-9]{40}$/.test(entry.blob_sha ?? "")
+  )
+    fail(`external Skill source path or blob SHA is invalid: ${entry.target_path}`);
+}
+
+function verifyExternalSkillDistributionBytes(entry, bytes) {
+  if (entry.origin === "external-skill" && gitBlobSha(bytes) !== entry.blob_sha)
+    fail(`external Skill blob SHA mismatch: ${entry.target_path}`);
+}
+
 function readDistribution(root) {
   const absoluteRoot = path.resolve(root);
   if (
@@ -749,6 +768,7 @@ function readDistribution(root) {
       normalizeRelativePath(entry.target_path, "distribution target_path"),
       "distribution target_path",
     );
+    validateExternalSkillDistributionEntry(entry);
   }
   for (const entry of distribution.load_files) {
     if (!MODULE_ID_PATTERN.test(entry.module_id))
@@ -874,6 +894,7 @@ function verifiedCourseSource(root, distribution, sourcePath) {
     fail(`distributed input is missing: ${sourcePath}`);
   const bytes = fs.readFileSync(absolute);
   if (sha256(bytes) !== entry.sha256) fail(`distributed input changed after sync: ${sourcePath}`);
+  verifyExternalSkillDistributionBytes(entry, bytes);
   verifyPublicFileContent(sourcePath, bytes);
   return bytes;
 }
@@ -884,8 +905,6 @@ export function readVerifiedCourseSource({ root, sourcePath }) {
   const entry = distribution.files.find((file) => file.source_path === sourcePath);
   if (!entry) fail(`source is not part of the verified course package: ${sourcePath}`);
   const bytes = verifiedCourseSource(targetRoot, distribution, entry.target_path);
-  if (entry.blob_sha && gitBlobSha(bytes) !== entry.blob_sha)
-    fail(`external Skill blob SHA mismatch: ${sourcePath}`);
   return { bytes, targetPath: entry.target_path, metadata: entry };
 }
 
@@ -912,6 +931,7 @@ export function verifySyncedCourseDistribution({ root }) {
       fail(`distributed file is missing or not a regular file: ${targetPath}`);
     const bytes = fs.readFileSync(absolute);
     if (sha256(bytes) !== entry.sha256) fail(`distributed file changed after sync: ${targetPath}`);
+    verifyExternalSkillDistributionBytes(entry, bytes);
     verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
