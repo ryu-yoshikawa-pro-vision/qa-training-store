@@ -125,6 +125,44 @@ describe("PR #219: Cart stock, role and version acceptance", () => {
     },
   );
 
+  it("rejects quantity after stock and purchase limit shrink without mutating Cart or Checkout", async () => {
+    const useCases = cart();
+    const added = await useCases.addItem({
+      variantId: "variant-mug-one",
+      addQuantity: 3,
+    });
+    expect(added.items[0]).toMatchObject({ quantity: 3 });
+    expect(await database.product_variants.update("variant-mug-one", { stockQuantity: 2 })).toBe(1);
+
+    const beforeStockRejection = await persistedCartState();
+    await expect(
+      useCases.updateQuantity({
+        itemId: added.items[0]!.itemId,
+        quantity: 3,
+        cartExpectedVersion: added.cartVersion,
+        itemExpectedVersion: added.items[0]!.itemVersion,
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(await persistedCartState()).toEqual(beforeStockRejection);
+
+    expect(
+      await database.product_variants.update("variant-mug-one", {
+        stockQuantity: 50,
+        purchaseLimit: 1,
+      }),
+    ).toBe(1);
+    const beforeLimitRejection = await persistedCartState();
+    await expect(
+      useCases.updateQuantity({
+        itemId: added.items[0]!.itemId,
+        quantity: 2,
+        cartExpectedVersion: added.cartVersion,
+        itemExpectedVersion: added.items[0]!.itemVersion,
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(await persistedCartState()).toEqual(beforeLimitRejection);
+  });
+
   it("rejects stale cart and item versions without changing DB", async () => {
     const useCases = cart();
     const added = await useCases.addItem({ variantId: "variant-mug-one", addQuantity: 1 });

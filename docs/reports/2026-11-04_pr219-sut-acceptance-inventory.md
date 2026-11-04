@@ -232,3 +232,9 @@
 - 期待する安全性：古い確認画面と確定ボタンを表示せず、更新されたCartを確認してやり直す導線を用意する。現SUTの`CheckoutLoadError href="/checkout/payment"`を画面で検証し、`戻って確認する`が`/checkout/payment`を指す**既知仕様不適合候補の再現テスト**として扱う。テストが成功しても製品適合PASSには計上しない。
 - このCaseは既存`cart-version-invalidates-checkout`の`unlockedStep=address`を確認完了と誤認しない。実際にconfirm-ready後に数量を変更し、IntegrationのCart version拒否・DB不変と別Runで紐付ける。
 - Web実行・a11y・Trace/動画/DB前後の証拠は最新CIで確認するまで未受入。#210への不具合連絡は再現後に行う。
+
+## Cartの在庫・購入上限縮小（10番の補完）
+
+- `tests/integration/pr219-cart-boundaries.test.ts`に`default` SeedのGuestが数量3をCartに追加した後、Variant在庫を2へ変更し数量3更新を拒否（`QUANTITY_LIMIT_EXCEEDED`）するCaseを追加。続いて在庫50に戻しpurchaseLimitを1へ縮小し数量2更新を拒否する。
+- 拒否の前後で`carts`/`cart_items`/`checkout_sessions`の全レコードが一致することをassert。Variantのstock/purchaseLimit変化は隔離したテストDBだけに限定し、既存Seed/Reset・SUTは不変更。
+- このCaseのCI実行結果と、既存7件のstock0/1/5/6・Rank/Sale・version結果、実ブラウザでの表示・復旧導線を照合して10番の完了可否を判定する。現時点では未実行扱い。
