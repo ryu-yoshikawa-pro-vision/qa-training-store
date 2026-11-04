@@ -66,3 +66,7 @@
 
 - Native Forbiddenテスト修正後の固定CIを再確認：#41823487692（`46ce4d9`）Native Component job `126552593835`が14 suite/65 testでsuccess、Code Quality job `126552594453`もsuccess。旧`QuickBase64`とTS2339の再発なし。workflow全体の最終結果とは分ける。
 - DB受入の次Case：Webのconfirm-ready stale Cartから拒否画面表示へ遷移する前後で、Cart/Checkout/Order/Payment/Shipment/HistoryのIndexedDB10表をSHA-256で比較する独立E2Eを追加。Forbiddenと共通の読み取り専用digest関数を使用。testInfo.attachにはdigest、CIの成功jobログには真偽・表数・条件のみ（個人情報やhash実値なし）。コード `c0821559`、CIはまだ未確認。残タスク2/7/13/14/15/19/20を未チェックとして維持。
+
+- CI #41824802868でstale Cart拒否時のIndexedDB10表不変を初回PASSとして実証。テストHEAD `681e55c`、SUT `46cd014e`、cross-role job `126557496126` success、`PR219_CASE_EVIDENCE`の`tableCount=10` / `allTablesUnchanged=true`を確認。全23表不変の停止staff循環再現、Checkout競合7幅と製品の誤復帰先も個別成功で再確認。ワークフローはStyle Quality failure、cross-role既存Case2件はflakyだったため、全CI合格や製品適合と混同しない。
+- Style QualityのPrettier違反を専用E2Eで修正（`6455a4d`）、Run #41826050155 Style Quality job `126560935572` successを確認。#199共有E2Eの`getByRole("status")`二重一致（operation-message + loading status）は#199コメント #6630183604に正確な発生箇所と修正候補を引継いだ。既存SUT・テスト・workflow変更なし。
+- Web証拠CSV `PR219-WEB-025`を追加（42行/34列、過去の41行不変）、208動作一覧に接続。正式Case ID採用、Android SQLite・全条件・成功時Artifact・独立レビューは未完。14/21のチェックは変更せず、CI完了は待機しない。
