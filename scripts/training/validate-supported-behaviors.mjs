@@ -252,9 +252,11 @@ function completeRequirement(item, root, behaviorById, directlyLinkedRequirement
   if (required.some((field) => typeof item[field] !== "string" || !item[field].trim())) {
     return false;
   }
-  if (!["specification", "implementation", "seed"].every((source) =>
-    item.reviewed_against?.includes(source)
-  )) {
+  if (
+    !["specification", "implementation", "seed"].every((source) =>
+      item.reviewed_against?.includes(source),
+    )
+  ) {
     return false;
   }
   const audit = item.requirement_analysis;
@@ -285,15 +287,21 @@ function completeRequirement(item, root, behaviorById, directlyLinkedRequirement
   if (!Array.isArray(ids) || ids.length === 0 || new Set(ids).size !== ids.length) {
     return false;
   }
-  if (!Array.isArray(audit.implementation_refs) || audit.implementation_refs.length !== ids.length) {
+  if (
+    !Array.isArray(audit.implementation_refs) ||
+    audit.implementation_refs.length !== ids.length
+  ) {
     return false;
   }
   for (const id of ids) {
     const behavior = behaviorById.get(id);
     const evidence = audit.implementation_refs.find((ref) => ref.behavior_id === id);
-    if (!behavior || !evidence ||
-        evidence.path !== behavior.implementation_evidence?.path ||
-        evidence.line !== behavior.implementation_evidence?.line) {
+    if (
+      !behavior ||
+      !evidence ||
+      evidence.path !== behavior.implementation_evidence?.path ||
+      evidence.line !== behavior.implementation_evidence?.line
+    ) {
       return false;
     }
   }
