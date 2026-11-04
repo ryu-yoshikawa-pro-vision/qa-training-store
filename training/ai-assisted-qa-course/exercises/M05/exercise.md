@@ -154,10 +154,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 const targetSpec = path.resolve(process.argv[3]);
+const expectedRoot = path.dirname(targetSpec);
+const reportRoot = report.config?.rootDir;
+if (typeof reportRoot !== "string" || path.resolve(reportRoot) !== expectedRoot) {
+  throw new Error("Playwright JSON reportのrootDirが対象specのディレクトリと一致しません");
+}
 const tests = [];
 function visit(suite) {
   for (const spec of suite.specs ?? []) {
-    if (path.resolve(spec.file ?? "") !== targetSpec) {
+    // Playwright JSON reporter serializes spec.file relative to config.rootDir.
+    if (typeof spec.file !== "string" || path.resolve(reportRoot, spec.file) !== targetSpec) {
       throw new Error("別のspecがreportへ混入しました: " + String(spec.file));
     }
     for (const test of spec.tests ?? []) {
