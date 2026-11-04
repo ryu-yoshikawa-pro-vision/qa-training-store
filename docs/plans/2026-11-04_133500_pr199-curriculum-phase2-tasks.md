@@ -13,7 +13,7 @@
 - [ ] `M05-01`：Node/pnpm/TypeScriptの`await`・型・関数、最小specの実行と1箇所の安全な変更→再実行を演習/提出/採点基準へ整合
 - [ ] `M05-02`：Role/Name/Label/test IDによるLocatorと一意性、複数Cart明細を全体/商品単位でscopeする区別を実画面で確認
 - [ ] `M05-03`：可視/クリック成功とCart更新・DB保存の保証範囲の差、弱いAssertionを業務結果で補強する判断を確認
-- [ ] `M05-04`：Web-first assertion・auto wait・根拠のない`waitForTimeout`と実エラーの区別を演習/負例へ反映
+- [x] `M05-04`：Web-first assertion・auto wait・根拠のない`waitForTimeout`と実エラーの区別を演習/負例へ反映
 - [ ] `M05-05`：新課程専用Config、8081/8082/6080、指定spec、Trace/JSON report・receiptの実行経路と保存先を一致させる
 
 ## M06：別条件からのWeb E2E実装（5目標）
@@ -72,3 +72,10 @@
 - M06-Q03復習先を共有契約テストの期待する章へ戻して§6に説明を補い、前HEADの契約テスト失敗を修正。最新HEADのCI結果は未確認。M05 P05の新規specは`course:run`許可リスト外なので、専用Configでの直接実行経路と明確に異なる証拠欄を追記。実Chromium/Run receipt未取得。
 - 保全対象リストの`../`パストラバーサル、symlink、成果物自身の再取り込みを拒否するよう修正。隔離Linuxダミーファイルで拒否と復元を検証したが、本人Codespacesでの復元は未実施。
 - **Progress: 20% (5/25)**。残り20項目の実Run・正式評価・Phase引継ぎ等は未完了のまま保持。
+
+## 2026-11-04 M05-04の補助実行と反映
+
+- 対象HEAD `17145e12fea7098cfe4ba327882d446f8c8ac377`のM05教本・演習・提出欄に、Actionability自動待機・Web-first assertion、固定待機が無効な負例、構文/型/実行時・Locator不存在/重複・Actionability・Assertionの違いを反映。
+- [受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)に隔離Linux（Node.js 22、TypeScript 5.8.3、Python Playwright 1.57、Chromium 144）での成功・意図的失敗と終了コードを記録。これは配布Shop/受講者の`course:run`ではなく、`M05-01/02/03/05`および横断実Chromium受入を代替しない。
+- 前HEAD `e6b41570f90e20214210547917873234faae1bda` の[Web CI #41827772448](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41827772448)は成功。今回の変更のCI結果ではない。
+- **Progress: 24% (6/25)**。残り19件は未完了。
