@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 88% (29/33)**。未完了4件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
+- **Progress: 91% (30/33)**。未完了3件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -71,7 +71,8 @@
   - #217 HEAD/Blobと引継ぎコメント4件を再照合。rootDir相対パス、P05 direct-only、M07の`page.reload()`3件目、M06 TODO削除の偽PASSリスクはいずれも正式実装修正待ちと明記。共有実装は#215で変更しない。
 - [x] #218の固定配布manifest・Shop・`course:load/check`・出力先・Secret分離について、#215の教材と必要な技術条件を突き合わせる。配布実装の欠陥は再現条件を#218に渡し、**#215でmanifestを変更しない**。
   - #218 HEADのmanifestでM05/06/07の29件とload先、固定source SHA/Shop生成、採点資産の配布除外を照合。`loadModule`の異内容上書き禁止、`checkState`の実行未検証、8082と証拠出力先を確認し、受入レポートへ固定HEADで記録。#218自体の21件は未完了。
-- [ ] #199最終受入へ、未実行の項目、学習者本人に必要な操作、Config/Reset/Run/Trace/SHA、担当PR、再開手順を固定HEAD付きで一度だけ引き継ぐ。チェックは技術資料の引継ぎ完了時点に限る。
+- [x] #199最終受入へ、未実行の項目、学習者本人に必要な操作、Config/Reset/Run/Trace/SHA、担当PR、再開手順を固定HEAD付きで一度だけ引き継ぐ。チェックは技術資料の引継ぎ完了時点に限る。
+  - #199へ最終技術引継ぎコメント1件でM05 P03/P05、M06 5 Case、M07 A/合成B/C・before/after・保守3件目、証拠のRun/SHAと配布/評価の未解決条件を固定HEADで送付。実受入の完了ではない。
 
 ## PR #199の最後に実施する実受入（本リストの33件に含めない）
 
