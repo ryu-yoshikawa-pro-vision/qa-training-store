@@ -45,6 +45,24 @@
 | P05 | Cart数量/削除の一意なLocator・Assertion案 | 未記入 | 未記入 | 未確認 |
 | P06 | AIの弱いAssertion/固定待ち案の棄却 | 未記入 | 未記入 | 未確認 |
 
+### M05-04：実エラーと待機の切分け
+
+`P03`・`P04`・`P06`の本人実験を記録します。別のコードや実行で得たエラー・Runを同じ結果として扱いません。
+
+| 種類 | コマンド・対象ファイルまたはspec | 修正前の最初のエラー・終了コード・Run ID | 修正した箇所・修正後の結果 | 製品の業務結果について保証しないこと |
+| --- | --- | --- | --- | --- |
+| 構文（`node --check`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| 型（`tsc --noEmit`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| 実行時（`node`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| async/await（`node`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| Locator・strict mode・Actionability（該当Run） | 未記入 | 未確認 | 未確認 | 未確認 |
+| Web-first Assertionと固定待機（該当Run） | 未記入 | 未確認 | 未確認 | 未確認 |
+
+- `click()`のActionability自動待機と`await expect(...)`のWeb-first assertion再試行の違い:
+- `count()`の一度の観測と`toHaveCount()`の再試行の違い:
+- `waitForTimeout(5000)`の提案を採らなかった根拠:
+- 教材の架空HTML／本人が実行したScenario Shopの証拠の区別:
+
 ### P05の専用Configによる直接実行記録
 
 - 本人作成specのパスとSHA-256（`p05-cart-locator.spec.ts`）:
