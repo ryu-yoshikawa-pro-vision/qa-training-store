@@ -145,3 +145,31 @@
 - 本保全項目は演習記述と隔離環境のコマンド確認まで進めたが、タスクリストの「通常OpenCodeの確認・安全なエクスポートの実地検証」は未達なので**チェックを付けない**。
 
 **Progress: 16% (4/25)**。残り21項目の未実行/BLOCKEDは保持する。
+
+## 2026-11-04 継続作業：契約テスト失敗の修正、M05 P05実行入口、M07分類基準
+
+### CI（この追記より前のHEAD）
+
+- PR #215のHEAD `446959323fc2c377be74a6bc0d409dd058e3623f`に対する[Web CI Run 41824466912](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41824466912)は **failure**。失敗の起点は`Vitest (contracts)`の`tests/contracts/ai-assisted-qa-curriculum.test.ts:956`（M06-Q03の復習先）。`Style Quality`、`Training runtime contracts`、Webの各Chromium jobは成功したが、マージ可能とは判定しない。
+- このブランチで変更したM06-Q03の参照先`#1-caseのどの部分をコードにするか`が、共有契約テストの固定期待値`#6-実行証拠evidenceを読む`と不一致だった。クイズの参照先を元の契約へ戻し、`modules/M06/README.md`の§6にCaseの前提・操作・期待/BR/AC→spec→Run証拠の表を追加。固定参照先が説明内容と一致するよう調整した。**同一内容の契約テスト再実行はこの環境では未実施**。次のHEADのCIで成否を確認する。
+- 共有テストの復習先期待値が固定されており、改善したい参照先を変更するとCIが失敗する構造である。今後参照先を変更する場合は共有テストも#199で調停する。
+
+### M05 P05の直接実行経路
+
+- `scripts/training/ai-assisted-qa-run-evidence.mjs`のM05許可リストは`product-link.spec.ts`のみ。P05で新規作成する`p05-cart-locator.spec.ts`は`course:run`では実行できない。
+- `playwright.ai-assisted-qa.config.ts`と`ai-assisted-qa-playwright-settings.ts`を確認し、`PLAYWRIGHT_TEST_ROOT=workspace/M05`、`AI_QA_OUTPUT_ROOT`に一意のディレクトリ、`--config=playwright.ai-assisted-qa.config.ts`、`--project=ai-assisted-qa-chromium`で直接実行するコマンドを`exercises/M05/exercise.md`に記載。`submission-template.md`に対象spec/出力/log/終了コード/JSON reportの提出欄を追加。
+- 直接実行は新課程Configを使うが、`course:run`の`run-evidence.json`や`source_sha`付きreceiptを生成しない。正式な自動照合が必要なら#217のrunner/evaluation契約で変更の要否を判断する。**Chromiumの実Runは未実施**。よってM05-02・M05-05と横断P05のチェックは保持する。
+
+### Git/PR不要の保全手順の安全性修正
+
+- 前回の`tar -T`実行前検証には、ファイル名が`workspace/M05/`などで始まれば`../`を含むパスも通せる欠陥があった。今回は`realpath -e`の正規化、許可モジュール配下への限定、正規パスの同一性、最終要素のsymlink拒否、`exports/`の入力除外、`--verbatim-files-from --no-recursion`を加えた。
+- 本作業用の隔離Linux環境で、一時的なダミー資料からアーカイブを作り、SHA-256照合と展開結果の同一性を確認。実在する外部ファイルへの`../`参照、外部を指すsymlink、生成アーカイブ自身の参照を拒否した。これは**学習者Codespacesでの実保全ではない**。
+- `course:sync`や配布本体、既存Seed/Resetは変更していない。
+
+### M07-01：診断基準の教材・提出欄への反映
+
+- 固定HEAD `897e1c83186a22c082c6cad8ca5c8a245fc9ca40`、`training/ai-assisted-qa-course/exercises/M07/failure-cases.md` Blob `9f9bde60b1fbaa6b3590504cd4b70913bb62e7e1`、`submission-template.md` Blob `50f6dfae584f5c58eec35233866b8ac5a9e5607f`で判断基準を照合。正式仕様`docs/spec/features/cart.md`（Blob `6342cbc95f72947b988044c7e86a3d39bdeac2eb`）と既存`reset-scenario.ts`（Blob `d9bd8c183f4cfb89e0aaccad6c35eb617bca2749`）も読み取った。
+- Test / Product / Environment / Flakyについて、最初に見るべき仕様・前提Role/State/Data・Reset metadata・Run/Traceと、原因を断定する前に必要な追加確認を4分類で整理。素材A（未実行なら未確認）と合成B/Cを区別し、提出テンプレートで観測事実・仮説・否定根拠・次の確認を別欄にした。手作業の静的照合で各分類・資料参照・実Runの未実施表示を確認した。
+- `M07-01`の完了は**失敗分類と切分け手順の整備**に限定する。`M07-02`の実失敗Trace・Screenshot・別Run、`M07-04/05`の修正前後実Run、受講者自身の診断達成を意味しない。
+
+**Progress: 20% (5/25)**。`M07-01`の分類手順整備を追加で1件チェックし、実Chromium、固定配布Shop、受講者本人の成果物が必要な20項目は未完了。
