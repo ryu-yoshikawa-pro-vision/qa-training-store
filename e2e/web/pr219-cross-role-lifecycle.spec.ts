@@ -71,7 +71,7 @@ interface CaseRuntimeCounters {
 
 const caseRuntimeCounters = new WeakMap<Page, CaseRuntimeCounters>();
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(({ page }) => {
   const counters: CaseRuntimeCounters = {
     consoleErrors: 0,
     pageErrors: 0,
