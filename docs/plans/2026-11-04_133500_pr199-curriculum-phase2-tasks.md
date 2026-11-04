@@ -1,58 +1,84 @@
-# PR #199 Phase 2（M05〜M07）実技タスクリスト
+# PR #215 Phase 2（M05〜M07）技術対応タスクリスト
 
-> 対象：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。作業開始時に`AGENTS.md`、[並行分担Plan](./2026-11-04_pr199-parallel-branches.md)、このリスト、最新HEAD/CI、関連仕様・テストを確認する。
+> 対象：[PR #215](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/215)、統合先[PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。作業時は`AGENTS.md`、[並行分担Plan](./2026-11-04_pr199-parallel-branches.md)、最新HEAD/CI、該当教材・仕様・テストを確認する。
 >
-> **完了条件**：各チェック項目の仕様/教材/コードの整合と必要な実行証拠（対象HEAD、実行環境・コマンド・結果・Run）を得たときだけ`[x]`へ変更する。未実行/BLOCKEDは理由・再開条件を記録して未完のまま保持。製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow、および他ブランチの所有ファイルは変更しない。変更依頼はPR上で#199へ引継ぐ。個別PRは#199をbaseとし、許可なくマージしない。
+> **今回の分離方針**：PR #215では、教材・学習用spec・専用契約テストの実装、参照実装/固定配布の技術的検証、他PRへの不整合の引継ぎまで進める。**受講者本人の独立操作・実Run・正式AI評価・Codespaces保全を伴う実受入は、PR #199の最後にまとめて実施する**。PR #215の技術チェックを本人の習熟・Phase修了の認定に用いない。
+>
+> **完了条件**：以下のチェックは、それぞれの対象ファイル、修正箇所、テスト・CI結果または検証不能な理由を固定HEADで記録できた場合だけ`[x]`へ変更する。契約テスト追加だけで実Playwright成功とはしない。実行可能な検証を環境依存という理由だけで省略しない。必要な実行環境・権限がないときは再現手順と阻害条件を記録する。CI完了待ち・無断mergeはしない。
 
-## 変更範囲
+## 作業範囲と進捗の数え方
 
-15学習目標。編集できるのは`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`・学習専用Playwright資産、固有の契約テストと証拠レポート。製品用E2E・本番用Seed/Reset・`assessment/**`・共通manifest・知識グラフは対象外。
+- **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
+- **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
+- **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
+- **Progress: 42% (14/33)**。現時点で未完了19件。既存の完了済み8項目と、その下で検証済みだった内部作業6項目をそれぞれ1件として整理した。新しく完了した作業が14件あると主張するものではない。
 
-## M05：TypeScript・Playwright基礎（5目標）
+## M05：TypeScript・Playwright基礎
 
-- [ ] `M05-01`：Node/pnpm/TypeScriptの`await`・型・関数、最小specの実行と1箇所の安全な変更→再実行を演習/提出/採点基準へ整合
-- [ ] `M05-02`：Role/Name/Label/test IDによるLocatorと一意性、複数Cart明細を全体/商品単位でscopeする区別を実画面で確認
-- [x] `M05-03`：可視/クリック成功とCart更新・DB保存の保証範囲の差、弱いAssertionを業務結果で補強する判断を確認
-- [x] `M05-04`：Web-first assertion・auto wait・根拠のない`waitForTimeout`と実エラーの区別を演習/負例へ反映
-- [ ] `M05-05`：新課程専用Config、8081/8082/6080、指定spec、Trace/JSON report・receiptの実行経路と保存先を一致させる
-  - [x] P05直接実行のPlaywright v1.62 JSON reporterの`rootDir`相対パスを照合し、別spec・0件・skip・期待FAIL・誤った`rootDir`を拒否する教材と契約テストを更新（本人実Run/receiptは未検証）
+- [x] `M05-03`：Cartの見た目・クリック成功・業務Assertion・DB保存の保証範囲を正式仕様/実装に照合して教材と提出欄へ反映。
+- [x] `M05-04`：Playwrightのauto wait・Web-first assertion・不要な固定待機と構文/型/Locator/Assertionエラーの負例を教材へ反映。
+- [x] P03の短いTypeScriptコードを隔離環境で型検査し、誤型で`TS2345`/非0、修正後に0を確認。教材のオプションに合わせた`tests/contracts/ai-assisted-qa-phase2-typecheck.test.mjs`を追加。本人実行とは区別する。
+- [x] P05の直接Playwright実行手順に、実行前後spec SHA・出力先・JSON reporterの`rootDir`相対パス、0件/別spec/skip/期待FAILの拒否を反映。`ai-assisted-qa-phase2-direct-run.test.mjs`に隔離stub負例を追加。
+- [ ] `M05-01`：`await`・関数・型・Node/pnpmの実行例、元specの安全な1箇所変更→再実行の演習/提出欄/理解事項をコードと照合。不十分な場合は本PRの教材・専用テストを修正し、技術検証結果を記録する。
+- [ ] `M05-02`：Role/Name/Label/test IDの一意性、Cartの複数商品行と数量select/削除ボタンのscopeを、正式仕様・実画面コード・学習用参考specに照合。名前だけでなく2行の誤選択を検出する回帰条件を追加し、画面操作が必要な部分は#199最終受入へ渡す。
+- [ ] `M05-05`：`playwright.ai-assisted-qa.config.ts`、8081/8082/6080、`PLAYWRIGHT_TEST_ROOT`、対象spec、`AI_QA_OUTPUT_ROOT`、Trace/JSON report・`course:run` receiptを読み取りで追跡。M05 P05直接実行と`course:run`の異なる証拠契約を教材/専用テストで確認し、共通実行器の不足は#217に引き継ぐ。
+- [ ] 公開M05参照specの2明細Locatorを、実行可能な既存の学習用環境/CIで技術検証する。実行できない場合は必要なサーバー・Config・コマンド・期待/未取得証拠を記録し、受講者が実行したとは報告しない。
 
-## M06：別条件からのWeb E2E実装（5目標）
+## M06：別条件からのWeb E2E実装
 
-- [ ] `M06-01`：固定3 CaseのTODO補完と、新しい未演習の別Caseからの独立spec作成を分けて受入。正式BR/AC→Case→Locator→Assertion→実Runを追跡
-- [ ] `M06-02`：学習用ResetとBrowser Context、単独Run・同じ条件の再実行、実行順・残存IndexedDBによる誤判定防止を実証
-- [ ] `M06-03`：無関係でもPASSするAssertionを正本の業務結果へ修正し、変更前後の失敗/成功を示す
-- [ ] `M06-04`：CLI/対象spec・Case・Run ID/結果・Trace/reportを同じ実行に紐付け、旧Runの流用とファイル名だけの一致を拒否
-  - [x] CASE-CART-004/005の`run-evidence.json`、`spec-snapshot.ts`、JSON report、test名・結果を相互照合する教材と提出欄を更新（初回/再実行は未実施）
-- [ ] `M06-05`：未実行・環境BLOCKED・FAIL・PASSを、終了コードとログ・実操作に基づき区別する
+- [x] `M06-04`の証拠記録を具体化。CASE-CART-004/005のtest名、`run-evidence.json`、spec snapshot・JSON report・対象SHA・終了状態の照合手順を演習/提出欄へ追加。
+- [ ] `M06-01`固定3 Case：公開未完成specと参考specを正式BR/AC・Role/State/Data・Locator・業務Assertionへ対応付け、TODO消去だけでPASSしない回帰条件を確認する。
+- [ ] `M06-01`新規Case：削除`CASE-CART-004`と数量1→2・再読込保持`CASE-CART-005`が**別test**であり、Webの数量selectに0を仮定しないことを、参考spec・教材・専用契約テストで確認する。
+- [ ] `M06-02`：test単位のReset、Browser Context、IndexedDBとSeedの境界、実行順序依存と再試行の誤判定を確認。隔離fixture/契約テストで再現できる不備は修正し、実Shopでの順序変更検証は#199最終受入へ渡す。
+- [ ] `M06-03`：無関係でもPASSする弱いAssertionの負例を特定し、正式BR/ACの業務結果を検証する期待へ修正。意図した失敗と修正後成功を、実行可能な技術テストまたは明示した再現条件で確認する。
+- [ ] `M06-05`：終了コード、`outcome`、JSON report・ログからPASS/FAIL/BLOCKED/未実行を判定する教材と、旧Run・別spec・実行数の誤判定を拒否する契約テストを整合する。共有実行器の修正は#217へ渡す。
+- [ ] 公開参考specの固定3件と004/005を専用Config・実行可能な環境で技術的に検証し、Run/対象HEAD/初回・再実行の結果を記録。**本人の独立実装・初回/repeat達成の判定は行わない**。
 
-## M07：失敗解析・保守設計・Phase 2総合演習（5目標）
+## M07：失敗解析・保守設計
 
-- [x] `M07-01`：Test/Product/Environment/Flakyの原因候補、仕様/初期状態/ログでの切分けと追加確認を整理
-- [ ] `M07-02`：Trace・スクリーンショット・標準出力・reportから失敗操作/Assertionを特定する別Run演習を検証
-- [x] `M07-03`：Retry/Timeout延長ではなく原因の切分けを先に判断する基準を確認
-- [ ] `M07-04`：AIパッチの採否・最小修正・修正前後の別Runと仕様上の期待結果維持を実証
-- [ ] `M07-05`：重複specと保守変更からPage Object/標準fixtureを採否し、小規模な実装・import・前後Runと保守効果を示す
-  - [x] 3件目は別ページへ移動後にCart再入場すること、Page Object/fixtureのソース同一性を保全することを教材・提出/引継ぎ欄へ明記（参考specは#217へ引継ぎ、本人Runは未実施）
+- [x] `M07-01`：Test/Product/Environment/Flakyの原因候補と、正式仕様・初期状態・ログでの反証手順を教材・提出欄に整理。
+- [x] `M07-03`：Retry/Timeout延長を原因修正の代用にせず、診断後に判断する基準を教材へ反映。
+- [x] `M07-05`の教材側：3件目は再読み込みではなく**別ページへ移動後にCartを再入場**する条件を明確化。Page Object/fixtureのコードとsnapshot/依存ファイルの同一性も記録する。参考specの相違は#217へ引継ぎ済み。
+- [x] Git/PR不要の保全手順：パストラバーサル・symlink・自己取り込みに加え、一覧・アーカイブ・チェックサムの上書きを禁止。`ai-assisted-qa-phase2-export-guard.test.mjs`に隔離環境の負例を追加。
+- [ ] `M07-02`：診断素材Aの実失敗と合成B/Cを取り違えないよう、期待する失敗操作・Assertion、Trace/Screenshot/標準出力/reportの対応を参考spec・教材・専用テストで確認。実Trace未取得は未取得として報告する。
+- [ ] `M07-04`：`failure-assertion.spec.ts`と`repaired-assertion.spec.ts`の役割、TODO由来のbefore失敗、業務Assertionを維持したafter修正を照合。参考コードで検証可能なbefore/after実行を区別する。
+- [ ] `M07-05`：公開参考の保守前2件・保守後3件、test単位Reset、Page Object/fixture、各test内Assertion、別ページを経由する3件目の実装契約をテストする。参考実装の相違は#217で修正されるまで未解決として扱う。
+- [ ] 通常OpenCodeの段階ヒント・失敗後の復習、AI案の採否を本人の判断から奪わない教材上の制約を確認。チューター共通実装・実モデルの動作検証は#217/#199へ渡す。
 
-## 学習用実行・横断的な確認
+## 横断：教材・テスト・引継ぎ
 
-- [ ] M05 P03の型検査が誤型で非0/修正で0を返し、P05の2明細Locator参照specが専用Configで実Chromium実行できることを固定HEAD/ログで確認
-  - [x] P03の教材コマンド相当を隔離短コードで実行し、誤型はTS2345/終了コード2、修正後は終了コード0を確認。専用Vitestへ回帰条件を追加（本人P03とP05実Chromiumは未実施）
-- [ ] M06の`CASE-CART-004`（削除）・`CASE-CART-005`（数量1→2、再読込保持）を新specの独立Caseとして初回・再実行それぞれ2件以上の実Runで確認。Web数量UIはselectであり、Web数量0変更を架空の操作にしない
-- [ ] M07保守前の2件以上・保守後の独立3件以上を別Runで実証。学習者固有の変更と公開参照spec・完成状態の用途を分ける
-- [ ] 8082配布Shop Serve/Reset、report/Trace/fixtureの独立性・新旧テスト混入を検証。配布元ファイル/manifestの不備は配布ブランチへ証拠を引継ぐ
-- [x] 全15目標の教本・P01〜P06・提出欄・start/end・評価基準・復習先を個別照合。M07正式AI評価は評価ブランチへ引継ぎ、本人Private 2コアCodespaces実行は決定済みの後続時期に回す
-- [x] 対象テスト、Playwrightの実Run、CI、証拠/残リスクを固定HEADで報告。実行環境がない項目は未実行として残す
+- [x] 全15学習目標と教本、P01〜P06、提出欄、start/end、公開評価基準、復習先を個別照合。正式AI採点と本人達成は未認定。
+- [x] M05〜M07クイズの正答・誤答理由・復習先を目標/理解事項と照合。
+- [x] 理解事項30件の意味・前提・`can_do`・教材/実技/評価の対応を確認。知識グラフ正本の改訂候補は#199へ引継ぎ済み。
+- [x] M04→M05→M06→M07→M08の状態JSONで入力/出力のID・path・revision・contractを照合。`ai-assisted-qa-phase2-handoff.test.mjs`を追加。公開fallbackを本人の先行修了証拠にしない。
+- [x] 固定HEADで教材変更・テスト/CI・未実行範囲・残リスクを[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ記録。
+- [ ] 今回の専用契約テスト（M05直接実行・型検査、M07保全、Phase間引継ぎ）と既存M05〜M07の検証を最新HEADのCIで確認。失敗を修正し、`training-web-baseline`と**新課程専用ConfigのChromium実行を同じ結果として扱わない**。
+- [ ] M05〜M07の対象教材・公開参考spec・専用Config・学習用Resetと既存契約の整合を最後に差分レビュー。不要な抽象化やSUT変更を行わず、未解決の仕様差を受入レポートへ残す。
+- [ ] #217の共通実行器/正式評価が所有する問題（JSON reporterの`rootDir`相対パス、M05 P05の`course:run`許可、M07保守後参考spec）について、引継ぎ済みコメントと最終的な修正/未修正を照合する。**#215で共有実装を書き換えない**。
+- [ ] #218の固定配布manifest・Shop・`course:load/check`・出力先・Secret分離について、#215の教材と必要な技術条件を突き合わせる。配布実装の欠陥は再現条件を#218に渡し、**#215でmanifestを変更しない**。
+- [ ] #199最終受入へ、未実行の項目、学習者本人に必要な操作、Config/Reset/Run/Trace/SHA、担当PR、再開手順を固定HEAD付きで一度だけ引き継ぐ。チェックは技術資料の引継ぎ完了時点に限る。
 
-## クイズ・理解事項・自習・Phase間引継ぎ（補完）
+## PR #199の最後に実施する実受入（本リストの33件に含めない）
 
-- [x] `docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`の設問/正答/誤答理由/復習先を15目標と理解事項に照合。コードを読む・書く・実Runする技能を定義問題やAI自己報告だけで達成扱いにしない
-- [x] `knowledge-graph.json`のM05〜M07の理解事項ごとに、前提の飛躍、教材節、`can_do`、実技の観測、評価基準を意味的に確認。未レビューの`draft_requires_content_review`は承認済みに変更せず、必要な関係/ノード更新を#199に引継ぐ
-- [ ] M04→M05の確定Case・初期Role/State/Data・BR/ACと、M07→M08の本人spec・Config・Reset・Trace/Run/成果物のID/revisionを実ファイルで照合し、別の公開開始サンプルを本人の過去修了証拠とみなさない
-  - [x] M04→M05→M06→M07→M08の状態JSONを静的照合。各遷移の入力ID/path/revision/contractが直前出力に一致する専用契約テストを追加（本人の実ファイルは未確認）
-- [ ] 通常のOpenCodeの段階ヒント・失敗後の復習が本人の実装/診断を奪わないか確認。Phase 2のspec、Trace、Run記録をGit/PRなしで安全にエクスポートする手順を教材に記載・検証。共通配布機構は#218、正式評価時の再実行は#217へ引継ぐ
-  - [x] M07の保全一覧とアーカイブが再実行で既存証拠を上書きする問題を修正。既存ファイル拒否とtar/SHA検証の回帰テストを追加（実Codespacesでの保全・OpenCode協働は未実施）
+実受入は[#199の統合・横断受入タスクリスト](./2026-11-04_143600_pr199-integration-acceptance-tasks.md)で管理する。以下は**実施漏れを防ぐための引継ぎ条件**であり、PR #215ではPASSを付けない。個別PRの契約テストや公開参考specがPASSしても本人の実技修了は認定しない。
+
+| 対象 | #199最終段階の確認内容 |
+| --- | --- |
+| M05-01・P03 | 本人が短いTypeScriptの誤型を検出・修正し、specを安全に変更して再実行したログ、終了コードと本人の判断 |
+| M05-02・P05 | 8082の実画面で複数Cart明細のLocator/scopeを本人が実装し、専用ConfigのChromiumで実行。直接実行のspec SHA・JSON report・ログを照合 |
+| M05-05 | 8081/8082/6080、固定配布・専用Config、Trace/JSON/report/receiptの保存先と実行spec・source SHAの実測照合 |
+| M06-01〜05 | 本人の固定3 Caseと独立004/005、Reset/Context、初回・再実行各2件以上、業務Assertion、PASS/FAIL/BLOCKED/未実行の実ログ判定 |
+| M07-02・04 | 診断素材Aの実失敗とTrace、修正対象のbefore/after別Run、AIパッチの採否、正式期待結果の維持。合成B/Cは実行済みにしない |
+| M07-05 | 保守前2件・保守後3件以上を別Runで確認。test単位Reset、Page Object/fixture、Cart外へ移動して再入場する3件目、spec/依存ソースのSHA |
+| Phase間・配布 | 本人のM04→M05およびM07→M08成果物/ID/revision、固定Shop/Reset、実Trace/report・新旧Run混入防止を実ファイルで確認 |
+| OpenCode・保全 | 実モデルのヒント/復習が本人の実装を奪わないこと、Git/PR不要のアーカイブ作成・非公開保管・SHA照合・復元を実環境で確認 |
+| 正式評価・最終統合 | #217の正式`course:assess M07`と誤PASS拒否、#218の固定配布、安全性、#199の同一最終HEADによる統合受入を相互確認 |
+
+**時期の注意**：#199本体の現在の方針ではPublic Template公開と本人Private 2コアCodespaces実受入はマージ後の本人作業とされている。この工程の実施時期をPR #215の文書変更で前倒ししない。#199の「最後」における技術的な実受入と、既定のマージ後本人作業を#199本体で区別する。
+
+## 過去の作業記録（当時のHEADと進捗）
+
+以下の`7/25`・`8/25`等は**変更前の25項目で集計した当時の記録**であり、上の33件の現在進捗を表さない。既存のコミット、テスト/CI、発見した不整合、担当PRへの引継ぎ履歴は保持する。
 
 ## 2026-11-04 静的確認の証拠・未完了理由
 
