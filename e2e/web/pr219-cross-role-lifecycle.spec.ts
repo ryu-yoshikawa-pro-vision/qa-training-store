@@ -427,3 +427,42 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
     await expect(page.locator(".product-card").first()).toBeVisible();
   });
 });
+
+test.describe("PR #219: Checkout resume after authentication Session replacement", () => {
+  test("SCREEN-CHECKOUT-ADDRESS-S-resume-notice: new login retains the one-time notice boundary", async ({
+    page,
+    scenario,
+  }, testInfo) => {
+    await scenario("checkout-resume");
+    const firstSessionId = await page.evaluate(() =>
+      localStorage.getItem("scenario-shop.session-id"),
+    );
+    expect(firstSessionId).not.toBeNull();
+
+    await page.goto("/checkout/address");
+    await expect(page.getByText("以前の購入手続きを再開しました。")).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("以前の購入手続きを再開しました。")).toHaveCount(0);
+
+    await page.goto("/account/profile");
+    await page.locator("#main-content").getByRole("button", { name: "ログアウト" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await login(page, "regular@example.com");
+    const secondSessionId = await page.evaluate(() =>
+      localStorage.getItem("scenario-shop.session-id"),
+    );
+    expect(secondSessionId).not.toBeNull();
+    expect(secondSessionId).not.toBe(firstSessionId);
+
+    await page.goto("/checkout/address");
+    await expect(page.getByRole("heading", { name: "配送先を選択" })).toBeVisible();
+    await expect(page.getByText("以前の購入手続きを再開しました。")).toHaveCount(0);
+    await expect(
+      page.getByText("カートの更新により、購入手続きを最新の内容へ置き換えました。"),
+    ).toHaveCount(0);
+    await testInfo.attach("pr219-checkout-resume-new-auth-session", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
+  });
+});
