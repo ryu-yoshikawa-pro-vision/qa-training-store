@@ -223,3 +223,16 @@
 - これらは本人のCodespacesでの実保全・ダウンロード・復元、OpenCode学習支援の非介入を証明しないため、横断の`通常のOpenCode...安全にエクスポート`項目は**未チェック**にする。
 
 **Progress: 28% (7/25)**。残り18件。
+
+## 2026-11-04 継続確認：M05 P05の新規specとPhase 2保全
+
+- **変更直前の確認HEAD**：`9d13270637a49005cd121230f5fc7f9da4d9ab04`。対応する[Web CI #41831786673](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41831786673)は`success`。確認した`Code Quality`、`Style Quality`、`Vitest (contracts)`、`Training runtime contracts`、`Chromium E2E (training-web-baseline)`もすべて成功。最後のChromium jobは`playwright.training.config.ts`と通常の基準specを使うものであり、M05〜M07の`course:run`実技受入ではない。
+- **確認した不整合**：`exercises/M05/exercise.md`のP05では本人作成`workspace/M05/p05-cart-locator.spec.ts`と`workspace/M05/evidence/p05-direct-.../`の直接実行結果を要求するが、`exercises/M07/exercise.md`のGit/PR不要の保全例はM05の`product-link.spec.ts`のみを列挙し、P05本人spec・直接Runログ/JSON report・P03の型検査ファイルが保全例とPhase間の記録から漏れていた。バックアップをそのまま実施した場合、後からP05実技のコードと証拠を復元できない。
+- **修正**：M07の保全対象リストへ`workspace/M05/p03-type-error.ts`と`workspace/M05/p05-cart-locator.spec.ts`を追加。直接Playwright実行の`console.log`・`playwright-result.json`・必要なattachmentを**実際のディレクトリ名・中身確認後に1ファイルずつ追記**するよう明記。`course:run`のUUID/receiptを直接実行に偽装しない。M07引継ぎテンプレートへP03/P05成果物と対応する実証拠欄を追加。M05の固定Skill変更許可は元のLocator修正とP05新規作成で別specに限定し、誤ったファイル編集を防ぐ。
+- **M05 P05実装入口**：`workspace/M05/p05-cart-locator.spec.ts`を本人が作る際の、`../../training/playwright/support/reset-scenario`を参照する最小の未完成specを教材に追記。意図的な`throw new Error("TODO: ...")`を残し、未実装でもPASSする空testとしない。正解Locator/Assertionと本人の実行結果は配布しない。
+- **回帰テスト**：`tests/contracts/ai-assisted-qa-phase2-export-guard.test.mjs`のLinux保全・復元fixtureにP03/P05の本人specと直接実行ログ/JSON reportを追加。教材の保全対象例と`course:run` receiptとの区別を確認するテスト1件を追加。GitHub HEAD `18ffc7261712b3fbdb80f1ade0f4bf30b50c8d6a`の静的照合で教材・引継ぎ・テストの参照が一致。**追加後のVitest/CI、本人Codespacesでの保全・再取得・復元は未実行**。ダミーfixtureの復元は学習者本人の実Run証拠ではない。
+
+**受入境界**：Git/PRを使わない保全手順の教材・専用契約テストを改善したが、複合項目に必要な通常OpenCode支援の非介入、本人Codespacesの実保全・復元は未確認。M05-01/02/05の本人Chromium・P05の別Runも未確認。既存のチェックを流用・追加しない。
+
+**Progress: 28% (7/25)**。未チェック18件は保持する。
+
