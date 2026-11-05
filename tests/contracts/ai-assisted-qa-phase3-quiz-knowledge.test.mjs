@@ -144,4 +144,39 @@ describe("Phase 3 quiz and understanding coverage", () => {
     for (const node of knowledgeNodes) assertAcyclic(node.id);
     expect(visited.size).toBe(19);
   });
+  it("traces each Phase 3 goal through lesson, practice, submission and assessment reference", () => {
+    for (const module of modules) {
+      const lesson = fs.readFileSync(
+        path.join(root, "docs/curriculum/ai-assisted-qa/modules", module.id, "README.md"),
+        "utf8",
+      );
+      const base = path.join(root, "training/ai-assisted-qa-course/exercises", module.id);
+      const exercise = fs.readFileSync(path.join(base, "exercise.md"), "utf8");
+      const submission = fs.readFileSync(path.join(base, "submission-template.md"), "utf8");
+      const state = readJson(
+        "training/ai-assisted-qa-course/states/" + module.id + "/end.json",
+      );
+      expect(state.expected.phase).toBe("P3");
+      expect(state.expected.objective_ids).toHaveLength(module.objectives);
+      for (const objective of state.expected.objective_ids) {
+        expect(lesson).toContain(objective);
+        expect(exercise).toContain(objective);
+        expect(submission).toContain(objective);
+        expect(
+          graph.nodes.some(
+            (node) => node.id === objective && node.type === "learning_objective",
+          ),
+        ).toBe(true);
+      }
+      for (const step of ["P01", "P02", "P03", "P04", "P05", "P06"]) {
+        expect(exercise).toContain(step);
+        expect(submission).toContain(step);
+      }
+      expect(state.phase_assessment.phase_id).toBe("P3");
+      expect(state.phase_assessment.terminal_module_id).toBe("M10");
+      expect(state.phase_assessment.entry_command).toContain("course:assess M10");
+      expect(state.phase_assessment.mastery_status).toBe("not_evaluated_by_course_check");
+    }
+  });
+
 });
