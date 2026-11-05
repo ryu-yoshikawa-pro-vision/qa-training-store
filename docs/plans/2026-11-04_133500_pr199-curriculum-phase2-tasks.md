@@ -46,7 +46,6 @@
   - **2026-11-05追加対応**：ユーザーが許可したPR #215専用CIジョブを`.github/workflows/ci.yml`に追加。`pr215-m06-reference`はPR番号215かつ当該branchのときだけ実行し、同じCIの`web-dist-automation`を8082で配信する。固定3件・004/005初回2件・再実行2件を`playwright.ai-assisted-qa.config.ts`のChromiumで独立Runとして実行し、終了コード・JSON/HTML report・HEAD・spec SHA・trace等を14日保存する。`tests/contracts/ai-assisted-qa-phase2-m06-reference-ci.mjs`は全7件の実行、対象spec・report件数・結果・対象HEADを検証する。**専用Runの完了証拠は次の記録を参照**。
   - **2026-11-05実証完了**：[Web CI #42051038880](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42051038880)の`PR #215 M06 reference Chromium`が成功。PR source HEAD `803cf2cc62e3a9ce63cc554da1c66419cefba979`、CI merge checkout HEAD `072dc67392a25caf2fb9f0fe6d561dcaa7a9646e`。固定3件、004/005初回2件、再実行2件の3 Runで7件すべてPASS、各exit 0・skip/expected failure/retry/flakyなし。[成果物 #13426668109](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42051038880/artifacts/13426668109)の`summary.json`・Playwright JSON report・spec SHA・Web build SHAを照合済み。これは公開参考specの技術受入であり、本人の独立実装ではない。004の参照test名のCase ID不足は#217に引き継いだまま。
 
-
 ## M07：失敗解析・保守設計
 
 - [x] `M07-01`：Test/Product/Environment/Flakyの原因候補と、正式仕様・初期状態・ログでの反証手順を教材・提出欄に整理。
