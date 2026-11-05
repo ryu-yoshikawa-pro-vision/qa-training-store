@@ -2481,12 +2481,14 @@ it("keeps the selected Phase assessment node and its objective links in evaluato
 
 it("accepts the M05 P05 locator spec only through the approved course:run entrypoint", () => {
   const root = path.join(tempRoot, "missing-m05-locator-source-sha");
-  expect(() =>
-    runAiAssistedQaSpecCli(["M05", "p05-cart-locator.spec.ts", "--label", "main"], { root }),
-  ).toThrow("course:run requires the verified distribution source SHA");
-  expect(() =>
-    runAiAssistedQaSpecCli(["M05", "other.spec.ts", "--label", "main"], { root }),
-  ).toThrow(/Usage: pnpm course:run/);
+  const locatorArgs = ["M05", "p05-cart-locator.spec.ts", "--label", "main"];
+  expect(() => runAiAssistedQaSpecCli(locatorArgs, { root })).toThrow(
+    "course:run requires the verified distribution source SHA",
+  );
+  const otherArgs = ["M05", "other.spec.ts", "--label", "main"];
+  expect(() => runAiAssistedQaSpecCli(otherArgs, { root })).toThrow(
+    /Usage: pnpm course:run/,
+  );
 });
 
 it("requires a verified distribution SHA before course:run can access learner files", () => {
@@ -2558,16 +2560,18 @@ function writeM05RunEvidence(
   const workspaceRoot = path.join(root, "workspace");
   const moduleRoot = path.join(workspaceRoot, "M05");
   const relative = (filePath) => path.relative(root, filePath).split(path.sep).join("/");
-  const commandFor = (specName) => [
-    "pnpm",
-    "exec",
-    "playwright",
-    "test",
-    specName,
-    "--config=playwright.ai-assisted-qa.config.ts",
-    "--project=ai-assisted-qa-chromium",
-    "--retries=0",
-  ].join(" ");
+  function commandFor(specName) {
+    return [
+      "pnpm",
+      "exec",
+      "playwright",
+      "test",
+      specName,
+      "--config=playwright.ai-assisted-qa.config.ts",
+      "--project=ai-assisted-qa-chromium",
+      "--retries=0",
+    ].join(" ");
+  }
   const run = ({
     label,
     code,
@@ -2700,7 +2704,12 @@ function writeM05RunEvidence(
     specName: "p05-cart-locator.spec.ts",
     specTitle: "M05 P05 read-only scoped cart locator",
   });
-  return { workspaceRoot, reportPath: after, beforeReportPath: before, p05ReportPath };
+  return {
+    workspaceRoot,
+    reportPath: after,
+    beforeReportPath: before,
+    p05ReportPath,
+  };
 }
 
 describe("AI-assisted QA formal assessment contracts", () => {
@@ -3257,8 +3266,8 @@ describe("AI-assisted QA formal assessment contracts", () => {
         }),
       ]),
     });
-    const receiptPath = path.join(path.dirname(p05ReportPath), "run-evidence.json");
-    fs.unlinkSync(receiptPath);
+    const p05RunRoot = path.dirname(p05ReportPath);
+    fs.unlinkSync(path.join(p05RunRoot, "run-evidence.json"));
     expect(verify()).toMatchObject({
       status: "ungradable",
       checks: expect.arrayContaining([
