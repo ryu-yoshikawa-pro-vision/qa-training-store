@@ -53,6 +53,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
 
+## 2026-11-05 中間CIの実失敗と修正
+
+- [Run 41971695497](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41971695497) の`Vitest (contracts)`は84ファイルPASS・**2テスト失敗**。新規許可リストの`skills/e2e-*`が数字を含むため正規のM05〜M10外部Skillを拒否していた（`[a-z-]+`→`[a-z0-9-]+`に修正）。既存のM06`initial/repeat`順序テストはM05のAssertionのないspecを転用していたため、新しいM06検証により`ungradable`に分類された。Case 004/005それぞれにPlaywright Assertionを持つ同一specと、保存snapshot・receiptの一致SHAを使用するようfixtureを修正し、本来の時系列検査を保持した。
+- 同Runの`Style Quality`不一致4ファイルは、一時診断テストが出力したPrettierの正確な差分に合わせて修正した。`ai-assisted-qa-assessment-format-diagnostic.test.mjs`は削除済み。修正後HEADのCI結果は未確認。
+- この中間Runは契約失敗・整形失敗のため**成功実績として扱わない**。現時点のタスクリストは14/22のまま。提出物の意味評価やRunの真の出自を検証せずに追加チェックしない。
+
 ## 2026-11-05 モデル入力の境界とM06 no-op拒否
 
 - **前回HEADのCI：** 固定HEAD `511c342f00e23a1879be97febbdb5900fc8e6c2a` の [Run 41969416598](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41969416598) が全体成功。今回追加した修正の検証結果とは区別する。
