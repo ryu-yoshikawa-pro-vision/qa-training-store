@@ -8,6 +8,9 @@ import {
 
 const URL = "https://models.dev/api.json";
 const CATALOG = {
+  "opencode-go": {
+    models: { "sample-free": { cost: { input: 0, output: 0 } } },
+  },
   opencode: {
     models: {
       "sample-free": {
@@ -66,6 +69,7 @@ describe("formal evaluator pricing preflight", () => {
       "opencode/deprecated-free",
       "opencode/missing",
       "openai/gpt-free",
+      "opencode-go/sample-free",
       "provider/unknown-free",
     ]) {
       expect(() => assertFreeModelCatalogEntry(modelId, CATALOG)).toThrow(/BLOCKED/);
