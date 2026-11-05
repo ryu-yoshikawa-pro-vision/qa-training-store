@@ -57,9 +57,7 @@ describe("M09-01 pinned learner distribution acquisition", () => {
       const approvedBase = git(source, "rev-parse", "HEAD");
       git(tmp, "clone", "-q", source, clone);
       expect(git(clone, "rev-parse", "HEAD")).toBe(approvedBase);
-      expect(git(clone, "ls-tree", "-r", "--name-only", "HEAD", "--", shopFile)).toBe(
-        shopFile,
-      );
+      expect(git(clone, "ls-tree", "-r", "--name-only", "HEAD", "--", shopFile)).toBe(shopFile);
 
       const copiedManifest = JSON.parse(fs.readFileSync(path.join(clone, manifestFile), "utf8"));
       const copiedHtml = fs.readFileSync(path.join(clone, shopFile));
