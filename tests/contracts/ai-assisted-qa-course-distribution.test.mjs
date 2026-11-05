@@ -483,6 +483,23 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
+  it("TEMP reports complete Prettier diff for this test file", async () => {
+    const prettier = await import("prettier");
+    const source = path.join(
+      repositoryRoot,
+      "tests/contracts/ai-assisted-qa-course-distribution.test.mjs",
+    );
+    const config = await prettier.resolveConfig(source);
+    const formatted = await prettier.format(fs.readFileSync(source, "utf8"), {
+      ...config,
+      filepath: source,
+    });
+    const output = path.join(fixtureRoot, "prettier-target.mjs");
+    fs.writeFileSync(output, formatted);
+    const diff = spawnSync("diff", ["-u", source, output], { encoding: "utf8" });
+    console.log("PR218_COMPLETE_FORMAT_DIFF_BEGIN", diff.stdout.slice(0, 30000));
+  });
+
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     for (const [field, value] of [
@@ -2941,7 +2958,7 @@ describe("AI-assisted QA distribution contract", () => {
         "workspace/.course-assessments/P1/attempts/old/result.json",
         Buffer.from('{"private":true}\\n'),
       ],
-      ["workspace/.course-exports/previous.zip", Buffer.from([0, 1, 2, 255])],
+      ["workspace/course-assessment-exports/previous.zip", Buffer.from([0, 1, 2, 255])],
       ["output/training/ai-assisted-qa/test-results/trace.zip", Buffer.from([5, 4, 3, 2])],
     ]);
     for (const [relativePath, bytes] of protectedFiles) {
@@ -2962,7 +2979,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(second.copied).toEqual([]);
     expect(fs.readFileSync(path.join(fixture.target, first.receipt))).toEqual(firstReceipt);
 
-    const failedTarget = path.join(fixture.target, "workspace/M06/cart-cases.spec.ts");
+    const failedTarget = path.join(fixture.target, "workspace/M06/submission.md");
     const originalCopy = fs.copyFileSync.bind(fs);
     const copySpy = vi
       .spyOn(fs, "copyFileSync")
