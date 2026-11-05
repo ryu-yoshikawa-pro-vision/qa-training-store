@@ -15,6 +15,7 @@ import {
   verifySyncedCourseDistribution,
 } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 import { isPublicCourseAsset } from "../../scripts/docs/build-ai-assisted-qa.ts";
+import { validateTemplateTarget } from "../../scripts/training/prepare-learner-template.mjs";
 
 const repositoryRoot = process.cwd();
 const fixtureRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-qa-course-contract-"));
@@ -726,6 +727,26 @@ describe("AI-assisted QA distribution contract", () => {
       }
     }
     expect(executableFiles.length).toBeGreaterThan(20);
+  });
+
+  it("rejects unsafe Template target ancestors without creating directories", () => {
+    const root = fs.mkdtempSync(path.join(fixtureRoot, "template-target-"));
+    const source = path.join(root, "source");
+    fs.mkdirSync(source);
+    const sibling = path.join(root, "learner");
+    expect(validateTemplateTarget(sibling, source)).toBe(sibling);
+    expect(fs.existsSync(sibling)).toBe(false);
+    for (const target of [source, root, path.join(source, "nested")]) {
+      expect(() => validateTemplateTarget(target, source)).toThrow(
+        /outside the source checkout/,
+      );
+    }
+    const linked = path.join(root, "linked");
+    fs.symlinkSync(root, linked, "dir");
+    expect(() => validateTemplateTarget(path.join(linked, "learner"), source)).toThrow(
+      /symlink ancestors/,
+    );
+    expect(fs.existsSync(sibling)).toBe(false);
   });
 
   it("rejects invalid module load bindings before writing files", async () => {
