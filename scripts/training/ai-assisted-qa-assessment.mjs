@@ -541,9 +541,9 @@ export function assertReusableDeterministicChecks(result, currentChecks) {
         typeof check?.id !== "string" ||
         !check.id ||
         typeof check.status !== "string" ||
-        (result.completed === true && check.status !== "passed") ||
-        saved.find((previous) => previous.id === check.id)?.status !== check.status,
-    )
+        (result.completed === true && check.status !== "passed"),
+    ) ||
+    !isDeepStrictEqual(saved, currentChecks)
   )
     fail(
       "current deterministic evidence checks differ from the saved assessment; create a new assessment and preserve the old result",
