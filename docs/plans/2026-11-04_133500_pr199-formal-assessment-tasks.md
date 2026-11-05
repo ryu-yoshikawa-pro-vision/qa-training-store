@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは12/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは14/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -28,7 +28,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 - [x] `@opencode/cli`の対象版・`opencode run`の非対話/JSONイベント・stderr/終了コード/タイムアウトを仕様・既存コードと照合し、イベントを模擬したパーサ/異常系契約テストを追加。学習環境での認証付き実CLI接続は#199へ渡す（OpenCode V2のCLI/Config仕様とNode実装を照合。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`では`ai-assisted-qa-assessment-process.test.mjs`の4件・既存イベント異常系を含む`Vitest (contracts)`が成功。本人認証付き実CLIは#199で実施）
 - [x] 無料モデルの選択・料金確認を起動前ガードとして実装/文書化し、認証欠落・429・上限/不明価格を`blocked`として拒否する負例テストを用意。本人の実契約/費用確認・モデル接続は#199へ渡す（公開Models.devカタログの全公表単価0・正確なモデルIDを検査し、CLI列挙に存在しないモデル・価格不明・非200/429・外部送信不能をNodeでblockedとする。固定HEAD `7402bc0ff149f66f020a568566da4695ce85003a` のCI Run `41963853602`で料金負例を含む契約テスト成功。本人契約と実認証は#199）
-- [ ] 学習用セッションから分離した評価プロセス/権限設定を実装し、Shell/edit/Web/MCP/Skill/子Agent禁止の設定と模擬拒否を契約テストで検証。実モデル環境の権限拒否確認は#199へ渡す
+- [x] 学習用セッションから分離した評価プロセス/権限設定を実装し、Shell/edit/Web/MCP/Skill/子Agent禁止の設定と模擬拒否を契約テストで検証。実モデル環境の権限拒否確認は#199へ渡す（`createIsolatedAssessmentRuntime`による一時HOME/CWD/XDG、メモリDBと全操作deny設定・Skill/MCP非流入、`ai-assisted-qa-assessment-isolation.test.mjs`のProcess/Tool負例を固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`の`Vitest (contracts)`で確認。CLI版/モデル列挙も同環境に統一した後のCIと実モデル権限拒否は未確認、#199に引継ぎ）
 - [ ] 本人提出・ログ中のPrompt Injectionを命令として実行せず、許可した資料/節だけをサイズ上限・Secret除外後に外部モデルへ渡すこと
 
 ## 校正・誤PASS拒否
@@ -51,7 +51,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] 評価器のNode側が許可したspec/Configで新しいPlaywright Runを要求・検証する処理と、旧Run/手入力PASS/別spec拒否のfixture・CIテストを整備。本人spec・実Codespacesでの新Runによる受入は#199へ渡す
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
-- [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+- [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
+
+## 2026-11-05 評価隔離の契約完了チェックと追加検証
+
+- **項目8・22をチェック：** 固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476` の [Web CI Run 41968096517](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41968096517) で`Vitest (contracts)`84ファイル・1138件PASS、`Code Quality`と2種類のビルドは成功。評価プロセスの独立HOME/CWD/Config/Data/Cache・メモリDB・チューターAGENTS/資格情報非継承と、評価Agentの全操作deny、Shell/edit/Web/MCP/Skill/subagent Tool event拒否を専用契約テストで検証した。証拠は模擬プロセスと固定SHAであり、本人認証済みOpenCodeの実際の権限拒否やManaged settingsの優先順位までは確認していない。後者は#199へ引継ぎ。
+- **Style Quality修正：** 同Runの`Style Quality`は隔離・M07の2契約テストで改行/引用符の不一致。診断用テストが出力したPrettier差分を正確に適用し、診断用ファイルを削除した。修正後HEADの整形成功は未確認。
+- **CLI事前確認も隔離：** モデル列挙`opencode models`と版確認`opencode --version`が従来`ROOT`の学習用cwd/HOMEを使う問題を修正し、両者とも`runIsolatedOpenCodeCommand`に統一。利用者の明示的な`OPENCODE_API_KEY`のみ選択提供者へ受け渡し、偽のチューターHOME/キーと別プロセス、正常/例外時の一時ディレクトリ削除を新規負例で検証する。**新規テストは現HEAD CI未確認**。
+- **残る問題：** M07正常before/afterが不可能になる旧SHA比較を修正したが、業務Assertionの保持をRun件数/SHAだけで証明できない。自己申告Run receiptと報告データを一括偽造する攻撃にも、Hashだけでは実行の出自を保証できない。項目3・4・11・16・18・19・20は継続未チェック。実モデルでの重大誤PASS 0件は#199最終受入。
 
 ## 2026-11-05 継続実装：独立評価のHOMEとM07 before/after
 
