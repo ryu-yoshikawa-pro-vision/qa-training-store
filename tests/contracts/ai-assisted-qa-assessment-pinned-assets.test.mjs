@@ -22,8 +22,11 @@ function assetFor(sourcePath, content) {
 }
 
 function serve(asset, content, overrides = {}) {
-  const expectedUrl =
-    `https://raw.githubusercontent.com/ryu-yoshikawa-pro-vision/qa-training-store/${SOURCE_SHA}/${asset.source_path}`;
+  const expectedUrl = [
+    "https://raw.githubusercontent.com/ryu-yoshikawa-pro-vision/qa-training-store",
+    SOURCE_SHA,
+    asset.source_path,
+  ].join("/");
   return (url, options) => {
     expect(url).toBe(expectedUrl);
     expect(options).toMatchObject({ method: "GET", redirect: "manual" });
