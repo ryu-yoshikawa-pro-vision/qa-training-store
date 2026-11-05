@@ -398,9 +398,7 @@ export function assertM07OriginalQuantityAssertions(beforeBytes, afterBytes) {
     )
       fail("M07 after snapshot changed an original quantity assertion: " + title);
   }
-  if (
-    ![...after.entries()].some(([title, values]) => !before.has(title) && values.has("2"))
-  )
+  if (![...after.entries()].some(([title, values]) => !before.has(title) && values.has("2")))
     fail("M07 after snapshot lacks an independent new quantity 2 regression assertion");
 }
 
