@@ -83,9 +83,11 @@ describe("M10-01 spec and dependency closure", () => {
       test_file: "workspace/M10/public-sample/handoff-smoke.spec.ts",
       test_root: "workspace/M10/public-sample",
     };
+    const learnerRoot = "PLAYWRIGHT_TEST_ROOT: workspace/M07";
+    const fallbackRoot = "PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample";
     const sample = template
       .replace(learner.test_file, fallback.test_file)
-      .replace("PLAYWRIGHT_TEST_ROOT: workspace/M07", "PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+      .replace(learnerRoot, fallbackRoot);
     expect(validateCourseWorkflow(template, workflowPath, learner).check_name).toBe("course-e2e");
     expect(validateCourseWorkflow(sample, workflowPath, fallback).check_name).toBe("course-e2e");
     expect(() => validateCourseWorkflow(template, workflowPath, fallback)).toThrow();
