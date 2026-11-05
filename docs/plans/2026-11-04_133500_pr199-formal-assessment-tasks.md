@@ -53,6 +53,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
 
+## 2026-11-05 継続作業・実装結果
+
+- **固定SHA取得の完了チェック：** `fetchPinnedAssessmentAsset`の検査と`tests/contracts/ai-assisted-qa-assessment-pinned-assets.test.mjs`の負例は、固定HEAD `25efa45848c43bc74e73dfc83984b50aef12806e`のGitHub Actions [Run 41946344709](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41946344709)で`Vitest (contracts)`成功。タスクリスト項目2をチェック。Run全体の`Style Quality`は`tests/contracts/ai-assisted-qa-assessment-pinned-assets.test.mjs`と`ai-assisted-qa-assessment.test.mjs`のPrettier失敗。2ファイルの折返しを再修正したが、修正後CIは未確認。
+- **M06 Case ID の実行証拠：** `scoring-tests/M06.json`でmain（001〜003）およびinitial/repeat（004・005）の独立Case IDを必須化し、`verifyModuleRunEvidence`が同一Runのtest名でIDの過不足・重複を拒否するよう更新。reportとreceiptの整合ハッシュを更新してもCase ID重複が`ungradable`となる負例を`ai-assisted-qa-assessment.test.mjs`へ追加。さらに採点基準で001のMug数量1、002の超過拒否後数量1、003のlow-stock数量3、004の削除、005の数量1→2と再読込を別々に照合するよう要求した。**Case IDだけ付けた空testや弱いAssertionを実ブラウザで拒否できたことは未検証。** 新規CIも未確認のため補完項目とM04/M07実行証拠項目はチェックしない。
+- **OpenCode JSONイベントと独立権限：** `ai-assisted-qa-assessment-core.mjs`で`step_finish`のreasonを`stop`/`end_turn`に限定し、terminal後のイベント、複数session、tool/errorイベントを拒否。プロバイダーのerrorイベントおよびCLI非0終了は`BLOCKED`として扱う。`ai-assisted-qa-assessment.mjs`の評価プロセス環境へ`OPENCODE_DISABLE_EXTERNAL_SKILLS=true`を追加。固定`2.0.22`はOpenCode V2の公式`run --standalone --pure --format json`と`agents.permissions`スキーマに対応する。参考：[CLI](https://dev.opencode.ai/v2/docs/cli/commands/)、[Config](https://dev.opencode.ai/v2/docs/config/)、[Agents](https://dev.opencode.ai/v2/docs/agents/)。**実モデル認証、無料枠・価格、実プロセスの権限拒否、429再現は未確認。** CLI・料金・権限チェックを完了としない。
+- **残る不足：** `course:run`のM05許可specにはP05本人用の`p05-cart-locator.spec.ts`がない。#215演習は直接実行しか案内できず、正式receiptが作れない。評価範囲と新Run契約の調停が必要。外部importしたPage Object/fixtureの依存ファイルSHAがRun証拠に含まれない問題、故意に作った偽receipt・空testを真の実行証拠として識別する限界、M10 Private GitHub照合も未解決。Runnerに対する単なるstring allowlist追加だけで合格とはしない。
+- **CI未確認：** 最新コードへのformatter、直接Vitest、専用Playwright実Runはローカル依存を利用できず未実施。GitHub Actionsの新HEADを確認後に失敗ファイル/ジョブに限定して修復し、固定SHA・Run証拠を追記する。CI完了待機は行わない。
+
 ## 2026-11-05 追加の実装修正・未完了条件
 
 - **固定SHA取得（2項目目、チェック済み）：** 既存の`scripts/training/ai-assisted-qa-course-core.mjs`でscoring/rubricを許可パス、固定`source_sha`、サイズ・SHA-256、スキーマ・revision、HTTP 200・非redirect・非HTMLで検証する処理を再確認。`tests/contracts/ai-assisted-qa-assessment-pinned-assets.test.mjs`を新設し、正常な固定SHA・異なるURL・redirect・HTML・サイズ超過・Hash不一致・不明パス・不正revisionをモック検証する。Web CI Run [41946344709](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41946344709) の `Vitest (contracts)` は固定HEADで成功。`Style Quality` の別FAILを解消するまでPR全体は成功扱いにしない。
