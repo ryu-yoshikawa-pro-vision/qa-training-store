@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 91% (30/33)**。未完了3件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
+- **Progress: 94% (31/33)**。未完了2件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -66,7 +66,8 @@
 - [x] 理解事項30件の意味・前提・`can_do`・教材/実技/評価の対応を確認。知識グラフ正本の改訂候補は#199へ引継ぎ済み。
 - [x] M04→M05→M06→M07→M08の状態JSONで入力/出力のID・path・revision・contractを照合。`ai-assisted-qa-phase2-handoff.test.mjs`を追加。公開fallbackを本人の先行修了証拠にしない。
 - [x] 固定HEADで教材変更・テスト/CI・未実行範囲・残リスクを[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ記録。
-- [ ] 今回の専用契約テスト（M05直接実行・型検査、M07保全、Phase間引継ぎ）と既存M05〜M07の検証を最新HEADのCIで確認。失敗を修正し、`training-web-baseline`と**新課程専用ConfigのChromium実行を同じ結果として扱わない**。
+- [x] 今回の専用契約テスト（M05直接実行・型検査、M07保全、Phase間引継ぎ）と既存M05〜M07の検証を最新HEADのCIで確認。失敗を修正し、`training-web-baseline`と**新課程専用ConfigのChromium実行を同じ結果として扱わない**。
+  - 最終実装コードを含む`9e5dc5ab7496720aee579660ab9f0a125001c562`の[Web CI #41938306165](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41938306165)はsuccess。Vitest contracts/Training runtime/Style/Code Quality/通常Chromium等を含む27ジョブsuccess、2ジョブskipped。M06/M07の専用Config Chromium実Runは含まない。以後の文書のみのcommitについて同じCI成功を主張しない。
 - [x] M05〜M07の対象教材・公開参考spec・専用Config・学習用Resetと既存契約の整合を最後に差分レビュー。不要な抽象化やSUT変更を行わず、未解決の仕様差を受入レポートへ残す。
   - #215差分25ファイルを確認し、変更がM05〜M07教材・専用契約テスト・報告/Planに限定されることを確認。既存Config/Reset・参考spec・正式BR/ACを読み取りで照合し、#217共有実行器/M07参照と#218最終配布の未解決条件を受入レポートへ記録。
 - [x] #217の共通実行器/正式評価が所有する問題（JSON reporterの`rootDir`相対パス、M05 P05の`course:run`許可、M07保守後参考spec）について、引継ぎ済みコメントと最終的な修正/未修正を照合する。**#215で共有実装を書き換えない**。
