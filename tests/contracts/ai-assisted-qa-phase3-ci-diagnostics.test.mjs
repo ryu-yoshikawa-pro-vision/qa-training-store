@@ -13,7 +13,7 @@ function read(name) {
 }
 
 describe("M09 Phase 3 workflow responsibilities", () => {
-  it("maps PR event, runner, verified distribution, browser, SHA, test and artifact steps", () => {
+  it("maps workflow responsibilities and pinned distribution", () => {
     const workflow = read(workflowPath);
     const parsed = parseDocument(workflow, { uniqueKeys: true }).toJS();
     expect(parsed.on).toEqual({ pull_request: null });
@@ -61,7 +61,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(cases).toContain("実GitHub Actions・Scenario Shopの実行証拠ではありません");
     const a = cases.split("## A：Build失敗")[1].split("## B：Test失敗")[0];
     const b = cases.split("## B：Test失敗")[1].split("## C：Artifact保存失敗")[0];
-    const c = cases.split("## C：Artifact保存失敗")[1].split("## 記録")[0];
+    const c = cases.split("## C：Artifact保存失敗")[1].split("## D：Install失敗")[0];
     expect(a).toContain("Build — failure");
     expect(a).toContain("Playwright tests — skipped");
     expect(b).toContain("Playwright tests — failure");
@@ -70,7 +70,8 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(c).toContain("if-no-files-found: error");
     expect(c).toContain("failure");
 
-    const submission = read("training/ai-assisted-qa-course/exercises/M09/submission-template.md");
+    const submissionPath = "training/ai-assisted-qa-course/exercises/M09/submission-template.md";
+    const submission = read(submissionPath);
     for (const condition of [
       "合成A Build",
       "合成B Test",
@@ -93,6 +94,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(submission).toContain("最初の失敗step / 不一致");
     expect(submission).toContain("実行済み・skipped・不明");
   });
+
   it("requires a tracked pinned Shop and verified billing before enabling CI", () => {
     const manifest = JSON.parse(read("training/course-sync/manifest.json"));
     const expectedBuild = {
@@ -124,13 +126,15 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(textbook).toContain("本人のBilling画面");
     const billingQuiz = quiz.questions.find((question) => question.id === "M09-Q04");
     expect(billingQuiz.correct_value).toBe("C");
-    expect(billingQuiz.options.find((option) => option.value === "C").label).toContain("組織の契約・設定");
+    const correctAnswer = billingQuiz.options.find((option) => option.value === "C");
+    expect(correctAnswer.label).toContain("組織の契約・設定");
   });
 
   it("forbids unsafe external PR privilege escalation", () => {
     const exercise = read("training/ai-assisted-qa-course/exercises/M09/exercise.md");
     const textbook = read("docs/curriculum/ai-assisted-qa/modules/M09/README.md");
-    const submission = read("training/ai-assisted-qa-course/exercises/M09/submission-template.md");
+    const submissionPath = "training/ai-assisted-qa-course/exercises/M09/submission-template.md";
+    const submission = read(submissionPath);
     expect(exercise).toContain("pull_request_target");
     expect(exercise).toContain("write-all");
     expect(exercise).toContain("persist-credentials: false");
