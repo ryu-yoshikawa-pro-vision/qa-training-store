@@ -826,6 +826,67 @@ describe("AI-assisted QA distribution contract", () => {
     expect(git("status", "--porcelain")).toBe("");
   });
 
+  it("pins all 11 built Web quizzes to the learner JSON bytes", async () => {
+    const fixture = courseFixture();
+    for (let index = 0; index <= 10; index += 1) {
+      const id = `M${String(index).padStart(2, "0")}`;
+      const quizPath = `docs/curriculum/ai-assisted-qa/quizzes/${id}.json`;
+      fs.copyFileSync(
+        path.join(fixture.source, quizPath),
+        writeFixtureFile(fixture.source, `dist/${quizPath}`, ""),
+      );
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const verified = verifySyncedCourseDistribution({ root: fixture.target });
+    expect(verified.shop_files_verified).toBe(12);
+    const quizPath = "course/shop/docs/curriculum/ai-assisted-qa/quizzes/M03.json";
+    const destination = path.join(fixture.target, quizPath);
+    fs.appendFileSync(destination, " ");
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const entry = distribution.files.find((file) => file.target_path === quizPath);
+    const bytes = fs.readFileSync(destination);
+    entry.sha256 = createHash("sha256").update(bytes).digest("hex");
+    entry.bytes = bytes.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /Web and learner quiz JSON are missing or differ/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M03" })).toThrow(
+      /Web and learner quiz JSON are missing or differ/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("rejects partial built Web quizzes before writing a Template", async () => {
+    const fixture = courseFixture();
+    const quizPath = "docs/curriculum/ai-assisted-qa/quizzes/M00.json";
+    fs.copyFileSync(
+      path.join(fixture.source, quizPath),
+      writeFixtureFile(fixture.source, `dist/${quizPath}`, ""),
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/Web and learner quiz JSON are missing or differ/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
