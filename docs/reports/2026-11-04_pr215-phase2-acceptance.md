@@ -512,3 +512,10 @@ sha256sum "$PLAYWRIGHT_TEST_ROOT/cart.spec.ts" > "$AI_QA_OUTPUT_ROOT/spec-sha256
 - **実Chromiumの実行可否**：GitHub接続先のソースは参照・更新できるが、現在のコマンド実行コンテナに対象checkout、pnpm依存、Shopのビルドと8082サーバーがない。Gitの直接取得はDNS解決失敗。インストール済みChromiumバイナリ単体では専用Configの対象specを動かせない。既存Web CIの`training-web-baseline`は専用参考specを実行しない。既存workflowの編集・新workflow構造の追加は本ブランチの所有範囲とAGENTS.mdのL2承認境界に抵触し得るため、無断で行わない。**5 Runの実行結果は未取得**。
 - **M07レビュー指摘**：#215側の`assessment/**`は読み取り専用で、3件目のCart外への再入場が欠ける。#217のHEAD `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`、Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613`では修正済み。ただし#215には未統合であり、後続で統合HEAD・2/3件の専用Chromium Runを確認するまでレビューthreadおよびM07-05を未完了とする。
 - **進捗**：**Progress: 94% (31/33)**。CI結果は新HEADで判定し、M06/M07の専用実行項目は未完了のまま維持する。
+
+## 2026-11-05 CI配布Shopを使った専用Chromium検証可否と手順回帰
+
+- **実行用Shopの取得**：HEAD `88a367c3eac0645a2d6bd215b5dcd80a5980c88d` の[Web CI #42037759176](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42037759176)（27件success/2件skipped）からビルド成果物 `web-dist-automation`（artifact ID `13420295187`）を取得した。ZIPには`index.html`とWebの静的ファイル312エントリがあり、ローカルのloopback HTTP `127.0.0.1:8082`でGET/HEAD 200を確認した。Shopビルドは再生成せず、このartifactだけを使用した。
+- **Chromiumブロック**：作業コンテナのChromium `144.0.7559.96`をPlaywright Pythonから起動できたが、`page.goto("http://127.0.0.1:8082/")`が`net::ERR_BLOCKED_BY_ADMINISTRATOR`で拒否された。管理済みChromium設定は`URLBlocklist: ["*"]`。`localhost`・`file:`・`data:`への遷移も同じ理由で拒否。ポリシー変更や回避策は実施していない。実Shop・8082の存在のみでは実Chromium検証可能な環境とは判定できない。
+- **手順の隔離回帰**：`tests/contracts/ai-assisted-qa-phase2-reference-run-preservation.test.mjs`を追加。受入レポート内のM06固定/初回/repeat（計3 Run）とM07 before/after（計2 Run）のBashコードを取り出し、`pnpm`・`git`の隔離stubとfixture用specで`bash -e`実行する。出力先の独立性、実行コマンドのConfig・project・test root、保存したHEAD・SHA、JSON report、失敗終了コードを確認する。**stubにPASSを付けてもChromiumのspec成功とはみなさない**。
+- **残る受入条件**：M06固定3件・CASE-CART-004/005初回/repeatの専用TS Playwright実行と、M07 before2/after3の専用TS Playwright実行は未取得。#217所有のM07 after参考specが統合されるまでは3件目の別ページ遷移も未充足。未完了の2チェックとレビューthreadは維持する。**Progress: 94% (31/33)**。
