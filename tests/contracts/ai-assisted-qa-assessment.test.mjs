@@ -2871,12 +2871,10 @@ describe("AI-assisted QA formal assessment contracts", () => {
       ["P3", "M10", ["M08", "M09", "M10"], 14],
     ];
     for (const [phaseId, terminal, modules, count] of phases) {
-      const terminalState = JSON.parse(
-        fs.readFileSync(
-          path.resolve(`training/ai-assisted-qa-course/states/${terminal}/end.json`),
-          "utf8",
-        ),
+      const terminalStateFile = path.resolve(
+        `training/ai-assisted-qa-course/states/${terminal}/end.json`,
       );
+      const terminalState = JSON.parse(fs.readFileSync(terminalStateFile, "utf8"));
       const scoringByModule = new Map(
         modules.map((moduleId) => [
           moduleId,
