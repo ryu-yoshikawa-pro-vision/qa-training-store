@@ -84,14 +84,18 @@ describe("formal evaluator pricing preflight", () => {
     }
   });
 
-  it("blocks unknown price source, redirects, HTML, oversized responses and rate limits", async () => {
+  it("rejects unsafe pricing catalog responses", async () => {
     const failureResponses = [
       response(CATALOG, { status: 429 }),
       response(CATALOG, { status: 401 }),
       response(CATALOG, { redirected: true }),
       response(CATALOG, { url: "https://example.org/price.json" }),
       response(CATALOG, { headers: { get: () => "text/html" } }),
-      response(CATALOG, { headers: { get: (name) => (name === "content-length" ? "40000000" : "application/json") } }),
+      response(CATALOG, {
+        headers: {
+          get: (name) => (name === "content-length" ? "40000000" : "application/json"),
+        },
+      }),
       response(CATALOG, { arrayBuffer: async () => Buffer.from("<html>bad</html>") }),
     ];
     for (const reply of failureResponses) {
