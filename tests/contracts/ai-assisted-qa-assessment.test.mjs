@@ -2558,7 +2558,17 @@ function writeM05RunEvidence(
     "--project=ai-assisted-qa-chromium",
     "--retries=0",
   ].join(" ");
-  const run = ({ label, code, outcome, exitCode, time, runId, withTrace = false, specName = "product-link.spec.ts" }) => {
+  const run = ({
+    label,
+    code,
+    outcome,
+    exitCode,
+    time,
+    runId,
+    withTrace = false,
+    specName = "product-link.spec.ts",
+    specTitle = "product link",
+  }) => {
     const specPath = path.join(moduleRoot, specName);
     const runRoot = path.join(moduleRoot, "evidence", "runs", runId);
     fs.mkdirSync(runRoot, { recursive: true });
@@ -2586,7 +2596,7 @@ function writeM05RunEvidence(
           specs: [
             {
               file: specName,
-              title: "product link",
+              title: specTitle,
               tests: [
                 {
                   projectName: "ai-assisted-qa-chromium",
@@ -2631,7 +2641,7 @@ function writeM05RunEvidence(
         report_sha256: sha256(reportBytes),
         tests: [
           {
-            title: "product link",
+            title: specTitle,
             status: outcome === "passed" ? "passed" : "failed",
             expected_status: "passed",
           },
@@ -2678,6 +2688,7 @@ function writeM05RunEvidence(
     time: "2026-10-27T00:00:04.000Z",
     runId: runIds[2] ?? runIds[1].slice(0, -3) + "002",
     specName: "p05-cart-locator.spec.ts",
+    specTitle: "M05 P05 read-only scoped cart locator",
   });
   return { workspaceRoot, reportPath: after, beforeReportPath: before, p05ReportPath };
 }
