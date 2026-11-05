@@ -2479,6 +2479,16 @@ it("keeps the selected Phase assessment node and its objective links in evaluato
   }
 });
 
+it("accepts the M05 P05 locator spec only through the approved course:run entrypoint", () => {
+  const root = path.join(tempRoot, "missing-m05-locator-source-sha");
+  expect(() =>
+    runAiAssistedQaSpecCli(["M05", "p05-cart-locator.spec.ts", "--label", "main"], { root }),
+  ).toThrow("course:run requires the verified distribution source SHA");
+  expect(() =>
+    runAiAssistedQaSpecCli(["M05", "other.spec.ts", "--label", "main"], { root }),
+  ).toThrow(/Usage: pnpm course:run/);
+});
+
 it("requires a verified distribution SHA before course:run can access learner files", () => {
   expect(() =>
     runAiAssistedQaSpecCli(["M05", "product-link.spec.ts", "--label", "main"], {
@@ -3200,6 +3210,63 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(finalizeAssessment({ ...args, candidate: belowLevel })).toMatchObject({
       status: "incomplete",
       completed: false,
+    });
+  });
+
+  it("requires the independent M05 P05 read-only locator receipt as well as product-link runs", () => {
+    const { workspaceRoot, p05ReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "m05-p05-locator-proof"),
+    );
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+            {
+              spec: "product-link.spec.ts",
+              label: "after",
+              minimum_tests: 1,
+              expected_outcome: "passed",
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify()).toMatchObject({
+      status: "passed",
+      checks: expect.arrayContaining([
+        expect.objectContaining({
+          id: "M05-RUN-p05-cart-locator.spec.ts-main",
+          status: "passed",
+          outcome: "passed",
+        }),
+      ]),
+    });
+    const receiptPath = path.join(path.dirname(p05ReportPath), "run-evidence.json");
+    fs.unlinkSync(receiptPath);
+    expect(verify()).toMatchObject({
+      status: "ungradable",
+      checks: expect.arrayContaining([
+        expect.objectContaining({
+          id: "M05-RUN-p05-cart-locator.spec.ts-main",
+          status: "ungradable",
+        }),
+      ]),
     });
   });
 
