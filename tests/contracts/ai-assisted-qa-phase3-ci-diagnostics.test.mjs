@@ -3,7 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseDocument } from "yaml";
-import { validateCourseWorkflow } from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
+import {
+  validateCourseWorkflow,
+} from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const workflowPath =
@@ -107,9 +109,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(c).toContain("if-no-files-found: error");
     expect(c).toContain("failure");
 
-    const submission = read(
-      "training/ai-assisted-qa-course/exercises/M09/submission-template.md",
-    );
+    const submission = read("training/ai-assisted-qa-course/exercises/M09/submission-template.md");
     for (const condition of [
       "合成A Build",
       "合成B Test",
@@ -163,9 +163,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(textbook).toContain("本人のBilling画面");
     const billingQuiz = quiz.questions.find((question) => question.id === "M09-Q04");
     expect(billingQuiz.correct_value).toBe("C");
-    expect(billingQuiz.options.find((option) => option.value === "C").label).toContain(
-      "組織の契約・設定",
-    );
+    expect(billingQuiz.options.find((option) => option.value === "C").label).toContain("組織の契約・設定");
   });
 
   it("forbids unsafe external PR privilege escalation", () => {
