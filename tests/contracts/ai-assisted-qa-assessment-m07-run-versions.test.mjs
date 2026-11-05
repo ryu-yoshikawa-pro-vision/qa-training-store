@@ -187,3 +187,16 @@ it("does not exempt unpaired before runs from current spec matching", () => {
   const result = verify();
   expect(result.status).toBe("ungradable");
 });
+
+it("rejects a fabricated passing M07 after report without a business assertion", () => {
+  const emptyAfter = [
+    beforeCode,
+    'test("cart reentry retains two", async ({ page }) => {',
+    '  await page.goto("/cart");',
+    "});",
+  ].join("\n");
+  const { verify } = setupM07Runs({ after: emptyAfter });
+  const result = verify();
+  expect(result.status).toBe("ungradable");
+  expect(result.reasons.join(" ")).toMatch(/business assertion/);
+});
