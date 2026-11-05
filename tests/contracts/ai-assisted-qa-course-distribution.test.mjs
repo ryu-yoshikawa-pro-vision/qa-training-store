@@ -1131,9 +1131,7 @@ describe("AI-assisted QA distribution contract", () => {
         if (specifier.startsWith("node:")) continue;
         if (!specifier.startsWith(".")) {
           const parts = specifier.split("/");
-          const packageName = specifier.startsWith("@")
-            ? parts.slice(0, 2).join("/")
-            : parts[0];
+          const packageName = specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
           expect(packages[packageName], `${entry.target_path} -> ${specifier}`).toBeDefined();
           continue;
         }
@@ -1143,9 +1141,13 @@ describe("AI-assisted QA distribution contract", () => {
             path.posix.join(path.posix.dirname(placement), specifier),
           );
           expect(
-            [resolved, `${resolved}.ts`, `${resolved}.tsx`, `${resolved}.js`, `${resolved}.mjs`].some(
-              (candidate) => targets.has(candidate),
-            ),
+            [
+              resolved,
+              `${resolved}.ts`,
+              `${resolved}.tsx`,
+              `${resolved}.js`,
+              `${resolved}.mjs`,
+            ].some((candidate) => targets.has(candidate)),
             `${placement} -> ${specifier}`,
           ).toBe(true);
         }
