@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは3/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは4/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -40,7 +40,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 ## 保存・再開・再評価
 
-- [ ] `workspace/.course-assessments/`への非公開保存、Git除外、外部送信最小化、Machine/人間可読結果・復習先の整合を確認
+- [x] `workspace/.course-assessments/`への非公開保存、Git除外、外部送信最小化、Machine/人間可読結果・復習先の整合を確認（既存の結果保存・履歴・要約生成・秘密情報除外を固定HEAD `2a91cae0a57297a53ad783e6eb5a1c9550a252b0` の契約CI成功で確認。本人の送信承認は別途必要）
 - [x] 試行ID、排他`.resume.lock`、`.current-publish.lock`、中断→再開/競合を検証。古い正式結果を上書き/削除しない（既存の契約テストと固定HEADの成功済みCIを確認。根拠は下記）
 - [ ] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する
 - [ ] Phase 1/2はGit/PRを必須にせず結果の安全なエクスポートと復習後の再挑戦ができること
@@ -52,6 +52,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 非公開保存と現在のCI確認
+
+- **項目14をチェック：** `.gitignore` で `/workspace/.course-assessments/`、`/workspace/course-assessment-exports/`、M10私有証拠を除外。`createAttemptDirectory` は試行ディレクトリを `0700`、`atomicWriteJson` は一時結果を `0600` で作成し、同名の結果を上書きしない。Nodeの `saveSummary` は保存したMachine結果のcriterion/evidence/level/rationale/gaps/review_pathsから日本語要約と復習先を導出。`resolveWorkspaceFile`・`assertNoSecretText`・`confirmExternalSend` は入力をworkspace内・サイズ制限・Secret拒否・明示SEND確認へ限定。完全な外部送信禁止ではなく、本人によるモデル使用確認が必要。これらの保存・要約・排他・履歴テストを含む固定HEAD `2a91cae0a57297a53ad783e6eb5a1c9550a252b0` の [Web CI Run 41950753751](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41950753751) は全体成功。現行HEADの追加変更は別検証とし、OpenCode実認証は#199へ残す。
+- **項目5（未チェック）：** `finalizeAssessment` に必須ID全件の外部入力 `requiredObjectiveIds` を追加し、保存する実結果の最終判定時にも欠落・別Phase ID・重複を `ungradable` とするよう変更。Nodeの `validatePhaseObjectiveIds` と `validateCandidate` の後に最終確認として実施。対応するテストと `not_run/ungradable/blocked` の負例を追加したが、新HEADの契約CIは未確認。
+- **項目17（未チェック）：** `exportAssessment` に直接API向けP1/P2限定ガードを追加。P2でGit/PR不要の結果エクスポート・保存済み結果不変・別IDの再試行を行うテストを追加。現HEADのCI未確認のためチェックしない。
 
 ## 2026-11-05 CI失敗の修復（追記）
 
