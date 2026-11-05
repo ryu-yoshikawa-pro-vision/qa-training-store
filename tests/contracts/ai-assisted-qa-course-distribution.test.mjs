@@ -1089,6 +1089,29 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("rejects an intact-hash pinned source replaced by an external symlink", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "a".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const sourcePath = path.join(fixture.target, "course/modules/M00/README.md");
+    const outsidePath = path.join(fixture.source, "external-copy.md");
+    fs.writeFileSync(outsidePath, fs.readFileSync(sourcePath));
+    fs.rmSync(sourcePath);
+    fs.symlinkSync(outsidePath, sourcePath, "file");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /symlink path is prohibited/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("rejects dangling learner-file symlinks before loading any module file", async () => {
     const fixture = courseFixture();
     await syncCourse({
