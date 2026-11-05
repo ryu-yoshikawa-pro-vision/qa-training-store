@@ -427,21 +427,26 @@
   export PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082
   mkdir -p output/training/ai-assisted-qa
   # mktemp -dで各回の出力先を新規作成し、同名reportの上書きを防ぐ
-  export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-fixed-XXXXXXXX) || exit 1
+  AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-fixed-XXXXXXXX) || exit 1
+  export AI_QA_OUTPUT_ROOT
   run_status=0
   pnpm exec playwright test cart-cases.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
   git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
   sha256sum training/ai-assisted-qa-course/assessment/playwright/M06/*.spec.ts > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
 
-  export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-initial-XXXXXXXX) || exit 1
+  AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-initial-XXXXXXXX) || exit 1
+
+  export AI_QA_OUTPUT_ROOT
   run_status=0
   pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
   git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
   sha256sum training/ai-assisted-qa-course/assessment/playwright/M06/*.spec.ts > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
 
-  export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-repeat-XXXXXXXX) || exit 1
+  AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-repeat-XXXXXXXX) || exit 1
+
+  export AI_QA_OUTPUT_ROOT
   run_status=0
   pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
@@ -449,7 +454,7 @@
   sha256sum training/ai-assisted-qa-course/assessment/playwright/M06/*.spec.ts > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
   ```
 
-- **出力保全**：上記はLinux/Bashでの再開例。各Runの`AI_QA_OUTPUT_ROOT`は`mktemp -d`で一意に確保し、固定3件・004/005初回・004/005再実行のJSON/HTML/添付を別ディレクトリに保存する。終了コードはPlaywright直後に書き込み、失敗時も結果を残す（`|| run_status=$?`により`set -e`有効時も非0終了を捕捉して記録する）。3回の対象test ID/件数と別ディレクトリであることを照合するまで成功とはしない。
+- **出力保全**：上記はLinux/Bashでの再開例。各Runの`AI_QA_OUTPUT_ROOT`は`mktemp -d`の成功を確認してから`export`し、一意に確保する。固定3件・004/005初回・004/005再実行のJSON/HTML/添付を別ディレクトリに保存する。終了コードはPlaywright直後に書き込み、失敗時も結果を残す（`|| run_status=$?`により`set -e`有効時も非0終了を捕捉して記録する）。3回の対象test ID/件数と別ディレクトリであることを照合するまで成功とはしない。
 - **取得すべき証拠**：実行環境・採用Git HEAD/参照spec SHA、Shop/配布source SHAとConfig、3 Runそれぞれの終了コード、`playwright-result.json`内の`config.rootDir`・対象testのspec.file・期待件数（固定3、initial2、repeat2）・個別状態、HTML report、失敗時Trace/Screenshot/Video、Reset Seedと実行順序。成功時は`retain-on-failure`のTraceを必須としない。参考specが成功しても本人の独立実装・初回/再実行成功ではない。
 - **追加不整合（#217担当）**：`remove-item.spec.ts`のtest名は`M06 reference: remove the only item from the guest cart`で`CASE-CART-004`を含まない。一方005参考test名は`CASE-CART-005`を含み、教材/提出は両Case IDと別Runの照合を要求する。削除の業務内容は004に対応するが、reportのtest名からの機械的照合を困難にする。[#217へ追加引継ぎ済み](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)。具体的な評価失敗は未再現なので断定しない。
 - **判定**：本項目は**未完了**。再現可能な環境と3 Runの実証が必要であり、設定と実行方法の記録だけでチェックを付けない。本人実受入は#199の最後に実施する。
@@ -478,7 +483,8 @@ PR #217の保守後参考修正が採用されたGit HEADのcheckoutと、pnpm�
 export PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082
 mkdir -p output/training/ai-assisted-qa
 export PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-before
-export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m07-reference-before-XXXXXXXX) || exit 1
+AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m07-reference-before-XXXXXXXX) || exit 1
+export AI_QA_OUTPUT_ROOT
   run_status=0
 pnpm exec playwright test cart.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
@@ -486,7 +492,8 @@ git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
 sha256sum "$PLAYWRIGHT_TEST_ROOT/cart.spec.ts" > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
 
 export PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after
-export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m07-reference-after-XXXXXXXX) || exit 1
+AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m07-reference-after-XXXXXXXX) || exit 1
+export AI_QA_OUTPUT_ROOT
   run_status=0
 pnpm exec playwright test cart.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
