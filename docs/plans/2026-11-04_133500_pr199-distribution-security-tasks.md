@@ -8,13 +8,13 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-現状0/21件（HEAD `ce332fc1b14e`）。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。実配布の手順と必要なSHA/manifest/ログ・負例は#199へ引き継ぐ。
+2026-11-05時点 **2/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合と#216へのRunner取得契約引継ぎのみ完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
 編集：`training/course-sync/**`、`scripts/training/ai-assisted-qa-course-core.mjs`、`scripts/training/prepare-learner-template.mjs`、配布固有の新規契約テスト・監査レポート。共通`scripts/training/ai-assisted-qa-course.mjs`、`package.json`/lockfile、各モジュール、`assessment/**`、Phase 3無効workflow、知識グラフは統合先/他担当が所有。
 
-起点のmanifestではローカル140ファイル、固定Skill由来104ファイル。これはスナップショットであり、変更後の分母は毎回再計算する。
+起点のmanifestではローカル140ファイル、固定Skill由来104ファイル。2026-11-05に固定Skillの漏れ1件を修正し、現在は105ファイル（13 Skill、Git treeと全件一致）。これはスナップショットであり、変更後の分母は毎回再計算する。
 
 ## 配布物の生成と固定SHA
 
@@ -23,7 +23,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 - [ ] 同一固定SHAからの同期を再実行して成果物が一致し、作業中ファイル/未commit差分・別branch差が混入しないことを検証
 - [ ] 許可外path、欠落、Symlinkによる領域逸脱、重複/衝突、無効SHA、途中失敗、改ざん済みmanifestやgenerated Shopを負例で拒否
 - [ ] Shop/manifest照合と8082 Serve/Seed/Resetの起動契約・入口・全Buildへのfallback禁止を既存コード/CIで検査。本人Codespacesでの実Port/Browser操作は#199へ渡す
-- [ ] M09→M10のRunner取得方式をPhase 3担当へ提供（許可ファイル・固定SHA・Hash/manifest検証のインターフェース）。Phase 3のworkflowはこのブランチでは変更しない
+- [x] M09→M10のRunner取得方式をPhase 3担当へ提供（許可ファイル・固定SHA・Hash/manifest検証のインターフェース）。Phase 3のworkflowはこのブランチでは変更しない
+  - 証拠：[#216への引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/216#issuecomment-6648932414)（2026-11-05、固定SHA、配布manifest/hash、取得後の検証順序、失敗時BLOCKED、Run証拠を記載）。取得元の実確定・実Runner実行は#216/#199側に残る。
 
 ## 学習者のロード・非破壊性
 
@@ -36,7 +37,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## 配布除外・法的条件・安全性
 
 - [ ] `assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec、正式workflow、旧教材、個人成績、`.env`/credential/secretがTemplate・Web・Build/Artifactへ混入しないことを検証
-- [ ] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の必要`SKILL.md/references/assets/scripts`全ファイルと改変有無を照合。不要な`evals/**`や内部評価runtimeを配布しない
+- [x] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の必要`SKILL.md/references/assets/scripts`全ファイルと改変有無を照合。不要な`evals/**`や内部評価runtimeを配布しない
+  - 証拠：[2026-11-05配布監査](../reports/2026-11-05_pr218-distribution-audit.md)。固定Git tree `truncated=false`、13 Skillの105/105ファイルでパス・Blob SHA・サイズ一致、欠落/改変0。`evals/**`配布0。本人Codespacesへの実配置・Python実行は別受入。
 - [ ] 固定Skillと第三者素材/生成物のライセンス原典・権利者・再配布条件・NOTICEを一次資料で調査し、出典と未確認項目を台帳化。許諾の最終判断・不足時の公開可否は#199へ引継ぎ、未確認のまま「許諾済み」にしない
 - [ ] 外部AI送信対象（本人回答・関連節・Run要約）の明示、Token/個人情報/無関係な内容の除外・サイズ上限、Git外保存の実装と説明が一致すること。評価エンジン固有の処理は正式評価担当へ引継ぐ
 - [ ] `prepare-learner-template.mjs`の出力許可リスト・Hash・Secret・禁止ファイル、repo外生成先の安全性、コピー後に不足がないことを検証（外部GitHub repo作成・公開は行わない）
