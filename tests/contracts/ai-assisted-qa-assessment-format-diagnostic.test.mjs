@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { it } from "vitest";
 
+// Temporary formatting diagnostics; delete after applying the CI diff.
 const FILES = [
   "scripts/training/ai-assisted-qa-assessment.mjs",
   "scripts/training/ai-assisted-qa-run-evidence.mjs",
