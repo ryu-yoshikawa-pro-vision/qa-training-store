@@ -113,7 +113,13 @@ function courseFixture() {
         `course/quizzes/${moduleId}.json`,
         JSON.stringify({ schema_version: 1, module_id: moduleId, questions: [] }),
       ],
-      [inputSource, `course/modules/${moduleId}/inputs/start.md`, `${moduleId} public input\n`],
+      [
+        inputSource,
+        `course/modules/${moduleId}/inputs/start.md`,
+        moduleId === "M03"
+          ? "M03 public input: SCOPE-101 RISK-CART-001 Authority Entity BR-CART-001 AC-CART-001\\n"
+          : `${moduleId} public input\\n`,
+      ],
       [exerciseSource, `course/exercises/${moduleId}/exercise.md`, `${moduleId} exercise\n`],
       [
         templateSource,
@@ -906,6 +912,57 @@ describe("AI-assisted QA distribution contract", () => {
       ),
     };
     expect(() => validateCourseManifest(wrongDestination)).toThrow(/M03 public Risk input/);
+  });
+
+  it("blocks missing M03 Authority, Risk, or Scope references before syncing files", async () => {
+    for (const reference of ["Authority Entity", "RISK-CART-001", "SCOPE-101"]) {
+      const fixture = courseFixture();
+      const sourcePath = "training/ai-assisted-qa-course/inputs/M03/start.md";
+      const start = fs.readFileSync(path.join(fixture.source, sourcePath), "utf8");
+      writeFixtureFile(fixture.source, sourcePath, start.replace(reference, ""));
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "8".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(`M03 public start input is missing source-backed reference: ${reference}`);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
+  it("blocks M03 loading when its source-backed references are forged after sync", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "8".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = "course/modules/M03/inputs/start.md";
+    const filePath = path.join(fixture.target, targetPath);
+    const altered = fs.readFileSync(filePath, "utf8").replace("SCOPE-101", "");
+    fs.writeFileSync(filePath, altered);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const entry = distribution.files.find((file) => file.target_path === targetPath);
+    entry.sha256 = createHash("sha256").update(altered).digest("hex");
+    entry.bytes = Buffer.byteLength(altered, "utf8");
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /M03 public start input is missing source-backed reference: SCOPE-101/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M03" })).toThrow(
+      /M03 public start input is missing source-backed reference: SCOPE-101/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M03"))).toBe(false);
   });
 
   it("rejects a forged distribution that omits the M03 public Risk load", async () => {
