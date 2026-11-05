@@ -3126,7 +3126,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     ).toMatchObject({ status: "ungradable" });
   });
 
-  it("verifies rootDir-relative and nested Playwright JSON results, rejecting other roots and specs", () => {
+  it("rejects foreign roots, specs, skipped and expected-failure Playwright reports", () => {
     const { workspaceRoot, reportPath } = writeM05RunEvidence(
       path.join(tempRoot, "playwright-rootdir-proof"),
     );
@@ -3138,7 +3138,12 @@ describe("AI-assisted QA formal assessment contracts", () => {
           schema_version: 1,
           kind: "playwright-run-record",
           required_runs: [
-            { spec: "product-link.spec.ts", label: "after", minimum_tests: 1, expected_outcome: "passed" },
+            {
+              spec: "product-link.spec.ts",
+              label: "after",
+              minimum_tests: 1,
+              expected_outcome: "passed",
+            },
           ],
         },
       },
