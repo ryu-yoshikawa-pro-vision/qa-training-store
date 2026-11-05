@@ -7,10 +7,7 @@ import { sha256 } from "../../scripts/training/ai-assisted-qa-assessment-core.mj
 import { verifyModuleRunEvidence } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
 const SOURCE_SHA = "a".repeat(40);
-const RUN_IDS = [
-  "123e4567-e89b-42d3-a456-426614174190",
-  "123e4567-e89b-42d3-a456-426614174191",
-];
+const RUN_IDS = ["123e4567-e89b-42d3-a456-426614174190", "123e4567-e89b-42d3-a456-426614174191"];
 const beforeCode = [
   'import { test, expect } from "@playwright/test";',
   'test("mug quantity one", async ({ page }) => {',
@@ -86,7 +83,11 @@ function setupM07Runs({ after = afterCode, afterStart = "2026-11-03T00:00:03Z" }
       label: index === 0 ? "before" : "after",
       project: "ai-assisted-qa-chromium",
       command: [
-        "pnpm", "exec", "playwright", "test", specName,
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        specName,
         "--config=playwright.ai-assisted-qa.config.ts",
         "--project=ai-assisted-qa-chromium",
         "--retries=0",
