@@ -25,6 +25,12 @@ P05はdefaultをResetし、Mugとlow-stockの各1点を追加したCartで、全
 
 教材PR #215のM05演習には従来の「`course:run`がP05を拒否する」という説明が残るため、#199への統合前に教材側の記述をこの実行契約へ合わせる必要があります。教材専有ファイルはこのPRで編集しません。
 
+## M07のbefore/afterは異なるspec SHAで受け入れる
+
+M07 `maintenance.spec.ts`のbeforeは2テストのRunと当時の保存済みspec snapshotで確認し、afterは3テストのRun・保存snapshotと**現在のspec SHA**でも確認します。beforeのsnapshotがafterの現行specと同一SHAである必要はありません。むしろ両Runでspecが変更され、afterがbeforeの完了より後に実行されたことを別途検証します。現在のspecとbeforeのSHAを同一視すると、正常なリファクタリング後のbeforeが不合格になるため、この区別が必要です。
+
+この照合は当時のRunを再解釈する契約であり、業務Assertionを維持したことをHashだけで証明するものではありません。テスト数やRun件数のPASSに加え、beforeの2件・afterの3件それぞれの業務Assertion、Page Objectとfixtureの適用、Cart再入場の条件は提出物とAI意味評価で独立に確認します。本人の実Chromium Runによる受入は#199に残ります。
+
 ## M07 のPage Object・fixtureとRun証拠
 
 M07の`workspace/M07/maintenance.spec.ts`は、教材の指定どおりPage Objectとfixtureを**同じspec内**に定義してください。Nodeの`course:run`はTypeScript構文を読み、`@playwright/test`と固定教材の`../../training/playwright/support/reset-scenario`以外のstatic import/re-export、dynamic import、`require`を拒否します。評価時も現在のspecとRunに保存されたspec snapshotの両方を再検査します。
