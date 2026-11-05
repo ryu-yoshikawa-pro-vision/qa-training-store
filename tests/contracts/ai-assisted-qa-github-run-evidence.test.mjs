@@ -381,7 +381,7 @@ describe("M10 GitHub Run evidence contract", () => {
           "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
           "pnpm run build:web",
         ),
-        /unapproved shell command/,
+        /unapproved step fields/,
       ],
       [
         workflow.replace(
