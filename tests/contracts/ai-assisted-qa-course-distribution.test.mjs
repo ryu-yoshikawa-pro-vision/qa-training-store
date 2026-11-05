@@ -727,7 +727,7 @@ describe("AI-assisted QA distribution contract", () => {
     });
     fs.rmSync(path.join(fixture.target, `course/shop/${assetPath}`));
     expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
-      /distributed (?:file|source) is missing/,
+      /distributed input is missing/,
     );
     expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
     expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
