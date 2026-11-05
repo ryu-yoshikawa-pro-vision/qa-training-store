@@ -53,12 +53,12 @@ it("does not inherit tutor AGENTS, config, credentials, or project directory", a
     const source = [
       'const fs = require("node:fs");',
       'const path = require("node:path");',
-      'console.log(JSON.stringify({',
-      '  cwd: process.cwd(),',
-      '  home: process.env.HOME,',
+      "console.log(JSON.stringify({",
+      "  cwd: process.cwd(),",
+      "  home: process.env.HOME,",
       '  tutorInstructions: fs.existsSync(path.join(process.env.HOME, ".config", "opencode", "AGENTS.md")),',
-      '  hasKey: Boolean(process.env.OPENCODE_API_KEY),',
-      '}));',
+      "  hasKey: Boolean(process.env.OPENCODE_API_KEY),",
+      "}));",
     ].join("\n");
     const result = await runCaptured(process.execPath, ["-e", source], {
       cwd: runtime.cwd,
