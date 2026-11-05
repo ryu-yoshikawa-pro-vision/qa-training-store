@@ -142,4 +142,21 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(textbook).toContain("contents: read");
     expect(submission).toContain("外部PR + pull_request_target提案");
   });
+  it("reports temporary canonical Prettier output for owned Phase 3 tests", async () => {
+    const prettier = await import("prettier");
+    for (const name of [
+      "tests/contracts/ai-assisted-qa-phase3-m10-preflight.test.mjs",
+      "tests/contracts/ai-assisted-qa-phase3-quiz-knowledge.test.mjs",
+    ]) {
+      const formatted = await prettier.format(read(name), {
+        parser: "babel",
+        semi: true,
+        singleQuote: false,
+        trailingComma: "all",
+        printWidth: 100,
+        endOfLine: "lf",
+      });
+      console.log("PHASE3_FORMAT_RESULT|" + name + "|" + JSON.stringify(formatted));
+    }
+  });
 });
