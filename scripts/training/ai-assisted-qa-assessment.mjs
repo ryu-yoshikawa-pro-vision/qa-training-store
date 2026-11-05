@@ -35,6 +35,7 @@ import {
   parseStrictJsonResponse,
   sha256,
   validateCandidate,
+  validatePhaseObjectiveIds,
   validateSavedChallenge,
 } from "./ai-assisted-qa-assessment-core.mjs";
 import { verifyGitHubRunEvidence } from "./ai-assisted-qa-github-run-evidence.mjs";
@@ -293,11 +294,17 @@ async function loadPhaseInputs(phaseId) {
       checks: verifiedRun.checks,
     });
   }
-  const objectiveIds = phase.modules.flatMap(
-    (moduleId) => scoringByModule.get(moduleId).objective_ids,
-  );
-  if (new Set(objectiveIds).size !== objectiveIds.length)
-    fail(`${phaseId} scoring assets contain duplicate objective IDs`);
+  const terminalStatePath =
+    `training/ai-assisted-qa-course/states/${phase.terminal}/end.json`;
+  const terminalStateBytes = readVerifiedCourseSource({
+    root: ROOT,
+    sourcePath: terminalStatePath,
+  }).bytes;
+  const objectiveIds = validatePhaseObjectiveIds({
+    phaseId,
+    scoringByModule,
+    terminalState: JSON.parse(terminalStateBytes.toString("utf8")),
+  });
   const criteriaByObjective = {};
   const objectiveEvidenceIds = {};
   const reviewPathsByObjective = {};
