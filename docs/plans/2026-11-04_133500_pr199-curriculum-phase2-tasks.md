@@ -55,7 +55,7 @@
 - [x] `M07-04`：`failure-assertion.spec.ts`と`repaired-assertion.spec.ts`の役割、TODO由来のbefore失敗、業務Assertionを維持したafter修正を照合。参考コードで検証可能なbefore/after実行を区別する。
   - 診断Aの誤Assertionと修正対象beforeのTODO例外を分離。参考afterはMug見出し+数量1を検証し、元の業務Assertionを削除しないこと、main/before/after別Runを専用契約テストに固定。
 - [ ] `M07-05`：公開参考の保守前2件・保守後3件、test単位Reset、Page Object/fixture、各test内Assertion、別ページを経由する3件目の実装契約をテストする。参考実装の相違は#217で修正されるまで未解決として扱う。
-  - **未完了理由**：#217の現参照specでは保守後3件目が`page.reload()`のみでCart外へ移動しない。所有外の`assessment/**`は#215で修正せず、#217の修正HEADを確認後に契約テスト・専用Chromiumを検証する。
+  - **未完了理由（2026-11-05追記）**：#215の現参照spec（Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`）では保守後3件目が`page.reload()`のみでCart外へ移動しない。#217 HEAD `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`の参照spec（Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613`）ではCart外への遷移と再入場に修正済み。ただし#215/#199の採用HEADへ未統合で、専用Chromiumのbefore2/after3実Runも未取得。#215担当の静的なbefore/after契約テストを追加したが、最終的な3件目の実装適合・実Run確認が済むまで未チェックとする。
 - [x] 通常OpenCodeの段階ヒント・失敗後の復習、AI案の採否を本人の判断から奪わない教材上の制約を確認。チューター共通実装・実モデルの動作検証は#217/#199へ渡す。
   - 本人の初期診断→追加証拠に限定したAIヒント→本人の再実行→復習、完成答案の自動編集禁止、秘密情報除去、通常Tutorと正式Assessの分離をM07教材・契約テストへ追加。実モデル結果は未確認。
 
