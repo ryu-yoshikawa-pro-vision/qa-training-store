@@ -356,6 +356,7 @@ export function parseOpenCodeJsonEvents(stdout, exitCode = 0) {
     }
     if (!event || typeof event !== "object" || typeof event.type !== "string")
       fail(`OpenCode emitted an invalid event on line ${index + 1}`);
+    if (terminalStop) fail("OpenCode emitted events after the terminal step_finish");
     if (event.type === "error" || event.type === "tool_use" || event.type === "tool")
       fail(`OpenCode emitted a tool/error event (${event.type}); evaluation stops`);
     if (
@@ -370,8 +371,8 @@ export function parseOpenCodeJsonEvents(stdout, exitCode = 0) {
     }
     if (event.type === "step_finish") {
       const reason = event.reason ?? event.part?.reason;
-      if (reason === "tool-calls" || reason === "length" || reason === "error")
-        fail(`OpenCode did not finish a clean text response (${reason})`);
+      if (reason !== "stop" && reason !== "end_turn")
+        fail(`OpenCode did not finish a clean text response (${String(reason)})`);
       terminalStop = true;
     }
     const candidateSession = event.sessionID ?? event.sessionId;
