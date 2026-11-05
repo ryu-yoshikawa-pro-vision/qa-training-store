@@ -102,6 +102,7 @@ describe("Phase 3 quiz and understanding coverage", () => {
     expect(findCorrect(m10, "M10-Q03")).toContain("target-sha.txt");
     expect(findCorrect(m10, "M10-Q06")).toContain("未確認");
   });
+
   it("keeps draft graph prerequisites coherent without changing approval status", () => {
     const knowledgeNodes = graph.nodes.filter(
       (node) => node.type === "knowledge" && modules.some((module) => module.id === node.module),
@@ -143,5 +144,4 @@ describe("Phase 3 quiz and understanding coverage", () => {
     for (const node of knowledgeNodes) assertAcyclic(node.id);
     expect(visited.size).toBe(19);
   });
-
 });
