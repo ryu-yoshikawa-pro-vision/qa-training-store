@@ -109,7 +109,9 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(c).toContain("if-no-files-found: error");
     expect(c).toContain("failure");
 
-    const submission = read("training/ai-assisted-qa-course/exercises/M09/submission-template.md");
+    const submission = read(
+      "training/ai-assisted-qa-course/exercises/M09/submission-template.md",
+    );
     for (const condition of [
       "合成A Build",
       "合成B Test",
