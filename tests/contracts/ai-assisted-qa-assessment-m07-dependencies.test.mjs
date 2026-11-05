@@ -1,15 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertM07SourceDependencies } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
+import {
+  assertM07SourceDependencies,
+} from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
 const verify = (code, moduleId = "M07", specName = "maintenance.spec.ts") =>
   assertM07SourceDependencies(Buffer.from(code), moduleId, specName);
 
 describe("M07 maintenance Playwright source dependency closure", () => {
-  it("accepts pinned Playwright and Scenario Reset imports with in-file Page Object", () => {
+  it("accepts in-file Page Object and trusted Reset imports", () => {
     const starter = fs.readFileSync(
-      path.resolve("training/ai-assisted-qa-course/inputs/M07/maintenance.spec.ts"),
+      path.resolve("training/ai-assisted-qa-course/inputs/M07", "maintenance.spec.ts"),
       "utf8",
     );
     expect(() => verify(starter)).not.toThrow();
@@ -29,7 +31,7 @@ describe("M07 maintenance Playwright source dependency closure", () => {
     expect(() => verify(starter, "M05")).not.toThrow();
   });
 
-  it("rejects untracked relative Page Object, fixture, dynamic or re-export imports", () => {
+  it("rejects untracked imports from the learner spec", () => {
     for (const code of [
       'import { CartPage } from "./cart-page";',
       'import "./fixture";',
@@ -54,8 +56,10 @@ describe("M07 maintenance Playwright source dependency closure", () => {
     expect(() => verify(code)).not.toThrow();
   });
 
-  it("rejects malformed maintenance TypeScript and ignores other approved specs", () => {
-    expect(() => verify('import { test from "@playwright/test";')).toThrow(/syntax/);
-    expect(() => verify('import "./other";', "M07", "failure-assertion.spec.ts")).not.toThrow();
+  it("rejects invalid syntax while leaving unrelated specs unchanged", () => {
+    const malformed = 'import { test from "@playwright/test";';
+    expect(() => verify(malformed)).toThrow(/syntax/);
+    const unrelated = 'import "./other";';
+    expect(() => verify(unrelated, "M07", "failure-assertion.spec.ts")).not.toThrow();
   });
 });
