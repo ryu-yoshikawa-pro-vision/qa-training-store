@@ -36,6 +36,8 @@ describe("M08 isolated Git contract", () => {
   it("selects exactly one reviewed change from working tree to commit", () => {
     const root = fixture();
     try {
+      git(root, "switch", "-c", "practice/m08-review");
+      expect(git(root, "branch", "--show-current")).toBe("practice/m08-review");
       fs.writeFileSync(path.join(root, safeFile), "reviewed\n");
       fs.writeFileSync(path.join(root, "workspace/M08/unstage-practice.md"), "dummy\n");
       expect(git(root, "diff", "--cached", "--name-only")).toBe("");
