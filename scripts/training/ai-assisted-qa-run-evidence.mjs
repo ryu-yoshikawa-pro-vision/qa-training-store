@@ -187,6 +187,75 @@ export function assertM07SourceDependencies(specBytes, moduleId, specName) {
   visit(source);
 }
 
+export function assertM06CaseAssertions(specBytes, specName, label) {
+  const required = M06_CASE_IDS[specName + "|" + label];
+  if (!required) return;
+  const source = ts.createSourceFile(
+    specName,
+    specBytes.toString("utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (source.parseDiagnostics.length > 0)
+    fail("M06 learner spec contains invalid TypeScript syntax");
+  const found = new Set();
+  const hasPlaywrightAssertion = (callback) => {
+    let matched = false;
+    const visit = (node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        /^to(?:Be|Have|Contain|Equal)/.test(node.expression.name.text)
+      ) {
+        let receiver = node.expression.expression;
+        if (ts.isPropertyAccessExpression(receiver) && receiver.name.text === "not")
+          receiver = receiver.expression;
+        if (
+          ts.isCallExpression(receiver) &&
+          ts.isIdentifier(receiver.expression) &&
+          receiver.expression.text === "expect" &&
+          receiver.arguments.length === 1 &&
+          ![
+            ts.SyntaxKind.TrueKeyword,
+            ts.SyntaxKind.FalseKeyword,
+            ts.SyntaxKind.NumericLiteral,
+            ts.SyntaxKind.StringLiteral,
+          ].includes(receiver.arguments[0].kind)
+        )
+          matched = true;
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(callback, visit);
+    return matched;
+  };
+  const scan = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "test" &&
+      node.arguments.length >= 2 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      const title = node.arguments[0].text;
+      const ids = required.filter((id) => title.includes(id));
+      if (ids.length === 1) {
+        const id = ids[0];
+        if (found.has(id))
+          fail("M06 spec duplicates a required CASE-CART test: " + id);
+        found.add(id);
+        if (!hasPlaywrightAssertion(node.arguments[1]))
+          fail("M06 required CASE-CART test lacks a Playwright business assertion: " + id);
+      }
+    }
+    ts.forEachChild(node, scan);
+  };
+  scan(source);
+  if (found.size !== required.length)
+    fail("M06 spec is missing one or more required CASE-CART tests");
+}
+
 function relativeWorkspacePath(filePath, root = ROOT) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
@@ -199,6 +268,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
   const specPath = path.join(moduleRoot, specName);
   const specBytes = lstatRegularFile(specPath, "learner Playwright spec");
   assertM07SourceDependencies(specBytes, moduleId, specName);
+  if (moduleId === "M06") assertM06CaseAssertions(specBytes, specName, label);
   const runId = randomUUID();
   const runDirectory = assertSafeDirectory(
     workspaceRoot,
@@ -390,6 +460,11 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   const snapshotBytes = lstatRegularFile(snapshotPath, "course Playwright source snapshot");
   assertM07SourceDependencies(specBytes, moduleId, path.basename(record.spec_path));
   assertM07SourceDependencies(snapshotBytes, moduleId, path.basename(record.spec_path));
+  if (moduleId === "M06") {
+    const name = path.basename(record.spec_path);
+    assertM06CaseAssertions(specBytes, name, record.label);
+    assertM06CaseAssertions(snapshotBytes, name, record.label);
+  }
   if (sha256(snapshotBytes) !== record.spec_sha256)
     fail("course Playwright source snapshot hash is invalid");
   const reportBytes = lstatRegularFile(reportPath, "Playwright JSON report");
