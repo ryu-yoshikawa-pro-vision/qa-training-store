@@ -34,21 +34,14 @@ export function validatePhaseObjectiveIds({ phaseId, scoringByModule, terminalSt
       scoring?.module_id !== moduleId ||
       !Array.isArray(scoring.objective_ids) ||
       scoring.objective_ids.length === 0 ||
-      scoring.objective_ids.some((id) => !new RegExp(`^${moduleId}-[0-9]{2}import { Buffer } from "node:buffer";
-import { createHash, randomUUID } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
-import { isDeepStrictEqual } from "node:util";
-
-export const ASSESSMENT_PHASES = Object.freeze({
-  P1: { terminal: "M04", modules: ["M00", "M01", "M02", "M03", "M04"] },
-  P2: { terminal: "M07", modules: ["M05", "M06", "M07"] },
-  P3: { terminal: "M10", modules: ["M08", "M09", "M10"] },
-});
-
-).test(id))
+      scoring.objective_ids.some(
+        (id) =>
+          typeof id !== "string" ||
+          !id.startsWith(moduleId + "-") ||
+          !/^[0-9]{2}$/.test(id.slice(moduleId.length + 1)),
+      )
     )
-      fail(`pinned scoring objective IDs are invalid for ${moduleId}`);
+      fail("pinned scoring objective IDs are invalid for " + moduleId);
     ids.push(...scoring.objective_ids);
   }
   if (
@@ -56,7 +49,7 @@ export const ASSESSMENT_PHASES = Object.freeze({
     new Set(ids).size !== expectedCount ||
     ids.some((id) => !required.required_objective_ids.includes(id))
   )
-    fail(`${phaseId} pinned scoring objective IDs differ from the terminal state contract`);
+    fail(phaseId + " pinned scoring objective IDs differ from the terminal state contract");
   return ids;
 }
 
