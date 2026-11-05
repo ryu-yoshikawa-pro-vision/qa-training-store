@@ -2577,6 +2577,64 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("rejects all five legacy curriculum pages before publishing a learner Shop", async () => {
+    for (const page of [
+      "00_learning-design",
+      "01_spreadsheet-test-design",
+      "02_competency-rubric",
+      "03_instructor-reference",
+      "04_learning-effort-reference",
+    ]) {
+      const fixture = courseFixture();
+      writeFixtureFile(
+        fixture.source,
+        `dist/docs/curriculum/${page}.html`,
+        "<html>Legacy materials</html>",
+      );
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "a".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/legacy curriculum page must not be distributed/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
+  it("rejects a forged manifest that introduces an instructor-only Shop page", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "a".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const relativePath = "course/shop/docs/curriculum/03_instructor-reference.html";
+    const bytes = Buffer.from("<html>Instructor only</html>");
+    writeFixtureFile(fixture.target, relativePath, bytes);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.files.push({
+      origin: "generated-shop",
+      source_path: "dist/docs/curriculum/03_instructor-reference.html",
+      target_path: relativePath,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      bytes: bytes.length,
+    });
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /legacy curriculum page must not be distributed/,
+    );
+  });
+
   it("rejects credentials in generated Shop files even when they are build outputs", async () => {
     const fixture = courseFixture();
     writeFixtureFile(fixture.source, "dist/index.html", `<body>ghp_${"b".repeat(36)}</body>`);
