@@ -632,6 +632,44 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("keeps nested generated Shop manifest paths in deterministic order", async () => {
+    const fixture = courseFixture();
+    for (const [name, content] of [
+      ["z.js", "console.log(1);"],
+      ["m/data.json", "{}"],
+      ["a.css", "body {}"],
+    ]) {
+      writeFixtureFile(fixture.source, `dist/${name}`, content);
+    }
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "c".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    await syncCourse(options);
+    const distribution = JSON.parse(
+      fs.readFileSync(path.join(fixture.target, ".course/distribution-manifest.json"), "utf8"),
+    );
+    expect(
+      distribution.files
+        .filter((file) => file.origin === "generated-shop")
+        .map((file) => file.target_path),
+    ).toEqual([
+      "course/shop/a.css",
+      "course/shop/index.html",
+      "course/shop/m/data.json",
+      "course/shop/z.js",
+    ]);
+    const original = snapshotDirectory(fixture.target);
+    const repeated = await syncCourse(options);
+    expect(repeated.copied).toEqual([]);
+    expect(snapshotDirectory(fixture.target)).toEqual(original);
+  });
+
   it("reproduces a clean pinned Git distribution and rejects dirty or divergent sources", async () => {
     const fixture = courseFixture();
     const git = (...args) =>
