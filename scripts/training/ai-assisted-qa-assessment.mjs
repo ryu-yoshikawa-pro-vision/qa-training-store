@@ -1425,6 +1425,33 @@ export function assertFreeModelCatalogEntry(modelId, catalog) {
   return { model_id: modelId, catalog_url: PRICE_CATALOG_URL, cost_per_million: cost };
 }
 
+export function assertAvailableModelListing(modelId, stdout) {
+  if (
+    typeof stdout !== "string" ||
+    !stdout.split(/\r?\n/).some((line) => line.trim() === modelId)
+  )
+    fail("BLOCKED: selected model is unavailable or its provider authentication is missing");
+  return modelId;
+}
+
+async function verifyOpenCodeModelAvailable(modelId) {
+  const result = await runCaptured(
+    process.platform === "win32" ? "opencode.cmd" : "opencode",
+    ["models"],
+    {
+      cwd: ROOT,
+      env: buildOpenCodeEnvironment({
+        extra: { OPENCODE_DISABLE_PROJECT_CONFIG: "true" },
+      }),
+      timeoutMs: 15_000,
+      maxBytes: 256_000,
+    },
+  );
+  if (result.exitCode !== 0)
+    fail("BLOCKED: OpenCode model discovery failed; check authentication and provider access");
+  assertAvailableModelListing(modelId, result.stdout);
+}
+
 export async function verifyCurrentFreeModelPrice(modelId, { fetchImpl = fetch } = {}) {
   if (!/^opencode(?:-go)?\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(modelId ?? ""))
     fail("BLOCKED: select an OpenCode free-tier provider/model; other providers may bill");
@@ -1890,6 +1917,7 @@ async function resumeAttemptUnlocked(request) {
     });
   }
   const pricing = await verifyCurrentFreeModelPrice(request.modelId);
+  await verifyOpenCodeModelAvailable(request.modelId);
   console.log(
     `公開料金カタログの確認: ${pricing.model_id}（入力・出力・その他の公表単価は0）。本人の契約・上限も確認してください。`,
   );
