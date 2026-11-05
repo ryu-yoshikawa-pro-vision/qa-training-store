@@ -483,23 +483,6 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
-  it("TEMP reports complete Prettier diff for this test file", async () => {
-    const prettier = await import("prettier");
-    const source = path.join(
-      repositoryRoot,
-      "tests/contracts/ai-assisted-qa-course-distribution.test.mjs",
-    );
-    const config = await prettier.resolveConfig(source);
-    const formatted = await prettier.format(fs.readFileSync(source, "utf8"), {
-      ...config,
-      filepath: source,
-    });
-    const output = path.join(fixtureRoot, "prettier-target.mjs");
-    fs.writeFileSync(output, formatted);
-    const diff = spawnSync("diff", ["-u", source, output], { encoding: "utf8" });
-    console.log("PR218_COMPLETE_FORMAT_DIFF_BEGIN", diff.stdout.slice(0, 30000));
-  });
-
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     for (const [field, value] of [
@@ -799,8 +782,7 @@ describe("AI-assisted QA distribution contract", () => {
       const fixture = courseFixture();
       const shopDirectory = path.join(fixture.target, "course/shop");
       fs.mkdirSync(path.dirname(shopDirectory), { recursive: true });
-      const linkedPath =
-        kind === "leaf" ? path.join(shopDirectory, "index.html") : shopDirectory;
+      const linkedPath = kind === "leaf" ? path.join(shopDirectory, "index.html") : shopDirectory;
       if (kind === "leaf") fs.mkdirSync(shopDirectory);
       fs.symlinkSync("not-created", linkedPath, kind === "leaf" ? "file" : "dir");
       const before = snapshotDirectory(fixture.target);
