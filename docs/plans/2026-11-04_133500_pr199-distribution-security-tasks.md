@@ -8,7 +8,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **5/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **6/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
@@ -23,7 +23,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 - [x] 同一固定SHAからの同期を再実行して成果物が一致し、作業中ファイル/未commit差分・別branch差が混入しないことを検証
   - 証拠：[Web CI #41967650261 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)、HEAD `594a72b724eb`の`re-syncs a pinned Git commit and rejects dirty or divergent sources` **PASS**。一時Gitリポジトリのclean commit実SHAで同期、`verifySyncedCourseDistribution`で22状態確認、同SHA再同期の`copied=[]`と出力snapshot完全一致、未commitの追加ファイル拒否、別branchでcommit後のSHA不一致拒否、拒否後も出力snapshot不変を確認。CI Run全体は別件のM03検証不整合でFAILしたが、当該テストはPASS。これはcommit固定のfixture検証であり、実`dist/**`・現行コース固定HEADからのShop Build連結は次項で未完。
 - [ ] 許可外path、欠落、Symlinkによる領域逸脱、重複/衝突、無効SHA、途中失敗、改ざん済みmanifestやgenerated Shopを負例で拒否
-- [ ] Shop/manifest照合と8082 Serve/Seed/Resetの起動契約・入口・全Buildへのfallback禁止を既存コード/CIで検査。本人Codespacesでの実Port/Browser操作は#199へ渡す
+- [x] Shop/manifest照合と8082 Serve/Seed/Resetの起動契約・入口・全Buildへのfallback禁止を既存コード/CIで検査。本人Codespacesでの実Port/Browser操作は#199へ渡す
+  - 証拠：`playwright.ai-assisted-qa.config.ts`は配布manifestまたは`course/shop`がある場合に`verify-distribution`を起動前に必須実行し、`PLAYWRIGHT_USE_PREBUILT_DIST=true`、`WEB_SERVER_DIST_ROOT=course/shop`、`WEB_SERVER_PORT=8082`を設定する。配布先ではWeb server commandが`pnpm exec tsx scripts/serve-web-dist.ts`のみで`build:web`へのfallbackはない。manifest不足でprebuilt指定時は例外停止。`ai-assisted-qa-playwright-settings.ts`はcredentialなしloopback HTTP 8082のみを許す。`training/playwright/support/reset-scenario.ts`は`window.__TEST_API__.reset({scenario})`後、再読込と`getMetadata().scenario`を照合。`scripts/serve-web-dist.ts`はrootとportを明示的に使う。[Web CI #41967650261 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)で`verifies the complete pinned distribution before serving a prebuilt Shop` **PASS**（改ざんShop、未登録Shop/Skill、SHA不一致、欠落の負例とPlaywright`--list`）。同Runの`serve-web-dist.test.ts` **23件PASS**、training-web-baseline Chromium E2E成功。実Templateの8082 Port公開・Browser操作と実Seed/Resetは#199本人受入として未実行扱い。
 - [x] M09→M10のRunner取得方式をPhase 3担当へ提供（許可ファイル・固定SHA・Hash/manifest検証のインターフェース）。Phase 3のworkflowはこのブランチでは変更しない
   - 証拠：[#216への引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/216#issuecomment-6648932414)（2026-11-05、固定SHA、配布manifest/hash、取得後の検証順序、失敗時BLOCKED、Run証拠を記載）。取得元の実確定・実Runner実行は#216/#199側に残る。
 
