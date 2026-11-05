@@ -25,6 +25,12 @@ P05はdefaultをResetし、Mugとlow-stockの各1点を追加したCartで、全
 
 教材PR #215のM05演習には従来の「`course:run`がP05を拒否する」という説明が残るため、#199への統合前に教材側の記述をこの実行契約へ合わせる必要があります。教材専有ファイルはこのPRで編集しません。
 
+## M07 のPage Object・fixtureとRun証拠
+
+M07の`workspace/M07/maintenance.spec.ts`は、教材の指定どおりPage Objectとfixtureを**同じspec内**に定義してください。Nodeの`course:run`はTypeScript構文を読み、`@playwright/test`と固定教材の`../../training/playwright/support/reset-scenario`以外のstatic import/re-export、dynamic import、`require`を拒否します。評価時も現在のspecとRunに保存されたspec snapshotの両方を再検査します。
+
+この制約は、別ファイルのPage Object/fixtureを変更しただけで、元のspec snapshotのSHAが変わらない問題を防ぐものです。別ファイルへ分割した実装を合格させる契約ではありません。配布済みReset補助関数の同一性は、事前に検証した教材の固定source SHAに依存します。TypeScriptのimport検査だけでテスト内容・業務Assertionの妥当性やRun実行の真正性を保証できるわけではありません。M07のbefore/afterは別Runの成功・テスト数・specの変更と、提出物にある数量Assertion・Cart再入場などを別に評価します。
+
 ## 同一試行の再開と排他ロック
 
 `pnpm course:assess <module> --model <id> --resume <assessment-id>` は、
