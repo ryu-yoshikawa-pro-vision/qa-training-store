@@ -1018,6 +1018,14 @@ describe("AI-assisted QA distribution contract", () => {
     const pages = [];
     const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
     const webPrefix = "docs/curriculum/ai-assisted-qa/";
+    const startRevision = hash(
+      fs.readFileSync(path.join(fixture.source, webPrefix, "start-here.md")),
+    );
+    writeFixtureFile(
+      fixture.source,
+      `dist/${webPrefix}index.html`,
+      `<meta name="course-source-revision" content="${startRevision}"><body data-course-revision="${startRevision}"></body>`,
+    );
     for (let index = 0; index <= 10; index += 1) {
       const moduleId = `M${String(index).padStart(2, "0")}`;
       for (const [page, source] of [
@@ -1058,9 +1066,22 @@ describe("AI-assisted QA distribution contract", () => {
     await expect(syncCourse(options)).rejects.toThrow(/Markdown revision mismatch/);
     expect(fs.readdirSync(fixture.target)).toEqual([]);
     writeFixtureFile(fixture.source, firstPage.page, firstPage.html);
+    const quizHtmlPath = `dist/${webPrefix}quizzes/M00.html`;
+    const originalQuizHtml = fs.readFileSync(
+      path.join(fixture.source, quizHtmlPath),
+      "utf8",
+    );
+    writeFixtureFile(
+      fixture.source,
+      quizHtmlPath,
+      originalQuizHtml.replace(/\b[a-f0-9]{64}\b/g, "0".repeat(64)),
+    );
+    await expect(syncCourse(options)).rejects.toThrow(/quiz revision mismatch/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+    writeFixtureFile(fixture.source, quizHtmlPath, originalQuizHtml);
 
     await syncCourse(options);
-    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(45);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(46);
     const snapshot = snapshotDirectory(fixture.target);
     const repeated = await syncCourse(options);
     expect(repeated.copied).toEqual([]);
