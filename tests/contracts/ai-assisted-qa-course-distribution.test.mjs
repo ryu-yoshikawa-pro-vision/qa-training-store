@@ -632,6 +632,81 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("remaps learner Markdown links to included Shop figures, screenshots, and specs", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      [
+        "# M00",
+        "![Figure](../../assets/figures/M00/01-screen-map.svg)",
+        "[Exercise](../../../../../training/ai-assisted-qa-course/exercises/M00/exercise.md)",
+        "[Cart](../../../../spec/features/cart.md)",
+      ].join("\n"),
+    );
+    writeFixtureFile(
+      fixture.source,
+      "docs/spec/features/cart.md",
+      [
+        "# Cart",
+        "![Screen](../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp)",
+        "[Screen catalog](../screen-catalog.md)",
+      ].join("\n"),
+    );
+    for (const [assetPath, content] of [
+      ["docs/curriculum/ai-assisted-qa/assets/figures/M00/01-screen-map.svg", "<svg/>"],
+      ["docs/spec/assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp", "image"],
+      ["docs/spec/screen-catalog.html", "<html>Catalog</html>"],
+    ]) {
+      writeFixtureFile(fixture.source, `dist/${assetPath}`, content);
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "f".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const moduleReadme = fs.readFileSync(
+      path.join(fixture.target, "course/modules/M00/README.md"),
+      "utf8",
+    );
+    expect(moduleReadme).toContain("../../shop/docs/curriculum/ai-assisted-qa/assets/figures/");
+    expect(moduleReadme).toContain("../../exercises/M00/exercise.md");
+    const specReadme = fs.readFileSync(
+      path.join(fixture.target, "docs/spec/features/cart.md"),
+      "utf8",
+    );
+    expect(specReadme).toContain("course/shop/docs/spec/assets/screens/");
+    expect(specReadme).toContain("course/shop/docs/spec/screen-catalog.html");
+    expectMarkdownLinksResolve(fixture.target, "course/modules/M00/README.md");
+    expectMarkdownLinksResolve(fixture.target, "docs/spec/features/cart.md");
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(4);
+  });
+
+  it("rejects a missing learner figure before writing any distributed files", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      "# M00\\n![Figure](../../assets/figures/M00/missing.svg)\\n",
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "f".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/public Markdown link is missing from distribution/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
