@@ -11,6 +11,12 @@
 
 各moduleのSkill一覧はqa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324の固定revisionに照合しています。受講者の提出物・氏名・評価結果・Secretはここへ保存しません。本人の評価記録は`workspace/.course-assessments/`でGit外に保管し、`workspace/.gitignore`で除外します。評価者や中央成績DBを必要としません。
 
+## Playwright Run証拠の照合
+
+`course:run`のJSON reporterは`spec.file`を`config.rootDir`相対で記録します。正式評価では`config.rootDir`と対象モジュール、許可済みspec、実行対象testを照合し、別spec・skip・期待失敗を通常PASSとして採用しません。
+
+Run receiptにはspec snapshot・JSON reportのSHA-256に加え、Trace等のattachmentのSHA-256も記録します。既存のreceiptにattachmentのSHA-256がない場合、添付物の改変を検出できないため正式な実行証拠として再利用せず、元の履歴を保持したまま新しい`course:run`で再実行してください。これらのハッシュはRun保存後の改変検出であり、外部から持ち込んだログが実際に実行されたことを単独で証明するものではありません。
+
 ## 同一試行の再開と排他ロック
 
 `pnpm course:assess <module> --model <id> --resume <assessment-id>` は、
