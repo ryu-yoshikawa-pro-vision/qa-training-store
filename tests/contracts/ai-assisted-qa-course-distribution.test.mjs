@@ -934,6 +934,10 @@ describe("AI-assisted QA distribution contract", () => {
     await expect(syncCourse(options)).rejects.toThrow(/bundled Web runtime asset is missing/);
     expect(fs.readdirSync(fixture.target)).toEqual([]);
 
+    writeFixtureFile(fixture.source, `dist/${assetPath}`, "");
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web runtime asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
     writeFixtureFile(fixture.source, `dist/${assetPath}`, "fixture image");
     await syncCourse(options);
     expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(3);
