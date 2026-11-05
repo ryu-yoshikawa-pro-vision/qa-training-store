@@ -121,17 +121,12 @@ it("accepts only fixed public module, contract and pinned Skill source paths", (
     const moduleId = "M" + String(number).padStart(2, "0");
     const scoring = JSON.parse(
       fs.readFileSync(
-        path.resolve(
-          "training/ai-assisted-qa-course/assessment/scoring-tests",
-          moduleId + ".json",
-        ),
+        path.resolve("training/ai-assisted-qa-course/assessment/scoring-tests", moduleId + ".json"),
         "utf8",
       ),
     );
     for (const source of scoring.sources) {
-      expect(() =>
-        assertAllowedAssessmentSourcePath(moduleId, source, distribution),
-      ).not.toThrow();
+      expect(() => assertAllowedAssessmentSourcePath(moduleId, source, distribution)).not.toThrow();
     }
   }
   for (const source of [
@@ -143,8 +138,8 @@ it("accepts only fixed public module, contract and pinned Skill source paths", (
     "ryu-yoshikawa-pro-vision/qa-workflow-skills@0000000000000000000000000000000000000000:skills/qa-workflow/SKILL.md",
     "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/unknown/SKILL.md",
   ]) {
-    expect(() =>
-      assertAllowedAssessmentSourcePath("M04", source, distribution),
-    ).toThrow(/public allowlist/);
+    expect(() => assertAllowedAssessmentSourcePath("M04", source, distribution)).toThrow(
+      /public allowlist/,
+    );
   }
 });
