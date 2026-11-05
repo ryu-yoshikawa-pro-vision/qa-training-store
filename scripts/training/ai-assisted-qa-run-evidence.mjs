@@ -101,7 +101,9 @@ function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot)
           !["passed", "failed"].includes(final?.status) ||
           test.status !== (final.status === "passed" ? "expected" : "unexpected")
         )
-          fail("Playwright JSON report contains a skipped, expected-failure, or invalid test result");
+          fail(
+            "Playwright JSON report contains a skipped, expected-failure, or invalid test result",
+          );
         found.push({
           title: typeof spec.title === "string" ? spec.title : "",
           status: final.status,
