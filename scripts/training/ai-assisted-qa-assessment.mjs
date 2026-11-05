@@ -569,6 +569,7 @@ async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, 
     extra: {
       OPENCODE_DB: ":memory:",
       OPENCODE_DISABLE_PROJECT_CONFIG: "true",
+      OPENCODE_DISABLE_EXTERNAL_SKILLS: "true",
       OPENCODE_CONFIG_CONTENT: JSON.stringify(
         buildAssessmentAgentConfig({ modelId, agentId: ASSESSOR_ID, systemPrompt }),
       ),
