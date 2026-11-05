@@ -58,6 +58,7 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 - [x] `prepare-learner-template.mjs`の出力許可リスト・Hash・Secret・禁止ファイル、repo外生成先の安全性、コピー後に不足がないことを検証（外部GitHub repo作成・公開は行わない）
   - 証拠：[Web CI #41986991331 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41986991331/job/127110451997)（HEAD `53aa8c168aa6350283ec45436e4d255675340dd9`）で`prepares and verifies a complete Template from a clean main Git fixture` **PASS**。テスト用のclean main実Git commitから、`prepare-learner-template.mjs --target`をCLIとして実行し、固定commit `source_sha`、22状態、生成Shop 2ファイル、`verifySyncedCourseDistribution`を確認。非空の既存出力先への再実行は拒否し、配布ファイルのsnapshot・元Git worktreeは不変。別テストでrepo内外の危険な出力先・Symlink祖先、生成Shopのcredential・既知Secret、固定allowlist外/改ざん/不正SHA・Workflow混入を負例検査。外部Skill/Shopはネットワーク・実Buildを置換した固定fixtureであり、本人のPublic Template公開、第三者権利許諾、実Codespaces作成は**未実施**。同Run全体はテストファイルのPrettier違反によりFAIL、契約テストは1113件PASS（一時診断1件を含む）。診断は後続commit `9b26364035e0`で削除。
 - [ ] 依存/配布の契約・異常系テスト、Build/Serve、検証証拠を固定HEADで報告。未確認事項を元Planに引継ぐ
+  - 2026-11-05：HEAD `94c7efd1265d` のWeb CI #42001514745は`Vitest (contracts)`・Build・Serve関連の主要E2E等が成功、Style Qualityは配布コードと契約テストのPrettier違反でFAILし、verify/validateも連動FAIL。書式修正commit `d2a19115`・`a986c3ca`、`dist` root Symlink修正`8a190ecc`・`61842367`、監査更新を反映。**最終HEADの必須CI/実Shop全量同期の証拠は未確定**であり、チェックしない。
 
 ## 後続作業（本PRでは先行実施しない）
 
@@ -67,9 +68,11 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## Web・AIチューター・成果物保全との接続（補完）
 
 - [ ] 公開Webと学習用Templateが同一教材Markdown/クイズJSONの版を参照し、`source_sha`/revisionの不一致を受講者へ説明・受入可能にする契約を検証。Web画面の一問ずつの操作・アクセシビリティ・共通生成処理の修正は**#199本体**へ引継ぎ、製品画面の実受入である#219と混同しない
+  - 2026-11-05：Web Artifactのクイズ11件は同一元HEADと一致したが、実学習用Templateの生成成功、HTML化教材のrevision/SHA表示、Web側異版時BLOCKEDは未受入。旧教材5ページ・リンク12件・JS参照画像欠落12件の是正とWeb共通画面契約は#199の所有者待ち。
 - [ ] Phase 1/2の提出Markdown・spec/Config・Trace/Run・非公開評価結果についてGit/PR不要のエクスポート手順・保存先・除外・再ロード非破壊性をfixture/契約・CIで検証。本人のダウンロード・復元は#199へ渡す
   - 2026-11-05確認：既存の`course:assess --export <UUID>`は正式評価の完了済みattemptと選定ファイルに限定。教材READMEには提出物のGit不要保存方針はあるが、提出Markdown/spec/Config/Trace/Runの全量取得先・除外/復元・整合性を示す契約が未整備。共有CLI/教材README/評価専用コードは#199と担当PR所有のため、このブランチでは無断編集しない。
 - [ ] 通常OpenCodeチューターの無料モデル/Secret・段階ヒント・復習用入力と正式評価の外部送信/権限/履歴の分離を、配布ファイルと公開設定/契約テストで検証。実モデル認証・料金/実対話は#199へ渡す
+  - 2026-11-05：共有`ai-assisted-qa-course-tutor-core.mjs`は明示モデル選択・読取権限・段階ヒントの指示を備え、チューター固有契約テストがある。一方、`workspace/Mxx/*`読取にSecret/PII/サイズの送信前機械的検査がなく、OpenCodeの通常会話の保存先・履歴分離を実証していない。 [#199への具体的な引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6654777121)。未完。
 - [x] 現ブランチの11モジュール・22状態のID/revision/公開サンプル/評価資料除外を固定版manifest・契約テストで照合。#214〜#217更新後の統合版を用いた実ロード/非破壊性の最終実受入は#199へ引継ぐ
   - 証拠：2026-11-05、HEAD `706484ba1b2da68f875177865bf6f066f635a244`の固定`manifest.json`を11 IDで集計。各IDのlesson/quiz/公開startはそれぞれ1、end state 1、load entries 7〜15件、配布禁止`reference-solutions/scoring-tests/completed-states/evals`のlocal source/target 0。GitHub上の全22 state JSONを実ファイル照合し、module_id・state・`revision=ai-assisted-qa-course-v3`・`source_sha=null`（sync時bind）・`public_contract=true`・`read_only=true`・非公開評価資料除外フラグが一致。11 startすべて`public_fallback.public=true`。さらに[Web CI #41967650261 / Vitest contracts](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)で`checks all 22 module states without modifying state or learner files` **PASS**。修正後HEADのCI最終結果・本人Private環境は別受入。
 
