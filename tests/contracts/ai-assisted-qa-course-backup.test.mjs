@@ -265,6 +265,18 @@ describe("Git-free Phase 1/2 learner backup", () => {
     }
   });
 
+  it("rejects a backup destination inside the real repository when the source root has a symlink ancestor", () => {
+    const first = fixture();
+    const alias = path.join(tempRoot, "root-alias-" + randomUUID());
+    fs.symlinkSync(tempRoot, alias, "dir");
+    const aliasedRoot = path.join(alias, path.basename(first.root));
+    const destination = path.join(first.root, "inside-backup.json.gz");
+    expect(() => exportLearnerWorkspace({ root: aliasedRoot, target: destination })).toThrow(
+      /outside the learner repository/,
+    );
+    expect(fs.existsSync(destination)).toBe(false);
+  });
+
   it("rejects source symlinks, backup destinations inside the repo, and unsafe output ancestors", () => {
     const first = fixture();
     const target = write(first.root, "workspace/M01/submission.md", "answer\n");

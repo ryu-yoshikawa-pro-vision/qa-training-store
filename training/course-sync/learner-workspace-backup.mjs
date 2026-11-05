@@ -117,7 +117,7 @@ function outsideRepository(root, location, mustExist) {
   if (typeof location !== "string" || !path.isAbsolute(location))
     fail("backup location must be an absolute path outside the learner repository");
   const absolute = path.resolve(location);
-  const relative = path.relative(path.resolve(root), absolute);
+  const relative = path.relative(fs.realpathSync(root), absolute);
   if (
     relative === "" ||
     (relative !== ".." && !relative.startsWith("../") && !path.isAbsolute(relative))

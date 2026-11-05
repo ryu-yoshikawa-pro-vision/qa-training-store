@@ -12,7 +12,7 @@ function git(...args) {
 
 export function validateTemplateTarget(target, source = sourceRoot) {
   const resolved = path.resolve(target);
-  const sourceDirectory = path.resolve(source);
+  const sourceDirectory = fs.realpathSync(source);
   const isWithin = (parent, candidate) => {
     const relative = path.relative(parent, candidate);
     return (

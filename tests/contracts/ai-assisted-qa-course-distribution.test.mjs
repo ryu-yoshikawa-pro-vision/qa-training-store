@@ -1417,6 +1417,10 @@ describe("AI-assisted QA distribution contract", () => {
     expect(() => validateTemplateTarget(path.join(linked, "learner"), source)).toThrow(
       /symlink ancestors/,
     );
+    const aliasedSource = path.join(linked, "source");
+    expect(() => validateTemplateTarget(path.join(source, "nested"), aliasedSource)).toThrow(
+      /outside the source checkout/,
+    );
     expect(fs.existsSync(sibling)).toBe(false);
   });
 
