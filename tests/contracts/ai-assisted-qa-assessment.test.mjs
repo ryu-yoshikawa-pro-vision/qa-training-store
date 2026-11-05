@@ -2703,6 +2703,7 @@ function writeM05RunEvidence(
   const before = run({
     label: "before",
     code: 'test("broken product link", async () => expect(true).toBe(false));\n',
+    specTitle: "broken product link",
     outcome: "failed",
     exitCode: 1,
     time: "2026-10-27T00:00:00.000Z",
@@ -2712,6 +2713,7 @@ function writeM05RunEvidence(
   const after = run({
     label: "after",
     code: 'test("fixed product link", async () => expect(true).toBe(true));\n',
+    specTitle: "fixed product link",
     outcome: "passed",
     exitCode: 0,
     time: "2026-10-27T00:00:02.000Z",
@@ -2725,7 +2727,7 @@ function writeM05RunEvidence(
     time: "2026-10-27T00:00:04.000Z",
     runId: runIds[2] ?? runIds[1].slice(0, -3) + "002",
     specName: "p05-cart-locator.spec.ts",
-    specTitle: "M05 P05 read-only scoped cart locator",
+    specTitle: "M05 P05 read-only cart locator",
   });
   return {
     workspaceRoot,
