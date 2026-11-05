@@ -1,4 +1,4 @@
-# PR #199 教材配布・Skill・ライセンス・データ保護タスクリスト
+# PR #218 教材配布・Skill・ライセンス・データ保護タスクリスト
 
 > 対象：[#218](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/218)。開始時に`AGENTS.md`、[分担Plan](./2026-11-04_pr199-parallel-branches.md)、本リストと対象HEAD/CI/既存コード・テストを確認する。項目ごとに確認したコマンド・結果・SHA/Run・証拠パスと未確認事項を記録し、証拠が成立した項目だけ`[x]`とする。
 >
@@ -10,7 +10,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **元21件の内訳：完了15件、PR #218で未完了1件、PR #199へ移管5件**（移管5件は完了扱いにしない）。**PR #218の現行対象は15/16件完了**。（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、直近の受入固定HEAD `14bbde10726f3fb75e41c3e2467431e2f0d18d95`（[Web CI #42018819384](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42018819384)））。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例、第三者権利の原典調査と未確認事項の台帳化を完了（再配布許諾ではない）。上記12件に加え、固定HEAD `a44463d9` の配布契約・Build/Serve成功の証拠記録と#199引継ぎを完了としてチェック。 さらに固定HEAD `6433402a` のGit不要バックアップ/復元契約9/9 PASSを確認し、該当1件をチェック。実Shop全量同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **元21件の内訳：完了15件、PR #218で未完了1件、PR #199へ移管5件**（移管5件は完了扱いにしない）。**PR #218の現行対象は15/16件完了**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、直近の受入固定HEAD `14bbde10726f3fb75e41c3e2467431e2f0d18d95`（[Web CI #42018819384](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42018819384)））。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例、第三者権利の原典調査と未確認事項の台帳化を完了（再配布許諾ではない）。上記12件に加え、固定HEAD `a44463d9` の配布契約・Build/Serve成功の証拠記録と#199引継ぎを完了としてチェック。 さらに固定HEAD `6433402a` のGit不要バックアップ/復元契約9/9 PASSを確認し、該当1件をチェック。実Shop全量同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
