@@ -1,5 +1,7 @@
 # M09 CI読解・workflow修正の提出
 
+**学習目標と反復実践の対応**：`M09-01`＝P01・P06、`M09-02`＝P02・P06、`M09-03`＝P03・P06、`M09-04`＝P01・P04・P06、`M09-05`＝P05・P06。M09はworkflowを有効化せず、架空のRun・費用・SHAを実証拠へ転用しません。
+
 - workflow / trigger / job / runner / step（P01の基準案と手動案の対応）:
 - 手動trigger時の選択ref・checkout SHA・PR HEAD照合の可否（未確認は未確認）:
 - 修正したworkflow案: workspace/M09/course-e2e.workflow.yml.disabled
