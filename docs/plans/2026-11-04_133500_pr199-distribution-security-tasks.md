@@ -19,9 +19,11 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## 配布物の生成と固定SHA
 
 - [ ] `training/course-sync/manifest.json`のallowlist、外部Skill元、`source_sha`、`generated.shop_build`と実ファイル依存閉包（import/asset/runtime）を全件照合
+  - 2026-11-05最新実物：CI #42022449903のproduction ZIP（Artifact `13412915763`／SHA-256 `be725b85b76ea0570f7f423f300eac1b88ae65cb98688a64777f0ca00b9bcab9`）を再検査。旧教材5 HTML、そこへのリンク12件、JS画像URI欠落12件（すべて`node_modules/.pnpm`パス）を再現。さらにWeb教材の11クイズJSONだけ存在しHTMLがない場合のrevision検証抜けを修正（`5a2036a8`）し、同期前にBLOCKEDする負例を追加（`b3dd0b27`）。**依存閉包は未完でチェックしない**。
   - 2026-11-05追補：配布coreの生成HTML/CSS静的asset閉包を追加し、欠落・0 byteとmanifest改ざんを同期前・配布後に拒否する負例テストを追加。旧Web ZIPのHTML URL 2485件/CSS 12件は欠落0、JS URI 12件は欠落12。さらにURIの`/assets/node_modules/.pnpm/...`をそのままdistへ追加しても既存`FORBIDDEN_PATH`が拒否するため、#199で参照URIと安全な出力先の両方を修正する必要がある。現物の全依存閉包は**未達**。
   - 2026-11-05の[追加監査](../reports/2026-11-05_pr218-distribution-audit.md)：監査元HEAD `7904bb6f4d39` のproduction ArtifactではHTML/CSS静的asset参照168件の欠落0に対し、Expo Router/React NavigationのJS組込み`/assets/*.png` 12 URIがZIP内に存在しない。配布側の事前・事後拒否と負例を追加（修正HEADのCIは未確認）。#199のWeb Buildで実ファイルを揃えてから全量再検証する。**未完のまま**。
 - [ ] cleanな固定commitを入力とする`course:sync`→`verify-distribution`→Shop Build→SHA/manifest照合を既存のGitHub Actions・契約テストで確認し、実行ログ/結果/失敗を記録。学習者個人の実配布は#199へ引継ぐ
+  - 2026-11-05更新：固定HEAD `9d3acdcbb1f4`のCI #42022449903はContract/Style/Code/Build/Serve/Chromium/verify/validateがsuccess。一方、その実Web Artifactには画像12件欠落・旧教材5件が残り、正常な`course:sync`全量実行の受入ができない。**CI全体successと本項完了は別**。
   - 2026-11-05判定：[Web CI #41991216665](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41991216665)のBuild自体は成功したが、監査元HEAD `7904bb6f4d39` の実Artifactに旧教材5ページとJS参照画像12件が残る。現行の配布guardにより実Shop全量`course:sync`の正常系を立証できない。固定fixtureの同期成功とは別判定。#199のWeb Build修正・新Artifact確認後に再実施。
 - [x] 同一固定SHAからの同期を再実行して成果物が一致し、作業中ファイル/未commit差分・別branch差が混入しないことを検証
   - 証拠：[Web CI #41967650261 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)、HEAD `594a72b724eb`の`re-syncs a pinned Git commit and rejects dirty or divergent sources` **PASS**。一時Gitリポジトリのclean commit実SHAで同期、`verifySyncedCourseDistribution`で22状態確認、同SHA再同期の`copied=[]`と出力snapshot完全一致、未commitの追加ファイル拒否、別branchでcommit後のSHA不一致拒否、拒否後も出力snapshot不変を確認。CI Run全体は別件のM03検証不整合でFAILしたが、当該テストはPASS。これはcommit固定のfixture検証であり、実`dist/**`・現行コース固定HEADからのShop Build連結は次項で未完。
@@ -50,6 +52,7 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## 配布除外・法的条件・安全性
 
 - [ ] `assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec、正式workflow、旧教材、個人成績、`.env`/credential/secretがTemplate・Web・Build/Artifactへ混入しないことを検証
+  - 2026-11-05最新実物：Artifact `13412915763`に旧教材5 HTMLが残り、旧教材へ到達する`href`12件/6 HTMLを再検出。テキスト189ファイル・約7.25 MBの既知Token/秘密鍵・主要個人メールパターンは0件だが、未知PIIやバイナリ123件の無害化を示さない。**旧教材の混入が解消しない限り未完**。
   - 2026-11-05追補：現物Web ZIPで旧教材5 HTML（講師向け`03_instructor-reference.html`を含む）の残存が確認されている。PR #218の`verifyPublicFileContent()`は配布前に拒否するが、Web Build Artifactからの生成除外は#199所有。生成側が除外しても旧HTMLから残るリンクは新しいHTMLの静的リンク検査で検出する。現時点では全Artifact混入なしを証明できず、未チェック。
   - 2026-11-05判定：監査元Artifactに非公開assessment用の上記ディレクトリ名は確認されなかったが、旧教材5 HTML（講師用`03_instructor-reference.html`を含む）が存在。個人成績・Secretの全内容監査も未完。配布側の拒否テストがPASSでも、Web Build側の完全除外の代替にはならない。
 - [x] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の必要`SKILL.md/references/assets/scripts`全ファイルと改変有無を照合。不要な`evals/**`や内部評価runtimeを配布しない
