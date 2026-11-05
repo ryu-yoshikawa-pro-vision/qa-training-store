@@ -125,35 +125,19 @@ describe("M07 maintenance per-test Playwright assertions", () => {
     try {
       const moduleRoot = path.join(root, "workspace", "M07");
       fs.mkdirSync(moduleRoot, { recursive: true });
-      fs.writeFileSync(path.join(moduleRoot, "maintenance.spec.ts"), [
-        before,
-        'test("cart reentry", async () => {});',
-      ].join("\n"));
+      fs.writeFileSync(
+        path.join(moduleRoot, "maintenance.spec.ts"),
+        [before, 'test("cart reentry", async () => {});'].join("\n"),
+      );
       expect(() =>
-        runAiAssistedQaSpecCli(
-          ["M07", "maintenance.spec.ts", "--label", "after"],
-          { root, sourceSha: "a".repeat(40) },
-        ),
+        runAiAssistedQaSpecCli(["M07", "maintenance.spec.ts", "--label", "after"], {
+          root,
+          sourceSha: "a".repeat(40),
+        }),
       ).toThrow(/business assertion/);
       expect(fs.existsSync(path.join(moduleRoot, "evidence"))).toBe(false);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
-});
-
-it("temporary formatting diagnostic for PR 217", async () => {
-  const prettier = await import("prettier");
-  for (const [name, filename] of [
-    ["runner", "scripts/training/ai-assisted-qa-run-evidence.mjs"],
-    ["dependencies", "tests/contracts/ai-assisted-qa-assessment-m07-dependencies.test.mjs"],
-    ["fresh-run", "tests/contracts/ai-assisted-qa-assessment-fresh-run.test.mjs"],
-  ]) {
-    const source = fs.readFileSync(filename, "utf8");
-    const settings = await prettier.resolveConfig(filename);
-    const formatted = await prettier.format(source, { ...settings, filepath: filename });
-    if (formatted !== source) {
-      console.log("FORMAT_REPAIR_" + name + "=" + Buffer.from(formatted).toString("base64"));
-    }
-  }
 });
