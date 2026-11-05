@@ -429,21 +429,21 @@
   # mktemp -dで各回の出力先を新規作成し、同名reportの上書きを防ぐ
   export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-fixed-XXXXXXXX) || exit 1
   run_status=0
-pnpm exec playwright test cart-cases.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
+  pnpm exec playwright test cart-cases.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
   git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
   sha256sum training/ai-assisted-qa-course/assessment/playwright/M06/*.spec.ts > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
 
   export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-initial-XXXXXXXX) || exit 1
   run_status=0
-pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
+  pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
   git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
   sha256sum training/ai-assisted-qa-course/assessment/playwright/M06/*.spec.ts > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
 
   export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m06-reference-repeat-XXXXXXXX) || exit 1
   run_status=0
-pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
+  pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0 || run_status=$?
   printf '%s\n' "$run_status" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
   git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
   sha256sum training/ai-assisted-qa-course/assessment/playwright/M06/*.spec.ts > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
