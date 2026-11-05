@@ -604,6 +604,27 @@ describe("AI-assisted QA distribution contract", () => {
     ).toThrow(/prohibited/);
   });
 
+  it("keeps pinned external Skill sources and targets inside their matching packages", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const original = manifest.external_skill_files[0];
+    for (const mutation of [
+      { source_path: "docs/internal/runtime.py" },
+      { target_path: "course/modules/M03/hidden-runtime.py" },
+      { skill: "qa-workflow" },
+      { source_path: "skills/adversarial-review/evals/answer-key.py" },
+    ]) {
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          external_skill_files: [
+            { ...original, ...mutation },
+            ...manifest.external_skill_files.slice(1),
+          ],
+        }),
+      ).toThrow(/(pinned package|prohibited)/);
+    }
+  });
+
   it("rejects invalid module load bindings before writing files", async () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m05 = manifest.load_files.find(
