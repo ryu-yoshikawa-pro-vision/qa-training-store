@@ -38,12 +38,14 @@
 - [ ] #214〜#216から各モジュールの理解事項（現行82件）のレビュー結果を受領し、意味・粒度・重複・前提順序・説明節・適用実技・クイズの観測点と評価基準を確認。人間レビュー未実施は承認済みと偽らず、開発時の内容/AI校正証拠と区別。
 - [ ] `knowledge-graph.json`と`scripts/training/knowledge-graph.mjs`を統合先で検証・必要に応じ更新。既存`validate`、`table`、`impact --changed-files <path-list-file>`で全51目標・理解事項・教材・クイズ/実技・Phase採点・22開始/終了状態の参照、未登録変更、削除/移動、仕様/Skill改訂時の影響を検査。既存機能と同じ実装を増やさない。
 - [ ] 51目標の「説明→例→誘導→別条件→提出証拠→Level 2判定→復習先」をモジュール横断で全量照合し、`table`の出力と実ファイルを比較。Web確認クイズの正解のみで独立した実技や本人判断を認定しない。
+  - **PR #217から移管・未完了（M00 P04）**：[#214](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/214) の `training/ai-assisted-qa-course/exercises/M00/exercise.md` にある架空誤回答（タブ閉鎖によるCodespace停止・Remoteへの自動反映）を、#217の `assessment/scoring-tests/M00.json` の `M00-CR-03` と同一統合HEADで照合する。学習者へ架空回答が提示され、実AIの応答とは別に本人が独立訂正し、指定2資料の原文見出し・出典を提出できることを確認する。不足時はLevel 2にしない。根拠：[移管記録](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6657600739)。
 - [ ] M04→M05に分析・Case・BR/AC・初期データ、M07→M08に実Run済みspec・Config・Reset・結果が、同一ID/revisionで渡ることを検証。M02→M03、M05→M06、M09→M10も担当PRの証拠と最終配布条件で再照合。先行修了を公開基準入力から架空に復元しない。
 - [ ] 通常OpenCode学習の段階的ヒント・別条件の課題・復習・再開と、M04/M07/M10の独立AI正式採点が混ざらないことを#214〜#218の引継ぎと通し検証で確認。講師の個別承認や有料モデルへの自動移行を要求しない。
 
 ## 配布・評価・実行証拠の相互受入
 
 - [ ] #217の評価器が必要なM06/M07の新しいPlaywright Runを限定実行/取得して証拠を照合し、M10では本人の実GitHub APIから最新PR HEAD・Run/attempt・Check・Artifact・対象specを検証することを受け入れる。単なる自己申告/旧Run/作成済みログのハッシュ一致では合格にしない。
+  - **PR #217から移管・未完了（M05 P05）**：`assessment/scoring-tests/M05.json` の `execution_evidence.required_runs` と共有 `scripts/training/validate-ai-assisted-qa.ts` の固定期待値を同時に更新し、`p05-cart-locator.spec.ts|main`（1件以上PASS・専用receipt・対象spec/SHA一致）の必須性を保つ。その後、`scripts/training/ai-assisted-qa-run-evidence.mjs` のM05専用Run注入を削除する。重複・欠落Runを拒否し、`pnpm run test:contracts`、`pnpm run validate`、production buildを最終統合HEADのCIで確認する。根拠：[移管記録](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6657600739)。
 - [ ] #218配布manifest・固定Shop・Skill-local依存・`course:load/check`・正式採点資料の固定SHA取得・非破壊性が、#214〜#217の教材/状態/評価器と結合して機能するか検証。Phase 1/2の成果物・評価履歴をGit/PR不要で安全にエクスポート・保全できる条件を確認。
 - [ ] #213の79要件・188操作・20状態の確定分母/基本分析率と、#219が準備したCase候補・既存テスト・固定Run/未実行・既知製品FAILを突合。正式Caseの採否・IDと最終Web/Android/DB実Runは本リスト末尾の最終実受入で判定する。#210の製品修正は未マージなら#199に反映済みと扱わず、対象commitを記録。
 - [ ] 第三者由来Skill/依存物のライセンス・NOTICE、Secret/個人データ非漏洩、静的Web/Template/Artifactの除外を#218の証拠で最終確認。出典未確認・実機未実施をPASSへ変更しない。
