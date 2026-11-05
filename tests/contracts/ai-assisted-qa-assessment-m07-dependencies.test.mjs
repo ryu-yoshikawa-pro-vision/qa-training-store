@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  assertM07MaintenanceAssertions,
   assertM07SourceDependencies,
   runAiAssistedQaSpecCli,
 } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
@@ -82,5 +83,61 @@ describe("M07 maintenance Playwright source dependency closure", () => {
     expect(() => verify(malformed)).toThrow(/syntax/);
     const unrelated = 'import "./other";';
     expect(() => verify(unrelated, "M07", "failure-assertion.spec.ts")).not.toThrow();
+  });
+});
+
+describe("M07 maintenance per-test Playwright assertions", () => {
+  const testWithAssertion = (name) =>
+    [
+      'test("' + name + '", async ({ page }) => {',
+      '  await expect(page.getByLabel("数量")).toHaveValue("2");',
+      "});",
+    ].join("\n");
+  const before = [
+    'import { test, expect } from "@playwright/test";',
+    testWithAssertion("mug quantity one"),
+    testWithAssertion("quantity can change"),
+  ].join("\n");
+  const after = [before, testWithAssertion("cart reentry")].join("\n");
+  const verifyAssertions = (code, label = "before") =>
+    assertM07MaintenanceAssertions(Buffer.from(code), "M07", "maintenance.spec.ts", label);
+
+  it("accepts independently asserted before and after tests", () => {
+    expect(() => verifyAssertions(before, "before")).not.toThrow();
+    expect(() => verifyAssertions(after, "after")).not.toThrow();
+  });
+
+  it("rejects an empty after test, duplicate titles and literal-only assertions", () => {
+    const noAssertion = [before, 'test("cart reentry", async () => {});'].join("\n");
+    expect(() => verifyAssertions(noAssertion, "after")).toThrow(/business assertion/);
+    const duplicate = [before, testWithAssertion("quantity can change")].join("\n");
+    expect(() => verifyAssertions(duplicate, "after")).toThrow(/duplicate/);
+    const literal = [
+      before,
+      'test("cart reentry", async () => { expect(true).toBe(true); });',
+    ].join("\n");
+    expect(() => verifyAssertions(literal, "after")).toThrow(/business assertion/);
+    expect(() => verifyAssertions(before, "after")).toThrow(/fewer/);
+  });
+
+  it("refuses no-op M07 code before running Playwright", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "m07-assertion-boundary-"));
+    try {
+      const moduleRoot = path.join(root, "workspace", "M07");
+      fs.mkdirSync(moduleRoot, { recursive: true });
+      fs.writeFileSync(path.join(moduleRoot, "maintenance.spec.ts"), [
+        before,
+        'test("cart reentry", async () => {});',
+      ].join("\n"));
+      expect(() =>
+        runAiAssistedQaSpecCli(
+          ["M07", "maintenance.spec.ts", "--label", "after"],
+          { root, sourceSha: "a".repeat(40) },
+        ),
+      ).toThrow(/business assertion/);
+      expect(fs.existsSync(path.join(moduleRoot, "evidence"))).toBe(false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });
