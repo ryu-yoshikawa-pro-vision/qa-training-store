@@ -67,27 +67,51 @@ function assertSafeDirectory(root, target, { create = false } = {}) {
   return absoluteTarget;
 }
 
-function reportSpecs(suites, root, targetSpec, outputRoot) {
+function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot) {
+  // JSON reporter stores spec.file relative to config.rootDir (the learner module).
+  // A report from another root must never satisfy the current learner's run.
+  const reportRoot = report?.config?.rootDir;
+  if (
+    typeof reportRoot !== "string" ||
+    !path.isAbsolute(reportRoot) ||
+    path.resolve(reportRoot) !== path.resolve(moduleRoot) ||
+    !Array.isArray(report.suites)
+  )
+    fail("Playwright JSON report rootDir does not match the learner module");
+
   const found = [];
   const attachments = [];
   const visit = (suite) => {
     for (const spec of suite.specs ?? []) {
-      const absoluteSpec = path.resolve(root, spec.file ?? "");
-      if (absoluteSpec !== targetSpec) continue;
+      if (
+        typeof spec.file !== "string" ||
+        !spec.file ||
+        path.isAbsolute(spec.file) ||
+        path.resolve(reportRoot, spec.file) !== targetSpec
+      )
+        fail("Playwright JSON report contains an unexpected or unsafe spec");
       for (const test of spec.tests ?? []) {
-        const results = Array.isArray(test.results) ? test.results : [];
-        const final = results.at(-1);
-        if (!final || typeof final.status !== "string") continue;
+        const results = test.results;
+        const final = Array.isArray(results) ? results.at(-1) : null;
+        if (
+          test.projectName !== "ai-assisted-qa-chromium" ||
+          test.expectedStatus !== "passed" ||
+          !Array.isArray(results) ||
+          results.length !== 1 ||
+          !["passed", "failed"].includes(final?.status) ||
+          test.status !== (final.status === "passed" ? "expected" : "unexpected")
+        )
+          fail("Playwright JSON report contains a skipped, expected-failure, or invalid test result");
         found.push({
           title: typeof spec.title === "string" ? spec.title : "",
           status: final.status,
-          expected_status: typeof test.expectedStatus === "string" ? test.expectedStatus : "passed",
+          expected_status: test.expectedStatus,
         });
         for (const attachment of final.attachments ?? []) {
           if (typeof attachment?.path !== "string") continue;
           const filePath = path.isAbsolute(attachment.path)
             ? path.resolve(attachment.path)
-            : path.resolve(root, attachment.path);
+            : path.resolve(repositoryRoot, attachment.path);
           const relative = path.relative(outputRoot, filePath);
           if (
             relative === ".." ||
@@ -116,7 +140,7 @@ function reportSpecs(suites, root, targetSpec, outputRoot) {
     }
     for (const child of suite.suites ?? []) visit(child);
   };
-  for (const suite of suites ?? []) visit(suite);
+  for (const suite of report.suites) visit(suite);
   return { tests: found, attachments };
 }
 
@@ -180,7 +204,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
     const reportText = reportBytes.toString("utf8");
     assertNoSecretText(reportText, "Playwright JSON report");
     report = JSON.parse(reportText);
-    extracted = reportSpecs(report.suites, root, specPath, runDirectory);
+    extracted = reportSpecs(report, moduleRoot, specPath, runDirectory, root);
   }
   const exitCode = result.error ? 1 : (result.status ?? 1);
   const environmentFailure =
@@ -327,7 +351,7 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   assertNoSecretText(reportText, "Playwright JSON report");
   const report = JSON.parse(reportText);
   const outputRoot = path.dirname(reportPath);
-  const extracted = reportSpecs(report.suites, root, specPath, outputRoot);
+  const extracted = reportSpecs(report, path.dirname(specPath), specPath, outputRoot, root);
   if (JSON.stringify(extracted.tests) !== JSON.stringify(record.tests))
     fail("course Playwright run evidence results do not match its JSON report");
   if (JSON.stringify(extracted.attachments) !== JSON.stringify(record.attachments))
@@ -374,7 +398,7 @@ function runPassed(record, minimumTests) {
     record.outcome === "passed" &&
     record.exit_code === 0 &&
     record.tests.length >= minimumTests &&
-    record.tests.every((test) => test.status === "passed")
+    record.tests.every((test) => test.status === "passed" && test.expected_status === "passed")
   );
 }
 
