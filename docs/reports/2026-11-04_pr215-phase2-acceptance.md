@@ -504,3 +504,11 @@ sha256sum "$PLAYWRIGHT_TEST_ROOT/cart.spec.ts" > "$AI_QA_OUTPUT_ROOT/spec-sha256
 受入時は、beforeで2件・afterで3件の**対象testがすべて実行**されたこと、testごとのReset/独立性、数量1・2の業務Assertion、3件目の別ページ経由のCart再入場、終了コード、JSON reportの`config.rootDir`と`spec.file`、spec SHA/HEAD、必要な失敗時Trace/Screenshotを照合する。共有実行器の正式採点/学習者`course:run`とは別の**公開参考spec直接実行**であり、これだけで本人修了とはしない。
 
 **Progress: 94% (31/33)**。残件はM06参考5testの専用実Chromiumと、M07保守後参考の統合・専用実Runの2件。レビュー補修と静的契約を追加しても実Run未取得のチェックを完了へ変更しない。GitHub Actionsの新HEADでの結果は実際に確認できたRunだけを追記する。
+
+## 2026-11-05 PR #215追加修正：CI lintと参考Run証拠の保全
+
+- **発端のCI**：HEAD `0ddf5abd18a03e0a065c991ea180d9caab20c068` の[Web CI #42031867491](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42031867491)は`failure`。`Style Quality`ではPrettier自体は成功し、`docs/reports/2026-11-04_pr215-phase2-acceptance.md`のMD012（旧462行の連続空行）とMD018（旧473行の行頭`#217`）でMarkdown lintが失敗。後続の`verify`/`validate`失敗はこの品質ゲートに伴う。両箇所を補修した。
+- **専用Runの成果物保全**：M06固定3件・004/005初回・再実行とM07 before/afterの計5 Runについて、Playwright終了コードを`run_status=0`と`|| run_status=$?`で捕捉し、`set -e`使用時でも`exit-code.txt`へ残す。各Runの`AI_QA_OUTPUT_ROOT`は`mktemp -d`を単独代入して成功確認後に`export`し、ディレクトリ作成失敗を見逃さない。固定HEAD・参照spec SHA・JSON/HTML report・失敗時添付は各Runの一意な出力先に保存する。孤立Bash確認で`export VAR=$(false) || exit 71`は71で終了しない一方、`VAR=$(false) || exit 71`は71で終了することを確認した。
+- **実Chromiumの実行可否**：GitHub接続先のソースは参照・更新できるが、現在のコマンド実行コンテナに対象checkout、pnpm依存、Shopのビルドと8082サーバーがない。Gitの直接取得はDNS解決失敗。インストール済みChromiumバイナリ単体では専用Configの対象specを動かせない。既存Web CIの`training-web-baseline`は専用参考specを実行しない。既存workflowの編集・新workflow構造の追加は本ブランチの所有範囲とAGENTS.mdのL2承認境界に抵触し得るため、無断で行わない。**5 Runの実行結果は未取得**。
+- **M07レビュー指摘**：#215側の`assessment/**`は読み取り専用で、3件目のCart外への再入場が欠ける。#217のHEAD `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`、Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613`では修正済み。ただし#215には未統合であり、後続で統合HEAD・2/3件の専用Chromium Runを確認するまでレビューthreadおよびM07-05を未完了とする。
+- **進捗**：**Progress: 94% (31/33)**。CI結果は新HEADで判定し、M06/M07の専用実行項目は未完了のまま維持する。
