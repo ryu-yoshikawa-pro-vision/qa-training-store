@@ -915,6 +915,28 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("rejects a partial Web curriculum without HTML even when all quiz JSON matches", async () => {
+    const fixture = courseFixture();
+    const webPrefix = "docs/curriculum/ai-assisted-qa/quizzes/";
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      const quiz = fs.readFileSync(path.join(fixture.source, webPrefix, `${moduleId}.json`));
+      writeFixtureFile(fixture.source, `dist/${webPrefix}${moduleId}.json`, quiz);
+    }
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/Web\/Template Markdown revision mismatch \(BLOCKED\): index.html/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
   it("rejects a symlinked Web build root before copying any files", async () => {
     const fixture = courseFixture();
     const originalDist = path.join(fixture.source, "dist");
