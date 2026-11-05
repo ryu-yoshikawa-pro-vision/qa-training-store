@@ -501,7 +501,12 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   const snapshotBytes = lstatRegularFile(snapshotPath, "course Playwright source snapshot");
   assertM07SourceDependencies(specBytes, moduleId, path.basename(record.spec_path));
   assertM07SourceDependencies(snapshotBytes, moduleId, path.basename(record.spec_path));
-  assertM07MaintenanceAssertions(specBytes, moduleId, path.basename(record.spec_path), record.label);
+  assertM07MaintenanceAssertions(
+    specBytes,
+    moduleId,
+    path.basename(record.spec_path),
+    record.label,
+  );
   assertM07MaintenanceAssertions(
     snapshotBytes,
     moduleId,
