@@ -48,9 +48,13 @@ describe("M07 to M10 Phase 3 handoff", () => {
       const fallback = current.public_fallback;
       expect(fallback.public).toBe(true);
       expect(fallback.artifact_id).not.toBe(current.inputs[0].artifact_id);
-      const source =
-        "training/ai-assisted-qa-course/" + fallback.path.replace(/^inputs\//, "inputs/");
-      const target = "course/modules/" + to + "/" + fallback.path.replace(/^inputs\/[A-Z0-9]+\//, "inputs/");
+      const source = path.posix.join("training/ai-assisted-qa-course", fallback.path);
+      const target = path.posix.join(
+        "course/modules",
+        to,
+        "inputs",
+        path.posix.basename(fallback.path),
+      );
       expect(existsInDistribution(source, target)).toBe(true);
       expect(current.expected.previous_artifact_policy).toContain("public sample");
     });
