@@ -87,6 +87,7 @@ function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot)
 
   const found = [];
   const attachments = [];
+  let failedTracePresent = false;
   const visit = (suite) => {
     for (const spec of suite.specs ?? []) {
       if (
@@ -144,13 +145,15 @@ function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot)
             name: typeof attachment.name === "string" ? attachment.name : "",
             content_type: typeof attachment.contentType === "string" ? attachment.contentType : "",
           });
+          if (final.status === "failed" && attachment.name?.toLowerCase() === "trace")
+            failedTracePresent = true;
         }
       }
     }
     for (const child of suite.suites ?? []) visit(child);
   };
   for (const suite of report.suites) visit(suite);
-  return { tests: found, attachments };
+  return { tests: found, attachments, failedTracePresent };
 }
 
 export function assertM07SourceDependencies(specBytes, moduleId, specName) {
@@ -504,6 +507,7 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
     fail("course Playwright run evidence command or project is invalid");
   return {
     record,
+    failed_trace_present: extracted.failedTracePresent,
     current_spec_sha256: sha256(specBytes),
     paths: [
       relativeWorkspacePath(absolute, root),
@@ -898,7 +902,9 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
             record.tests.some((test) => test.status === "failed");
       const tracePresent =
         requirement.require_trace !== true ||
-        record.attachments.some((attachment) => attachment.name.toLowerCase() === "trace");
+        (requirement.expected_outcome === "failed"
+          ? verified.failed_trace_present
+          : record.attachments.some((attachment) => attachment.name.toLowerCase() === "trace"));
       checks.push({
         id: moduleId + "-RUN-" + requirement.spec + "-" + requirement.label,
         status:
