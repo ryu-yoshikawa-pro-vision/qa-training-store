@@ -8,7 +8,7 @@
 
 GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/CI操作例・無効workflow見本と安全な配布/証拠検証コード、契約・負例テストおよび既存CIを担当する。**本人Private repoでの課金/権限判断・実PR・実CIとOpenCode実モデルの学習/修了は#199の最後に受け入れる**。ここでの成功は技術準備/自動テストの成功であり、受講者の修了ではない。
 
-現在4/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。GitHub Actionsの変更後CIは完了確認前のため、CI合格を根拠とする他項目は未チェック。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
+現在6/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。GitHub Actionsの変更後CIは完了確認前のため、CI合格を根拠とする他項目は未チェック。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
 
 ## 変更範囲
 
@@ -23,12 +23,21 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 
 ## 2026-11-05 M08-03/04とM09の追加確認
 
-- **M08-03（隔離Git実行：PASS）**：`tests/contracts/ai-assisted-qa-phase3-review.test.mjs`にmock PR APIとCase/spec/Run/commit SHAの追跡用fixtureを追加。Linux Git 2.47.3で`git init --initial-branch=main`、mainの基点commit→練習branchで2コミット→`git diff --name-only HEAD^ HEAD`、`git diff --name-only main...HEAD`、`git merge-base main HEAD`を実行。2回目単独は`workspace/M08/review-candidate.md`のみ、base...headは先行`first-change.md`も含むことを確認。fixture SHA: base `d75db311cc6774c2ef986bea129a80131e454c8a`、親 `26ebaf49093873456377dff4d3ab8023d158dc1b`、head `6348684b63083ed317367df03597133366c04c57`。実PR・API Run・実テストPASSは存在せず、fixture上の`run_id=null`・`not_executed`・未確認事項として明示。M08提出表とM09 handoff契約の列・ID・revisionを照合。
+- **M08-03（隔離Git実行：PASS）**：`tests/contracts/ai-assisted-qa-phase3-review.test.mjs`にmock PR APIとCase/spec/Run/commit SHAの追跡用fixtureを追加。Linux Git 2.47.3で`git init --initial-branch=main`、mainの基点commit→練習branchで2コミット→`git diff --name-only HEAD^ HEAD`、`git diff --name-only main...HEAD`、`git merge-base main HEAD`を実行。2回目単独は`workspace/M08/review-candidate.md`のみ、base...headは先行`first-change.md`も含むことを確認。fixtureは各実行で新しいcommit SHAを生成するため固定値ではない。テストでは40桁SHA、親子関係、差分対象を実行時に検証する。実PR・API Run・実テストPASSは存在せず、fixture上の`run_id=null`・`not_executed`・未確認事項として明示。M08提出表とM09 handoff契約の列・ID・revisionを照合。
 - **M08-04（教材と仮想レビューの採否確認）**：`exercises/M08/exercise.md`のP05にAIの見落としDを追加し、`submission-template.md`へ停止条件を反映。A「Run未実行をCI成功とする」は却下、B「仕様ID・diff・Runを対応付ける」は採用（Runがなければ未実行）、C「重複のない小変更をFactoryへ分割」は却下、ただし重複と変更負荷が実証された別条件は便益・リスクを確認して再検討。D「AIが問題なしでもstageに非公開メモが混在」はコミット停止・stage再点検。教材`M08/README.md`、クイズ`M08-Q03/Q04`、提出様式と照合した。実モデルの応答・本人の採否は受入していない。
 - **M09-01はBLOCKED**：`course/shop/index.html`と`.course/distribution-manifest.json`のPrivate runnerへの固定SHA取得・配置経路は配布担当との合意待ち。現在の`.disabled`見本の存在検証は取得処理を意味しないため、この項目を未チェックに保持。
 - **M09-02/03/05（検証拡充・未チェック）**：`tests/contracts/ai-assisted-qa-phase3-ci-diagnostics.test.mjs`に実workflowの11ステップ・runner・対象SHA・配布ガード・Browser/Test/Artifactの責務、危険なevent/権限/認証情報保持/証拠欠落の負例、合成A/B/Cと別条件X/Y/Zの照合を追加。GitHub API Run/attempt/Check/Artifactについては`ai-assisted-qa-github-run-evidence.test.mjs`の既存固定SHA/旧Run負例を参照。新規契約テストのCI完了を確認するまでPASSは未確定。
 - **M09-04/05（教材更新・未チェック）**：M09にGitHub公式のActions課金/使用量、プラン別含有利用量とfork/`pull_request_target`の安全条件を追記。本人Billing・予算・権限は未確認であり、無効workflowの有効化は引き続きBLOCKED。架空の更新21回/2回と実請求額を混同しない。
 - **CI**：PR #216の直近確認HEAD`1b6f94c98bfe`はWeb CI Run `41941211966`がpending。M08-03のGit実行とM08-04の教材レビューは実施済みだが、新たに追加したVitest・formatterの全PASSとは扱わない。CIがFAILなら該当項目を見直す。
+
+## 2026-11-05 継続：M09技術証拠と未解決条件
+
+- **M09-01（未チェック）**：`prepare-learner-template.mjs` → `course:sync`（配布元でShop Build）→ `course/shop/**`と`.course/distribution-manifest.json`を初期Private repoへ追跡登録 → Runnerの`actions/checkout`で再取得 → `verify-distribution`でmanifest内SHA-256検証 → Playwrightの`webServer`がServeする経路を、配布manifest・ignore・完成見本・設定から特定した。教材に承認済み配布元SHA、信頼済みbase commit、tracked paths、`git ls-tree`、manifestハッシュ、外部PR時の信頼境界を追記。隔離Gitからのcloneで合成Shopと合成manifestが復元される正例、改変時のSHA-256不一致を`ai-assisted-qa-phase3-distribution-handoff.test.mjs`に追加。**本人Private repoで実際に配布した際のbase SHA・配布元SHA・ハッシュは未確認であり、テスト追加のみで実環境を承認しない**。
+- **M09-02（証拠PASS・チェック済み）**：`ai-assisted-qa-github-run-evidence.test.mjs`の実行環境GitHub Actions Ubuntu（Web CI Run `41942109034`、`Vitest (contracts)`=success、対象HEAD `5be1770c001c`）で、PR head/merge SHA、Run ID/attempt、job Check、Artifact、target SHA、Playwright JSON一致の正例と、旧HEAD・別attempt・誤SHA・改変Artifact・不一致Playwrightの拒否を確認。ここでいうRunはVerifierのAPI fixtureであり、本人Private repoの実Runではない。検証コード・既存テストの後続変更はない。
+- **M09-03（未チェック）**：架空A/B/Cに加えD Install、E配布検証、F Serveの最初の失敗と派生Upload失敗を別記し、P03と提出表を9条件に拡張。追加テストの最新HEADでの結果が未確定。実CIのテスト失敗や本番Shop不具合を合成ログから断定しない。
+- **M09-04（未チェック）**：自動案A=21回/7日、B=2回/7日の架空更新頻度、手動案0回なら未検証、ジョブ分数・Artifact・Runner・課金主体が不明なら`BLOCKED`を教材・提出欄・クイズと照合する契約テストを追加。本人Billing・残高・有効化承認は実受入に残す。
+- **M09-05（安全性の契約PASS・チェック済み）**：完成見本の`pull_request`、`contents: read`、`persist-credentials: false`、Secret/deploy不要を確認。既存のworkflow負例テストで`pull_request_target`、`contents: write`、credential永続化、改変Artifact、配布ガード無効化を拒否。Web CI `41942109034`の`Vitest (contracts)`=success。外部PRからの未信頼コード実行とAction/依存取得は残リスクとして教材に明記し、本人Private repoでフォーク許可設定と権限・配布元を確認するまでworkflowを有効化しない。
+- **CI**：直近途中HEAD `a9f89a7ad12d`の`Vitest (contracts)`は当時実行中、`Style Quality`が追加テスト2ファイルを指摘、`Code Quality`は新規テストの`Buffer`未importで失敗。その後`Buffer`明示import、重複したvalidator負例の削除、Prettierの行分割を修正した。**最新HEADのCI成功は未確認**。Runを待って作業停止しないが、FAILが残れば再開時に修正する。
 
 ## M08：Git・PR・変更レビュー（4目標）
 
@@ -40,10 +49,10 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 ## M09：CI・品質ゲート（5目標）
 
 - [ ] `M09-01`：YAML event/job/step/runner、配布済みShopの生成者・取得・Serve・Test、install/build/server/testの責務を教材と完成見本で対応
-- [ ] `M09-02`：PR head/merge SHA、Run/attempt/Check/Artifact、`target-sha.txt`の照合を固定SHAの正例・旧Run負例で確認
+- [x] `M09-02`：PR head/merge SHA、Run/attempt/Check/Artifact、`target-sha.txt`の照合を固定SHAの正例・旧Run負例で確認
 - [ ] `M09-03`：install/配布/Serve/test/artifactの最初の失敗箇所と、`if-no-files-found`、`if: always()`、SHA不一致の扱いを別条件で確認
 - [ ] `M09-04`：本人Private repoの無料Actions条件・trigger・回数/保存・費用/停止条件を複数の架空ケースで判断。費用不明時はBLOCKED
-- [ ] `M09-05`：外部PRと`pull_request_target`の危険、checkout・依存取得・Browser・Artifact・Secret・権限の最小化を判断し、安全なworkflow例へ対応
+- [x] `M09-05`：外部PRと`pull_request_target`の危険、checkout・依存取得・Browser・Artifact・Secret・権限の最小化を判断し、安全なworkflow例へ対応
 
 ## M10：同一specのCI実行・Phase 3総合演習（5目標）
 
