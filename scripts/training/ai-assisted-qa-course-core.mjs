@@ -630,6 +630,21 @@ function validateWebQuizParity(files) {
   }
 }
 
+// Metro may embed runtime-only image URLs that never appear in HTML or CSS.
+function validateBundledShopAssets(files) {
+  const targets = new Set(files.map((file) => file.target_path));
+  for (const file of files) {
+    if (!file.target_path.startsWith("course/shop/") || !file.target_path.endsWith(".js"))
+      continue;
+    const source = file.bytes.toString("utf8");
+    for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g)) {
+      const required = `course/shop${match[1]}`;
+      if (!targets.has(required))
+        fail(`bundled Web runtime asset is missing from distribution: ${file.target_path} -> ${required}`);
+    }
+  }
+}
+
 function validateModulePublishedMaterials(root, distribution, moduleId) {
   const lessonPath = `course/modules/${moduleId}/README.md`;
   const lesson = verifiedCourseSource(root, distribution, lessonPath);
@@ -810,6 +825,7 @@ export async function syncCourse({
   }
   validatePublishedMarkdownLinks(files);
   validateWebQuizParity(files);
+  validateBundledShopAssets(files);
 
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
@@ -1107,6 +1123,7 @@ export function verifySyncedCourseDistribution({ root }) {
   }));
   validatePublishedMarkdownLinks(verifiedFiles);
   validateWebQuizParity(verifiedFiles);
+  validateBundledShopAssets(verifiedFiles);
 
   const m03PublicStart = filesByTarget.get(M03_PUBLIC_START_PATH);
   if (!m03PublicStart) fail("M03 public start input is missing from distribution");
