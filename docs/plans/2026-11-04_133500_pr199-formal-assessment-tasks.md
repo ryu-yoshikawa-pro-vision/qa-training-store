@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは6/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは7/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -36,7 +36,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] 正答・誤答・許容別解・部分達成・根拠不足・未実行の固定校正fixtureと判定契約を整備し、Node集計・モデル応答異常/欠落の負例をCIで検証する。**実モデルでの最終校正は#199**
 - [ ] 旧SHA/別Run、改ざん・偽Trace、重複/欠落ID、Prompt Injection、異常JSON、タイムアウトの負例をCIへ追加。模擬評価器の重大誤PASSを0にし、**実モデルの重大誤PASS 0件は#199最終実受入**で別に確認
 - [ ] 校正記録へモデルID/版・CLI版・Prompt Hash・rubric Hash・資料SHAを保存する契約を実装し、不一致時の再校正要求をテスト。実モデル校正結果の確定は#199へ渡す
-- [ ] 不一致/校正不能時は合格へ繰り上げず`blocked`/`ungradable`等の正しい状態にし、再試行条件を提示
+- [x] 不一致/校正不能時は合格へ繰り上げず`blocked`/`ungradable`等の正しい状態にし、再試行条件を提示（`isPassingCalibration`・`finalizeAssessment`・`resumeAttempt`・`saveSummary`、失敗校正cacheの拒否/候補欠落/再開負例を固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI `41953473479`の契約テスト成功で確認）
 
 ## 保存・再開・再評価
 
@@ -52,6 +52,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 継続対応：校正失敗の扱いとM05 P05
+
+- **項目13をチェック：** 旧HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d` の [CI Run 41953473479](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41953473479) は全体成功。校正 `status !== passed`、`critical_false_passes > 0`、`mismatches` の欠落/不一致を `isPassingCalibration` が拒否し、`finalizeAssessment` は `blocked` へ倒す。候補JSONの欠落・不正は `ungradable`、CLI/API/Secret等の不可用は `blocked` に分類。`saveSummary` は復習先と新試行での再評価を案内。失敗校正を成功cacheにしない既存負例・同一試行の無断再送拒否も契約CIで確認した。ただし外部プロバイダー認証・課金時の実挙動は#199に残る。
+- **M05 P05の独立receiptを実装（未チェック）：** `course:run`のM05許可specへ`p05-cart-locator.spec.ts`を追加し、`verifyModuleRunEvidence`は公開M05 JSONの`required_runs`を変更せず、このspecの`main` Run（1件以上PASS、現行spec・snapshot・JSON report・source SHA一致）も必須とする。M05-CR-02/03へ2明細・scope内各1件・数量1のread-only Assertionと削除未実行、DB証明の限界を明記。専用receipt欠落を`ungradable`とする契約テスト・校正fixtureとREADMEを更新した。固定HEAD `7d466bc99de759c80c52e99e1ba9934b405517ba`の [CI Run 41955882847](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41955882847) で`Vitest (contracts)`、`Code Quality`、2種類のビルド、Training runtime contractsは成功、`Style Quality`は`tests/contracts/ai-assisted-qa-assessment.test.mjs`の長いtest名により失敗。該当test名を修正したが、新HEAD CIの成功は未確認。実Chromium実行・本人P05成果物の妥当性・空Assertionの意味判定は未確認。
+- **他PRとの調停：** #215所有の`training/ai-assisted-qa-course/exercises/M05/exercise.md`には`course:run`がP05を拒否する旧説明がある。#199結合前に教材PRへ手順・提出欄の更新を依頼する。#217では教材の所有ファイル・共有Validator・製品SUTを変更しない。
+- **Run真正性の限界：** `source_sha`、receipt、spec snapshot、report、TraceのSHA一致とCase IDを確認できるが、意図的に生成した自己申告ログとハッシュを同時に偽造する攻撃に対して暗号学的な実行証明は持たない。項目3/19は継続未チェックとする。
 
 ## 2026-11-05 固定HEADのCI成功と完了条件
 
