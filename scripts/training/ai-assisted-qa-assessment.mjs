@@ -579,7 +579,9 @@ async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, 
   const args = buildOpenCodeRunArgs({ modelId, agentId: ASSESSOR_ID, promptPath });
   const result = await runCaptured(command, args, { cwd: ROOT, env: environment });
   if (result.exitCode !== 0)
-    fail(`BLOCKED: OpenCode CLI exited with code ${result.exitCode}; check provider authentication, rate limit, and quota before retrying`);
+    fail(
+      `BLOCKED: OpenCode CLI exited with code ${result.exitCode}; check provider authentication, rate limit, and quota before retrying`,
+    );
   const events = parseOpenCodeJsonEvents(result.stdout, result.exitCode);
   return {
     value: parseStrictJsonResponse(events.response),
