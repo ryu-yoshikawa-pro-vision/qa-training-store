@@ -163,6 +163,11 @@ export function buildAssessmentAgentConfig({ modelId, agentId, systemPrompt }) {
     $schema: "https://opencode.ai/config.json",
     model: modelId,
     update: "disable",
+    instructions: [],
+    plugins: [],
+    skills: [],
+    mcp: { servers: {} },
+    permissions: [{ action: "*", resource: "*", effect: "deny" }],
     agents: {
       [agentId]: {
         mode: "primary",
