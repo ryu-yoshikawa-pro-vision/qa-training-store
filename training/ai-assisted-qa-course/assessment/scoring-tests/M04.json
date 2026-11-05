@@ -180,7 +180,7 @@
     {
       "id": "M04-CAL-04",
       "type": "acceptable-alternative",
-      "response": "定性的な費用区分を使い、根拠と未確認事項を明記する。",
+      "response": "定性的な費用区分を使い、根拠と未確認事項を明記する。 さらにUnitの上限計算、Integrationの数量拒否・不変・保存、Componentのselect表示と無効状態、Web E2Eの導線を別々に採否・限界・費用で比較する。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M04/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
@@ -267,7 +267,7 @@
     {
       "id": "M04-CAL-11",
       "type": "correct",
-      "response": "Candidate-01は期待結果を訂正した後にCASE-CART-BASE-01と重複するため別テストを追加せず、正規Case BASE-01だけをIntegrationでAutomateする。Candidate-02Aは一件残してAutomateし、重複02BはDo not automateとする。Candidate-03は前提値が設定・観測できるまでLaterとし、値が2ならBASE-01へ統合する。反復頻度、影響、安定性、準備・保守費用を根拠にする。",
+      "response": "Candidate-01は期待結果を訂正した後にCASE-CART-BASE-01と重複するため別テストを追加せず、正規Case BASE-01だけをIntegrationでAutomateする。Candidate-02Aは一件残してAutomateし、重複02BはDo not automateとする。Candidate-03は前提値が設定・観測できるまでLaterとし、値が2ならBASE-01へ統合する。反復頻度、影響、安定性、準備・保守費用を根拠にする。 Unitの数量上限計算、Integrationの更新と保存、Componentのselect候補と無効状態、Web E2Eの導線について、層別の検出可否と費用を記録する。",
       "evidence": [
         "reference-solutions/M04.md",
         "docs/curriculum/ai-assisted-qa/modules/M04/README.md",
