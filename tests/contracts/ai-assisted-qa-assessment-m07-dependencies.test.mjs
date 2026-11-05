@@ -125,16 +125,13 @@ describe("M07 maintenance per-test Playwright assertions", () => {
     const accepted = [
       'await expect(page.url()).toStrictEqual("/cart");',
       'await expect.soft(page.getByLabel("数量")).toMatchObject({ value: "2" });',
-      'await expect.poll(() => page.url()).toMatch(/cart/);',
+      "await expect.poll(() => page.url()).toMatch(/cart/);",
       'await expect(page.getByLabel("数量")).not.toMatch("invalid");',
     ];
     for (const assertion of accepted) {
-      const code = [
-        before,
-        'test("cart reentry", async ({ page }) => {',
-        assertion,
-        "});",
-      ].join("\n");
+      const code = [before, 'test("cart reentry", async ({ page }) => {', assertion, "});"].join(
+        "\n",
+      );
       expect(() => verifyAssertions(code, "after")).not.toThrow();
     }
   });
@@ -153,12 +150,9 @@ describe("M07 maintenance per-test Playwright assertions", () => {
       "const fixed = 1 + 1; expect(fixed).toBe(2);",
     ];
     for (const assertion of rejected) {
-      const code = [
-        before,
-        'test("cart reentry", async ({ page }) => {',
-        assertion,
-        "});",
-      ].join("\n");
+      const code = [before, 'test("cart reentry", async ({ page }) => {', assertion, "});"].join(
+        "\n",
+      );
       expect(() => verifyAssertions(code, "after")).toThrow(/business assertion/);
     }
   });
