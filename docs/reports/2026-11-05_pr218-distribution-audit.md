@@ -110,3 +110,21 @@
 [Web CI #41967650261 のBuild Artifact](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)（ZIP内312ファイル）の一覧では教材図SVG 27、教材PNG 3、各種仕様画面WebP、`docs/spec/screen-catalog.html`の存在を確認できる。**WebにあることはMarkdownのリンク先が正しくなることを意味しない**。
 
 **修正方向と所有境界**：公開してよい原本リンクのみ、`source_path`→`target_path`の確定対応を使って配布時に相対リンクを再構成するか、必要な静的assetを明示allowlistへ追加する。Web Build由来のassetは`course/shop/**`の実ファイル存在を確かめる。未許可の古いPlanや評価内部資料は自動追加しない。教材の正本変更・公開対象の確定は#199/各Phase担当に引き継ぐ。本PRにおける配布変換を導入する場合も全69 Markdown・生成assetの負例/回帰テストが必須。**配布閉包とTemplate完全性のチェックは未完了**。
+
+## 第三者素材・再配布許諾の原典照合台帳（追加調査）
+
+対象のWeb Build実物は[CI #41967650261](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)、HEAD `594a72b724ebbd27f8c61d3af9c64507f1e9b9e9` の `web-dist-production`（Artifact ID `13388865001`）。ZIP 312ファイルの拡張子別内訳はWebP 103、HTML 83、Markdown 50、SVG 27、JSON 18、CSS 6、woff 6、woff2 6、PNG 3、disabled 3、JS 2、TS 2、拡張子なし1、log 1、CSV 1。**この成果物の権利検証結果を別Build HEADへ転用しない**。
+
+| 配布対象・版 | ライセンス原典・著作権者 | 原典にある再配布条件と既存NOTICE | 状態と残課題 |
+| --- | --- | --- | --- |
+| 固定Skill 13件・105ファイル：`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324` | [固定Git tree](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/tree/7cc6cba7772de549841a39d71694cbafbc783324)。同commitのrootおよび選定Skill treeの`LICENSE`/`NOTICE`は確認できない | 同一ownerという事実やTemplate付属MITだけでは固定Skill全ファイルの再配布許諾は立証されない | **許諾未確認**。権利者・出典・外部採用資料・各scripts/assetsの帰属を#199で確認する。許諾が確認できなければ公開を保留 |
+| Template独自教材・コード | [配布元`learner-LICENSE`](../..//training/ai-assisted-qa-course/templates/learner-LICENSE)（MIT）、表示`Copyright (c) 2026 ryu-yoshikawa-pro-vision` | MITの著作権・許諾表示を維持。権利者が許諾可能な独自部分に限る | **範囲条件付き**。第三者部分への一律MIT適用は禁止 |
+| Inter：`@fontsource/inter@5.3.0` | [Inter原典`LICENSE.txt`](https://github.com/rsms/inter/blob/master/LICENSE.txt)、Git Blob `9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea`。Copyright (c) 2016 The Inter Project Authors | OFL-1.1。フォントのみ単体販売しない。再配布時は原著作権表示とOFL本文を保持。派生版のReserved Font Name要件に従う。Templateの`licenses/OFL-1.1.txt`＋`THIRD_PARTY_NOTICES.md`を確認 | **原典と既存NOTICE照合済み**。実woff/woff2（6件）の再圧縮/派生状態と表示保持を配布最終版で再確認 |
+| Noto Sans JP：`@fontsource/noto-sans-jp@5.3.0` | [Google Fonts原典`OFL.txt`](https://github.com/google/fonts/blob/main/ofl/notosansjp/OFL.txt)、Git Blob `1c9f43281b8f216c5461fe9ac729afbade7724e4`。Copyright 2014–2021 Adobe、Reserved Font Name 'Source'。[Google Fonts metadata](https://github.com/google/fonts/blob/main/ofl/notosansjp/METADATA.pb) | OFL-1.1。上記著作権表示とReserved Font Nameを保持。TemplateのOFL本文とNOTICEに対応表示あり | **原典と既存NOTICE照合済み**。配布後の6フォントファイル個別確認は残る |
+| React/React DOM/React is/scheduler/use-sync-external-store-shim（Web生成JS） | [React公式リポジトリ](https://github.com/facebook/react)のMIT License。生成bundleの`@license React`と`Copyright (c) Meta Platforms, Inc. and affiliates.`を7箇所検出 | MITは元の著作権・許諾表示の保持が必要。既存NOTICEでMetaの表示とMIT記載あり | **検出したライセンス表示とNOTICE対応を確認**。すべてのtransitive依存関係を列挙した判断ではない |
+| `bezier-easing`（Web生成JS） | [原典LICENSE](https://github.com/gre/bezier-easing/blob/master/LICENSE)、Git Blob `3ca2c8ed87287f9a5d72a00e578154a29b7726e6`。Copyright (c) 2014 Gaëtan Renaudeau。生成bundleには2014–2015年の表示 | MITは著作権・許諾表示を維持。既存NOTICEに該当表示あり | **原典と既存NOTICE照合済み**。生成bundleのyear表記差異は元bundle表示を保持し、出典として原典を記録 |
+| 上記以外のWeb JS依存・CSS・画像・生成HTML・ローカル図 | Build Artifact内の配布物の存在は確認したが、全JSモジュール・SVG/PNG/WebPの元著作者・ライセンスを1件ずつ同定した証拠はない | 同梱NOTICEはReact/Bezier/2フォントを明記し、JS全件は未完了と明示している | **権利未確認**。Third-party inventory/SBOMと生成物の元ライセンス、著作者、NOTICE要否、画像の利用許可を固定最終Buildで照合する |
+
+`pnpm-lock.yaml`のimporterとresolutionは`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`を固定（`package.json`宣言は`^5.3.0`）。生成JSにはReact関連の`@license`ブロック7件とbezier-easingのCopyrightブロック1件を確認した。MITやOFLは条件付きの再配布を許すが、**固定Skill全体や未同定の依存・画像の許諾を推定しない**。前掲のリンク切れ・旧教材同梱も配布承認の独立した阻害要因として残る。
+
+本節は原典・著作権者・NOTICE状況と未確認項目を管理する**調査台帳**であり、法律上の最終判断、Public Template公開の承認ではない。最終許諾判定は#199へ引継ぐ。
