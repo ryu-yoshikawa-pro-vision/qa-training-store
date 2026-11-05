@@ -32,6 +32,7 @@ describe("M07 maintenance Playwright source dependency closure", () => {
     ].join("\n");
     expect(() => verify(after)).not.toThrow();
     expect(() => verify(starter, "M05")).not.toThrow();
+    expect(() => verify("class CartPage {}\nexport { CartPage };")).not.toThrow();
   });
 
   it("rejects untracked imports from the learner spec", () => {
@@ -118,6 +119,48 @@ describe("M07 maintenance per-test Playwright assertions", () => {
     ].join("\n");
     expect(() => verifyAssertions(literal, "after")).toThrow(/business assertion/);
     expect(() => verifyAssertions(before, "after")).toThrow(/fewer/);
+  });
+
+  it("accepts runtime matchers including soft, poll, and broader to* assertions", () => {
+    const accepted = [
+      'await expect(page.url()).toStrictEqual("/cart");',
+      'await expect.soft(page.getByLabel("数量")).toMatchObject({ value: "2" });',
+      'await expect.poll(() => page.url()).toMatch(/cart/);',
+      'await expect(page.getByLabel("数量")).not.toMatch("invalid");',
+    ];
+    for (const assertion of accepted) {
+      const code = [
+        before,
+        'test("cart reentry", async ({ page }) => {',
+        assertion,
+        "});",
+      ].join("\n");
+      expect(() => verifyAssertions(code, "after")).not.toThrow();
+    }
+  });
+
+  it("rejects constant-only matcher inputs even with expressions or local const values", () => {
+    const rejected = [
+      "expect(null).toBe(null);",
+      "expect(undefined).toBe(undefined);",
+      "expect(1 + 1).toBe(2);",
+      "expect(1 === 1).toBe(true);",
+      "expect(`x`).toBe('x');",
+      "expect(-1).toBe(-1);",
+      "expect({ ready: true }).toMatchObject({ ready: true });",
+      "expect.soft(1 + 1).toBe(2);",
+      "expect.poll(() => 2).toBe(2);",
+      "const fixed = 1 + 1; expect(fixed).toBe(2);",
+    ];
+    for (const assertion of rejected) {
+      const code = [
+        before,
+        'test("cart reentry", async ({ page }) => {',
+        assertion,
+        "});",
+      ].join("\n");
+      expect(() => verifyAssertions(code, "after")).toThrow(/business assertion/);
+    }
   });
 
   it("refuses no-op M07 code before running Playwright", () => {
