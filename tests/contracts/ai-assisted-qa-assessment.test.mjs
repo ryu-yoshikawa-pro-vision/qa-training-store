@@ -3066,6 +3066,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     const normalized = validateCandidate(candidate(), context);
     const args = {
       candidate: normalized,
+      requiredObjectiveIds: context.objectiveIds,
       calibration: { id: "cal-1", status: "passed", critical_false_passes: 0, mismatches: [] },
       sourceSha: "a".repeat(40),
       versions: {
@@ -3086,6 +3087,37 @@ describe("AI-assisted QA formal assessment contracts", () => {
       },
     };
     expect(finalizeAssessment(args).completed).toBe(true);
+    expect(finalizeAssessment({ ...args, requiredObjectiveIds: undefined })).toMatchObject({
+      status: "ungradable",
+      completed: false,
+    });
+    expect(
+      finalizeAssessment({ ...args, requiredObjectiveIds: [context.objectiveIds[0]] }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        requiredObjectiveIds: [context.objectiveIds[0], "M99-01"],
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        requiredObjectiveIds: [context.objectiveIds[0], context.objectiveIds[0]],
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    for (const [status, expectedStatus] of [
+      ["not_run", "incomplete"],
+      ["ungradable", "ungradable"],
+      ["blocked", "blocked"],
+    ]) {
+      const changed = structuredClone(normalized);
+      changed.objectives[0] = { ...changed.objectives[0], status, level: null };
+      expect(finalizeAssessment({ ...args, candidate: changed })).toMatchObject({
+        status: expectedStatus,
+        completed: false,
+      });
+    }
     expect(
       finalizeAssessment({
         ...args,
