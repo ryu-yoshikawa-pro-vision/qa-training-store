@@ -483,25 +483,6 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
-  it("TEMP identifies exact formatting delta", async () => {
-    const prettier = await import("prettier");
-    const testPath = path.join(repositoryRoot, "tests/contracts/ai-assisted-qa-course-distribution.test.mjs");
-    const settings = await prettier.resolveConfig(testPath);
-    const expected = await prettier.format(fs.readFileSync(testPath, "utf8"), {
-      ...settings,
-      filepath: testPath,
-    });
-    const actual = fs.readFileSync(testPath, "utf8").split("\n");
-    const formatted = expected.split("\n");
-    for (let i = 0; i < Math.max(actual.length, formatted.length); i += 1) {
-      if (actual[i] === formatted[i]) continue;
-      console.log("FORMAT_DELTA_CURRENT_LINE", i + 1, JSON.stringify(actual.slice(Math.max(0, i - 3), i + 7)));
-      console.log("FORMAT_DELTA_EXPECTED_LINE", i + 1, JSON.stringify(formatted.slice(Math.max(0, i - 3), i + 7)));
-      break;
-    }
-  });
-
-
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     for (const [field, value] of [
@@ -2888,6 +2869,72 @@ describe("AI-assisted QA distribution contract", () => {
     expect(retry.copied).toContain("course/modules/M01/README.md");
     expect(retry.unchanged).toBeGreaterThan(0);
     expect(fs.readFileSync(failingDestination, "utf8")).toContain("# M01");
+  });
+
+  it("keeps other modules, private assessments, and traces untouched across load failures", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "6".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+
+    const protectedFiles = new Map([
+      ["workspace/M04/previous.md", Buffer.from("previous phase answer\\n")],
+      ["workspace/M05/notes.md", Buffer.from("learner notes\\n")],
+      ["workspace/M06/private-notes.md", Buffer.from("other module answer\\n")],
+      ["workspace/.course-assessments/P1/attempts/old/result.json", Buffer.from('{"private":true}\\n')],
+      ["workspace/.course-exports/previous.zip", Buffer.from([0, 1, 2, 255])],
+      ["output/training/ai-assisted-qa/test-results/trace.zip", Buffer.from([5, 4, 3, 2])],
+    ]);
+    for (const [relativePath, bytes] of protectedFiles) {
+      writeFixtureFile(fixture.target, relativePath, bytes);
+    }
+
+    const first = loadModule({
+      root: fixture.target,
+      moduleId: "M05",
+      now: new Date("2026-10-22T05:00:00.000Z"),
+    });
+    const firstReceipt = fs.readFileSync(path.join(fixture.target, first.receipt));
+    const second = loadModule({
+      root: fixture.target,
+      moduleId: "M05",
+      now: new Date("2026-10-22T05:01:00.000Z"),
+    });
+    expect(second.copied).toEqual([]);
+    expect(fs.readFileSync(path.join(fixture.target, first.receipt))).toEqual(firstReceipt);
+
+    const failedTarget = path.join(fixture.target, "workspace/M06/cart-cases.spec.ts");
+    const originalCopy = fs.copyFileSync.bind(fs);
+    const copySpy = vi.spyOn(fs, "copyFileSync").mockImplementation((source, destination, ...args) => {
+      if (destination === failedTarget) throw new Error("injected M06 interruption");
+      return originalCopy(source, destination, ...args);
+    });
+    try {
+      expect(() => loadModule({ root: fixture.target, moduleId: "M06" })).toThrow(
+        /injected M06 interruption/,
+      );
+    } finally {
+      copySpy.mockRestore();
+    }
+    expect(fs.existsSync(failedTarget)).toBe(false);
+    expect(fs.readdirSync(path.join(fixture.target, ".course-load")).some((name) => name.startsWith("M06-"))).toBe(false);
+
+    const submission = path.join(fixture.target, "workspace/M05/submission.md");
+    fs.appendFileSync(submission, "learner modification\\n");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
+      /existing learner files differ; nothing was overwritten/,
+    );
+    expect(fs.readFileSync(submission, "utf8")).toContain("learner modification");
+    for (const [relativePath, bytes] of protectedFiles) {
+      expect(fs.readFileSync(path.join(fixture.target, relativePath))).toEqual(bytes);
+    }
+    expect(fs.readFileSync(path.join(fixture.target, first.receipt))).toEqual(firstReceipt);
   });
 
   it("resumes an interrupted module load without overwriting learner edits", async () => {
