@@ -50,11 +50,8 @@ describe("formal assessment pinned HTTP assets", () => {
   const rubricText = "# Phase 1 rubric\n";
 
   it("accepts scoring and rubric only at their fixed source SHA", async () => {
-    const cases = [
-      [SCORING_PATH, scoringText],
-      [RUBRIC_PATH, rubricText],
-    ];
-    for (const [sourcePath, content] of cases) {
+    for (const sourcePath of [SCORING_PATH, RUBRIC_PATH]) {
+      const content = sourcePath === SCORING_PATH ? scoringText : rubricText;
       const asset = assetFor(sourcePath, content);
       const bytes = await fetchPinnedAssessmentAsset({
         asset,
