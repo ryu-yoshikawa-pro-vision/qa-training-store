@@ -64,7 +64,7 @@ M07の`workspace/M07/maintenance.spec.ts`は、教材の指定どおりPage Obje
 `result.json`、`calibration-result.json`、`ai-candidate.json`などの評価記録は削除しないでください。
 別試行のロックは削除しないでください。
 
-同じ試行IDの`--resume`で完了済みの`result.json`を再公開する場合も、現在の配布source・scoring/rubricのHash・状態revision・必須目標・提出ファイル・Run証拠・live challenge/回答のSHAを検査します。不一致・ファイル欠落があれば旧結果と履歴を保持して再公開を中止し、**新規試行IDでの再評価**を求めます。Phase 3ではGitHub APIの現行Run確認も必要です。オフラインやAPI障害では完了済み結果の自動復旧ができない場合があり、その場合は保存済み履歴の確認と接続復旧を先に実施します。
+同じ試行IDの`--resume`で完了済みの`result.json`を再公開する場合も、現在の配布source・scoring/rubricのHash・状態revision・必須目標・提出ファイル・Run証拠・live challenge/回答のSHAを検査します。不一致・ファイル欠落があれば旧結果と履歴を保持して再公開を中止し、**新規試行IDでの再評価**を求めます。Phase 3ではGitHub APIの現行Run確認に加えて、取得した決定論的チェックが保存済み結果と一致することも要求します。過去にPASSしたRun/Checkが現時点で`blocked`や`ungradable`になった場合は、保存済み結果を現在の合格として再公開しません。オフラインやAPI障害では完了済み結果の自動復旧ができない場合があり、その場合は保存済み履歴の確認と接続復旧を先に実施します。
 
 ## 最新結果ポインタの公開中断
 
