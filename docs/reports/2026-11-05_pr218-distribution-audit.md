@@ -147,3 +147,13 @@
 - Web/Templateクイズについて、`course/shop/docs/curriculum/ai-assisted-qa/quizzes/M00..M10.json`が存在するとき、`course/quizzes/M00..M10.json`と**全11件のバイト一致**を`course:sync`・`verify-distribution`で検査。1件だけを含む生成物は同期前に拒否し、全11件が存在しても1件が不一致なら拒否。配布後にWeb側のJSONとmanifestのハッシュを同時に改変した場合も拒否する契約テストを追加した。
 - 以前の[Web CI #41967650261 Build Artifact](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)は`docs/curriculum/ai-assisted-qa/quizzes/M00..M10.json`が全11件存在し、同Build HEADのGit Blobとバイト一致していた。一方、Web側の教材本文はHTMLで生成され、TemplateのMarkdownとバイト一致する形式ではない。公開WebのSHA/revision表示・版不一致時BLOCKED、旧Planリンク、本人実ブラウザでの再読込非上書きは**未受入**。また軽量fixtureの`dist/index.html`のみのケースではWebクイズの不在を許容するため、**実Shop全ファイルを生成する統合CI**の最終確認は必要である。
 - 新しいクイズ/リンク負例は契約テストへ追加済みで、**追加したHEADでのCI成功は未確定**。`#199`と他担当の公開対象判断を代替しない。専用チェックリストは**12/21件チェック済み**（Template生成の固定fixture受入を新たに1件チェック）。
+
+## 2026-11-05 CI失敗の修正：モジュール読込前の配布検証
+
+- [Web CI #41988734264](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41988734264)、HEAD `f216ad54afd9bf538e80244369f76fa0fbb06ec3`：`Style Quality`・`Code Quality`・Web Build・主要Chromium E2Eは成功。一方、`Vitest (contracts)`は**1114件PASS、2件FAIL**。`rejects forged learner links even when distribution hashes are rewritten`と`pins all 11 built Web quizzes to the learner JSON bytes`の2件で、`verifySyncedCourseDistribution()`は拒否するのに`loadModule()`が拒否しなかった。テストの期待値を緩めずに実行経路の差を修正した。
+- `loadModule()`の書込前に`validateModulePublishedMaterials()`を追加。選択したモジュールのREADMEを固定ハッシュで読み、相対リンクの配布対象存在とリンク先ファイルの実ハッシュを照合する。Web側クイズが含まれる配布では、`course/quizzes/M00..M10.json`と生成Web側の同11件を全件読み、バイト一致を検証する。Web側が生成されていない小さなfixtureと、実Shop版の全11件一致を区別する。これらは他モジュールの受講者作業ファイルを変更しない。
+- 追加の負例：配布後に公開READMEとmanifest hashを同時改ざんした場合、WebクイズJSONとmanifest hashを同時改ざんした場合、READMEが参照する生成Shop画像を削除した場合、元の内容とハッシュが正しいファイルを配布root外へのSymlinkに差し替えた場合。どの場合も`course:load`のコピー・receipt作成前に拒否する契約をテストに追加。
+- `verifiedCourseSource()`で`resolveWithin()`による字面のroot内検査だけでなく、`assertNoSymlinkPath(..., true)`を使って配布された元ファイルと祖先のSymlinkを拒否するよう修正。元ファイルが同じバイト列でも外部Symlinkを辿らない。
+- [CI #41989887188](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41989887188)では`Code Quality`と`Style Quality`が成功した一方、新しいcommitの発生により`Vitest (contracts)`はcancelled。**追加修正後HEADの全件テストは未完了**。契約追加をPASSに換算せず、Web/Template版整合・実Build同期・依存閉包のチェックは引き続き未完了とする。
+
+専用チェックリストは**12/21件完了**のまま。実Shop Build、Webのsource SHA/revision表示、旧教材除外、第三者ライセンス、本人環境での送信/保全は別途受入が必要。
