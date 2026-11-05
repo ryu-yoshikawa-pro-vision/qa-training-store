@@ -53,6 +53,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
 
+## 2026-11-05 評価CLI事前確認の分離とM07実行数
+
+- **版・モデル一覧も独立プロセスで検査：** `getOpenCodeVersion`と`verifyOpenCodeModelAvailable`を共通`runIsolatedOpenCodeCommand`へ統一し、正式評価と同様の独立HOME/CWD/Configと明示選択した`opencode/`の認証キーのみ使用。新しい`ai-assisted-qa-assessment-isolation.test.mjs`のmockでは、版確認のKeyなし、モデル列挙の選択Keyのみ、学習用HOME/Token未継承、正常・例外時の一時ディレクトリ削除を検証する。**変更後のCI成功は未確認。**
+- **M07 before/afterの実条件に近づけた契約テスト：** `ai-assisted-qa-assessment-m07-run-versions.test.mjs`の模擬Runを`before`2件PASS・`after`3件PASSへ変更し、3件目の別商品ページ→Cart再入場・数量2 Assertionもfixture化。既存の別Run・異なるSHA・時間順・現行after SHA照合の負例を保持。本人の実Chromium Runと業務AssertionのAI意味評価は未受入。**変更後のCI成功は未確認。**
+- **誤判定を防ぐ境界：** `verifyModuleRunEvidence.status=passed`はRunフォーマット・実行結果・SHAの決定論的検証であり、学習者による業務Assertionの適切性を独立に証明しない。M07の採点基準によるAI意味評価と本人実Runは#199で最終受入とし、項目20はまだチェックしない。
+
 ## 2026-11-05 評価隔離の契約完了チェックと追加検証
 
 - **項目8・22をチェック：** 固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476` の [Web CI Run 41968096517](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41968096517) で`Vitest (contracts)`84ファイル・1138件PASS、`Code Quality`と2種類のビルドは成功。評価プロセスの独立HOME/CWD/Config/Data/Cache・メモリDB・チューターAGENTS/資格情報非継承と、評価Agentの全操作deny、Shell/edit/Web/MCP/Skill/subagent Tool event拒否を専用契約テストで検証した。証拠は模擬プロセスと固定SHAであり、本人認証済みOpenCodeの実際の権限拒否やManaged settingsの優先順位までは確認していない。後者は#199へ引継ぎ。
