@@ -35,6 +35,38 @@ describe("formal assessor practical criteria", () => {
     });
   }
 
+  it("M07 reference keeps the original quantity assertions across the Page Object and fixture refactor", () => {
+    const before = fs.readFileSync(
+      path.resolve(
+        "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-before/cart.spec.ts",
+      ),
+      "utf8",
+    );
+    const after = fs.readFileSync(
+      path.resolve(
+        "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts",
+      ),
+      "utf8",
+    );
+    const original = [
+      ["追加したマグは数量1", 'toHaveValue("1")'],
+      ["数量を2へ変更できる", 'toHaveValue("2")'],
+    ];
+    const extract = (text, title) => {
+      const start = text.indexOf('test("' + title + '"');
+      if (start < 0) return "";
+      const next = text.indexOf('\ntest("', start + 1);
+      return text.slice(start, next < 0 ? undefined : next);
+    };
+    for (const [title, assertion] of original) {
+      expect(extract(before, title)).toContain(assertion);
+      expect(extract(after, title)).toContain(assertion);
+    }
+    expect(after).toContain("class CartPage");
+    expect(after).toContain("base.extend");
+    expect(after).toContain('resetScenario(page, "default")');
+  });
+
   it("M07 reference preserves quantity after navigating away from and back to Cart", () => {
     const source = fs.readFileSync(
       path.resolve(
