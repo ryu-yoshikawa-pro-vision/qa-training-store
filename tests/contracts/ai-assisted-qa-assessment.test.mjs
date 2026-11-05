@@ -3732,6 +3732,8 @@ it("exports Phase 2 without a Git or PR prerequisite and permits a new attempt",
     assessmentId,
   });
   expect(() => parseAssessmentArgs(["M10", "--export", assessmentId])).toThrow(/Git-free/);
+  expect(() => exportAssessment("P3", assessmentId, root)).toThrow(/Phase 1 and Phase 2/);
+  expect(() => exportAssessment("P9", assessmentId, root)).toThrow(/Phase 1 and Phase 2/);
   exportAssessment("P2", assessmentId, root);
   const exported = path.join(root, "course-assessment-exports", assessmentId);
   expect(fs.readdirSync(exported).sort()).toEqual(["result.json", "summary.md"]);
