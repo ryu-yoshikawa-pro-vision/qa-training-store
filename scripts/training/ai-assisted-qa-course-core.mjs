@@ -478,7 +478,9 @@ function expandBuildOutput(root, manifest) {
   const sourceRoot = assertNoSymlinkPath(root, "dist", false);
   const files = [];
   const walk = (directory, relativeDirectory = "") => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    for (const entry of fs
+      .readdirSync(directory, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name))) {
       const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
       const absolutePath = path.join(directory, entry.name);
       const stat = fs.lstatSync(absolutePath);
