@@ -3313,7 +3313,8 @@ describe("AI-assisted QA formal assessment contracts", () => {
       report.config.rootDir = moduleRoot;
       const originalSpec = report.suites[0].specs[0];
       originalSpec.file = "new-case.spec.ts";
-      report.suites[0].specs.push({ ...originalSpec, title: "second independent case" });
+      originalSpec.title = "CASE-CART-004 remove the last cart line";
+      report.suites[0].specs.push({ ...originalSpec, title: "CASE-CART-005 retain changed quantity" });
       const reportBytes = Buffer.from(JSON.stringify(report));
       fs.writeFileSync(reportPath, reportBytes);
 
@@ -3352,12 +3353,14 @@ describe("AI-assisted QA formal assessment contracts", () => {
               label: "initial",
               minimum_tests: 2,
               expected_outcome: "passed",
+              required_case_ids: ["CASE-CART-004", "CASE-CART-005"],
             },
             {
               spec: "new-case.spec.ts",
               label: "repeat",
               minimum_tests: 2,
               expected_outcome: "passed",
+              required_case_ids: ["CASE-CART-004", "CASE-CART-005"],
             },
           ],
         },
@@ -3373,6 +3376,29 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(verify().status).toBe("passed");
 
     const repeatPath = receiptPaths.get("repeat");
+    const repeatReportPath = path.join(path.dirname(repeatPath), "playwright-result.json");
+    const validReportBytes = fs.readFileSync(repeatReportPath);
+    const validReceiptBytes = fs.readFileSync(repeatPath);
+    const duplicateReport = JSON.parse(validReportBytes.toString("utf8"));
+    duplicateReport.suites[0].specs[1].title = "CASE-CART-004 duplicated";
+    const forgedReportBytes = Buffer.from(JSON.stringify(duplicateReport));
+    fs.writeFileSync(repeatReportPath, forgedReportBytes);
+    const duplicateReceipt = JSON.parse(validReceiptBytes.toString("utf8"));
+    duplicateReceipt.report_sha256 = sha256(forgedReportBytes);
+    duplicateReceipt.tests[1].title = duplicateReport.suites[0].specs[1].title;
+    fs.writeFileSync(repeatPath, JSON.stringify(duplicateReceipt));
+    const duplicateResult = verify();
+    expect(duplicateResult.status).toBe("ungradable");
+    expect(duplicateResult.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "M06-RUN-new-case.spec.ts-repeat",
+          status: "ungradable",
+        }),
+      ]),
+    );
+    fs.writeFileSync(repeatReportPath, validReportBytes);
+    fs.writeFileSync(repeatPath, validReceiptBytes);
     const repeat = JSON.parse(fs.readFileSync(repeatPath, "utf8"));
     repeat.started_at = "2026-10-27T00:00:00.000Z";
     repeat.finished_at = "2026-10-27T00:00:01.000Z";
