@@ -8,7 +8,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **11/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例、第三者権利の原典調査と未確認事項の台帳化を完了（再配布許諾ではない）。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **12/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例、第三者権利の原典調査と未確認事項の台帳化を完了（再配布許諾ではない）。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
@@ -49,7 +49,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 - [x] 固定Skillと第三者素材/生成物のライセンス原典・権利者・再配布条件・NOTICEを一次資料で調査し、出典と未確認項目を台帳化。許諾の最終判断・不足時の公開可否は#199へ引継ぎ、未確認のまま「許諾済み」にしない
   - 証拠：[配布監査レポートの「第三者素材・再配布許諾の原典照合台帳」](../reports/2026-11-05_pr218-distribution-audit.md)（2026-11-05、GitHub原典LICENSEを直接取得）。Interの[OFL-1.1原典](https://github.com/rsms/inter/blob/master/LICENSE.txt)（Git Blob `9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea`）、Noto Sans JPの[OFL-1.1原典](https://github.com/google/fonts/blob/main/ofl/notosansjp/OFL.txt)（Git Blob `1c9f43281b8f216c5461fe9ac729afbade7724e4`）、bezier-easingの[MIT原典](https://github.com/gre/bezier-easing/blob/master/LICENSE)（Git Blob `3ca2c8ed87287f9a5d72a00e578154a29b7726e6`）、React公式repoのMITを照合。Web ArtifactのReact関連7ライセンスブロック/Bezier1ブロック、フォント12ファイル、`pnpm-lock.yaml`の`@fontsource/*@5.3.0`と既存NOTICEを比較。**未確認**：固定Skill repoに明示LICENSE/NOTICEなし、全JS推移依存と画像ごとの元権利者・許諾・NOTICE。これは「調査と未確認台帳」の完了であり、**再配布許諾・Public Template公開の承認ではない**。最終判断は#199が行う。
 - [ ] 外部AI送信対象（本人回答・関連節・Run要約）の明示、Token/個人情報/無関係な内容の除外・サイズ上限、Git外保存の実装と説明が一致すること。評価エンジン固有の処理は正式評価担当へ引継ぐ
-- [ ] `prepare-learner-template.mjs`の出力許可リスト・Hash・Secret・禁止ファイル、repo外生成先の安全性、コピー後に不足がないことを検証（外部GitHub repo作成・公開は行わない）
+- [x] `prepare-learner-template.mjs`の出力許可リスト・Hash・Secret・禁止ファイル、repo外生成先の安全性、コピー後に不足がないことを検証（外部GitHub repo作成・公開は行わない）
+  - 証拠：[Web CI #41986991331 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41986991331/job/127110451997)（HEAD `53aa8c168aa6350283ec45436e4d255675340dd9`）で`prepares and verifies a complete Template from a clean main Git fixture` **PASS**。テスト用のclean main実Git commitから、`prepare-learner-template.mjs --target`をCLIとして実行し、固定commit `source_sha`、22状態、生成Shop 2ファイル、`verifySyncedCourseDistribution`を確認。非空の既存出力先への再実行は拒否し、配布ファイルのsnapshot・元Git worktreeは不変。別テストでrepo内外の危険な出力先・Symlink祖先、生成Shopのcredential・既知Secret、固定allowlist外/改ざん/不正SHA・Workflow混入を負例検査。外部Skill/Shopはネットワーク・実Buildを置換した固定fixtureであり、本人のPublic Template公開、第三者権利許諾、実Codespaces作成は**未実施**。同Run全体はテストファイルのPrettier違反によりFAIL、契約テストは1113件PASS（一時診断1件を含む）。診断は後続commit `9b26364035e0`で削除。
 - [ ] 依存/配布の契約・異常系テスト、Build/Serve、検証証拠を固定HEADで報告。未確認事項を元Planに引継ぐ
 
 ## 後続作業（本PRでは先行実施しない）
