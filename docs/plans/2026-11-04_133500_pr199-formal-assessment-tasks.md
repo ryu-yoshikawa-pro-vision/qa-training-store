@@ -53,6 +53,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
 
+## 2026-11-05 M07外部import境界とCI記録
+
+- **CI確認：** 固定HEAD `ba245138fed5369b495186e8f8de5b0f87ddb255` の [Run 41956684994](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41956684994) で`build-production`・`build-automation`・`Code Quality`は成功。`Vitest (contracts)`を含む一部ジョブは確認時点で実行中。`Style Quality`は`tests/contracts/ai-assisted-qa-assessment.test.mjs`でPrettier不一致。M05 P05 fixtureの記述を整理して修正したが、修正後HEADのformatter成功は未確認。
+- **M07 Page Object / fixture import：** `scripts/training/ai-assisted-qa-run-evidence.mjs`へ`assertM07SourceDependencies`を追加。既存依存`typescript`で`maintenance.spec.ts`の構文・静的import/re-export・動的import・import type/equals・`require`を確認し、`@playwright/test`と固定教材のReset補助関数以外の依存を拒否する。本人がPage Object/fixtureを別ファイルへ分離すると、spec単体SHAでは依存ファイルの内容が証明されないため、教材が指定する**同一spec内実装**に限定。`course:run`の起動前と正式評価でRun receiptを再読込する際の現在spec・保存snapshotを両方検査する。
+- **追加テスト：** `tests/contracts/ai-assisted-qa-assessment-m07-dependencies.test.mjs`に正例、別Page Object/fixture・再export・dynamic import・require・型import・不正構文の拒否、および不正specを渡した`course:run`がPlaywright起動前に停止する負例を追加。TypeScript AST APIの主要例は手元のTypeScriptでも単独確認したが、**新HEADのVitest/formatter/Playwright実Runは未確認**。意図的なimport隠蔽や業務Assertionの意味評価・実行の出自をこの検査だけで証明したとは扱わない。
+- **項目3・4・19・20は継続未チェック。** Run内の自己申告receiptとSHAを同時に偽造した場合は真正性を証明できない。M07の別Runテスト数・順序・変更後の業務Assertionは引き続きNode/AIの実受入が必要。#215のM05実行手順との不一致は#199統合前に修正。既存7件の完了チェックは変更しない。
+
 ## 2026-11-05 継続対応：校正失敗の扱いとM05 P05
 
 - **項目13をチェック：** 旧HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d` の [CI Run 41953473479](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41953473479) は全体成功。校正 `status !== passed`、`critical_false_passes > 0`、`mismatches` の欠落/不一致を `isPassingCalibration` が拒否し、`finalizeAssessment` は `blocked` へ倒す。候補JSONの欠落・不正は `ungradable`、CLI/API/Secret等の不可用は `blocked` に分類。`saveSummary` は復習先と新試行での再評価を案内。失敗校正を成功cacheにしない既存負例・同一試行の無断再送拒否も契約CIで確認した。ただし外部プロバイダー認証・課金時の実挙動は#199に残る。
