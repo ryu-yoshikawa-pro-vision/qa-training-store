@@ -3213,7 +3213,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     });
   });
 
-  it("requires the independent M05 P05 read-only locator receipt as well as product-link runs", () => {
+  it("requires a separate M05 P05 locator receipt", () => {
     const { workspaceRoot, p05ReportPath } = writeM05RunEvidence(
       path.join(tempRoot, "m05-p05-locator-proof"),
     );
