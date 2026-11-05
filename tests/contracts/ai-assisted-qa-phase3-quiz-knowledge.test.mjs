@@ -18,7 +18,7 @@ const graph = readJson("docs/curriculum/ai-assisted-qa/knowledge-graph.json");
 const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
 
 describe("Phase 3 quiz and understanding coverage", () => {
-  it("covers all 14 learning objectives and 19 understanding nodes without approving drafts", () => {
+  it("covers the Phase 3 objectives and knowledge nodes without approving drafts", () => {
     const coveredObjectives = new Set();
     const coveredKnowledge = new Set();
     for (const module of modules) {
