@@ -35,7 +35,7 @@ describe("formal assessor practical criteria", () => {
     });
   }
 
-  it("M07 reference keeps the original quantity assertions across the Page Object and fixture refactor", () => {
+  it("M07 reference retains quantity assertions after refactoring", () => {
     const before = fs.readFileSync(
       path.resolve(
         "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-before/cart.spec.ts",
