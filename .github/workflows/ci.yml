@@ -581,6 +581,11 @@ jobs:
           name: web-dist-automation
           path: dist
 
+      - name: Preserve Prettier formatting reference for M07 runner
+        run: |
+          mkdir -p output/training/ai-assisted-qa/pr215-m07-reference
+          pnpm exec prettier tests/contracts/ai-assisted-qa-phase2-m07-reference-ci.mjs > output/training/ai-assisted-qa/pr215-m07-reference/formatted-runner.mjs
+
       - name: Install Chromium
         run: pnpm exec playwright install chromium
 
