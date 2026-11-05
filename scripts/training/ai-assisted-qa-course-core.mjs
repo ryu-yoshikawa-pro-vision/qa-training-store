@@ -267,20 +267,22 @@ export function validateCourseManifest(manifest) {
       !MODULE_ID_PATTERN.test(entry.module_id)
     )
       fail(`invalid module_id in distribution manifest: ${entry.module_id}`);
-    if (entry.source_path.startsWith("skills/") && /(?:^|\/)evals(?:\/|$)/.test(source))
-      fail(`Skill eval files must never be distributed: ${source}`);
-    if (
-      manifest.external_skill_files.includes(entry) &&
-      !/^[a-f0-9]{40}$/.test(entry.blob_sha ?? "")
-    )
-      fail(`external Skill entry has no Git blob SHA: ${source}`);
-    if (
-      manifest.external_skill_files.includes(entry) &&
-      (!Number.isSafeInteger(entry.size) ||
+    if (manifest.external_skill_files.includes(entry)) {
+      if (
+        !/^skills\/[a-z0-9-]+\/(?:SKILL\.md|(?:assets|references|scripts)\/.+)$/.test(source) ||
+        !source.startsWith(`skills/${entry.skill}/`) ||
+        target !== `.agents/${source}`
+      )
+        fail(`external Skill path must stay inside its own pinned package: ${source}`);
+      if (!/^[a-f0-9]{40}$/.test(entry.blob_sha ?? ""))
+        fail(`external Skill entry has no Git blob SHA: ${source}`);
+      if (
+        !Number.isSafeInteger(entry.size) ||
         entry.size <= 0 ||
-        entry.size > MAX_EXTERNAL_SKILL_FILE_BYTES)
-    )
-      fail(`external Skill entry has an invalid size: ${source}`);
+        entry.size > MAX_EXTERNAL_SKILL_FILE_BYTES
+      )
+        fail(`external Skill entry has an invalid size: ${source}`);
+    }
   }
   const skillModules = new Set(manifest.external_skill_files.map((entry) => entry.skill));
   const requiredSkills = [
