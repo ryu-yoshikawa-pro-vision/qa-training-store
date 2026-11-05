@@ -519,6 +519,25 @@ export function assertReusablePreparedInputs(inputManifest, inputs) {
     );
 }
 
+export function assertReusableFinalizedAnswer({
+  inputManifest,
+  savedChallenge,
+  answer,
+  receipt,
+  result,
+}) {
+  if (
+    inputManifest?.challenge_sha256 !== sha256(JSON.stringify(savedChallenge)) ||
+    receipt?.challenge_id !== savedChallenge?.id ||
+    receipt?.objective_id !== savedChallenge.objective_ids?.[0] ||
+    receipt?.file_sha256 !== answer?.file_sha256 ||
+    receipt?.answer_sha256 !== answer.answer_sha256 ||
+    result?.challenge?.id !== savedChallenge.id ||
+    result.challenge.answer_sha256 !== answer.answer_sha256
+  )
+    fail("finalized assessment answer or challenge changed; preserve the result and create a new assessment");
+}
+
 function systemPromptHash(systemPrompt) {
   return sha256(`${OPEN_CODE_VERSION_REQUIRED}\n${systemPrompt}\n`);
 }
@@ -1954,6 +1973,21 @@ async function resumeAttemptUnlocked(request) {
     // On a failed recheck leave result.json and current.json untouched.
     inputs = await loadPhaseInputs(request.phase);
     assertReusablePreparedInputs(inputManifest, inputs);
+    validateSavedChallenge(savedChallenge, {
+      phaseId: request.phase,
+      scoring: inputs.scoringByModule.get(ASSESSMENT_PHASES[request.phase].terminal),
+      sourceMaterials: inputs.sourceMaterials,
+      sourceSha: inputs.sourceSha,
+      assessmentId: request.resumeId,
+    });
+    const answer = readChallengeAnswer(path.join(attemptDirectory, "answers.md"), savedChallenge);
+    assertReusableFinalizedAnswer({
+      inputManifest,
+      savedChallenge,
+      answer,
+      receipt: readJson(path.join(attemptDirectory, "challenge-answer.json"), "saved challenge answer"),
+      result: readJson(savedResultPath, "saved finalized assessment"),
+    });
   }
   const reconciled = reconcileFinalizedAssessment({
     phaseId: request.phase,
