@@ -11,7 +11,9 @@ const SOURCE_SHA = "a".repeat(40);
 const tempRoots = [];
 
 afterEach(() => {
-  for (const root of tempRoots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
+  for (const root of tempRoots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 it("issues distinct authorized course:run receipts from the fixed Playwright launcher", () => {
