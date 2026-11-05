@@ -288,8 +288,8 @@ function courseFixture() {
       loadFiles.push({
         module_id: moduleId,
         source_path: targetPath,
-        target_path: targetPath,
-        kind: "course-material",
+        target_path: "workspace/M03/public-sample/risk-input.csv",
+        kind: "exercise-file",
       });
     }
     loadFiles.push({
@@ -873,6 +873,48 @@ describe("AI-assisted QA distribution contract", () => {
     expect(start).toContain("RISK-CART-001");
     expect(start).toContain("BR-CART-001");
     expect(start).toContain("AC-CART-001");
+
+    const withoutLoad = {
+      ...manifest,
+      load_files: manifest.load_files.filter((file) => file.source_path !== riskPath),
+    };
+    expect(() => validateCourseManifest(withoutLoad)).toThrow(/M03 public Risk input/);
+
+    const wrongDestination = {
+      ...manifest,
+      load_files: manifest.load_files.map((file) =>
+        file.source_path === riskPath
+          ? { ...file, target_path: "workspace/M03/public-sample/wrong.csv" }
+          : file,
+      ),
+    };
+    expect(() => validateCourseManifest(wrongDestination)).toThrow(/M03 public Risk input/);
+  });
+
+  it("rejects a forged distribution that omits the M03 public Risk load", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "c".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.load_files = distribution.load_files.filter(
+      (entry) => entry.source_path !== "course/modules/M03/inputs/public-risk-input.csv",
+    );
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /M03 public Risk input/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M03" })).toThrow(
+      /M03 public Risk input/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M03"))).toBe(false);
   });
 
   it("rejects invalid module load bindings before writing files", async () => {
