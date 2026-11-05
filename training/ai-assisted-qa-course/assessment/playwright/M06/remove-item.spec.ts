@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { resetScenario } from "../../../../../training/playwright/support/reset-scenario";
 
-test("M06 reference: remove the only item from the guest cart", async ({ page }) => {
+test("M06 reference CASE-CART-004: remove the only item from the guest cart", async ({ page }) => {
   await resetScenario(page, "default");
   await page.goto("/products/product-mug");
   await page.getByRole("button", { name: "カートに追加" }).click();
