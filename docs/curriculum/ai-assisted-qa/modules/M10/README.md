@@ -100,6 +100,21 @@ M10では、クラウドCI上で検証するテストコード（specファイ�
 
 なお、本教材のCI環境では、事前に配布されているECサイトのモック画面（`course/shop/`）をサーバーで起動（Serve）し、指定された学習用specのみを実行します。受講者がWebサイト全体のフルビルド（`pnpm run build:web`）や、モバイルアプリ向けのNativeテストスイートを実行する必要はありません。
 
+### M10-01：対象specと依存ファイルを先に照合する
+
+M07本人成果物とM10公開fallbackは別の入力です。`workspace/M07/repaired-assertion.spec.ts`はM07ロード直後の教材では`throw new Error("TODO: ...")`が残る修正課題です。**ファイルが存在するだけでは完成・PASSと判断できません。** 本人の修正差分、before/afterの実Run、Reset実施結果がない場合は、M07本人成果物の受入を未確認と記録し、M10のCI対象に選びません。公開fallbackを使う場合も、M07修了の証拠へ振り替えません。
+
+| 入力経路 | specのロード先 | 相対importとReset正本 | 必要な設定 |
+| --- | --- | --- | --- |
+| M07本人成果物 | `workspace/M07/repaired-assertion.spec.ts` | `../../training/playwright/support/reset-scenario` → `training/playwright/support/reset-scenario.ts` | `PLAYWRIGHT_TEST_ROOT=workspace/M07` |
+| M10公開fallback | `workspace/M10/public-sample/handoff-smoke.spec.ts` | `../../../training/playwright/support/reset-scenario` → 同じReset正本 | `PLAYWRIGHT_TEST_ROOT=workspace/M10/public-sample` |
+
+公開fallbackの出所は、配布manifestで`workspace/M07/public-sample/handoff-smoke.spec.ts` → `course/modules/M10/inputs/public-sample-spec.ts` → `workspace/M10/public-sample/handoff-smoke.spec.ts`と追跡できます。`workspace/M10/public-sample`は`course:load M10`後のパスであり、未ロードのリポジトリにファイルが存在しないのは正常です。Reset helper、`playwright.ai-assisted-qa.config.ts`、`scripts/serve-web-dist.ts`、依存の`package.json`と`pnpm-lock.yaml`は同じ配布revisionの追跡済みファイルを再利用します。ローカルとCIの検査は同じ選択spec・Reset正本・事前配布Shopを対象にしてください。
+
+PRへ含める前に、`git status --short --untracked-files=all`と`git diff --cached --name-only`で既存stageを確認します。M07は配布された`workspace/.gitignore`の`/M07/`規則で除外されるため、本人の修正済みspecの全文と相対importを確認した後、**必要なその1ファイルだけ**を`git add -f -- workspace/M07/repaired-assertion.spec.ts`で追加できます。公開fallbackを選ぶ場合は`git add -- workspace/M10/public-sample/handoff-smoke.spec.ts`を使い、存在とignore規則を先に確認します。どちらも`git diff --cached --name-only`、`git diff --cached --check`、staged diffの目視点検が必須です。
+
+`workspace/M10/ci-run-evidence.json`、`workspace/M10/submission.md`、`.env*`、Trace/録画・ログ、他のModuleの作業物、`course/shop/**`や配布manifestの再生成差分を学習用specのPRへ混入させません。Shopとmanifestは承認済み初期Private repoの追跡ファイルとして別途出所・固定SHA・ハッシュを検証します。また、公開fallbackと一緒にロードされる`workspace/M10/public-sample/course-e2e.workflow.yml.disabled`は旧配布ガードが不足しているため、そのまま有効化しません。M09完成見本の検証契約と照合し、所有者が修正・受入を終えるまでは`BLOCKED`です。
+
 ### 段階練習：公開してよい差分を選び、AIに確認させる（M10-01）
 
 #### 目的
