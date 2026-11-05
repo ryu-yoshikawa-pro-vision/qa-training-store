@@ -144,8 +144,7 @@ export function validateCourseWorkflow(document, workflowPath, target) {
       requireOnlyWorkflowFields(step.with, actionOptions.get(step.uses) ?? [], "action options");
       continue;
     }
-    if (!allowedCommands.has(command))
-      fail("M10 workflow contains an unapproved shell command");
+    if (!allowedCommands.has(command)) fail("M10 workflow contains an unapproved shell command");
     if (isDistributionCheck) {
       if (step.name !== "Verify pinned learner distribution before browser setup")
         fail("M10 workflow must identify the pinned distribution verification step");
@@ -176,11 +175,7 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     requiredTestCommand,
     "actions/upload-artifact@v4",
   ];
-  if (
-    steps.some(
-      (step, index) => (step.uses ?? step.run?.trimEnd()) !== reviewedStepOrder[index],
-    )
-  )
+  if (steps.some((step, index) => (step.uses ?? step.run?.trimEnd()) !== reviewedStepOrder[index]))
     fail("M10 workflow steps must follow the reviewed checkout, SHA, test, and upload order");
   const pnpmSetup = steps.find((step) => step.uses === "pnpm/action-setup@v4");
   const nodeSetup = steps.find((step) => step.uses === "actions/setup-node@v4");
@@ -196,7 +191,7 @@ export function validateCourseWorkflow(document, workflowPath, target) {
       (action) => steps.filter((step) => step.uses === action).length !== 1,
     ) ||
     [...allowedCommands].some(
-      (command) => steps.filter((step) => step.run === command).length !== 1,
+      (command) => steps.filter((step) => step.run?.trimEnd() === command).length !== 1,
     )
   )
     fail("M10 workflow must contain exactly the reviewed actions and shell commands");
