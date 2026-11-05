@@ -141,3 +141,19 @@ describe("M07 maintenance per-test Playwright assertions", () => {
     }
   });
 });
+
+it("temporary formatting diagnostic for PR 217", async () => {
+  const prettier = await import("prettier");
+  for (const [name, filename] of [
+    ["runner", "scripts/training/ai-assisted-qa-run-evidence.mjs"],
+    ["dependencies", "tests/contracts/ai-assisted-qa-assessment-m07-dependencies.test.mjs"],
+    ["fresh-run", "tests/contracts/ai-assisted-qa-assessment-fresh-run.test.mjs"],
+  ]) {
+    const source = fs.readFileSync(filename, "utf8");
+    const settings = await prettier.resolveConfig(filename);
+    const formatted = await prettier.format(source, { ...settings, filepath: filename });
+    if (formatted !== source) {
+      console.log("FORMAT_REPAIR_" + name + "=" + Buffer.from(formatted).toString("base64"));
+    }
+  }
+});
