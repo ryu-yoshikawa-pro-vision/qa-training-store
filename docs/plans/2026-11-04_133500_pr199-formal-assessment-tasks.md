@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-現在のチェックは19/22件。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`のCI Run `41972670377`は`Vitest (contracts)`85ファイル・1146件PASS、整形・Lint・Training runtime contracts・2ビルド・verify/validate成功。今回追加した完了2件はこの固定HEADの契約検証に基づく。以降の再開処理の修正は別HEADであり、CI未確認として完了に含めない。
+**現在のチェックは20/22件。** 直近のコードを含む固定HEAD `29518976e9586f9867beac1df14a058e4b4e3bf4` の [CI Run 42007967995](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42007967995) は全体成功、契約87ファイル・1162件PASS、Style/Code Quality・Training runtime・必須Chromium E2E・validate成功。残り2件は実装テストの漏れとして閉じず、**#199で行う独立の最終受入**として未チェックのまま移管する。チェック20件は本人実受入を意味しない。
 
 ## 変更範囲と受入の区別
 
@@ -20,8 +20,8 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 - [x] `course:assess` がM04/M07/M10を区別して正しい必須目標ID集合（22/15/14）、重複・欠落・不明IDを検査（固定HEADの契約テストと本節の直接照合で検証）
 - [x] 固定`source_sha`で公開のscoring/rubric/referenceの必要な資料だけを読取り取得し、source/path/Hash/Schema/revisionの不整合・redirect・HTML等を拒否（固定HEAD `25efa45848c43bc74e73dfc83984b50aef12806e`、Web CI Run `41946344709` の `Vitest (contracts)` 成功。Prettier失敗は別途修正中）
-- [ ] 仕様・Skill・state/revision、本人の提出ファイル・Run/Trace・証拠Snapshotのpath/SHA-256を検証し、別HEAD/旧Run/架空ログをPASSにできないこと
-- [ ] M04の別条件・本人判断、M07のE2E before/after・Trace、M10のPR head/Run/Check/Artifact/target SHAを、それぞれ必要な実行証拠として独立に確認
+- [ ] 仕様・Skill・state/revision、本人の提出ファイル・Run/Trace・証拠Snapshotのpath/SHA-256を検証し、別HEAD/旧Run/架空ログをPASSにできないこと（**#199の最終実受入で判定・未チェック。** #217のNode検査・SHA/版照合・負例契約は実装済みだが、受講者がspec/report/receipt/Trace/Hashを一括偽造できる場合の独立した実行出自保証は未成立。信頼できる発行元・検証権限と拒否条件を#199で確認する。引継ぎ：[PR #199コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6655395515)）
+- [ ] M04の別条件・本人判断、M07のE2E before/after・Trace、M10のPR head/Run/Check/Artifact/target SHAを、それぞれ必要な実行証拠として独立に確認（**#199の最終実受入で判定・未チェック。** M04の別条件と本人回答、M07の本人Chromium before/after/Traceと業務意味、M10の本人Private PR/Run/Artifact API照合、認証済み実モデルの校正は未実施。#217の実装・モック結果と区別する。引継ぎ：[PR #199コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6655395515)）
 - [x] 出力のcriterion/evidence/level/reasonが全必須IDに対応し、未実行・判定不能・blocked/partial・再評価対象が決定論的集計で適切に扱われること（`validateCandidate`・`finalizeAssessment`の固定ID照合と未実行/判定不能/BLOCKED/Level 1負例を確認。HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、Web CI `41953473479`の契約テスト成功。再評価履歴の網羅は別項目）
 
 ## OpenCode実モデル・最小権限
@@ -49,7 +49,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 ## 実行証拠の真正性・チューターとの分離（補完）
 
 - [x] 評価器のNode側が許可したspec/Configで新しいPlaywright Runを要求・検証する処理と、旧Run/手入力PASS/別spec拒否のfixture・CIテストを整備。本人spec・実Codespacesでの新Runによる受入は#199へ渡す（`runAiAssistedQaSpecCli`は固定Config・許可specで毎回別Run IDを発行し、`verifyModuleRunEvidence`は不足receipt・旧source SHA・別spec/report・改ざん・不一致を拒否。新規`ai-assisted-qa-assessment-fresh-run.test.mjs`は模擬spawn2回のRun分離、固定起動引数、発行receiptと改ざん拒否を検証。固定HEAD `76b1690ab9d2faab6b571cf9db1ea89b9b3abaa7` の [Run 41988470969](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41988470969) `Vitest (contracts)`成功。ローカルreceipt/report/Hashの一括偽造に対する実行出自保証は本項目でなく上記真正性項目として未完了）
-- [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
+- [x] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる（保存snapshotの元2件の数量1/2 Matcherを同名testで保持し、3件目に数量2 MatcherがあることをAST照合。別Run ID/時系列/別SHA・外部import禁止・report test名・AI Level 3をNodeのungradableで覆せない負例とPOM/標準fixture模擬を実装。固定HEAD `29518976e9586f9867beac1df14a058e4b4e3bf4` の [CI Run 42007967995](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42007967995) は全体成功、契約87ファイル1162件PASS、M07 run-versions 9件/dependencies 8件PASS、Style/Code Quality・Training runtime・必須Chromium E2E等成功。静的なMatcher・実行記録の整合と、受講者の実Run・業務意味・独立出自保証は区別し、後者は#199の最終実受入へ引継ぎ）
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
 
@@ -236,6 +236,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **契約fixture/負例:** `ai-assisted-qa-assessment-m07-run-versions.test.mjs`の正常afterを、同一spec内のPage Object、`base.extend`によるfixture、各test前Reset、数量1・数量2の維持、別ページ→Cart再入場・数量2を表す模擬コードに更新。元の`toHaveValue("1")`の値変更・Assertion削除、新しい3件目の数量2 Assertion削除を拒否する負例を追加。既存の未追跡import拒否・別Run/順序・偽report拒否の契約も維持。
 - **NodeとAIの境界:** Nodeは保存specとreport・別Run・数量Matcherの文字列上の保持を検査し、AIはPage Object/fixtureの実際の責務、Locatorの対象、数量維持、再入場の業務意味と本人の根拠を採点する。M07の学習者実Chromiumと認証済みモデルでの意味評価は#199最終受入。報告文字列・Matcherが同じでも実際のブラウザ実行や意味的な正しさを保証しない。
 - **チェック保留:** この追加差分のHEAD `b954b0e129915323b85a6037b6ed243805e1d166` 以降のCIは確認時に未確定。前回の成功CIを新差分へ転用せず、M07補完項目のチェックは現段階では保留。ローカル証拠一式の出自、本人M04/M07/M10実受入の2項目も未完了のまま。19/22件を維持。
+
+## 2026-11-05 固定HEAD CI成功と最終実受入の移管
+
+- **M07実装項目（20件目）:** `29518976e9586f9867beac1df14a058e4b4e3bf4` の [CI Run 42007967995](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42007967995) は全体`success`（実ジョブ27件成功、失敗なし、契約87ファイル1162件PASS、M07 run-versions 9件・dependencies 8件、Style Quality、Code Quality、Training runtime、Chromium E2E required、validate成功）。前回のPrettier不一致も解消。上のM07実装項目を`[x]`にした。**このチェックはNode静的照合・モック・固定HEADのCIのみを示す。**
+- **#199への引継ぎ先:** [統合・横断受入タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md) の「配布・評価・実行証拠の相互受入」と「学習・評価・配布の最終実受入」。受入時の条件・手順・失敗時の扱いは [#199に記録した引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6655395515) に明記。#199の共有タスクリスト本体は、この並行PRでは直接変更しない。
+- **残項目1（実行元保証）:** 現在のNode検査はsource/revision/spec/report/receipt/Trace/Hashの**内部整合**を拒否・検証できるが、受講者自身がローカル一式を作り替える場合の実行出自までは証明できない。独立の信頼境界と拒否条件が確認されるまで受入PASSにしない。Phase 1/2のGit/PR不要・本人Private保存・外部送信事前承認は維持。
+- **残項目2（本人の独立実受入）:** M04の本人条件・判断、M07の実Chromium・before/after・Trace/業務Assertion、M10 Private PR head/Run/Check/Artifact/target SHA、実OpenCode校正（重大誤PASS 0件）および個人データ保全は#199で実施。本人権限/認証/費用が未準備なら`BLOCKED`または未実施として記録し、モックCI成功で代替しない。
+- **以後の進捗の数え方:** #217は**20/22件チェック済み＋#199で実受入を判定する2件**。未実施の2件をチェック済みに書き換えず、#199での検証結果を反映する。記録のみの後続コミットのCIは別HEADであり、この基点CIの成功を自動で転用しない。
 
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
