@@ -11,9 +11,7 @@ function fixture() {
     terminalModuleId: "M04",
     sourceSha: "a".repeat(40),
     stateContractRevision: "ai-assisted-qa-course-v3",
-    assetHashes: [
-      { source_path: "assessment/scoring-tests/M04.json", sha256: "b".repeat(64) },
-    ],
+    assetHashes: [{ source_path: "assessment/scoring-tests/M04.json", sha256: "b".repeat(64) }],
     objectiveIds: ["M04-01"],
     criteriaByObjective: { "M04-01": ["M04-CR-01"] },
     evidence: [
@@ -108,8 +106,7 @@ it("reuses only an identical prepared source and evidence snapshot", () => {
 
 it("rejects altered answers and receipts without rewriting history", () => {
   const saved = fixture();
-  const verify = (overrides = {}) =>
-    assertReusableFinalizedAnswer({ ...saved, ...overrides });
+  const verify = (overrides = {}) => assertReusableFinalizedAnswer({ ...saved, ...overrides });
   expect(verify).not.toThrow();
   const changedResult = {
     ...saved.result,
