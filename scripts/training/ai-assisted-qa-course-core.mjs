@@ -131,6 +131,23 @@ function validateModuleLoadCoverage(loadFiles, distributionFiles) {
   }
 }
 
+const M03_PUBLIC_START_PATH = "course/modules/M03/inputs/start.md";
+const M03_PUBLIC_START_REFS = [
+  "SCOPE-101",
+  "RISK-CART-001",
+  "Authority Entity",
+  "BR-CART-001",
+  "AC-CART-001",
+];
+
+function validateM03PublicStartBytes(bytes) {
+  const content = bytes.toString("utf8");
+  for (const reference of M03_PUBLIC_START_REFS) {
+    if (!content.includes(reference))
+      fail(`M03 public start input is missing source-backed reference: ${reference}`);
+  }
+}
+
 function validateM03RiskInput(loadFiles, distributionFiles) {
   const sourcePath = "course/modules/M03/inputs/public-risk-input.csv";
   if (
@@ -690,6 +707,10 @@ export async function syncCourse({
   else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
     fail("Shop build is required by the distribution contract");
 
+  const m03PublicStart = files.find((file) => file.target_path === M03_PUBLIC_START_PATH);
+  if (!m03PublicStart) fail("M03 public start input is missing from distribution");
+  validateM03PublicStartBytes(m03PublicStart.bytes);
+
   const distributionTargets = new Set();
   for (const file of files) {
     if (distributionTargets.has(file.target_path))
@@ -989,6 +1010,10 @@ export function verifySyncedCourseDistribution({ root }) {
     verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
+
+  const m03PublicStart = filesByTarget.get(M03_PUBLIC_START_PATH);
+  if (!m03PublicStart) fail("M03 public start input is missing from distribution");
+  validateM03PublicStartBytes(m03PublicStart.bytes);
 
   const pinnedStates = new Map();
   for (const moduleId of MODULE_IDS) {
@@ -1509,6 +1534,8 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     `course/states/${moduleId}/start.json`,
   );
   const startState = JSON.parse(startBytes.toString("utf8"));
+  if (moduleId === "M03")
+    validateM03PublicStartBytes(verifiedCourseSource(targetRoot, distribution, M03_PUBLIC_START_PATH));
   if (
     startState.module_id !== moduleId ||
     startState.state !== "start" ||
