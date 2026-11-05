@@ -5,14 +5,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { gunzipSync, gzipSync } from "node:zlib";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   exportLearnerWorkspace,
   restoreLearnerWorkspace,
 } from "../../training/course-sync/learner-workspace-backup.mjs";
 import { loadCourseManifest } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 
-const tempRoot = fs.mkdtempSync(path.join(tmpdir(), "learner-backup-contract-"));
+const tempRoot = fs.realpathSync(
+  fs.mkdtempSync(path.join(tmpdir(), "learner-backup-contract-")),
+);
 const identity = {
   source_sha: "a".repeat(40),
   state_contract_revision: "ai-assisted-qa-course-v3",
@@ -88,6 +90,7 @@ describe("Git-free Phase 1/2 learner backup", () => {
       status: "exported",
       files: paths.length,
       excluded: 2,
+      excluded_paths: ["workspace/M00/.env.local", "workspace/M05/credentials.txt"],
       source_sha: identity.source_sha,
     });
     expect(fs.statSync(first.backup).size).toBeGreaterThan(0);
@@ -118,6 +121,51 @@ describe("Git-free Phase 1/2 learner backup", () => {
       /already exists/,
     );
     expect(fs.readFileSync(first.backup)).toEqual(before);
+  });
+
+  it("accepts relative learner roots without rejecting existing manifest or files", () => {
+    const first = fixture();
+    write(first.root, "workspace/M00/submission.md", "relative root test\n");
+    const exportResult = exportLearnerWorkspace({
+      root: path.relative(process.cwd(), first.root),
+      target: first.backup,
+    });
+    expect(exportResult.files).toBe(1);
+
+    const second = fixture();
+    const restored = restoreLearnerWorkspace({
+      root: path.relative(process.cwd(), second.root),
+      source: first.backup,
+    });
+    expect(restored.newly_restored).toBe(1);
+    expect(snapshot(second.root, "workspace/M00/submission.md").toString("utf8")).toBe(
+      "relative root test\n",
+    );
+  });
+
+  it("refuses a source swapped to a symlink between lstat and no-follow open", () => {
+    const first = fixture();
+    const file = write(first.root, "workspace/M00/submission.md", "normal content\n");
+    const outside = write(first.root, "sensitive.txt", "DO NOT BACK UP\n");
+    const open = fs.openSync.bind(fs);
+    let swapped = false;
+    const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && location === file) {
+        swapped = true;
+        fs.renameSync(file, file + ".original");
+        fs.symlinkSync(outside, file);
+      }
+      return open(location, ...args);
+    });
+    try {
+      expect(() => exportLearnerWorkspace({ root: first.root, target: first.backup })).toThrow(
+        /ELOOP|symlink|no-follow|link/i,
+      );
+      expect(swapped).toBe(true);
+      expect(fs.existsSync(first.backup)).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("blocks wrong source SHA or revision before any restore writes", () => {
@@ -247,6 +295,7 @@ describe("Git-free Phase 1/2 learner backup", () => {
       encoding: "utf8",
     });
     expect(exported.status, exported.stderr).toBe(0);
+    expect(JSON.parse(exported.stdout).excluded_paths).toEqual([]);
     const second = fixture();
     const secondScript = write(second.root, "scripts/training/learner-workspace-backup.mjs", "");
     fs.copyFileSync(scriptSource, secondScript);
