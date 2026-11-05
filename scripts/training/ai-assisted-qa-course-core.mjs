@@ -630,6 +630,37 @@ function validateWebQuizParity(files) {
   }
 }
 
+// Web HTML records the SHA-256 of its source Markdown, before learner link remapping.
+function validateWebCourseRevisions(files) {
+  const targets = new Map(files.map((file) => [file.target_path, file]));
+  const webRoot = "course/shop/docs/curriculum/ai-assisted-qa/";
+  if (!MODULE_IDS.some((id) => targets.has(`${webRoot}modules/${id}/index.html`))) return;
+  for (const moduleId of MODULE_IDS) {
+    for (const [page, learner] of [
+      [`modules/${moduleId}/index.html`, `course/modules/${moduleId}/README.md`],
+      [`modules/${moduleId}/exercise.html`, `course/exercises/${moduleId}/exercise.md`],
+    ]) {
+      const web = targets.get(webRoot + page);
+      const source = targets.get(learner);
+      const expected = source?.source_sha256;
+      const html = web?.bytes.toString("utf8") ?? "";
+      const revision = html.match(/<meta name="course-source-revision" content="([a-f0-9]{64})"/i)?.[1];
+      const body = html.match(/\bdata-course-revision="([a-f0-9]{64})"/i)?.[1];
+      if (!web || !/^[a-f0-9]{64}$/.test(expected ?? "") || revision !== expected || body !== expected)
+        fail(`Web/Template Markdown revision mismatch (BLOCKED): ${page} -> ${learner}`);
+    }
+    const quizPath = `course/quizzes/${moduleId}.json`;
+    const quizHtml = targets.get(`${webRoot}quizzes/${moduleId}.html`);
+    const expectedQuiz = targets.get(quizPath)?.bytes;
+    const html = quizHtml?.bytes.toString("utf8") ?? "";
+    const revision = html.match(/<meta name="quiz-revision" content="([a-f0-9]{64})"/i)?.[1];
+    const body = html.match(/\bdata-revision="([a-f0-9]{64})"/i)?.[1];
+    const expected = expectedQuiz ? sha256(expectedQuiz) : null;
+    if (!quizHtml || !expected || revision !== expected || body !== expected)
+      fail(`Web/Template quiz revision mismatch (BLOCKED): ${moduleId}`);
+  }
+}
+
 const SHOP_STATIC_ASSET_EXTENSION =
   /\.(?:css|js|mjs|json|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|html?|webmanifest)$/i;
 
@@ -821,6 +852,9 @@ export async function syncCourse({
       target_path: entry.target_path,
       bytes,
       origin: "local",
+      ...(entry.role === "lesson" || entry.role === "exercise"
+        ? { source_sha256: sha256(raw) }
+        : {}),
       module_id: entry.module_id,
       role: entry.role,
     });
@@ -856,6 +890,7 @@ export async function syncCourse({
   }
   validatePublishedMarkdownLinks(files);
   validateWebQuizParity(files);
+  validateWebCourseRevisions(files);
   validateBundledShopAssets(files);
 
   const filesForDistribution = files.map((file) => ({
@@ -866,6 +901,7 @@ export async function syncCourse({
     origin: file.origin,
     ...(file.module_id ? { module_id: file.module_id } : {}),
     ...(file.role ? { role: file.role } : {}),
+    ...(file.source_sha256 ? { source_sha256: file.source_sha256 } : {}),
     ...(file.blob_sha ? { blob_sha: file.blob_sha } : {}),
   }));
   const distribution = {
@@ -1150,10 +1186,12 @@ export function verifySyncedCourseDistribution({ root }) {
   const verifiedFiles = [...filesByTarget.entries()].map(([targetPath, value]) => ({
     target_path: targetPath,
     role: value.entry.role,
+    source_sha256: value.entry.source_sha256,
     bytes: value.bytes,
   }));
   validatePublishedMarkdownLinks(verifiedFiles);
   validateWebQuizParity(verifiedFiles);
+  validateWebCourseRevisions(verifiedFiles);
   validateBundledShopAssets(verifiedFiles);
 
   const m03PublicStart = filesByTarget.get(M03_PUBLIC_START_PATH);
