@@ -3,7 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseDocument } from "yaml";
-import { validateCourseWorkflow } from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
+import {
+  validateCourseWorkflow,
+} from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const workflowPath =
@@ -29,15 +31,17 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     const steps = job.steps;
     expect(steps).toHaveLength(11);
     expect(steps[0].uses).toBe("actions/checkout@v4");
-    expect(steps[0].with.ref).toBe("\${{ github.event.pull_request.head.sha }}");
+    expect(steps[0].with.ref).toBe("${{ github.event.pull_request.head.sha }}");
     expect(steps[0].with["persist-credentials"]).toBe(false);
     expect(steps[3].run).toBe("pnpm install --frozen-lockfile");
-    expect(steps[4].run).toContain("node scripts/training/ai-assisted-qa-course.mjs verify-distribution");
+    expect(steps[4].run).toContain(
+      "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+    );
     expect(steps[4].run).toContain("test -s course/shop/index.html");
     expect(steps[4].run).toContain("test -s .course/distribution-manifest.json");
     expect(steps[5].run).toBe("pnpm exec playwright install --with-deps chromium");
     expect(steps[7].env.EXPECTED_HEAD_SHA).toBe(
-      "\${{ github.event.pull_request.head.sha }}",
+      "${{ github.event.pull_request.head.sha }}",
     );
     expect(steps[8].run).toContain("target-sha.txt");
     expect(steps[9].env).toEqual({
@@ -48,8 +52,9 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(steps[10].if).toBe("always()");
     expect(steps[10].with["if-no-files-found"]).toBe("error");
     expect(steps[10].with.path).toContain("playwright-result.json");
-    expect(validateCourseWorkflow(workflow, ".github/workflows/course-e2e.yml", testTarget))
-      .toHaveProperty("check_name", "course-e2e");
+    expect(
+      validateCourseWorkflow(workflow, ".github/workflows/course-e2e.yml", testTarget),
+    ).toHaveProperty("check_name", "course-e2e");
 
     const config = read("playwright.ai-assisted-qa.config.ts");
     expect(config).toContain("verify-distribution");
@@ -71,8 +76,14 @@ describe("M09 Phase 3 workflow responsibilities", () => {
       workflow.replace("persist-credentials: false", "persist-credentials: true"),
       workflow.replace("if: always()", "if: success()"),
       workflow.replace("if-no-files-found: error", "if-no-files-found: warn"),
-      workflow.replace("PLAYWRIGHT_USE_PREBUILT_DIST: \"true\"", "PLAYWRIGHT_USE_PREBUILT_DIST: \"false\""),
-      workflow.replace("node scripts/training/ai-assisted-qa-course.mjs verify-distribution", "pnpm run build:web"),
+      workflow.replace(
+        'PLAYWRIGHT_USE_PREBUILT_DIST: "true"',
+        'PLAYWRIGHT_USE_PREBUILT_DIST: "false"',
+      ),
+      workflow.replace(
+        "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+        "pnpm run build:web",
+      ),
       workflow.replace(
         "output/training/ai-assisted-qa/playwright-result.json",
         "output/training/ai-assisted-qa/secret.txt",
@@ -86,7 +97,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     }
   });
 
-  it("keeps synthetic failure logs distinct from actual CI and identifies the first failure", () => {
+  it("separates synthetic failure logs from actual CI evidence", () => {
     const cases = read("training/ai-assisted-qa-course/exercises/M09/failure-cases.md");
     expect(cases).toContain("実GitHub Actions・Scenario Shopの実行証拠ではありません");
     const a = cases.split("## A：Build失敗")[1].split("## B：Test失敗")[0];
