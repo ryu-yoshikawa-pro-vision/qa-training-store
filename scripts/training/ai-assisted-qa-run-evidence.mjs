@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 import { assertNoSecretText, sha256 } from "./ai-assisted-qa-assessment-core.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -152,6 +153,38 @@ function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot)
   return { tests: found, attachments };
 }
 
+export function assertM07SourceDependencies(specBytes, moduleId, specName) {
+  if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
+  const source = ts.createSourceFile(
+    specName,
+    specBytes.toString("utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (source.parseDiagnostics.length > 0)
+    fail("M07 maintenance source contains invalid TypeScript syntax");
+  const permitted = new Set([
+    "@playwright/test",
+    "../../training/playwright/support/reset-scenario",
+  ]);
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      const target = node.moduleSpecifier;
+      if (!target || !ts.isStringLiteral(target) || !permitted.has(target.text))
+        fail("M07 maintenance imports an untracked Page Object, fixture, or module");
+    }
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === "require"))
+    )
+      fail("M07 maintenance uses a dynamic or untracked module import");
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+}
+
 function relativeWorkspacePath(filePath, root = ROOT) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
@@ -163,6 +196,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
   const moduleRoot = assertSafeDirectory(workspaceRoot, path.join(workspaceRoot, moduleId));
   const specPath = path.join(moduleRoot, specName);
   const specBytes = lstatRegularFile(specPath, "learner Playwright spec");
+  assertM07SourceDependencies(specBytes, moduleId, specName);
   const runId = randomUUID();
   const runDirectory = assertSafeDirectory(
     workspaceRoot,
@@ -352,6 +386,8 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   }
   const specBytes = lstatRegularFile(specPath, "learner Playwright spec");
   const snapshotBytes = lstatRegularFile(snapshotPath, "course Playwright source snapshot");
+  assertM07SourceDependencies(specBytes, moduleId, path.basename(record.spec_path));
+  assertM07SourceDependencies(snapshotBytes, moduleId, path.basename(record.spec_path));
   if (sha256(snapshotBytes) !== record.spec_sha256)
     fail("course Playwright source snapshot hash is invalid");
   const reportBytes = lstatRegularFile(reportPath, "Playwright JSON report");
