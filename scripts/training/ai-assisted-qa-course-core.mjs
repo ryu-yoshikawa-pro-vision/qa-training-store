@@ -1535,7 +1535,9 @@ export function loadModule({ root, moduleId, now = new Date() }) {
   );
   const startState = JSON.parse(startBytes.toString("utf8"));
   if (moduleId === "M03")
-    validateM03PublicStartBytes(verifiedCourseSource(targetRoot, distribution, M03_PUBLIC_START_PATH));
+    validateM03PublicStartBytes(
+      verifiedCourseSource(targetRoot, distribution, M03_PUBLIC_START_PATH),
+    );
   if (
     startState.module_id !== moduleId ||
     startState.state !== "start" ||
