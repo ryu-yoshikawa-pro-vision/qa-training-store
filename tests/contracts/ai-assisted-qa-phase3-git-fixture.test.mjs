@@ -28,7 +28,16 @@ function fixture() {
   fs.writeFileSync(path.join(root, safeFile), "initial\n");
   git(root, "init", "-q");
   git(root, "add", "--", ".gitignore", "workspace/.gitignore", safeFile);
-  git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "initial");
+  git(
+    root,
+    "-c",
+    "user.name=Fixture",
+    "-c",
+    "user.email=fixture@example.invalid",
+    "commit",
+    "-qm",
+    "initial",
+  );
   return root;
 }
 
@@ -45,7 +54,16 @@ describe("M08 isolated Git contract", () => {
       git(root, "add", "--", safeFile);
       expect(git(root, "diff", "--cached", "--name-only")).toBe(safeFile);
       expect(git(root, "diff", "--cached", "--check")).toBe("");
-      git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "reviewed");
+      git(
+        root,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "reviewed",
+      );
       expect(git(root, "show", "--format=", "--name-only", "HEAD")).toBe(safeFile);
       expect(git(root, "status", "--short", "--untracked-files=all")).toContain(
         "?? workspace/M08/unstage-practice.md",
