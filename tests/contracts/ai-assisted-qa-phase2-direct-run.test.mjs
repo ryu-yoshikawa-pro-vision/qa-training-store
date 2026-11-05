@@ -22,6 +22,7 @@ afterEach(() => {
   }
 });
 
+/** 直接実行手順を隔離検証するためのworkspaceとpnpm stubを作成する。 */
 function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "course-m05-p05-direct-"));
   tempDirectories.push(root);
@@ -82,6 +83,7 @@ function fixture() {
   return { root, specPath, binDir };
 }
 
+/** 指定したstub結果で教材の直接実行コマンドを検証する。 */
 function run(fixtureRoot, binDir, mode = "pass") {
   return spawnSync("bash", ["-c", directRun], {
     cwd: fixtureRoot,
