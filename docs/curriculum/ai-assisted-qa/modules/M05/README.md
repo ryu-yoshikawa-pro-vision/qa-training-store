@@ -798,7 +798,9 @@ Scenario Shop Web版のカート画面は`cartUseCases.getCart()`から表示デ
 | 「カートへ追加しました」の通知が表示された | 画面に成功通知が現れたこと | Cart明細が要求したSKU・数量になったこと |
 | Cartで対象商品行と数量`1`を検証した | **その画面表示時点**の対象商品・数量 | 再読み込み後の保持、IndexedDB内の記録、注文作成 |
 | 同じBrowser ContextでCartを再読み込みして同じ明細・数量を検証した | 再読み込みをまたいでUIから読み取れる状態が保持されたこと | DBへの直接検査、別Context/他デバイスでの保持、注文作成 |
-| IndexedDBの`carts`と`cart_items`を対象Cart ID・SKUで読み取り、保存結果を照合した | 指定したブラウザ内データベースに、その時点で該当レコードが存在したこと | 別の環境やサーバーDBへの保存、注文レコードの作成 |
+| IndexedDBの`carts`と`cart_items`を対象Cart IDで読み取り、`cart_items.variantId`に対応する`product_variants.id`のSKUまで照合した | 対象Cart・SKUに対応する明細が、その時点のブラウザ内データベースに存在したこと | 別の環境やサーバーDBへの保存、注文レコードの作成 |
+
+`cart_items`にはSKUが直接保存されるのではなく`variantId`が保存されます。対象の`cartId`で明細を絞り、`product_variants`の`id`と`variantId`を対応付けたうえで`sku`を確認してください。画面操作のみの場合、DBの直接照合は未確認と記録します。
 
 たとえば、架空の画面で`click()`だけが成功して`status`の数量が`0`のままなら、Actionは成功しても`expect(status).toHaveText("数量: 1")`は失敗します。こうした**業務Assertionとの対比**が必要です。Scenario Shopでは実際のCart明細を商品単位でscopeし、`getByRole("combobox", { name: "数量" })`の値を別途確認してください。P05はread-onlyで削除を押しません。保存を直接検査していない場合は「未確認」と記録します。
 
