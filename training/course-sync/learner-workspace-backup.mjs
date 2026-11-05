@@ -276,7 +276,10 @@ export function restoreLearnerWorkspace({ root = ROOT, source }) {
   for (const { relative, data } of files) {
     const absolute = safePath(root, relative);
     const stat = lstatIfExists(absolute);
-    if (stat && (!stat.isFile() || !readUnchangedFile(absolute, stat, "existing learner file").equals(data)))
+    if (
+      stat &&
+      (!stat.isFile() || !readUnchangedFile(absolute, stat, "existing learner file").equals(data))
+    )
       fail("restore conflict; existing learner file was not overwritten: " + relative);
   }
   let restored = 0;
