@@ -97,14 +97,16 @@
         "反復実践P05：本人の予測・分析・操作、結果・修正・出典を該当P欄または対応するCase/Runへ結び付けた提出箇所。仮想条件と実証拠は区別する",
         "「Locator・Action・Assertionを区別し役割に合う選択を行う」を示す提出物の箇所",
         "知識の行動証拠: 画面操作対象を識別し、動作を構成する",
-        "K-M05-15：Role・アクセシブル名から一意のLocatorを選び、実行して確認できる。本人の条件変更・観測・根拠に対応する提出物を特定する"
+        "K-M05-15：Role・アクセシブル名から一意のLocatorを選び、実行して確認できる。本人の条件変更・観測・根拠に対応する提出物を特定する",
+        "本人作成p05-cart-locator.spec.tsのmain Run/receiptと同一specのSHA。defaultをResetしMugとlow-stockを各1点追加したCartで、全体数量selectと削除buttonの件数2、対象Mug明細へのscope後の各件数1・数量1をread-only Assertionで検査し、削除しない"
       ],
       "pass_conditions": [
         "反復実践P05に対応する独立した判断と必要な実結果を確認できる。未記入・手本の転記・未実行の自己申告をLevel 2にせず、不足は復習先を返す",
         "学習目標「Locator・Action・Assertionを区別し役割に合う選択を行う」が具体例・判断・実行可能な成果物で満たされる",
         "対応する知識「Playwrightのtest・page・LocatorとAction」が正本と矛盾せず、出典・観測・判断が区別される",
         "根拠・期待結果・提出物を追跡できる",
-        "K-M05-15を独立して確認する証拠がある。未実施や解説の転記は達成根拠としない"
+        "K-M05-15を独立して確認する証拠がある。未実施や解説の転記は達成根拠としない",
+        "product-linkのbefore/afterとは別のP05 main Runを照合し、全体2件と対象明細内1件・数量1のAssertionおよび削除未実行を具体的に確認する。複数SKUで同名商品の区別条件も判断する"
       ],
       "partial_credit": [
         "中心判断は正しいが出典または観測証拠が一部不足する",
@@ -113,7 +115,8 @@
       "reject_if": [
         "正式仕様と矛盾する期待結果を断定する",
         "観測していない処理やCIを成功と報告する",
-        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする",
+        "product-link修正RunをP05の新規spec実行とみなす。Cart全体の曖昧なLocator、削除クリック実行、通知確認のみ、またはreceiptだけでP05のLevel 2を認定する"
       ]
     },
     {
@@ -123,13 +126,15 @@
       "required_evidence": [
         "反復実践P05・P06：本人の予測・分析・操作、結果・修正・出典を該当P欄または対応するCase/Runへ結び付けた提出箇所。仮想条件と実証拠は区別する",
         "「表示確認と業務上の期待結果の違い、Assertionの限界を判断する」を示す提出物の箇所",
-        "知識の行動証拠: 可視性と業務結果が同じではないことを判断する"
+        "知識の行動証拠: 可視性と業務結果が同じではないことを判断する",
+        "P05専用main Runの数量1・2明細のAssertionと本人による保証範囲の独立説明（表示時点の数量と永続化を区別）。DBを直接参照した証拠がなければIndexedDB・外部DBの保存は未確認と明記する"
       ],
       "pass_conditions": [
         "反復実践P05・P06に対応する独立した判断と必要な実結果を確認できる。未記入・手本の転記・未実行の自己申告をLevel 2にせず、不足は復習先を返す",
         "学習目標「表示確認と業務上の期待結果の違い、Assertionの限界を判断する」が具体例・判断・実行可能な成果物で満たされる",
         "対応する知識「Assertionの保証範囲」が正本と矛盾せず、出典・観測・判断が区別される",
-        "根拠・期待結果・提出物を追跡できる"
+        "根拠・期待結果・提出物を追跡できる",
+        "Mugを対象明細へscopeしたread-only Assertionの証明範囲を説明し、通知・画面状態・再読込後の状態・直接DB証拠をそれぞれ区別して記録する"
       ],
       "partial_credit": [
         "中心判断は正しいが出典または観測証拠が一部不足する",
@@ -138,7 +143,8 @@
       "reject_if": [
         "正式仕様と矛盾する期待結果を断定する",
         "観測していない処理やCIを成功と報告する",
-        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする",
+        "2明細を確認しただけでDB永続化を実証済みと記録する、または削除操作を実行したことをP05の合格証拠とする"
       ]
     },
     {
@@ -198,7 +204,7 @@
     {
       "id": "M05-CAL-01",
       "type": "correct",
-      "response": "商品名でlinkを特定して/product-mugの実在hrefを確認し、テストが証明する期待結果と失敗段階・設定を説明する。",
+      "response": "商品名でlinkを特定して/product-mugの実在hrefを確認し、テストが証明する期待結果と失敗段階・設定を説明する。 P05は別のp05-cart-locator.spec.tsでdefault Reset後Mugとlow-stockの2明細を用意。全体の数量select/削除button各2件、対象明細内各1件・数量1をread-only Assertionで確認し、削除しないmain Run/SHAと画面確認の限界を記録する。",
       "evidence": [
         "reference-solutions/M05.md",
         "docs/curriculum/ai-assisted-qa/modules/M05/README.md",
@@ -235,7 +241,7 @@
     {
       "id": "M05-CAL-04",
       "type": "acceptable-alternative",
-      "response": "別のLocatorも実在・安定性・同じ遷移先を根拠付きで示せばよい。",
+      "response": "別のLocatorも実在・安定性・同じ遷移先を根拠付きで示せばよい。 P05は専用main Runで全体の2明細・scope後のMug明細内各1件と数量1を確認し、削除操作を実施せず、DB保存は直接証明していないと明記する。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M05/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
