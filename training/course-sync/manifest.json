@@ -1779,6 +1779,14 @@
       "module_ids": ["M02", "M03"]
     },
     {
+      "source_path": "skills/test-requirement-design/scripts/runtime_v1_cutover.py",
+      "target_path": ".agents/skills/test-requirement-design/scripts/runtime_v1_cutover.py",
+      "blob_sha": "fe0f10a9f6ffe48416faecf7176a1081773d9529",
+      "size": 16087,
+      "skill": "test-requirement-design",
+      "module_ids": ["M02", "M03"]
+    },
+    {
       "source_path": "skills/test-requirement-design/SKILL.md",
       "target_path": ".agents/skills/test-requirement-design/SKILL.md",
       "blob_sha": "356acb73cf881b9a67aef1f063ec2c7b32fec59f",
