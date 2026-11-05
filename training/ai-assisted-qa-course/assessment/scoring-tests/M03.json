@@ -332,7 +332,7 @@
     {
       "id": "M03-CAL-11",
       "type": "correct",
-      "response": "ログイン前は会員cart数量2とguest cart数量2が別々に存在し、low-stockの上限は3。ログイン後は会員cart数量3、guestの超過1点と除外理由、cart version、guest cartのabandonedを観測する。",
+      "response": "ログイン前は会員cart数量2とguest cart数量2が別々に存在し、low-stockの上限は3。ログイン後は会員cart数量3、guestの超過1点と除外理由、cart version、guest cartのabandonedを観測する。 別条件であるP04では上限3・数量1→2→4拒否で2保持→0指定を削除としてモデル化し、Web数量selectで4/0を実操作したとは記録しない。",
       "evidence": [
         "reference-solutions/M03.md",
         "docs/spec/features/cart.md",
