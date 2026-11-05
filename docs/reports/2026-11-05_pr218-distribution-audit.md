@@ -95,3 +95,18 @@
 - 本検査は参照**存在**の契約検証であり、M02の意味抽出やAuthority/Risk/Scopeの意味的正しさを証明するものではない。**新規テスト導入後のCI結果は別途確認**し、M03の完了チェックを増やさない。
 
 [CI #41974335705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41974335705)（HEAD `d81a9afa21119562fd855f0dd3203109ac3700ed`）では`Style Quality`、`Code Quality`、`Vitest (contracts)`の各ジョブ成功を確認。これは上記M03参照欠落検査を追加する**前**のHEADであり、上記新規検査のPASSとは扱わない。
+
+## Markdownリンクの配布先依存閉包（2026-11-05追補）
+
+固定HEAD `67ee9bff93bf8efa20a87523240064bac44f3fa8` の `training/course-sync/manifest.json` にある`local_files`のMarkdown **69件**をGitHubから全件取得し、`[...](relative/path)`形式の参照を各`target_path`のディレクトリ基準で正規化し、配布対象`local_files.target_path`＋固定Skill対象`external_skill_files.target_path`へ静的照合した。**69件中16件のMarkdownファイルで配布先参照が解決しなかった**（11モジュールREADME、`course/start-here.md`、仕様3ファイル、learning-map）。本調査は静的な通常Markdownリンクを対象とし、HTML内埋込・コードブロック・動的JS内の全参照を網羅した主張ではない。
+
+| 対象 | 実際の未解決例 | 直接原因・影響 |
+| --- | --- | --- |
+| `course/modules/M00..M10/README.md` | `../../assets/figures/M03/01-test-design-methods.svg`、`../../../../../training/ai-assisted-qa-course/exercises/M05/exercise.md`、`../../../../spec/features/cart.md` | READMEの原本は`docs/curriculum/ai-assisted-qa/modules/Mxx/`基準。配布先`course/modules/Mxx/`では相対リンク先が`course/assets/**`、root `training/**`、root `spec/**`等へ変わる。manifestは図をこれらのpathには配置せず、演習は`course/exercises/**`、仕様は`docs/spec/**`に配置するため欠落。 |
+| `course/start-here.md` | `../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md` | 元パスから配布先への相対位置が変わり、配布済み`docs/plans/**`へ到達しない。 |
+| `docs/spec/features/cart.md`、`storefront.md`、`docs/spec/state-and-scenarios.md` | `../screen-catalog.md`、`../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp` | 原本が参照するscreen-catalog Markdownや画像は`local_files`に存在しない。生成ShopのZIPには`docs/spec/screen-catalog.html`や多くの`docs/spec/assets/screens/**`が存在するが、`course/shop/**`へ置かれるため既存の相対リンクからは到達できない。 |
+| `docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md` | 同じディレクトリの`..._assessment.md`、`..._states.md`、`..._progression.md`等 | 関連する内部Planはallowlistにない。追加配布すると旧教材・内部資料除外条件と競合する可能性があり、未確認のまま公開allowlistへ拡張しない。 |
+
+[Web CI #41967650261 のBuild Artifact](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)（ZIP内312ファイル）の一覧では教材図SVG 27、教材PNG 3、各種仕様画面WebP、`docs/spec/screen-catalog.html`の存在を確認できる。**WebにあることはMarkdownのリンク先が正しくなることを意味しない**。
+
+**修正方向と所有境界**：公開してよい原本リンクのみ、`source_path`→`target_path`の確定対応を使って配布時に相対リンクを再構成するか、必要な静的assetを明示allowlistへ追加する。Web Build由来のassetは`course/shop/**`の実ファイル存在を確かめる。未許可の古いPlanや評価内部資料は自動追加しない。教材の正本変更・公開対象の確定は#199/各Phase担当に引き継ぐ。本PRにおける配布変換を導入する場合も全69 Markdown・生成assetの負例/回帰テストが必須。**配布閉包とTemplate完全性のチェックは未完了**。
