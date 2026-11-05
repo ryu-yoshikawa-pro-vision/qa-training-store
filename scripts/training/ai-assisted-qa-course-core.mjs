@@ -10,7 +10,7 @@ export const DISTRIBUTION_MANIFEST_PATH = ".course/distribution-manifest.json";
 const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v3";
 const EXTERNAL_SKILL_REPOSITORY = "ryu-yoshikawa-pro-vision/qa-workflow-skills";
 const EXTERNAL_SKILL_COMMIT = "7cc6cba7772de549841a39d71694cbafbc783324";
-const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide"]);
+const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide", "reference"]);
 const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
@@ -487,7 +487,7 @@ function bindStateSourceSha(bytes, sourcePath, sourceSha) {
   return Buffer.from(`${JSON.stringify(state, null, 2)}\n`, "utf8");
 }
 
-function remapMarkdownLinks(bytes, entry, manifest) {
+function remapMarkdownLinks(bytes, entry, manifest, generatedTargets) {
   if (!REMAPPED_MARKDOWN_ROLES.has(entry.role)) return bytes;
   const targetBySource = new Map(
     manifest.local_files.map((file) => [path.posix.normalize(file.source_path), file.target_path]),
@@ -501,9 +501,13 @@ function remapMarkdownLinks(bytes, entry, manifest) {
       const match = href.match(/^([^?#]*)([?#].*)?$/);
       const sourceHref = match?.[1];
       if (!sourceHref) return whole;
-      const sourceTarget = targetBySource.get(
-        path.posix.normalize(path.posix.join(sourceDirectory, sourceHref)),
-      );
+      const sourcePath = path.posix.normalize(path.posix.join(sourceDirectory, sourceHref));
+      const sourceTarget =
+        targetBySource.get(sourcePath) ??
+        generatedTargets.get(sourcePath) ??
+        (sourcePath.endsWith(".md")
+          ? generatedTargets.get(sourcePath.slice(0, -3) + ".html")
+          : undefined);
       if (!sourceTarget) return whole;
       const targetHref =
         path.posix.relative(targetDirectory, sourceTarget) || path.posix.basename(sourceTarget);
@@ -671,13 +675,23 @@ export async function syncCourse({
       stdio: "inherit",
     });
 
+  const buildRoot = shopBuildRoot ? path.resolve(shopBuildRoot) : sourceRoot;
+  let generatedFiles = [];
+  if (buildShop || fs.existsSync(path.join(buildRoot, "dist")))
+    generatedFiles = expandBuildOutput(buildRoot, manifest);
+  else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
+    fail("Shop build is required by the distribution contract");
+  const generatedTargets = new Map(
+    generatedFiles.map((file) => [file.source_path.slice("dist/".length), file.target_path]),
+  );
+
   const files = [];
   for (const entry of manifest.local_files) {
     const raw = allowUncommittedFixture
       ? fs.readFileSync(assertNoSymlinkPath(sourceRoot, entry.source_path))
       : readCommittedFile(sourceRoot, sourceSha, entry.source_path);
     const boundBytes = bindStateSourceSha(raw, entry.source_path, sourceSha);
-    const bytes = remapMarkdownLinks(boundBytes, entry, manifest);
+    const bytes = remapMarkdownLinks(boundBytes, entry, manifest, generatedTargets);
     files.push({
       source_path: entry.source_path,
       target_path: entry.target_path,
@@ -701,11 +715,7 @@ export async function syncCourse({
     readPinnedAssessmentSource(sourceRoot, sourceSha, entry, allowUncommittedFixture),
   );
   validateAssessmentAssetSet(assessmentAssets, sourceSha);
-  const buildRoot = shopBuildRoot ? path.resolve(shopBuildRoot) : sourceRoot;
-  if (buildShop || fs.existsSync(path.join(buildRoot, "dist")))
-    files.push(...expandBuildOutput(buildRoot, manifest));
-  else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
-    fail("Shop build is required by the distribution contract");
+  files.push(...generatedFiles);
 
   const m03PublicStart = files.find((file) => file.target_path === M03_PUBLIC_START_PATH);
   if (!m03PublicStart) fail("M03 public start input is missing from distribution");
