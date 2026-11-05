@@ -5,6 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import {
   createIsolatedAssessmentRuntime,
   runCaptured,
+  runIsolatedOpenCodeCommand,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
 import {
   buildAssessmentAgentConfig,
@@ -106,6 +107,59 @@ it("passes only an explicitly selected OpenCode credential into the isolated chi
     authorized.dispose();
     unrelated.dispose();
   }
+});
+
+it("isolates model discovery and version checks from the tutor configuration", async () => {
+  const source = {
+    PATH: process.env.PATH,
+    HOME: "/untrusted/tutor",
+    OPENCODE_API_KEY: "selected-model-key",
+    GITHUB_TOKEN: "other-secret",
+  };
+  const recorded = [];
+  const runner = async (command, args, options) => {
+    recorded.push({ command, args, options });
+    expect(fs.statSync(options.cwd).isDirectory()).toBe(true);
+    expect(options.env.HOME).toBe(options.cwd);
+    expect(options.env.OPENCODE_CONFIG_DIR).toBe(path.join(options.cwd, "config"));
+    expect(options.env.GITHUB_TOKEN).toBeUndefined();
+    return { stdout: args[0] === "--version" ? "2.0.22" : "opencode/sample-free", exitCode: 0 };
+  };
+  expect(
+    await runIsolatedOpenCodeCommand({
+      args: ["--version"],
+      source,
+      runner,
+      timeoutMs: 1_000,
+      maxBytes: 10_000,
+    }),
+  ).toMatchObject({ stdout: "2.0.22" });
+  expect(
+    await runIsolatedOpenCodeCommand({
+      args: ["models"],
+      modelId: "opencode/sample-free",
+      source,
+      runner,
+      timeoutMs: 1_000,
+      maxBytes: 10_000,
+    }),
+  ).toMatchObject({ stdout: "opencode/sample-free" });
+  expect(recorded).toHaveLength(2);
+  expect(recorded[0].options.env.OPENCODE_API_KEY).toBeUndefined();
+  expect(recorded[1].options.env.OPENCODE_API_KEY).toBe("selected-model-key");
+  for (const item of recorded) expect(fs.existsSync(item.options.cwd)).toBe(false);
+  let failedRoot;
+  await expect(
+    runIsolatedOpenCodeCommand({
+      args: ["models"],
+      source,
+      runner: async (command, args, options) => {
+        failedRoot = options.cwd;
+        throw Error("provider unavailable");
+      },
+    }),
+  ).rejects.toThrow(/provider unavailable/);
+  expect(fs.existsSync(failedRoot)).toBe(false);
 });
 
 it("denies all tool categories and omits ambient instructions from assessor config", () => {
