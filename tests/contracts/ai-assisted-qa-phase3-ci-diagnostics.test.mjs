@@ -120,7 +120,63 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     ]) {
       expect(submission).toContain(condition);
     }
+    for (const condition of ["合成D Install", "合成E Distribution", "合成F Serve"]) {
+      expect(submission).toContain(condition);
+    }
+    for (const marker of ["## D：Install失敗", "## E：配布検証失敗", "## F：Serve失敗"]) {
+      expect(cases).toContain(marker);
+    }
+    expect(cases).toContain("最初の失敗**はInstall");
+    expect(cases).toContain("最初の失敗**は配布検証");
+    expect(cases).toContain("最初の失敗**はPlaywright step内のServe");
     expect(submission).toContain("最初の失敗step / 不一致");
     expect(submission).toContain("実行済み・skipped・不明");
+  });
+  it("requires a tracked pinned Shop and verified billing before enabling CI", () => {
+    const manifest = JSON.parse(read("training/course-sync/manifest.json"));
+    const expectedBuild = {
+      command: "pnpm run build:web",
+      source: "dist/**",
+      target: "course/shop/**",
+      required: true,
+    };
+    expect(manifest.generated.shop_build).toEqual(expectedBuild);
+    const ignore = read("training/ai-assisted-qa-course/templates/learner-repo.gitignore");
+    expect(ignore).not.toMatch(/^course\/shop\//m);
+    expect(ignore).not.toMatch(/^\.course\//m);
+    const prepare = read("scripts/training/prepare-learner-template.mjs");
+    expect(prepare).toContain('"--source-sha"');
+    expect(prepare).toContain('"verify-distribution"');
+
+    const textbook = read("docs/curriculum/ai-assisted-qa/modules/M09/README.md");
+    expect(textbook).toContain("追跡ファイル");
+    expect(textbook).toContain("git ls-tree -r --name-only");
+    expect(textbook).toContain("信頼境界");
+    const exercise = read("training/ai-assisted-qa-course/exercises/M09/exercise.md");
+    const quiz = JSON.parse(read("docs/curriculum/ai-assisted-qa/quizzes/M09.json"));
+    expect(exercise).toContain("1日3回更新（7日間）");
+    expect(exercise).toContain("週2回だけ更新（7日間）");
+    expect(3 * 7).toBe(21);
+    expect(2).toBe(2);
+    expect(exercise).toContain("0回なら未検証");
+    expect(exercise).toContain("BLOCKED");
+    expect(textbook).toContain("本人のBilling画面");
+    const billingQuiz = quiz.questions.find((question) => question.id === "M09-Q04");
+    expect(billingQuiz.correct_value).toBe("C");
+    expect(billingQuiz.options.find((option) => option.value === "C").label).toContain(
+      "組織の契約・設定",
+    );
+  });
+
+  it("forbids unsafe external PR privilege escalation", () => {
+    const exercise = read("training/ai-assisted-qa-course/exercises/M09/exercise.md");
+    const textbook = read("docs/curriculum/ai-assisted-qa/modules/M09/README.md");
+    const submission = read("training/ai-assisted-qa-course/exercises/M09/submission-template.md");
+    expect(exercise).toContain("pull_request_target");
+    expect(exercise).toContain("write-all");
+    expect(exercise).toContain("persist-credentials: false");
+    expect(textbook).toContain("第三者が変更した依存スクリプト");
+    expect(textbook).toContain("contents: read");
+    expect(submission).toContain("外部PR + pull_request_target提案");
   });
 });
