@@ -12,6 +12,16 @@ const criteria = [
   ["M07", "M07-CR-05", ["別ページ", "Cart再入場", "reload"]],
 ];
 
+const rejectionTerms = {
+  "M00-CR-03": ["架空誤回答", "実AI"],
+  "M01-CR-04": ["4層", "Level 2"],
+  "M03-CR-04": ["Web数量select", "架空結果"],
+  "M04-CR-02": ["4層", "Level 2"],
+  "M05-CR-02": ["receipt", "Level 2"],
+  "M05-CR-03": ["DB永続化", "削除操作"],
+  "M07-CR-05": ["page.reload()", "再入場", "Level 2"],
+};
+
 describe("formal assessor practical criteria", () => {
   for (const [moduleId, criterionId, requiredTerms] of criteria) {
     it(`${criterionId} requires distinct practice evidence and explicit rejection`, () => {
@@ -31,7 +41,9 @@ describe("formal assessor practical criteria", () => {
         ...criterion.reject_if,
       ].join("\n");
       for (const term of requiredTerms) expect(evidenceAndConditions).toContain(term);
-      expect(criterion.reject_if.join("\n")).toMatch(/Level 2|架空|実操作|合格/);
+      const explicitRejections = criterion.reject_if.join("\n");
+      for (const term of rejectionTerms[criterionId])
+        expect(explicitRejections).toContain(term);
     });
   }
 
