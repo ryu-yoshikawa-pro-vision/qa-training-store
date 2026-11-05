@@ -415,3 +415,26 @@
 - **未実行**：M06参考固定3件と004/005の8082専用Chromium実Run、M07保守前2件/保守後3件の実Run、本人Private Codespaces/OpenCodeの修了実受入、独立した正式AI評価は未取得。再開コマンド・ポート・必要なreport/Trace/SHAは先行節と#199受入表に記録し、未実行をPASSへ変更しない。
 - **新HEAD/CI**：整形修復と一時テスト削除時のHEAD `b6e72bb18fea269204257d463fec6876e261af5b`に対する[Web CI #41936747958](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41936747958)は確認時点`pending`。CIが成功するまで「最新HEADのCI確認」のチェックを付けない。後続の報告・Plan更新commitはさらに新しいHEADとなるため、最新CIの判定は引き続き未確認。
 - **判定**：PR #215の担当範囲・教材/参考/Config/Resetの最終差分**レビュー作業**は完了。M07-05の参考実装整合、専用実Chromium、最新CIの品質ゲート、および#199実受入は完了と判断しない。
+
+## 2026-11-05 M06公開参考specの実行手順と追加のCase ID不整合
+
+- **専用Chromiumの実行可否**：現在のGitHub接続環境では`pnpm install`済みのローカルcheckout、実行用`course/shop`または`dist`、8082上のShopが得られないため、M06参考specのChromium Runを取得できない。`.github/workflows/ci.yml`の`training-web-baseline`は`PLAYWRIGHT_BASE_URL=127.0.0.1:8082`で起動するが、コマンドは`pnpm run training:web:baseline`（`playwright.training.config.ts`配下）であり、M06公開参考specを`playwright.ai-assisted-qa.config.ts`で実行していない。このCI成功をM06実Runと代用しない。
+- **参照spec固定Blob**：`assessment/playwright/M06/cart-cases.spec.ts`は`a339551956f66144afa7f748e6129a55db6234b4`（CASE-CART-001/002/003、3test）、`remove-item.spec.ts`は`e9272e0a57545800b0c5dc1e428e7ee13b36412e`（削除004相当、1test）、`quantity-update.spec.ts`は`00eedfc14f9d2e5b8e74f0c0d8370ee1e9dd8789`（005、1test）。いずれも読み取りのみ、本人の`workspace/M06/`とは別。
+- **実行再開手順**：Node.js/pnpmと依存、Playwright Chromium、固定source SHAの配布Shopまたは非配布の`build:web`が使えるcheckoutを用意する。`PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M06`と`PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082`を指定し、専用ConfigのwebServer（配布済みなら`verify-distribution`、未配布ならbuildして8082でServe）を利用する。**学習者の`course:run`ではなく公開参考specの直接実行**として区別する。
+
+  ```bash
+  export PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M06
+  export PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082
+  export AI_QA_OUTPUT_ROOT=output/training/ai-assisted-qa/m06-reference-fixed
+  pnpm exec playwright test cart-cases.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0
+
+  export AI_QA_OUTPUT_ROOT=output/training/ai-assisted-qa/m06-reference-initial
+  pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0
+
+  export AI_QA_OUTPUT_ROOT=output/training/ai-assisted-qa/m06-reference-repeat
+  pnpm exec playwright test remove-item.spec.ts quantity-update.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0
+  ```
+
+- **取得すべき証拠**：実行環境・採用Git HEAD/参照spec SHA、Shop/配布source SHAとConfig、3 Runそれぞれの終了コード、`playwright-result.json`内の`config.rootDir`・対象testのspec.file・期待件数（固定3、initial2、repeat2）・個別状態、HTML report、失敗時Trace/Screenshot/Video、Reset Seedと実行順序。成功時は`retain-on-failure`のTraceを必須としない。参考specが成功しても本人の独立実装・初回/再実行成功ではない。
+- **追加不整合（#217担当）**：`remove-item.spec.ts`のtest名は`M06 reference: remove the only item from the guest cart`で`CASE-CART-004`を含まない。一方005参考test名は`CASE-CART-005`を含み、教材/提出は両Case IDと別Runの照合を要求する。削除の業務内容は004に対応するが、reportのtest名からの機械的照合を困難にする。[#217へ追加引継ぎ済み](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)。具体的な評価失敗は未再現なので断定しない。
+- **判定**：本項目は**未完了**。再現可能な環境と3 Runの実証が必要であり、設定と実行方法の記録だけでチェックを付けない。本人実受入は#199の最後に実施する。
