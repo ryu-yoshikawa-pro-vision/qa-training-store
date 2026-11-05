@@ -138,7 +138,7 @@
     {
       "id": "M01-CAL-01",
       "type": "correct",
-      "response": "対象・目的・根拠ある期待結果を示し、未知の探索と既知の回帰を分け、再実行価値と費用からテストレベルを選択する。",
+      "response": "対象・目的・根拠ある期待結果を示し、未知の探索と既知の回帰を分け、再実行価値と費用からテストレベルを選択する。 Cart上限計算はUnit、更新とDexie保存・再取得はIntegration、数量selectの候補と無効状態はComponent、利用者導線はWeb E2Eとし、4層それぞれの検出可能/不可能な欠陥と準備・実行費用、採否を比較する。",
       "evidence": [
         "reference-solutions/M01.md",
         "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
@@ -175,7 +175,7 @@
     {
       "id": "M01-CAL-04",
       "type": "acceptable-alternative",
-      "response": "ピラミッド図を使わず、速度・費用・切り分けの比較をCart例で説明する。",
+      "response": "ピラミッド図を使わず、速度・費用・切り分けの比較をCart例で説明する。 Unit、Integration、Component、Web E2Eごとの責務・検出可能/不可能な欠陥・費用と前提を区別し、UI selectで選べない超過数量はUse Case入力で別に検証する。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M01/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
