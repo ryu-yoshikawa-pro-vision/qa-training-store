@@ -192,6 +192,35 @@ describe("Git-free Phase 1/2 learner backup", () => {
     expect(fs.existsSync(path.join(second.root, "workspace/M05"))).toBe(false);
   });
 
+  it("blocks known credentials and personal email contents before export", () => {
+    for (const text of [
+      "OPENROUTER_API_KEY=" + "A".repeat(24),
+      "recipient: learner@gmail.com",
+    ]) {
+      const first = fixture();
+      write(first.root, "workspace/M00/submission.md", text);
+      expect(() => exportLearnerWorkspace({ root: first.root, target: first.backup })).toThrow(
+        /Secret|personal email/,
+      );
+      expect(fs.existsSync(first.backup)).toBe(false);
+    }
+  });
+
+  it("refuses a symlinked restore target without modifying a learner file", () => {
+    const first = fixture();
+    write(first.root, "workspace/M01/submission.md", "answer\n");
+    exportLearnerWorkspace({ root: first.root, target: first.backup });
+    const second = fixture();
+    const outside = write(second.root, "original.md", "leave unchanged\n");
+    const target = path.join(second.root, "workspace/M01/submission.md");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(outside, target);
+    expect(() => restoreLearnerWorkspace({ root: second.root, source: first.backup })).toThrow(
+      /symlink/,
+    );
+    expect(fs.readFileSync(outside, "utf8")).toBe("leave unchanged\n");
+  });
+
   it("runs the distributed standalone CLI without Git or the shared router", () => {
     const first = fixture();
     write(first.root, "workspace/M02/plan.md", "learner plan\n");
