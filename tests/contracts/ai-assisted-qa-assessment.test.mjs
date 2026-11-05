@@ -3389,6 +3389,65 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(verify().status).toBe("ungradable");
   });
 
+  it("does not treat a passing test's trace as proof of a failed test's trace", () => {
+    const { workspaceRoot, beforeReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "trace-attached-to-wrong-test"),
+    );
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify().status).toBe("passed");
+    const receiptPath = path.join(path.dirname(beforeReportPath), "run-evidence.json");
+    const report = JSON.parse(fs.readFileSync(beforeReportPath, "utf8"));
+    const spec = report.suites[0].specs[0];
+    const originalTrace = spec.tests[0].results[0].attachments;
+    spec.tests[0].results[0].attachments = [];
+    report.suites[0].specs.push({
+      ...spec,
+      title: "unrelated passing test",
+      tests: [
+        {
+          projectName: "ai-assisted-qa-chromium",
+          expectedStatus: "passed",
+          status: "expected",
+          results: [{ status: "passed", attachments: originalTrace }],
+        },
+      ],
+    });
+    const reportBytes = Buffer.from(JSON.stringify(report));
+    fs.writeFileSync(beforeReportPath, reportBytes);
+    const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+    receipt.report_sha256 = sha256(reportBytes);
+    receipt.tests.push({
+      title: "unrelated passing test",
+      status: "passed",
+      expected_status: "passed",
+    });
+    fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+    expect(verify().status).toBe("ungradable");
+  });
+
   it("rejects foreign roots, specs, skipped and expected-failure Playwright reports", () => {
     const { workspaceRoot, reportPath } = writeM05RunEvidence(
       path.join(tempRoot, "playwright-rootdir-proof"),
