@@ -53,6 +53,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
 
+## 2026-11-05 追加の実装修正・未完了条件
+
+- **固定SHA取得（2項目目、未チェック）：** 既存の`scripts/training/ai-assisted-qa-course-core.mjs`でscoring/rubricを許可パス、固定`source_sha`、サイズ・SHA-256、スキーマ・revision、HTTP 200・非redirect・非HTMLで検証する処理を再確認。`tests/contracts/ai-assisted-qa-assessment-pinned-assets.test.mjs`を新設し、正常な固定SHA・異なるURL・redirect・HTML・サイズ超過・Hash不一致・不明パス・不正revisionをモック検証する。新規テストのCI成功は未確認のためチェックしない。
+- **Run証拠の真正性（3項目目および補完、未チェック）：** `ai-assisted-qa-run-evidence.mjs`のRun attachmentへSHA-256を保存し、照合時はTraceを再読込したSHAをreceiptと比較。同じサイズのTrace改変を`ai-assisted-qa-assessment.test.mjs`で拒否する負例を追加。過去のSHAなしTrace receiptは再評価で`ungradable`として扱い、元の履歴は削除せず新Runが必要。`assessment/README.md`に制限を明記。正当なブラウザRunによる検証は#199最終実受入に引継ぐ。
+- **教材からの評価条件の引継ぎ（4・10・11・20項目目の一部、未チェック）：** #214/#215の現HEADと照合し、`scoring-tests/M00.json`の架空誤回答の独立訂正、M01/M04の4層採否・限界・費用、M03の数量遷移（4拒否・2保持・0削除）と通常Cart統合の分離、M07の別ページ経由Cart再入場を独立したrequired_evidence/pass_conditions/reject_ifへ追加。`M07/maintenance-after/cart.spec.ts`の3件目を`reload()`から別商品ページ→Cart再入場へ変更し、関連する既存の合格校正fixtureも更新した。`tests/contracts/ai-assisted-qa-assessment-practical-criteria.test.mjs`を追加。模擬モデルの意味評価・実Chromium・認証済みOpenCode評価は未実施。
+- **CIとレビュー：** 前回の固定HEAD `6da6af7e41568bd66aa3634f04e4f51ac0522f82`に対するWeb CI Run [41942464990](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41942464990)の`Vitest (contracts)`は成功、`Style Quality`は`Format check`で2ファイルの整形不足により失敗。該当箇所を修正し追加テストにも整形上の注意を反映したが、新HEADの成功は未確認。新規CIに失敗があれば実行ログを根拠に再修正する。
+- **残る重要な検証：** M06固定Caseの業務Assertion・M07外部importの証拠閉包、失敗RunとPass Runの実証、M10のGitHub API照合、校正fixtureの意味判定と重大誤PASS拒否、外部送信/課金ガード、実モデルの認証/無料価格の確認。本人Private Codespaces/OpenCode/Private PR実受入は#199最後に行う。
+
 ## 2026-11-05 継続作業の検証
 
 - **必須目標ID 22/15/14：チェック済み。** `validatePhaseObjectiveIds`はPhaseと終端stateのID・件数・重複、各scoringのmodule接頭辞・ID集合・欠落・余分を検査。`tests/contracts/ai-assisted-qa-assessment.test.mjs`の正例・欠落・重複・不明ID・終端state不一致を含む既存HEAD `6da6af7e41568bd66aa3634f04e4f51ac0522f82`に対する GitHub Actions [Run 41942464990](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41942464990)の`Vitest (contracts)`は成功。`assessment/scoring-tests/M00..M10.json`とM04/M07/M10終端stateの直接照合でも、P1=22/22、P2=15/15、P3=14/14で順序を含め一致。Run全体は`Style Quality / Format check`失敗のため成功扱いにしない。整形を修正済みだが修正後CIは未確認。
