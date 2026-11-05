@@ -42,6 +42,7 @@
 - [x] `M06-05`：終了コード、`outcome`、JSON report・ログからPASS/FAIL/BLOCKED/未実行を判定する教材と、旧Run・別spec・実行数の誤判定を拒否する契約テストを整合する。共有実行器の修正は#217へ渡す。
   - 4種の`course:run outcome`とreceipt未生成の未実行、Playwright test状態・Run ID/配布/spec/report SHAの照合を教材/提出欄に追加。既存評価テストの同一Run・旧source SHA・初回/repeat逆転拒否と照合。共有実行器の相対パス不具合は#217へ引継ぎ済み。
 - [ ] 公開参考specの固定3件と004/005を専用Config・実行可能な環境で技術的に検証し、Run/対象HEAD/初回・再実行の結果を記録。**本人の独立実装・初回/repeat達成の判定は行わない**。
+  - **未完了理由**：専用8082のShop、pnpm/Chromium、実行checkoutがなくRun未取得。固定3件（`cart-cases.spec.ts`）と004/005（`remove-item.spec.ts`/`quantity-update.spec.ts`）の初回・再実行の3コマンドと必要な証拠を[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ追記した。004参考test名にCase IDがない点は[#217](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)へ引継ぎ済み。
 
 ## M07：失敗解析・保守設計
 
@@ -54,6 +55,7 @@
 - [x] `M07-04`：`failure-assertion.spec.ts`と`repaired-assertion.spec.ts`の役割、TODO由来のbefore失敗、業務Assertionを維持したafter修正を照合。参考コードで検証可能なbefore/after実行を区別する。
   - 診断Aの誤Assertionと修正対象beforeのTODO例外を分離。参考afterはMug見出し+数量1を検証し、元の業務Assertionを削除しないこと、main/before/after別Runを専用契約テストに固定。
 - [ ] `M07-05`：公開参考の保守前2件・保守後3件、test単位Reset、Page Object/fixture、各test内Assertion、別ページを経由する3件目の実装契約をテストする。参考実装の相違は#217で修正されるまで未解決として扱う。
+  - **未完了理由**：#217の現参照specでは保守後3件目が`page.reload()`のみでCart外へ移動しない。所有外の`assessment/**`は#215で修正せず、#217の修正HEADを確認後に契約テスト・専用Chromiumを検証する。
 - [x] 通常OpenCodeの段階ヒント・失敗後の復習、AI案の採否を本人の判断から奪わない教材上の制約を確認。チューター共通実装・実モデルの動作検証は#217/#199へ渡す。
   - 本人の初期診断→追加証拠に限定したAIヒント→本人の再実行→復習、完成答案の自動編集禁止、秘密情報除去、通常Tutorと正式Assessの分離をM07教材・契約テストへ追加。実モデル結果は未確認。
 
