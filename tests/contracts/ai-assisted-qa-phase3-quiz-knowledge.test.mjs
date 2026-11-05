@@ -163,9 +163,7 @@ describe("Phase 3 quiz and understanding coverage", () => {
         expect(exercise).toContain(objective);
         expect(submission).toContain(objective);
         expect(
-          graph.nodes.some(
-            (node) => node.id === objective && node.type === "learning_objective",
-          ),
+          graph.nodes.some((node) => node.id === objective && node.type === "learning_objective"),
         ).toBe(true);
       }
       for (const step of ["P01", "P02", "P03", "P04", "P05", "P06"]) {
