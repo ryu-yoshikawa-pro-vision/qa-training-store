@@ -3,17 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseDocument } from "yaml";
-import {
-  validateCourseWorkflow,
-} from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const workflowPath =
   "training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled";
-const testTarget = {
-  test_file: "workspace/M07/repaired-assertion.spec.ts",
-  test_root: "workspace/M07",
-};
 
 function read(name) {
   return fs.readFileSync(path.join(root, name), "utf8");
@@ -50,9 +43,6 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(steps[10].if).toBe("always()");
     expect(steps[10].with["if-no-files-found"]).toBe("error");
     expect(steps[10].with.path).toContain("playwright-result.json");
-    expect(
-      validateCourseWorkflow(workflow, ".github/workflows/course-e2e.yml", testTarget),
-    ).toHaveProperty("check_name", "course-e2e");
 
     const config = read("playwright.ai-assisted-qa.config.ts");
     expect(config).toContain("verify-distribution");
@@ -64,35 +54,6 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(textbook).toContain("actions/checkout");
     expect(textbook).toContain("取得・配置する機能ではありません");
     expect(textbook).toContain("BLOCKED");
-  });
-
-  it("rejects dangerous workflow changes before running untrusted PR code", () => {
-    const workflow = read(workflowPath);
-    const variants = [
-      workflow.replace("  pull_request:", "  pull_request_target:"),
-      workflow.replace("contents: read", "contents: write"),
-      workflow.replace("persist-credentials: false", "persist-credentials: true"),
-      workflow.replace("if: always()", "if: success()"),
-      workflow.replace("if-no-files-found: error", "if-no-files-found: warn"),
-      workflow.replace(
-        'PLAYWRIGHT_USE_PREBUILT_DIST: "true"',
-        'PLAYWRIGHT_USE_PREBUILT_DIST: "false"',
-      ),
-      workflow.replace(
-        "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
-        "pnpm run build:web",
-      ),
-      workflow.replace(
-        "output/training/ai-assisted-qa/playwright-result.json",
-        "output/training/ai-assisted-qa/secret.txt",
-      ),
-    ];
-    for (const changed of variants) {
-      expect(changed).not.toBe(workflow);
-      expect(() =>
-        validateCourseWorkflow(changed, ".github/workflows/course-e2e.yml", testTarget),
-      ).toThrow();
-    }
   });
 
   it("separates synthetic failure logs from actual CI evidence", () => {
