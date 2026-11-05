@@ -283,9 +283,7 @@ export function validateCourseManifest(manifest) {
       fail(`invalid module_id in distribution manifest: ${entry.module_id}`);
     if (manifest.external_skill_files.includes(entry)) {
       if (
-        !/^skills\/[a-z0-9-]+\/(?:SKILL\.md|(?:assets|references|scripts)\/.+)$/.test(
-          source,
-        ) ||
+        !/^skills\/[a-z0-9-]+\/(?:SKILL\.md|(?:assets|references|scripts)\/.+)$/.test(source) ||
         !source.startsWith(`skills/${entry.skill}/`) ||
         target !== `.agents/${source}`
       )
