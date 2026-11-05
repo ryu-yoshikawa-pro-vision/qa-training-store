@@ -7,6 +7,8 @@ const criteria = [
   ["M01", "M01-CR-04", ["Unit", "Integration", "Component", "Web E2E"]],
   ["M03", "M03-CR-04", ["数量1→2→4拒否", "数量0", "ゲスト→会員"]],
   ["M04", "M04-CR-02", ["Unit", "Integration", "Component", "Web E2E"]],
+  ["M05", "M05-CR-02", ["p05-cart-locator.spec.ts", "main Run", "scope", "read-only"]],
+  ["M05", "M05-CR-03", ["P05", "read-only", "DB", "main Run"]],
   ["M07", "M07-CR-05", ["別ページ", "Cart再入場", "reload"]],
 ];
 
