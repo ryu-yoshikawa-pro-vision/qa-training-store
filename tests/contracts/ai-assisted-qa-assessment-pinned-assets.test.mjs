@@ -118,11 +118,7 @@ describe("formal assessment pinned HTTP assets", () => {
         }),
       ).rejects.toThrow(/source SHA|allowlist/);
     }
-    for (const change of [
-      { schema_version: 2 },
-      { module_id: "M01" },
-      { revision: "unknown" },
-    ]) {
+    for (const change of [{ schema_version: 2 }, { module_id: "M01" }, { revision: "unknown" }]) {
       const content = JSON.stringify({ ...JSON.parse(scoringText), ...change });
       const changedAsset = assetFor(SCORING_PATH, content);
       await expect(
