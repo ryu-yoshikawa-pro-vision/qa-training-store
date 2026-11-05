@@ -87,6 +87,14 @@ schema・日時・Session IDを照合します。Case別判定のない旧成功
 既存の失敗キャッシュは監査用に保持します。
 実モデルの106 Case校正を代替するものでもありません。
 
+## OpenCode V2の正式評価プロセス
+
+正式評価はOpenCode CLI `2.0.22`を要求し、`opencode run --standalone --pure --model <provider/model-id> --agent <assessor> --format json --file <prompt>`を使用します。OpenCode V2の設定には`update: "disable"`を指定し、専用Agentの`permissions`へ全リソース・全操作の`deny`を設定します。`OPENCODE_DISABLE_PROJECT_CONFIG`と`OPENCODE_DISABLE_EXTERNAL_SKILLS`も有効にします。
+
+Nodeは標準出力のNDJSONを検査し、Tool使用・複数session・終了イベント欠落・未完了終了・終了後の追加イベントを拒否します。子プロセスのstderrは評価回答として採用しません。非0終了、タイムアウト、出力サイズ超過は正式なPASSへ変換しません。テストはこれらの拒否と独立した評価Agent設定を模擬・検証します。利用するCLIのフラグ・設定の基準は[OpenCode V2 Commands](https://dev.opencode.ai/v2/docs/cli/commands/)、[Config](https://dev.opencode.ai/v2/docs/config/)、[Permissions](https://dev.opencode.ai/v2/docs/permissions/)です。
+
+これらは**設定の静的検証と模擬プロセスの検証**です。本人の認証付きOpenCode `2.0.22`で設定が実際に読み込まれること、既存のグローバル`AGENTS.md`や認証情報が評価へ流入しないこと、無料モデルの契約・価格、429/上限超過時の実応答は未受入です。実受入まで正式評価の最終校正をPASSにしないでください。
+
 ## OpenCode呼び出し中断時の扱い
 
 評価モデルへ送信する前に、非公開の試行フォルダへ
