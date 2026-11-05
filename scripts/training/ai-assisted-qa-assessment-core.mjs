@@ -10,6 +10,56 @@ export const ASSESSMENT_PHASES = Object.freeze({
   P3: { terminal: "M10", modules: ["M08", "M09", "M10"] },
 });
 
+const EXPECTED_PHASE_OBJECTIVE_COUNTS = Object.freeze({ P1: 22, P2: 15, P3: 14 });
+
+export function validatePhaseObjectiveIds({ phaseId, scoringByModule, terminalState }) {
+  const phase = ASSESSMENT_PHASES[phaseId];
+  if (!phase || !(scoringByModule instanceof Map))
+    fail("Phase scoring objective contract is missing or invalid");
+  const required = terminalState?.phase_assessment;
+  const expectedCount = EXPECTED_PHASE_OBJECTIVE_COUNTS[phaseId];
+  if (
+    required?.phase_id !== phaseId ||
+    required?.terminal_module_id !== phase.terminal ||
+    !Array.isArray(required.required_objective_ids) ||
+    required.required_objective_ids.length !== expectedCount ||
+    new Set(required.required_objective_ids).size !== expectedCount
+  )
+    fail("terminal Phase state has an invalid required objective ID set");
+
+  const ids = [];
+  for (const moduleId of phase.modules) {
+    const scoring = scoringByModule.get(moduleId);
+    if (
+      scoring?.module_id !== moduleId ||
+      !Array.isArray(scoring.objective_ids) ||
+      scoring.objective_ids.length === 0 ||
+      scoring.objective_ids.some((id) => !new RegExp(`^${moduleId}-[0-9]{2}import { Buffer } from "node:buffer";
+import { createHash, randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
+
+export const ASSESSMENT_PHASES = Object.freeze({
+  P1: { terminal: "M04", modules: ["M00", "M01", "M02", "M03", "M04"] },
+  P2: { terminal: "M07", modules: ["M05", "M06", "M07"] },
+  P3: { terminal: "M10", modules: ["M08", "M09", "M10"] },
+});
+
+).test(id))
+    )
+      fail(`pinned scoring objective IDs are invalid for ${moduleId}`);
+    ids.push(...scoring.objective_ids);
+  }
+  if (
+    ids.length !== expectedCount ||
+    new Set(ids).size !== expectedCount ||
+    ids.some((id) => !required.required_objective_ids.includes(id))
+  )
+    fail(`${phaseId} pinned scoring objective IDs differ from the terminal state contract`);
+  return ids;
+}
+
 export const ASSESSMENT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const MODEL_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._#-]*$/i;
