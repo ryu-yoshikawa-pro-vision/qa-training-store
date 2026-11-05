@@ -13,7 +13,9 @@ node scripts/training/learner-workspace-backup.mjs export --target /tmp/qa-cours
 - 保存先は学習リポジトリ**外**の既存ディレクトリを指定します。既存ファイルへの上書き、Symlink経由の保存は禁止です。
 - 出力は**暗号化されていない**単一の`.json.gz`です。SHA-256付きで、テキスト・JSON・TypeScript・画像・PlaywrightのTrace/Runなどのバイナリをそのまま保全します。ファイルモードは本人のみの読み書き（Unixで`0600`）です。
 - 対象：`workspace/M00/**`〜`workspace/M07/**`の本人作業ファイル、`workspace/.course-assessments/P1/**`と`P2/**`の非公開評価記録、`.course-load/M00-*.json`〜`M07-*.json`のロード記録。Playwrightの`workspace/Mxx/evidence/runs/**`にあるログ、結果、Traceも含めます。
-- 除外：M08〜M10、`output/**`、`.git/**`、`node_modules/**`、`.env*`、認証情報を含む名称・拡張子のファイル。既知Token/秘密鍵のパターンを**含むテキストがある場合はバックアップ全体を停止**し、公開しません。未知の秘密・個人情報の検知を保証しないため、出力の取扱いと共有先は本人が確認してください。
+- 除外：M08〜M10、`output/**`、`.git/**`、`node_modules/**`、`.env*`、認証情報を含む名称・拡張子のファイル。対象範囲で名前によって除外したパスはCLI結果の`excluded_paths`に表示されます。**件数だけでなく除外パスを確認**してください。除外されたファイルは復元できません。既知Token/秘密鍵のパターンを含むテキストがある場合はバックアップ全体を停止し、公開しません。
+- 個人メール：テキスト系ファイルに`gmail.com`、`yahoo.co.jp`、`icloud.com`、`outlook.com`、`hotmail.com`などの個人メールアドレスが含まれる場合も、**バックアップ全体を停止**します。エラーに表示されたファイルの該当アドレスを、実情報を含まないダミー値（例：`user@example.com`）に置き換えて再実行してください。既知パターン以外の秘密や個人情報まで検知できる保証はありません。
+- Symlinkをたどらずにファイルを開く機能が利用できない環境では、安全性を下げずにバックアップを停止します。
 - 資源上限：1ファイル64 MiB、合計256 MiB、1万ファイル。上限超過時は出力を作成しません。データを黙って切り捨てず、必要なら保存方式を再検討します。
 - 出力ファイルはCodespacesを削除する前に本人が安全な場所へダウンロードします。**`/tmp`に置いただけでは永続保管になりません**。GitHubへpushしたり、Public TemplateやGitHub Issueへ添付したりしないでください。
 
