@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは8/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは10/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -26,7 +26,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 ## OpenCode実モデル・最小権限
 
-- [ ] `@opencode/cli`の対象版・`opencode run`の非対話/JSONイベント・stderr/終了コード/タイムアウトを仕様・既存コードと照合し、イベントを模擬したパーサ/異常系契約テストを追加。学習環境での認証付き実CLI接続は#199へ渡す
+- [x] `@opencode/cli`の対象版・`opencode run`の非対話/JSONイベント・stderr/終了コード/タイムアウトを仕様・既存コードと照合し、イベントを模擬したパーサ/異常系契約テストを追加。学習環境での認証付き実CLI接続は#199へ渡す（OpenCode V2のCLI/Config仕様とNode実装を照合。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`では`ai-assisted-qa-assessment-process.test.mjs`の4件・既存イベント異常系を含む`Vitest (contracts)`が成功。本人認証付き実CLIは#199で実施）
 - [ ] 無料モデルの選択・料金確認を起動前ガードとして実装/文書化し、認証欠落・429・上限/不明価格を`blocked`として拒否する負例テストを用意。本人の実契約/費用確認・モデル接続は#199へ渡す
 - [ ] 学習用セッションから分離した評価プロセス/権限設定を実装し、Shell/edit/Web/MCP/Skill/子Agent禁止の設定と模擬拒否を契約テストで検証。実モデル環境の権限拒否確認は#199へ渡す
 - [ ] 本人提出・ログ中のPrompt Injectionを命令として実行せず、許可した資料/節だけをサイズ上限・Secret除外後に外部モデルへ渡すこと
@@ -35,7 +35,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 - [ ] 正答・誤答・許容別解・部分達成・根拠不足・未実行の固定校正fixtureと判定契約を整備し、Node集計・モデル応答異常/欠落の負例をCIで検証する。**実モデルでの最終校正は#199**
 - [ ] 旧SHA/別Run、改ざん・偽Trace、重複/欠落ID、Prompt Injection、異常JSON、タイムアウトの負例をCIへ追加。模擬評価器の重大誤PASSを0にし、**実モデルの重大誤PASS 0件は#199最終実受入**で別に確認
-- [ ] 校正記録へモデルID/版・CLI版・Prompt Hash・rubric Hash・資料SHAを保存する契約を実装し、不一致時の再校正要求をテスト。実モデル校正結果の確定は#199へ渡す
+- [x] 校正記録へモデルID/版・CLI版・Prompt Hash・rubric Hash・資料SHAを保存する契約を実装し、不一致時の再校正要求をテスト。実モデル校正結果の確定は#199へ渡す（モデル/CLI/Prompt/評価資料SHAの校正identity、正常再利用・不一致拒否を`ai-assisted-qa-assessment-calibration-identity.test.mjs`・既存校正cacheテストで確認。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`で契約テスト成功。本人の実モデル校正は#199）
 - [x] 不一致/校正不能時は合格へ繰り上げず`blocked`/`ungradable`等の正しい状態にし、再試行条件を提示（`isPassingCalibration`・`finalizeAssessment`・`resumeAttempt`・`saveSummary`、失敗校正cacheの拒否/候補欠落/再開負例を固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI `41953473479`の契約テスト成功で確認）
 
 ## 保存・再開・再評価
@@ -52,6 +52,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 OpenCode固定HEAD契約の確認・価格事前ガード
+
+- **項目6・12をチェック：** 固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525` の [Web CI Run 41961795221](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41961795221) で `Vitest (contracts)`（79ファイル・1122件PASS・1件既知のexpected fail・15件skip）、`Style Quality`、`Code Quality`、build2本、Training runtime contractsのジョブ成功を確認。workflow全体は後続の更新により`cancelled`だが当該ジョブは完走している。OpenCode V2のCLI・Agent config・イベント終端・Tool拒否・stderr/exitCode/timeout/出力上限（子プロセス4テスト）、モデル・CLI版・System Prompt Hash・rubric/scoring資料SHA一致/変更による別校正IDの検証を直接確認。実認証付きモデルの最終校正は#199に残る。
+- **項目7（未チェック）：** 現行のモデル送信前同意だけでは有料・不明価格を防げないため、`verifyCurrentFreeModelPrice`を新設し公開`models.dev/api.json`（固定URL、HTTP200、非redirect、JSON、最大20MiB）のモデル料金を送信前に照合。`opencode`/`opencode-go`の入力・出力・その他公表単価がすべてゼロであるモデルだけを許し、欠落・未知・課金料金・401/429・異常HTTPは`blocked`として停止。`opencode models`の列挙結果に指定IDが現れない場合も送信前に拒否する。本人の送信同意と契約確認は引き続き必須。`ai-assisted-qa-assessment-free-pricing.test.mjs`の正負例を追加したが、**追加後HEADのCIは未確認**。公開カタログと本人契約が一致する保証はないため最終料金受入は#199。
+- **既存の項目3・4・8〜11・16・18〜20・22は継続未チェック。** Run receiptの同時偽造による実行出自、正式AIの命令遮断、重大誤PASS 0件は未受入とする。
 
 ## 2026-11-05 継続実装：OpenCode V2と校正の版一致
 
