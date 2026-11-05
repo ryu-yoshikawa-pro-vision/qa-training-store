@@ -3,7 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { sha256 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
+import {
+  finalizeAssessment,
+  sha256,
+} from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 import { verifyModuleRunEvidence } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
 const SOURCE_SHA = "a".repeat(40);
@@ -207,4 +210,45 @@ it("rejects a PASS report whose test title is absent from the saved M07 spec", (
   const result = verify();
   expect(result.status).toBe("ungradable");
   expect(result.reasons.join(" ")).toMatch(/report test titles do not match/);
+});
+
+it("keeps invalid M07 Run evidence ungradable even if the AI asserts a passing Level", () => {
+  const missingAssertion = [
+    beforeCode,
+    'test("cart reentry retains two", async ({ page }) => {',
+    '  await page.goto("/cart");',
+    "});",
+  ].join("\n");
+  const evidence = setupM07Runs({ after: missingAssertion }).verify();
+  expect(evidence.status).toBe("ungradable");
+
+  const candidate = {
+    assessment_id: "123e4567-e89b-42d3-a456-426614174000",
+    phase_id: "P2",
+    completed: true,
+    pass: true,
+    objectives: [{ objective_id: "M07-05", status: "assessed", level: 3 }],
+  };
+  const final = finalizeAssessment({
+    candidate,
+    calibration: { id: "calibrated", status: "passed", critical_false_passes: 0, mismatches: [] },
+    requiredObjectiveIds: ["M07-05"],
+    sourceSha: SOURCE_SHA,
+    versions: {
+      attempt: 1,
+      terminalModuleId: "M07",
+      modelId: "opencode/example",
+      openCodeVersion: "2.0.22",
+    },
+    inputSnapshot: [],
+    deterministicChecks: evidence.checks,
+    challenge: {
+      id: "CH-P2",
+      objective_ids: ["M07-05"],
+      condition_sha256: "b".repeat(64),
+      answer_sha256: "c".repeat(64),
+    },
+  });
+  expect(final.completed).toBe(false);
+  expect(final.status).toBe("ungradable");
 });
