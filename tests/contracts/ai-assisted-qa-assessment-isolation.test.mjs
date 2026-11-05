@@ -94,4 +94,12 @@ it("denies all tool categories and omits ambient instructions from assessor conf
   for (const type of ["tool_use", "tool", "error"]) {
     expect(() => parseOpenCodeJsonEvents(JSON.stringify({ type }), 0)).toThrow();
   }
+  for (const tool of ["shell", "edit", "webfetch", "mcp", "skill", "subagent"]) {
+    const stream = [
+      JSON.stringify({ type: "text", part: { type: "text", text: "{}" } }),
+      JSON.stringify({ type: "tool_use", part: { type: "tool", tool } }),
+      JSON.stringify({ type: "step_finish", reason: "stop" }),
+    ].join("\n");
+    expect(() => parseOpenCodeJsonEvents(stream, 0)).toThrow(/tool\/error event/);
+  }
 });
