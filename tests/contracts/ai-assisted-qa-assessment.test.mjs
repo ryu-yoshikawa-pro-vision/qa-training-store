@@ -2407,6 +2407,31 @@ it("reads only a nonempty learner answer after the explicit answer heading", () 
   expect(readChallengeAnswer(answerPath, challenge).answer).toBe("Revised answer");
 });
 
+it("rejects oversized, invalid UTF-8, symlink and credential-bearing challenge answers", () => {
+  const directory = path.join(tempRoot, "unsafe-live-answer");
+  fs.mkdirSync(directory, { recursive: true });
+  const target = path.join(directory, "answers.md");
+  const challenge = { objective_ids: ["M04-01"] };
+  const prefix = "# Answer\\n\\n## M04-01\\n\\n### Your answer\\n\\n";
+  const put = (text) => fs.writeFileSync(target, text);
+  put(prefix + "a".repeat(256 * 1024));
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/size is outside/);
+  put(prefix + "No credential, but malformed UTF-8");
+  fs.appendFileSync(target, Buffer.from([0xc3, 0x28]));
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/UTF-8/);
+  put(prefix + "Has a\\0hidden delimiter");
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/UTF-8/);
+  put(prefix + `OPENAI_API_KEY=${"a".repeat(40)}`);
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/Secret/);
+  if (process.platform !== "win32") {
+    const link = path.join(directory, "answers-link.md");
+    fs.symlinkSync(target, link);
+    expect(() => readChallengeAnswer(link, challenge)).toThrow(/unsafe/);
+  }
+  fs.unlinkSync(target);
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/missing or unsafe/);
+});
+
 it("reuses only byte-identical OpenCode prompts after an interrupted assessment", () => {
   const directory = path.join(tempRoot, "interrupted-opencode");
   fs.mkdirSync(directory, { recursive: true });
