@@ -105,8 +105,14 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   const requiredTestCommand = target
     ? `pnpm run training:ai-assisted-qa:test -- ${target.test_file}`
     : null;
+  const verifyDistributionCommand = [
+    "test -s course/shop/index.html",
+    "test -s .course/distribution-manifest.json",
+    "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+  ].join("\n");
   const allowedCommands = new Set([
     "pnpm install --frozen-lockfile",
+    verifyDistributionCommand,
     "pnpm exec playwright install --with-deps chromium",
     "mkdir -p output/training/ai-assisted-qa",
     'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
@@ -121,27 +127,38 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   ]);
   for (const step of steps) {
     const isAction = step && typeof step === "object" && typeof step.uses === "string";
+    const command = typeof step?.run === "string" ? step.run.trimEnd() : null;
+    const isDistributionCheck = command === verifyDistributionCommand;
     requireOnlyWorkflowFields(
       step,
       isAction
         ? step.uses === "actions/upload-artifact@v4"
           ? ["uses", "with", "if"]
           : ["uses", "with"]
-        : ["run", "env"],
+        : isDistributionCheck
+          ? ["name", "run"]
+          : ["run", "env"],
       "step",
     );
     if (isAction) {
       requireOnlyWorkflowFields(step.with, actionOptions.get(step.uses) ?? [], "action options");
       continue;
     }
-    if (typeof step.run !== "string" || !allowedCommands.has(step.run))
+    if (!allowedCommands.has(command))
       fail("M10 workflow contains an unapproved shell command");
-    if (step.run === 'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"') {
+    if (isDistributionCheck) {
+      if (step.name !== "Verify pinned learner distribution before browser setup")
+        fail("M10 workflow must identify the pinned distribution verification step");
+    } else if (command === 'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"') {
       requireOnlyWorkflowFields(step.env, ["EXPECTED_HEAD_SHA"], "SHA step environment");
       if (step.env.EXPECTED_HEAD_SHA !== "${{ github.event.pull_request.head.sha }}")
         fail("M10 workflow must verify the PR head SHA against the same checkout");
-    } else if (step.run === requiredTestCommand) {
-      requireOnlyWorkflowFields(step.env, ["PLAYWRIGHT_TEST_ROOT"], "test step environment");
+    } else if (command === requiredTestCommand) {
+      requireOnlyWorkflowFields(
+        step.env,
+        ["PLAYWRIGHT_TEST_ROOT", "PLAYWRIGHT_USE_PREBUILT_DIST"],
+        "test step environment",
+      );
     } else if (step.env !== undefined) {
       fail("M10 workflow contains unapproved shell environment variables");
     }
@@ -151,14 +168,19 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     "pnpm/action-setup@v4",
     "actions/setup-node@v4",
     "pnpm install --frozen-lockfile",
+    verifyDistributionCommand,
     "pnpm exec playwright install --with-deps chromium",
-    'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
     "mkdir -p output/training/ai-assisted-qa",
+    'test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"',
     "git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
     requiredTestCommand,
     "actions/upload-artifact@v4",
   ];
-  if (steps.some((step, index) => (step.uses ?? step.run) !== reviewedStepOrder[index]))
+  if (
+    steps.some(
+      (step, index) => (step.uses ?? step.run?.trimEnd()) !== reviewedStepOrder[index],
+    )
+  )
     fail("M10 workflow steps must follow the reviewed checkout, SHA, test, and upload order");
   const pnpmSetup = steps.find((step) => step.uses === "pnpm/action-setup@v4");
   const nodeSetup = steps.find((step) => step.uses === "actions/setup-node@v4");
@@ -169,7 +191,7 @@ export function validateCourseWorkflow(document, workflowPath, target) {
   )
     fail("M10 workflow must retain the reviewed Node and pnpm versions");
   if (
-    steps.length !== 10 ||
+    steps.length !== 11 ||
     [...allowedActions].some(
       (action) => steps.filter((step) => step.uses === action).length !== 1,
     ) ||
@@ -196,10 +218,11 @@ export function validateCourseWorkflow(document, workflowPath, target) {
     !target ||
     playwrightStep.run !== `pnpm run training:ai-assisted-qa:test -- ${target.test_file}` ||
     target.test_root !== ALLOWED_TARGET_SPECS.get(target.test_file) ||
-    playwrightStep.env?.PLAYWRIGHT_TEST_ROOT !== target.test_root
+    playwrightStep.env?.PLAYWRIGHT_TEST_ROOT !== target.test_root ||
+    playwrightStep.env?.PLAYWRIGHT_USE_PREBUILT_DIST !== "true"
   )
     fail(
-      "M10 workflow must execute the selected allowed M07/M10 spec through the dedicated Playwright config",
+      "M10 workflow must execute the selected allowed M07/M10 spec with the prebuilt distribution enabled",
     );
   if (
     !steps.some(
