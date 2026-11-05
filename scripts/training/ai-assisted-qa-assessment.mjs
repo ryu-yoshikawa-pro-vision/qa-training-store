@@ -442,7 +442,7 @@ function systemPromptHash(systemPrompt) {
   return sha256(`${OPEN_CODE_VERSION_REQUIRED}\n${systemPrompt}\n`);
 }
 
-function runCaptured(
+export function runCaptured(
   command,
   args,
   { cwd, env = process.env, timeoutMs = MODEL_TIMEOUT_MS, maxBytes = MODEL_OUTPUT_LIMIT } = {},
