@@ -24,6 +24,9 @@ const guardAndArchive = commandBlocks.find((block) =>
   block.includes("tar --create --gzip --file=-"),
 );
 
+const restoreDownloaded = commandBlocks.find((block) =>
+  block.includes("tar -xzf ./phase2.tgz"),
+);
 const temporaryDirectories = [];
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -31,6 +34,7 @@ afterEach(() => {
   }
 });
 
+/** テスト用の成果物をworkspace相対パスで作成する。 */
 function writeFixtureFile(root, relative, content = "dummy training evidence\n") {
   const absolute = path.join(root, relative);
   fs.mkdirSync(path.dirname(absolute), { recursive: true });
@@ -38,6 +42,7 @@ function writeFixtureFile(root, relative, content = "dummy training evidence\n")
   return absolute;
 }
 
+/** 保全対象ファイルと一覧を持つ一時workspaceを作成する。 */
 function makeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "course-phase2-export-"));
   temporaryDirectories.push(root);
@@ -57,6 +62,7 @@ function makeFixture() {
   return { root, files, manifest };
 }
 
+/** 教材の一覧初期化コマンドを隔離Bashで実行する。 */
 function runManifestInitialization(fixture) {
   return spawnSync("bash", ["-c", initializeManifest], {
     cwd: fixture.root,
@@ -65,12 +71,38 @@ function runManifestInitialization(fixture) {
   });
 }
 
+/** 教材のアーカイブ生成手順を隔離Bashで実行する。 */
 function runGuard(fixture, manifestLines) {
   if (manifestLines) {
     writeFixtureFile(fixture.root, fixture.manifest, manifestLines.join("\n") + "\n");
   }
   return spawnSync("bash", ["-e", "-c", guardAndArchive], {
     cwd: fixture.root,
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+}
+
+/** ダウンロード済みコピーを置く本人専用ローカルディレクトリを作成する。 */
+function makeDownloadedCopy(fixture) {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "course-phase2-downloaded-"));
+  temporaryDirectories.push(home);
+  const local = path.join(home, "phase2-private");
+  fs.mkdirSync(local, { mode: 0o700 });
+  for (const name of ["phase2.tgz", "phase2.tgz.sha256"]) {
+    fs.copyFileSync(
+      path.join(fixture.root, "workspace/M07/exports", name),
+      path.join(local, name),
+    );
+  }
+  return { home, local };
+}
+
+/** 教材のコピー照合・復元手順をローカルの非公開領域で実行する。 */
+function runDownloadedRestore(home) {
+  return spawnSync("bash", ["-e", "-c", restoreDownloaded], {
+    env: { ...process.env, HOME: home },
+    cwd: home,
     encoding: "utf8",
     timeout: 15_000,
   });
@@ -100,6 +132,70 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
         fs.readFileSync(path.join(fixture.root, file), "utf8"),
       );
     }
+  });
+
+  linuxIt("保全先を所有者のみに制限し、既存の広い権限も修正する", () => {
+    const fixture = makeFixture();
+    const exportsDir = path.join(fixture.root, "workspace/M07/exports");
+    fs.chmodSync(exportsDir, 0o755);
+    const run = runGuard(fixture);
+    expect(run.status, run.stderr + run.stdout).toBe(0);
+    expect(fs.statSync(exportsDir).mode & 0o777).toBe(0o700);
+    const archive = path.join(exportsDir, "phase2.tgz");
+    const checksum = path.join(exportsDir, "phase2.tgz.sha256");
+    expect(fs.statSync(archive).mode & 0o777).toBe(0o600);
+    expect(fs.statSync(checksum).mode & 0o777).toBe(0o600);
+    expect(initializeManifest).toContain("umask 077");
+    expect(initializeManifest).toContain("chmod 700 workspace/M07/exports");
+  });
+
+  linuxIt("ダウンロードしたコピーを原本なしで検証・復元できる", () => {
+    expect(restoreDownloaded).toBeTruthy();
+    const fixture = makeFixture();
+    const archive = runGuard(fixture);
+    expect(archive.status, archive.stderr + archive.stdout).toBe(0);
+    const { home, local } = makeDownloadedCopy(fixture);
+    fs.rmSync(path.join(fixture.root, "workspace/M07/exports/phase2.tgz"));
+    fs.rmSync(path.join(fixture.root, "workspace/M07/exports/phase2.tgz.sha256"));
+    const restored = runDownloadedRestore(home);
+    expect(restored.status, restored.stderr + restored.stdout).toBe(0);
+    for (const file of fixture.files) {
+      expect(fs.readFileSync(path.join(local, "restore-check", file), "utf8")).toBe(
+        fs.readFileSync(path.join(fixture.root, file), "utf8"),
+      );
+    }
+    expect(
+      fs.statSync(path.join(local, "restore-check")).mode & 0o777,
+    ).toBe(0o700);
+    expect(backupSection).toContain("更新後の`phase2-handoff.md`も同じ非公開保管先へ");
+    expect(backupSection).toContain("**別ファイルとして再ダウンロード**");
+  });
+
+  linuxIt("改変コピー・既存復元先・symlinkを拒否し、既存内容を上書きしない", () => {
+    expect(restoreDownloaded).toBeTruthy();
+    const fixture = makeFixture();
+    expect(runGuard(fixture).status).toBe(0);
+    const { home, local } = makeDownloadedCopy(fixture);
+    const downloadedArchive = path.join(local, "phase2.tgz");
+    fs.appendFileSync(downloadedArchive, "corruption");
+    let result = runDownloadedRestore(home);
+    expect(result.status).not.toBe(0);
+    expect(fs.existsSync(path.join(local, "restore-check"))).toBe(false);
+    fs.copyFileSync(
+      path.join(fixture.root, "workspace/M07/exports/phase2.tgz"),
+      downloadedArchive,
+    );
+
+    const existing = path.join(local, "restore-check");
+    fs.mkdirSync(existing);
+    fs.writeFileSync(path.join(existing, "keep.txt"), "keep");
+    result = runDownloadedRestore(home);
+    expect(result.status).not.toBe(0);
+    expect(fs.readFileSync(path.join(existing, "keep.txt"), "utf8")).toBe("keep");
+    fs.rmSync(existing, { recursive: true });
+    fs.symlinkSync(path.join(fixture.root, "workspace/M06"), existing, "dir");
+    result = runDownloadedRestore(home);
+    expect(result.status).not.toBe(0);
   });
 
   linuxIt("Run証拠を追記した既存の保全リストを初期化で上書きしない", () => {
