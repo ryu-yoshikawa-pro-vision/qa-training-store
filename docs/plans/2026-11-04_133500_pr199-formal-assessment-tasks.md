@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは0/22件（HEAD `e026edb3e8bd`。現在の差分はタスクリストのみ）。古いCIのMarkdown lintは#199基点の既修正表記に起因し、評価器のテストが失敗した証拠ではない。各項目は実装・契約/異常系CI・#199への実受入手順の整備でチェックする。
+確認済みは1/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -41,7 +41,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 ## 保存・再開・再評価
 
 - [ ] `workspace/.course-assessments/`への非公開保存、Git除外、外部送信最小化、Machine/人間可読結果・復習先の整合を確認
-- [ ] 試行ID、排他`.resume.lock`、`.current-publish.lock`、中断→再開/競合を検証。古い正式結果を上書き/削除しない
+- [x] 試行ID、排他`.resume.lock`、`.current-publish.lock`、中断→再開/競合を検証。古い正式結果を上書き/削除しない（既存の契約テストと固定HEADの成功済みCIを確認。根拠は下記）
 - [ ] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する
 - [ ] Phase 1/2はGit/PRを必須にせず結果の安全なエクスポートと復習後の再挑戦ができること
 - [ ] 変更した評価器の直接契約/負例・モック実行・既存CIを固定HEADで検証し、実モデル校正/Private Codespaces/本人認証について#199向け実施手順・期待値・未実行理由を記録
@@ -52,6 +52,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 の検証・変更記録
+
+- **チェック済み：保存・再開の排他と履歴保護。** `scripts/training/ai-assisted-qa-assessment.mjs`の`withAttemptResumeLock`、`reconcileFinalizedAssessment`、`showHistory`と`tests/contracts/ai-assisted-qa-assessment.test.mjs`の同時再開（同一/別Nodeプロセス）、強制終了、最新ポインタ競合、結果の改変拒否、履歴の不変性を確認。既存の直接検証はGitHub Actions Web CI Run [41862840552](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41862840552)（HEAD `5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`、`Vitest (contracts)`成功）。新規変更のCIは別扱い。
+- **実装済み・新規CI未確認：** `ai-assisted-qa-run-evidence.mjs`のPlaywright JSON `config.rootDir`相対照合、別spec・skip・期待失敗・空attemptの拒否。実Playwright専用Configの`testDir`と比較し、`ai-assisted-qa-assessment.test.mjs`に同形式・nested suitesの正例と改ざん負例を追加。比較対象の旧ソースBlobは`d7c88233102c9402db268b65a3ac37039856051e`。
+- **実装済み・新規CI未確認：** `validatePhaseObjectiveIds`を評価器で利用し、固定されたM04/M07/M10終端stateの必須目標22/15/14件と各scoring JSONを照合し、欠落・重複・不明IDを拒否。コネクタによる既存JSON直接比較ではP1=22/22、P2=15/15、P3=14/14、いずれも重複なし・順序を含め一致。GitHub上のデータの静的照合であり、新規テスト実行の代わりではない。
+- **公開参照の整合：** `assessment/playwright/M06/remove-item.spec.ts`のtest名を`CASE-CART-004`へ修正し、`assessment/README.md`のCase件数を固定3件＋追加2件に修正。業務Assertionの実ブラウザRunは未実施。
+- **未完了：** 新規CI・formatter・Playwright実Run、M06/M07のAssertion内容と外部importの証拠閉包、OpenCode実CLI・実モデル校正、M10 Private API照合。新規Run成功を確認するまで上記実装項目にはチェックを付けない。本人認証・Private Codespaces・重大誤PASS 0件の実校正は#199最終受入へ引継ぐ。
 
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
