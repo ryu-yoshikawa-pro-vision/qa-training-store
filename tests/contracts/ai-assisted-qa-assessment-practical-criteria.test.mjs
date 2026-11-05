@@ -42,8 +42,7 @@ describe("formal assessor practical criteria", () => {
       ].join("\n");
       for (const term of requiredTerms) expect(evidenceAndConditions).toContain(term);
       const explicitRejections = criterion.reject_if.join("\n");
-      for (const term of rejectionTerms[criterionId])
-        expect(explicitRejections).toContain(term);
+      for (const term of rejectionTerms[criterionId]) expect(explicitRejections).toContain(term);
     });
   }
 
