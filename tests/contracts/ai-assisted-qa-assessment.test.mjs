@@ -2733,6 +2733,11 @@ describe("AI-assisted QA formal assessment contracts", () => {
       "Return only the exact JSON object required by your system prompt.",
     ]);
     expect(args).not.toContain("--dir");
+    const evaluatorSource = fs.readFileSync(
+      path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"),
+      "utf8",
+    );
+    expect(evaluatorSource).toContain('OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"');
     expect(
       buildOpenCodeEnvironment({
         source: { PATH: "safe-path" },
@@ -2940,6 +2945,9 @@ describe("AI-assisted QA formal assessment contracts", () => {
   it("rejects malformed, mixed-session, tool-using, and incomplete OpenCode output", () => {
     expect(() => parseOpenCodeJsonEvents("not-json", 0)).toThrow(/malformed JSON/);
     expect(() => parseOpenCodeJsonEvents('{"type":"tool_use"}\n', 0)).toThrow(/tool\/error event/);
+    expect(() => parseOpenCodeJsonEvents('{"type":"error","error":{"statusCode":429}}', 0)).toThrow(
+      /BLOCKED/,
+    );
     expect(() =>
       parseOpenCodeJsonEvents(
         '{"type":"text","part":{"type":"text","text":"{}"},"sessionID":"a"}\n{"type":"step_finish","reason":"stop","sessionID":"b"}',
