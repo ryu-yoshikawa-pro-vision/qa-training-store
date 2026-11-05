@@ -131,6 +131,23 @@ function validateModuleLoadCoverage(loadFiles, distributionFiles) {
   }
 }
 
+function validateM03RiskInput(loadFiles, distributionFiles) {
+  const sourcePath = "course/modules/M03/inputs/public-risk-input.csv";
+  if (
+    !distributionFiles.some(
+      (entry) =>
+        entry.module_id === "M03" && entry.role === "input" && entry.target_path === sourcePath,
+    ) ||
+    !loadFiles.some(
+      (entry) =>
+        entry.module_id === "M03" &&
+        entry.source_path === sourcePath &&
+        entry.target_path === "workspace/M03/public-sample/risk-input.csv",
+    )
+  )
+    fail("M03 public Risk input must be distributed and loaded with its module");
+}
+
 function validateLoadFileBindings(loadFiles, distributionTargets) {
   const loadTargets = new Set();
   for (const entry of loadFiles) {
@@ -324,6 +341,7 @@ export function validateCourseManifest(manifest) {
     );
   }
   validateLoadFileBindings(manifest.load_files, destinations);
+  validateM03RiskInput(manifest.load_files, manifest.local_files);
   for (const asset of manifest.assessment_asset_allowlist) {
     if (asset.asset_type === "rubric") continue;
     if (
@@ -821,6 +839,7 @@ function readDistribution(root) {
     new Set(distribution.files.map((file) => file.target_path)),
   );
   validateModuleLoadCoverage(distribution.load_files, distribution.files);
+  validateM03RiskInput(distribution.load_files, distribution.files);
   for (const asset of distribution.assessment_assets) {
     if (
       Object.hasOwn(asset, "content") ||
