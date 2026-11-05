@@ -488,27 +488,17 @@ export function runCaptured(
 }
 
 async function getOpenCodeVersion() {
-  const runtime = createIsolatedAssessmentRuntime();
-  try {
-    const result = await runCaptured(
-      process.platform === "win32" ? "opencode.cmd" : "opencode",
-      ["--version"],
-      {
-        cwd: runtime.cwd,
-        env: runtime.env,
-        timeoutMs: 10_000,
-        maxBytes: 16_000,
-      },
+  const result = await runIsolatedOpenCodeCommand({
+    args: ["--version"],
+    timeoutMs: 10_000,
+    maxBytes: 16_000,
+  });
+  const version = result.stdout.trim().split(/\r?\n/).at(-1)?.replace(/^v/, "");
+  if (result.exitCode !== 0 || version !== OPEN_CODE_VERSION_REQUIRED)
+    fail(
+      `OpenCode CLI ${OPEN_CODE_VERSION_REQUIRED} is required; found ${version || "no version"}`,
     );
-    const version = result.stdout.trim().split(/\r?\n/).at(-1)?.replace(/^v/, "");
-    if (result.exitCode !== 0 || version !== OPEN_CODE_VERSION_REQUIRED)
-      fail(
-        `OpenCode CLI ${OPEN_CODE_VERSION_REQUIRED} is required; found ${version || "no version"}`,
-      );
-    return version;
-  } finally {
-    runtime.dispose();
-  }
+  return version;
 }
 
 export function writeImmutableOpenCodePrompt(promptPath, prompt) {
@@ -616,6 +606,30 @@ export function createIsolatedAssessmentRuntime({
   } catch (error) {
     fs.rmSync(root, { recursive: true, force: true });
     throw error;
+  }
+}
+
+export async function runIsolatedOpenCodeCommand({
+  args,
+  modelId = null,
+  timeoutMs,
+  maxBytes,
+  source = process.env,
+  runner = runCaptured,
+}) {
+  const runtime = createIsolatedAssessmentRuntime({
+    source,
+    providerId: modelId?.split("/")[0] ?? null,
+  });
+  try {
+    return await runner(process.platform === "win32" ? "opencode.cmd" : "opencode", args, {
+      cwd: runtime.cwd,
+      env: runtime.env,
+      timeoutMs,
+      maxBytes,
+    });
+  } finally {
+    runtime.dispose();
   }
 }
 
@@ -1495,31 +1509,20 @@ export function assertAvailableModelListing(modelId, stdout) {
 }
 
 async function verifyOpenCodeModelAvailable(modelId) {
-  const runtime = createIsolatedAssessmentRuntime({
-    providerId: modelId.split("/")[0],
-  });
+  let result;
   try {
-    let result;
-    try {
-      result = await runCaptured(
-        process.platform === "win32" ? "opencode.cmd" : "opencode",
-        ["models"],
-        {
-          cwd: runtime.cwd,
-          env: runtime.env,
-          timeoutMs: 15_000,
-          maxBytes: 256_000,
-        },
-      );
-    } catch {
-      fail("BLOCKED: OpenCode model discovery is unavailable; check CLI and provider access");
-    }
-    if (result.exitCode !== 0)
-      fail("BLOCKED: OpenCode model discovery failed; check authentication and provider access");
-    assertAvailableModelListing(modelId, result.stdout);
-  } finally {
-    runtime.dispose();
+    result = await runIsolatedOpenCodeCommand({
+      args: ["models"],
+      modelId,
+      timeoutMs: 15_000,
+      maxBytes: 256_000,
+    });
+  } catch {
+    fail("BLOCKED: OpenCode model discovery is unavailable; check CLI and provider access");
   }
+  if (result.exitCode !== 0)
+    fail("BLOCKED: OpenCode model discovery failed; check authentication and provider access");
+  assertAvailableModelListing(modelId, result.stdout);
 }
 
 export async function verifyCurrentFreeModelPrice(modelId, { fetchImpl = fetch } = {}) {
