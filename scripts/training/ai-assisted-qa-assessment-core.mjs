@@ -551,6 +551,7 @@ export function isPassingCalibration(calibration) {
 export function finalizeAssessment({
   candidate,
   calibration,
+  requiredObjectiveIds,
   sourceSha,
   versions,
   inputSnapshot,
@@ -562,9 +563,13 @@ export function finalizeAssessment({
   const objectives = candidate.objectives.map((item) => ({ ...item }));
   const objectiveIds = objectives.map((item) => item.objective_id);
   const objectivesValid =
-    objectives.length > 0 &&
-    objectiveIds.every((id) => typeof id === "string" && id.trim().length > 0) &&
-    new Set(objectiveIds).size === objectives.length;
+    Array.isArray(requiredObjectiveIds) &&
+    requiredObjectiveIds.length > 0 &&
+    new Set(requiredObjectiveIds).size === requiredObjectiveIds.length &&
+    requiredObjectiveIds.every((id) => typeof id === "string" && id.trim().length > 0) &&
+    objectives.length === requiredObjectiveIds.length &&
+    objectiveIds.every((id) => typeof id === "string" && requiredObjectiveIds.includes(id)) &&
+    new Set(objectiveIds).size === requiredObjectiveIds.length;
   const checks = Array.isArray(deterministicChecks) ? deterministicChecks : [];
   const deterministicChecksValid =
     Array.isArray(deterministicChecks) &&
