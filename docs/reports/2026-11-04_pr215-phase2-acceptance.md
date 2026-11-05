@@ -459,7 +459,6 @@
 - **今回の判定**：「M05〜M07の契約テストと既存検証を、最終**実装コード**を含むHEADでCI確認する」技術項目を完了とする。本項とタスクリストの追記で新しい**文書のみのHEAD**が作成されるため、そのHEADのCI成功までは主張しない。更新によって実装・テストの変更があれば改めて同一HEADで検証する。
 - **引き続き未完了**：M06公開参考5testの専用Chromiumを使う固定/initial/repeatの3 Runは未実施。#217のM07保守後参考specは3件目の別ページ遷移が未実装で、専用実Runもない。#199最終実受入へ引継ぎ済み。
 
-
 ## 2026-11-05 PR #215レビュー指摘の補修とM07保守Run再開条件
 
 - **検証範囲**：PR #215（補修開始時のHEAD `657e600762f56e621cd91b25c107f1c0ad8075ee`）のCodeRabbitレビュー8件を調査。M05 `cart_items.variantId`から`product_variants.id/sku`への照合、M06の`spec-snapshot.ts`/`run-evidence.json`/JSON reportの責務、M06参考Runごとの一意な出力先を教材・レポートで補修した。
@@ -470,7 +469,7 @@
 
 ### M07公開参考specのbefore/after（統合後の専用Chromium実行例）
 
-#217の保守後参考修正が採用されたGit HEADのcheckoutと、pnpm依存・Chromium・8082上のShopを準備する。配布済みShopを利用する場合は専用Configが要求する配布manifest/Shopの検証も先に通す。**次は本作業で実行したログではなく再開用コマンド**。出力ディレクトリは実行ごとに一意にし、実行終了コードを直後に採取する。Linux/Bashの例。
+PR #217の保守後参考修正が採用されたGit HEADのcheckoutと、pnpm依存・Chromium・8082上のShopを準備する。配布済みShopを利用する場合は専用Configが要求する配布manifest/Shopの検証も先に通す。**次は本作業で実行したログではなく再開用コマンド**。出力ディレクトリは実行ごとに一意にし、実行終了コードを直後に採取する。Linux/Bashの例。
 
 ```bash
 export PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082
