@@ -113,7 +113,7 @@ Nodeは標準出力のNDJSONを検査し、Tool使用・複数session・終了�
 
 ## 正式評価と学習用OpenCodeの設定分離
 
-正式評価の`opencode run`は、リポジトリ・学習用セッションとは別の、権限を制限した一時ディレクトリを作業ディレクトリにして実行します。`HOME`/`USERPROFILE`、`XDG_CONFIG_HOME`/`APPDATA`、`XDG_DATA_HOME`/`LOCALAPPDATA`、`XDG_CACHE_HOME`を一時ディレクトリへ切り替え、`OPENCODE_DB=:memory:`を使用します。終了後は作業ディレクトリを削除します。`--pure`、`OPENCODE_DISABLE_PROJECT_CONFIG`、`OPENCODE_DISABLE_EXTERNAL_SKILLS`に加え、評価Agentと全体の`permissions`でShell/edit/Web/MCP/Skill/子Agentの操作を拒否します。既存の学習用`AGENTS.md`・CLI構成・プラグインを正式評価の指示に取り込まないための措置です。
+正式評価の`opencode run`、CLI版確認の`opencode --version`、モデル列挙の`opencode models`は、リポジトリ・学習用セッションとは別の、権限を制限した一時ディレクトリを作業ディレクトリにして実行します。`HOME`/`USERPROFILE`、`XDG_CONFIG_HOME`/`APPDATA`、`XDG_DATA_HOME`/`LOCALAPPDATA`、`XDG_CACHE_HOME`を一時ディレクトリへ切り替え、`OPENCODE_DB=:memory:`を使用します。終了後は作業ディレクトリを削除します。`--pure`、`OPENCODE_DISABLE_PROJECT_CONFIG`、`OPENCODE_DISABLE_EXTERNAL_SKILLS`に加え、評価Agentと全体の`permissions`でShell/edit/Web/MCP/Skill/子Agentの操作を拒否します。既存の学習用`AGENTS.md`・CLI構成・プラグインを正式評価の指示に取り込まないための措置です。
 
 この分離では、通常のOpenCodeユーザーDBに保存した認証アカウントも**自動的には引き継ぎません**。明示選択した`opencode/`提供者に限り、利用者が自分で設定した`OPENCODE_API_KEY`を認証のために子プロセスの環境変数へ渡せます。Tokenを評価Prompt・結果JSON・READMEへ記録せず、他提供者のキーやGitHub Tokenは引き渡しません。提供者キーが不要なモデル以外では、適切な認証がなければ`blocked`となります。認証・セッションの実際の分離と権限拒否がOpenCode `2.0.22`で成立することは、#199のPrivate Codespaces実受入で確認してください。
 
