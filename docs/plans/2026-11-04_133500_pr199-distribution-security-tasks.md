@@ -8,7 +8,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **9/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **10/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
@@ -33,7 +33,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 
 - [x] `course:load` がM00〜M10の単一IDのみ受理し、未知/複数ID・パストラバーサルを拒否すること
   - 証拠：[Web CI #41967650261 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)（HEAD `594a72b724eb`）で`rejects unknown, multiple, and traversal module IDs in the public load CLI` **PASS**（6負例：引数なし、M11、M00+M01、`../M00`、`M00/../M01`、`M00 M01`）。`binds the fixed SHA, loads one module, preserves learner edits, and checks states read-only`もPASS。実装`scripts/training/ai-assisted-qa-course.mjs`の`args.length===1`、`loadModule()`の`MODULE_ID_PATTERN=/^M(?:0[0-9]|10)$/`を確認。manifestのload対象は全11 ID。**同Run全体は別のM03検証不整合によりFAIL**、修正後HEADのCIは別確認。本人Private Codespacesでの全11実ロードは#199。
-- [ ] 全11モジュールの開始入力・Skill-localファイル・start/end revisionをmanifest/validator/契約テストで検査し、M03のAuthority/Risk/Scope欠落を拒否。学習者による実ロード・修了の判定は#199へ渡す
+- [x] 全11モジュールの開始入力・Skill-localファイル・start/end revisionをmanifest/validator/契約テストで検査し、M03のAuthority/Risk/Scope欠落を拒否。学習者による実ロード・修了の判定は#199へ渡す
+  - 証拠：[Web CI #41975174031 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41975174031/job/127072584124)（HEAD `d4f048ea669080cd69365ef0c1aa684fd8216e44`）で配布契約テスト62件を含む全1110件PASS（1件は想定失敗）。11モジュール・22状態のrevision、固定Skill 13パッケージ105ファイルとPython 44スクリプトの依存をmanifest/固定Git treeと照合。M03開始入力の`SCOPE-101`、`RISK-CART-001`、`Authority Entity`、`BR-CART-001`、`AC-CART-001`参照の削除、Risk CSV load entryの欠落・誤配置、配布後manifest/Hash改変を拒否する負例を同HEADで実行済み。CI Run全体は`ai-assisted-qa-course-core.mjs`のPrettier整形1箇所でFAILしたため、後続commit `c78d9f3de070`で書式のみ修正。**意味的なAuthority/Risk/Scope分析の正しさ、実学習者環境のload/修了は含まず、#199の最終実受入**。
 - [x] 同じID再ロード・他モジュールを含む既存workspace・提出/Trace/個人評価履歴を上書き・削除しないことを成功/途中失敗の両方で確認
   - 証拠：[Web CI #41973229193 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41973229193/job/127066168734)（HEAD `9ae5efba9057`）で`preserves private work across reloads and interrupted module loads`、`resumes an interrupted module load without overwriting learner edits`、`binds the fixed SHA, loads one module, preserves learner edits, and checks states read-only`が個別PASS。M05の初回loadと同ID再loadは無改変で成立し、元のreceiptも保持。M06のcopy失敗注入で未完了receiptを作成せず、既存M04回答・M05本人メモ・M06他ファイル・Private評価履歴・Git不要の評価export・Traceのバイト一致を確認。M05提出物を編集した後の再loadは、元ファイルを変えず拒否。最後のRun全体はStyle QualityでFAILしたが当該契約テストはPASS。実Codespacesでの本人ファイル保全は#199へ引継ぐ。
 - [x] 先行成果物を失った場合でも、公開可能な独立開始入力で着手でき、本人の前Phase修了を架空に復元しないこと
