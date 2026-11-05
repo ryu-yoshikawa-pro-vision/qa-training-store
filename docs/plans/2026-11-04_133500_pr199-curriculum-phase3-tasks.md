@@ -8,7 +8,7 @@
 
 GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/CI操作例・無効workflow見本と安全な配布/証拠検証コード、契約・負例テストおよび既存CIを担当する。**本人Private repoでの課金/権限判断・実PR・実CIとOpenCode実モデルの学習/修了は#199の最後に受け入れる**。ここでの成功は技術準備/自動テストの成功であり、受講者の修了ではない。
 
-現在14/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。Web CI Run `41947629131`（HEAD `5d254ce9f2a4`）でStyle Quality・Code Quality・Vitest (contracts)・Training runtime contractsの成功を確認。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
+現在19/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。Web CI Run `41947629131`（HEAD `5d254ce9f2a4`）でStyle Quality・Code Quality・Vitest (contracts)・Training runtime contractsの成功を確認。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
 
 ## 変更範囲
 
@@ -64,6 +64,15 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 - **教材/演習の矛盾修正（新規CI未確認）**：M09 READMEの失敗分類を旧A〜CからA〜Fに、費用比較を旧1日5回から演習・提出表の7日間21回/2回に修正。M08〜M10提出様式へ14学習目標とP01〜P06の対応を明示。M10のPrivate repo実施条件・停止条件・OpenCode段階ヒント/正式評価の分離を追加し、専用テストを拡充。**追加・変更テストの最新HEAD CIは未確認**。
 - **#199への引継ぎ**：旧M10 fallback、Private repoの承認済み配布元SHA/base SHA・真正性、共有グラフの意味上の改善候補、共有progression Planの「手動起動」と`pull_request` triggerの表記差を#199に報告（コメント `6647725992`）。
 
+## 2026-11-05 M10教材と本人用手順の静的受入
+
+- **M10-02（教材条件チェック済み）**：`modules/M10/README.md`の「配布物・実行対象・後片付けの確認」「実行前の確認結果と停止条件」に、本人Private repo・承認済み配布元SHA/base・tracked Shop/manifest/ハッシュ・spec/Reset・Billing/Runner/権限・`pull_request`のみ・Artifact 2ファイル・trigger停止と期待結果/停止条件を明示。workflow本体は`.disabled`のままで実有効化していない。新規契約テストの最新CIは未確認。
+- **M10-04（教材内容チェック済み）**：失敗原因をInstall、配布物検証、Shop Serve、Browser導入、Assertion、Artifact保存、旧SHAの7条件に分解し、最初の失敗、test実行の有無、後続`if: always()`と保存の成否、修正前の調査・再実行判断を教材・演習・提出表へ記載。直接ファイルで同一条件を照合。実Runの原因とみなさない。
+- **M10-05（教材内容チェック済み）**：M10教材にAIの不要なBrowser省略・`write-all`・Checkだけの成功宣言の拒否理由と、指定1 specへの限定採用条件があることを確認。提出表にCase/仕様・差分・Run/attempt/Check/Artifact・対象SHA・PASS/FAIL/SKIP、AIの採否理由、未確認・残リスク・再Run/停止条件を記録する形式を追加。合成例を本人の成果として扱わない。
+- **Private repo実施手順（エージェント準備チェック済み）**：M10の事前確認表でコマンド/画面・期待結果・停止条件を対応付け、配布元真正性の独立照合、許可されたPrivate repo/費用・権限、フォークからの未信頼コード、証拠保全、不要trigger停止を明示。#199への引継ぎコメント`6647725992`に未受入条件を報告。本人のActions/Billing画面、実PR/CIの外部操作は未実施。
+- **OpenCode段階ヒント/正式評価の境界（教材チェック済み）**：M09では合成A〜Fの最初の失敗について「解答ではなくヒント1つ→本人の根拠行→AIレビュー」、M10では3段階ヒント・秘匿ログの送信禁止・本人による採否、独立した`pnpm course:assess M10`とGitHub API証拠照合を区別。AIの回答・Skill・合成ログだけで正式修了にしない。実OpenCodeのモデル応答・本人修了は#199の最終受入。
+- **CIとの区別**：この5項目のチェックは固定版の教材・実施手順の直接内容照合を指し、新規Vitestの最新HEAD成功やPrivate repo本番実行を意味しない。M10-01の依存閉包・別test rootの新規契約テスト、全14目標の新規契約テスト、旧M10 fallbackの修正・配布元真正性は未チェックで維持する。
+
 ## M08：Git・PR・変更レビュー（4目標）
 
 - [x] `M08-01`：作業用の隔離Git fixture/既存CIでworking tree→stage→commitの教材・証拠様式を検証。受講者本人のGit操作は#199最終実受入へ渡す
@@ -82,10 +91,10 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 ## M10：同一specのCI実行・Phase 3総合演習（5目標）
 
 - [ ] `M10-01`：M07参考spec/Config/ResetとM10のfallbackの依存閉包・安全なstageリストを契約テストで照合。本人specの選択・stage操作は#199で受け入れる
-- [ ] `M10-02`：無効workflowを本人が安全に有効化する条件（無料枠、権限、対象spec、cleanup）を教材へ明示。**#199では完成見本を無効のまま**にする
+- [x] `M10-02`：無効workflowを本人が安全に有効化する条件（無料枠、権限、対象spec、cleanup）を教材へ明示。**#199では完成見本を無効のまま**にする
 - [x] `M10-03`：実GitHub APIを想定したPR HEAD・Run attempt・Check/Artifact・target SHA照合のコード/fixture/旧Run負例を整備し、既存公開CIで検査。本人Private repoの実PR/実Run照合は#199へ渡す
-- [ ] `M10-04`：CI固有の失敗、製品/テスト失敗をログ/環境/対象SHAで分類して再実行判断を示す
-- [ ] `M10-05`：AI提案の採否、CIが保証する範囲と未確認/残リスクの報告を具体的な証拠で確認
+- [x] `M10-04`：CI固有の失敗、製品/テスト失敗をログ/環境/対象SHAで分類して再実行判断を示す
+- [x] `M10-05`：AI提案の採否、CIが保証する範囲と未確認/残リスクの報告を具体的な証拠で確認
 
 ## M09→M10の技術的受入
 
@@ -94,14 +103,14 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 - [ ] M07本人specとM10 fallbackが異なるtest rootで、相対import・fixture/Resetを含めローカルとCIで同一specを実行できる契約を照合
 - [x] GitHub Actionsで使うworkflow権限、`persist-credentials: false`、pull_requestを使う場合の外部PR安全性、Artifact/ログのSecret防護とcleanup条件を点検
 - [ ] M08〜M10の14目標それぞれで教本・P01〜P06・提出・採点基準・復習先・stateの意味を確認し、専用契約テストと静的/実行証拠を記録。M10正式評価は評価ブランチへ引継ぐ
-- [ ] Private repoでのPR/CI/費用・権限・公開制約について、**本人用の実施手順、必要な確認事項、停止条件、期待結果**を教材/専用テストで整備し#199へ引継ぐ。本人Private repoの外部操作はこのPRで実施しない
+- [x] Private repoでのPR/CI/費用・権限・公開制約について、**本人用の実施手順、必要な確認事項、停止条件、期待結果**を教材/専用テストで整備し#199へ引継ぐ。本人Private repoの外部操作はこのPRで実施しない
 
 ## クイズ・理解事項・任意Phaseの受入（補完）
 
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M08.json`〜`M10.json`について、14目標/理解事項の判断能力、正誤理由、復習先を照合。安全でないCI操作や有料Runnerへの自動変更を正解例にしない
 - [x] `knowledge-graph.json`のM08〜M10の理解事項の意味・粒度・前提・教材節・判断/実行の観測をレビューし、未承認ノードを形式的に承認済みにせず、共通グラフ修正は#199へ提案
 - [ ] M07→M08の本人作成spec/依存/Config/Reset/RunとM09→M10の配布済みShop/固定SHA/無効workflowの引継ぎをID・revision・ファイルで検査。**Phase 3は選択**であり、未受講によってPhase 1/2の修了が失われないことを確認
-- [ ] 通常OpenCodeのCIログ解説・段階ヒント・失敗時復習の教材/プロンプトとM10独立評価の権限境界を確認。実モデルとの学習対話・本人の正式修了は#199へ渡す
+- [x] 通常OpenCodeのCIログ解説・段階ヒント・失敗時復習の教材/プロンプトとM10独立評価の権限境界を確認。実モデルとの学習対話・本人の正式修了は#199へ渡す
 
 ## #199最後に実施する実受入（本PRのチェック対象外）
 
