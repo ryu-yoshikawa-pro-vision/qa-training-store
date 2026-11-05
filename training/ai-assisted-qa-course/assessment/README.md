@@ -19,6 +19,8 @@ Run receiptにはspec snapshot・JSON reportのSHA-256に加え、Trace等のatt
 
 Traceが必須の失敗Runでは、失敗したテスト自身のPlaywright JSON reportにTrace添付が存在することを検査します。同じRun内の別のPASSテストにTraceがあっても失敗テストの証拠とは見なしません。添付ファイル・report・receiptのSHA-256一致も必要です。これらはローカルファイルの整合検査であり、Run記録一式を意図的に捏造した場合の実行証明にはなりません。
 
+M06/M07の保存済みRunを検証するときは、Playwright JSON reportに記録された各test名が、同一Runの`spec-snapshot.ts`に宣言されたtest名と過不足なく一致することもTypeScript構文から照合します。report/receipt/Hashを同時に書き換えて存在しないtestをPASSとして追加した場合は`ungradable`です。これは**保存specとreportの整合確認**です。spec・report・receiptを一括偽造できる利用者に対する独立した実行元の証明にはなりません。
+
 ## M06のCASE-CARTごとの実行条件
 
 `course:run`は、M06の`cart-cases.spec.ts`で`CASE-CART-001`〜`003`、`new-case.spec.ts`で`004`・`005`を確認します。各Caseのtest本文にPlaywrightのAssertionが存在しない場合、たとえ`TODO`例外を削除して実行が正常終了する状態でも、Runの発行前に拒否します。正式評価で保存済みRunを再検証する際も、現在のspecと当時のsnapshotの両方に同条件を適用します。
