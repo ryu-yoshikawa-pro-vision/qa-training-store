@@ -631,6 +631,53 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("reproduces a clean pinned Git distribution and rejects dirty or divergent sources", async () => {
+    const fixture = courseFixture();
+    const git = (...args) =>
+      execFileSync("git", args, { cwd: fixture.source, encoding: "utf8" }).trim();
+    git("init", "-b", "main");
+    git("config", "user.name", "Course fixture");
+    git("config", "user.email", "course-fixture@example.invalid");
+    git("add", "-A");
+    git("commit", "-m", "Pin learner distribution fixture");
+    const sourceSha = git("rev-parse", "HEAD");
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+    };
+    const first = await syncCourse(options);
+    const verified = verifySyncedCourseDistribution({ root: fixture.target });
+    expect(first.copied.length).toBeGreaterThan(0);
+    expect(verified.source_sha).toBe(sourceSha);
+    expect(verified.state_files_verified).toBe(22);
+    const snapshot = snapshotDirectory(fixture.target);
+    const repeated = await syncCourse(options);
+    expect(repeated.copied).toEqual([]);
+    expect(repeated.unchanged).toBe(repeated.fileCount);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+
+    writeFixtureFile(fixture.source, "uncommitted-source.txt", "uncommitted\\n");
+    await expect(syncCourse(options)).rejects.toThrow(/clean source worktree/);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+    fs.rmSync(path.join(fixture.source, "uncommitted-source.txt"));
+
+    git("checkout", "-b", "other-branch");
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      "# Changed only on another branch\\n",
+    );
+    git("add", "-A");
+    git("commit", "-m", "Diverge from pinned source");
+    expect(git("rev-parse", "HEAD")).not.toBe(sourceSha);
+    await expect(syncCourse(options)).rejects.toThrow(/source SHA does not equal checked-out HEAD/);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+  });
+
   it("rejects invalid module load bindings before writing files", async () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m05 = manifest.load_files.find(
