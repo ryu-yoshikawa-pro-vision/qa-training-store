@@ -144,6 +144,7 @@ describe("Phase 3 quiz and understanding coverage", () => {
     for (const node of knowledgeNodes) assertAcyclic(node.id);
     expect(visited.size).toBe(19);
   });
+
   it("traces each Phase 3 goal through lesson, practice, submission and assessment reference", () => {
     for (const module of modules) {
       const lesson = fs.readFileSync(
@@ -153,9 +154,8 @@ describe("Phase 3 quiz and understanding coverage", () => {
       const base = path.join(root, "training/ai-assisted-qa-course/exercises", module.id);
       const exercise = fs.readFileSync(path.join(base, "exercise.md"), "utf8");
       const submission = fs.readFileSync(path.join(base, "submission-template.md"), "utf8");
-      const state = readJson(
-        "training/ai-assisted-qa-course/states/" + module.id + "/end.json",
-      );
+      const statePath = "training/ai-assisted-qa-course/states/" + module.id + "/end.json";
+      const state = readJson(statePath);
       expect(state.expected.phase).toBe("P3");
       expect(state.expected.objective_ids).toHaveLength(module.objectives);
       for (const objective of state.expected.objective_ids) {
@@ -178,5 +178,4 @@ describe("Phase 3 quiz and understanding coverage", () => {
       expect(state.phase_assessment.mastery_status).toBe("not_evaluated_by_course_check");
     }
   });
-
 });
