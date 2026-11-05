@@ -13,10 +13,15 @@ const beforeCode = [
   'test("mug quantity one", async ({ page }) => {',
   '  await expect(page.getByLabel("数量")).toHaveValue("1");',
   "});",
+  'test("quantity two", async ({ page }) => {',
+  '  await expect(page.getByLabel("数量")).toHaveValue("2");',
+  "});",
 ].join("\n");
 const afterCode = [
   beforeCode,
-  'test("quantity two", async ({ page }) => {',
+  'test("cart reentry retains two", async ({ page }) => {',
+  '  await page.goto("/products/product-mug");',
+  '  await page.goto("/cart");',
   '  await expect(page.getByLabel("数量")).toHaveValue("2");',
   "});",
 ].join("\n");
@@ -45,25 +50,26 @@ function setupM07Runs({ after = afterCode, afterStart = "2026-11-03T00:00:03Z" }
     const snapshot = path.join(runDir, "spec-snapshot.ts");
     const reportFile = path.join(runDir, "playwright-result.json");
     fs.writeFileSync(snapshot, bytes);
-    const title = index === 0 ? "mug quantity one" : "quantity two";
+    const titles =
+      index === 0
+        ? ["mug quantity one", "quantity two"]
+        : ["mug quantity one", "quantity two", "cart reentry retains two"];
     const report = {
       config: { rootDir: moduleRoot },
       suites: [
         {
-          specs: [
-            {
-              file: specName,
-              title,
-              tests: [
-                {
-                  projectName: "ai-assisted-qa-chromium",
-                  expectedStatus: "passed",
-                  status: "expected",
-                  results: [{ status: "passed", attachments: [] }],
-                },
-              ],
-            },
-          ],
+          specs: titles.map((title) => ({
+            file: specName,
+            title,
+            tests: [
+              {
+                projectName: "ai-assisted-qa-chromium",
+                expectedStatus: "passed",
+                status: "expected",
+                results: [{ status: "passed", attachments: [] }],
+              },
+            ],
+          })),
         },
       ],
     };
@@ -98,7 +104,11 @@ function setupM07Runs({ after = afterCode, afterStart = "2026-11-03T00:00:03Z" }
       outcome: "passed",
       report_path: relative(reportFile),
       report_sha256: sha256(reportBytes),
-      tests: [{ title, status: "passed", expected_status: "passed" }],
+      tests: titles.map((title) => ({
+        title,
+        status: "passed",
+        expected_status: "passed",
+      })),
       attachments: [],
       spec_unchanged_during_run: true,
       environment_error: null,
@@ -116,13 +126,13 @@ function setupM07Runs({ after = afterCode, afterStart = "2026-11-03T00:00:03Z" }
           {
             spec: specName,
             label: "before",
-            minimum_tests: 1,
+            minimum_tests: 2,
             expected_outcome: "passed",
           },
           {
             spec: specName,
             label: "after",
-            minimum_tests: 1,
+            minimum_tests: 3,
             expected_outcome: "passed",
           },
         ],
@@ -140,8 +150,16 @@ it("accepts a verified archived M07 before PASS with a changed current after spe
   expect(result.status).toBe("passed");
   expect(result.checks).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({ id: "M07-RUN-maintenance.spec.ts-before", status: "passed" }),
-      expect.objectContaining({ id: "M07-RUN-maintenance.spec.ts-after", status: "passed" }),
+      expect.objectContaining({
+        id: "M07-RUN-maintenance.spec.ts-before",
+        status: "passed",
+        test_count: 2,
+      }),
+      expect.objectContaining({
+        id: "M07-RUN-maintenance.spec.ts-after",
+        status: "passed",
+        test_count: 3,
+      }),
       expect.objectContaining({
         id: "M07-BEFORE-AFTER-maintenance.spec.ts",
         status: "passed",
