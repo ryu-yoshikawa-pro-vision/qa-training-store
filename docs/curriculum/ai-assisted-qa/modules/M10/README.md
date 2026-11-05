@@ -285,6 +285,15 @@ M09の公開完成見本は、M10の正式評価器と同じ契約に従う必�
 - 第1章で確認した「利用枠」「費用」「権限」がすべて安全であることを確認します。
 - いずれかの条件が確認できない場合は、**有効化を行わず作業をBLOCKED**としてください。
 
+#### 配布物・実行対象・後片付けの確認
+
+実行を許可する前に、次の条件をすべて確認します。
+
+1. **配布版**：本人Private repoの信頼済みbase commitに`course/shop/**`、`.course/distribution-manifest.json`、`package.json`、`pnpm-lock.yaml`、`scripts/training/ai-assisted-qa-course.mjs`、`playwright.ai-assisted-qa.config.ts`および必要なruntimeが追跡されていることを`git ls-tree -r --name-only <承認済みbase SHA> -- course/shop .course/distribution-manifest.json`等で確認します。manifestの`source_sha`は承認された配布元の完全SHAと照合し、`pnpm course:verify-distribution`ではなく、実在する`node scripts/training/ai-assisted-qa-course.mjs verify-distribution`でハッシュと配布範囲を検証します。配布元SHAをmanifest自身から無条件に信用せず、承認済み配布元記録と照合します。**本課程のworkflowで`pnpm run build:web`を代用実行しません。**
+2. **対象specと依存**：M07本人成果物を選ぶ場合、`workspace/M07/repaired-assertion.spec.ts`が学習用の`TODO`例外を残していないこと、同じ配布版の`training/playwright/support/reset-scenario.ts`とPlaywright設定・lockfileでローカルRunを完了したことを確認します。公開fallbackを使う場合、`pnpm course:load M10`で`workspace/M10/public-sample/handoff-smoke.spec.ts`をロードしたこと、相対importが同じReset helperへ解決することを確認します。対象に応じて`PLAYWRIGHT_TEST_ROOT`とworkflowの1件のspecパスを一致させます。**配布物に含まれる旧`inputs/M10/public-sample-workflow.yml.disabled`は配布検証・prebuilt固定を欠くため、修正・再検証が完了するまで有効化しません。**
+3. **権限・費用・対象PR**：信頼済みPrivate repo、権限を持つ本人、実行対象PR、`pull_request`イベント、forkからの未信頼コードの扱い、標準Runner、請求先・予算/利用枠・停止条件を確認します。`pull_request_target`への変更、deploy、`contents: write`、Secretの渡し込み、関係のないWeb/Mobile CIの起動を認めません。料金・権限・配布版の出所・対象specのいずれかが未確認なら`BLOCKED`です。
+4. **後片付けと記録**：対象PR head SHA、Run ID/attempt、Check、Artifact、`target-sha.txt`、実行されたspecを保存・照合します。完了後は不要になった専用workflowの自動起動を本人のPrivate repoで無効化し、残るRunとArtifactの保存・保持期限・課金状況を確認します。無効化やArtifact整理を先に行って必要な証拠を失わず、`git clean -fd`などで学習成果物を無断削除しません。
+
 #### 操作手順
 
 1. **現在のブランチとリポジトリを確認する**：\
