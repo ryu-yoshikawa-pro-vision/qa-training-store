@@ -1100,6 +1100,39 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("reports exact Prettier edits for distribution files", async () => {
+    const prettier = await import("prettier");
+    for (const name of [
+      "scripts/training/ai-assisted-qa-course-core.mjs",
+      "tests/contracts/ai-assisted-qa-course-distribution.test.mjs",
+    ]) {
+      const absolute = path.join(repositoryRoot, name);
+      const raw = fs.readFileSync(absolute, "utf8");
+      const formatted = await prettier.format(raw, {
+        ...(await prettier.resolveConfig(absolute)),
+        filepath: absolute,
+      });
+      let first = 0;
+      while (first < raw.length && raw[first] === formatted[first]) first += 1;
+      let last = 0;
+      while (
+        last < raw.length - first &&
+        last < formatted.length - first &&
+        raw[raw.length - 1 - last] === formatted[formatted.length - 1 - last]
+      )
+        last += 1;
+      console.log(
+        "PRETTIER_EDIT=" +
+          JSON.stringify({
+            name,
+            first,
+            removed: raw.length - first - last,
+            insert: Buffer.from(formatted.slice(first, formatted.length - last)).toString("base64"),
+          }),
+      );
+    }
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
