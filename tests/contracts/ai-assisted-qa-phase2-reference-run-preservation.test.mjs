@@ -31,7 +31,9 @@ function scriptUnder(heading) {
   expect(index).toBeGreaterThanOrEqual(0);
   const nextHeading = report.indexOf("\n## ", index + heading.length);
   const section = report.slice(index, nextHeading < 0 ? undefined : nextHeading);
-  const match = section.match(/^[ \t]*\x60\x60\x60bash[ \t]*\r?\n([\s\S]*?)^[ \t]*\x60\x60\x60[ \t]*$/m);
+  const match = section.match(
+    /^[ \t]*\x60\x60\x60bash[ \t]*\r?\n([\s\S]*?)^[ \t]*\x60\x60\x60[ \t]*$/m,
+  );
   expect(match, heading).not.toBeNull();
   return match[1];
 }
@@ -62,9 +64,12 @@ function fixture() {
   );
   fs.writeFileSync(
     path.join(bin, "git"),
-    ["#!/bin/sh", '[ "$*" = "rev-parse HEAD" ] || exit 2', 'printf "%s\\n" "' + head + '"', ""].join(
-      "\n",
-    ),
+    [
+      "#!/bin/sh",
+      '[ "$*" = "rev-parse HEAD" ] || exit 2',
+      'printf "%s\\n" "' + head + '"',
+      "",
+    ].join("\n"),
     { mode: 0o755 },
   );
   return { root, bin };
@@ -118,7 +123,11 @@ describe("M06/M07公開参考Runの成果物保全（隔離stub。実Chromiumで
   linuxIt("M06固定3件・004/005初回・再実行を3つの独立したRunに記録する", () => {
     const runs = runReferenceScript(m06Script);
     expect(runs).toHaveLength(3);
-    for (const prefix of ["m06-reference-fixed-", "m06-reference-initial-", "m06-reference-repeat-"]) {
+    for (const prefix of [
+      "m06-reference-fixed-",
+      "m06-reference-initial-",
+      "m06-reference-repeat-",
+    ]) {
       const run = runWithPrefix(runs, prefix);
       expect(run.exitCode).toBe("0");
       expect(run.head).toBe(head);
