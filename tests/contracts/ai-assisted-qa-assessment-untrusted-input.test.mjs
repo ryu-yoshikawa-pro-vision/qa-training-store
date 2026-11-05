@@ -1,5 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import { expect, it } from "vitest";
 import {
+  assertAllowedAssessmentSourcePath,
   buildAssessmentPrompt,
   buildCalibrationPrompt,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
@@ -105,4 +108,43 @@ it("blocks credentials and oversized prompts before any model invocation", () =>
   expect(() => buildCalibrationPrompt(preparedInputs(secret))).toThrow(/Secret/);
   const huge = "x".repeat(4 * 1024 * 1024);
   expect(() => buildCalibrationPrompt(preparedInputs(huge))).toThrow(/size limit/);
+});
+
+it("accepts only fixed public module, contract and pinned Skill source paths", () => {
+  const distribution = {
+    external_skill_source: {
+      repository: "ryu-yoshikawa-pro-vision/qa-workflow-skills",
+      commit: "7cc6cba7772de549841a39d71694cbafbc783324",
+    },
+  };
+  for (let number = 0; number <= 10; number += 1) {
+    const moduleId = "M" + String(number).padStart(2, "0");
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          "training/ai-assisted-qa-course/assessment/scoring-tests",
+          moduleId + ".json",
+        ),
+        "utf8",
+      ),
+    );
+    for (const source of scoring.sources) {
+      expect(() =>
+        assertAllowedAssessmentSourcePath(moduleId, source, distribution),
+      ).not.toThrow();
+    }
+  }
+  for (const source of [
+    "workspace/M04/.env",
+    "workspace/M04/private.md",
+    ".github/workflows/release.yml",
+    "scripts/training/ai-assisted-qa-assessment.mjs",
+    "docs/curriculum/ai-assisted-qa/modules/M05/README.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@0000000000000000000000000000000000000000:skills/qa-workflow/SKILL.md",
+    "ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/unknown/SKILL.md",
+  ]) {
+    expect(() =>
+      assertAllowedAssessmentSourcePath("M04", source, distribution),
+    ).toThrow(/public allowlist/);
+  }
 });
