@@ -2412,14 +2412,14 @@ it("rejects oversized, invalid UTF-8, symlink and credential-bearing challenge a
   fs.mkdirSync(directory, { recursive: true });
   const target = path.join(directory, "answers.md");
   const challenge = { objective_ids: ["M04-01"] };
-  const prefix = "# Answer\\n\\n## M04-01\\n\\n### Your answer\\n\\n";
+  const prefix = "# Answer\n\n## M04-01\n\n### Your answer\n\n";
   const put = (text) => fs.writeFileSync(target, text);
   put(prefix + "a".repeat(256 * 1024));
   expect(() => readChallengeAnswer(target, challenge)).toThrow(/size is outside/);
   put(prefix + "No credential, but malformed UTF-8");
   fs.appendFileSync(target, Buffer.from([0xc3, 0x28]));
   expect(() => readChallengeAnswer(target, challenge)).toThrow(/UTF-8/);
-  put(prefix + "Has a\\0hidden delimiter");
+  put(prefix + "Has a\0hidden delimiter");
   expect(() => readChallengeAnswer(target, challenge)).toThrow(/UTF-8/);
   put(prefix + `OPENAI_API_KEY=${"a".repeat(40)}`);
   expect(() => readChallengeAnswer(target, challenge)).toThrow(/Secret/);
