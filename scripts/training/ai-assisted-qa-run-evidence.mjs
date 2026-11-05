@@ -657,6 +657,11 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         !LABELS.has(run?.label) ||
         !Number.isInteger(run?.minimum_tests) ||
         run.minimum_tests < 1 ||
+        (run.required_case_ids !== undefined &&
+          (!Array.isArray(run.required_case_ids) ||
+            run.required_case_ids.length !== run.minimum_tests ||
+            new Set(run.required_case_ids).size !== run.required_case_ids.length ||
+            run.required_case_ids.some((id) => !/^CASE-CART-00[1-5]$/.test(id)))) ||
         (run?.require_trace !== undefined && typeof run.require_trace !== "boolean") ||
         !["passed", "failed"].includes(run?.expected_outcome),
     )
@@ -737,6 +742,15 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         continue;
       }
       const record = verified.record;
+      const caseIds = record.tests.map((test) => {
+        const matched = typeof test.title === "string" ? test.title.match(/\\bCASE-CART-00[1-5]\\b/g) : null;
+        return matched?.length === 1 ? matched[0] : null;
+      });
+      const casesComplete =
+        requirement.required_case_ids === undefined ||
+        (caseIds.length === requirement.required_case_ids.length &&
+          new Set(caseIds).size === requirement.required_case_ids.length &&
+          requirement.required_case_ids.every((id) => caseIds.includes(id)));
       const successful =
         requirement.expected_outcome === "passed"
           ? runPassed(record, requirement.minimum_tests) &&
@@ -750,7 +764,14 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         record.attachments.some((attachment) => attachment.name.toLowerCase() === "trace");
       checks.push({
         id: moduleId + "-RUN-" + requirement.spec + "-" + requirement.label,
-        status: successful ? "passed" : record.outcome === "blocked" ? "blocked" : "ungradable",
+        status:
+          successful && casesComplete
+            ? "passed"
+            : record.outcome === "blocked"
+              ? "blocked"
+              : "ungradable",
+        required_case_ids: requirement.required_case_ids ?? [],
+        verified_case_ids: caseIds.filter(Boolean),
         run_id: record.run_id,
         spec_sha256: record.spec_sha256,
         outcome: record.outcome,
