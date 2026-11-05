@@ -2640,6 +2640,7 @@ function writeM05RunEvidence(
               {
                 path: "test-results/trace.zip",
                 size: fs.statSync(tracePath).size,
+                sha256: sha256(fs.readFileSync(tracePath)),
                 name: "trace",
                 content_type: "application/zip",
               },
@@ -3176,6 +3177,41 @@ describe("AI-assisted QA formal assessment contracts", () => {
         sourceSha: "a".repeat(40),
       }),
     ).toMatchObject({ status: "ungradable" });
+  });
+
+  it("rejects a modified Playwright trace even when its length is unchanged", () => {
+    const { workspaceRoot, beforeReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "playwright-trace-hash"),
+    );
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify().status).toBe("passed");
+    const tracePath = path.join(path.dirname(beforeReportPath), "test-results", "trace.zip");
+    const original = fs.readFileSync(tracePath);
+    fs.writeFileSync(tracePath, Buffer.alloc(original.length, 0x41));
+    expect(verify().status).toBe("ungradable");
   });
 
   it("rejects foreign roots, specs, skipped and expected-failure Playwright reports", () => {
