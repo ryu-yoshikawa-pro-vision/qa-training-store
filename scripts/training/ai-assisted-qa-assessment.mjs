@@ -492,6 +492,33 @@ function stableInputFingerprint(input) {
   });
 }
 
+export function assertReusablePreparedInputs(inputManifest, inputs) {
+  if (
+    inputManifest?.schema_version !== 1 ||
+    inputManifest.phase_id !== inputs?.phaseId ||
+    inputManifest.terminal_module_id !== inputs.terminalModuleId ||
+    inputManifest.source_sha !== inputs.sourceSha ||
+    inputManifest.state_contract_revision !== inputs.stateContractRevision ||
+    !isDeepStrictEqual(inputManifest.asset_hashes, inputs.assetHashes) ||
+    !isDeepStrictEqual(inputManifest.objective_ids, inputs.objectiveIds) ||
+    !isDeepStrictEqual(inputManifest.criteria_by_objective, inputs.criteriaByObjective) ||
+    !isDeepStrictEqual(
+      inputManifest.input_snapshot,
+      inputs.evidence.map(({ evidence_id, module_id, path: evidencePath, sha256: digest, size }) => ({
+        evidence_id,
+        module_id,
+        path: evidencePath,
+        sha256: digest,
+        size,
+      })),
+    ) ||
+    inputManifest.fingerprint !== sha256(stableInputFingerprint(inputs))
+  )
+    fail(
+      "assessment source, required evidence, scoring or asset hashes changed after preparation; create a new assessment and preserve the old result",
+    );
+}
+
 function systemPromptHash(systemPrompt) {
   return sha256(`${OPEN_CODE_VERSION_REQUIRED}\n${systemPrompt}\n`);
 }
@@ -1919,6 +1946,15 @@ async function resumeAttemptUnlocked(request) {
     fail(
       "resume model or Phase differs from the prepared attempt; create a new assessment instead",
     );
+  const savedResultPath = path.join(attemptDirectory, "result.json");
+  let inputs;
+  if (fs.existsSync(savedResultPath)) {
+    // A completed attempt is historical evidence, not a current PASS once its
+    // learner files, source revision, or live run verification have changed.
+    // On a failed recheck leave result.json and current.json untouched.
+    inputs = await loadPhaseInputs(request.phase);
+    assertReusablePreparedInputs(inputManifest, inputs);
+  }
   const reconciled = reconcileFinalizedAssessment({
     phaseId: request.phase,
     assessmentId: request.resumeId,
@@ -1940,9 +1976,8 @@ async function resumeAttemptUnlocked(request) {
     );
     return;
   }
-  let inputs;
   try {
-    inputs = await loadPhaseInputs(request.phase);
+    inputs ??= await loadPhaseInputs(request.phase);
   } catch (error) {
     const terminalStatePath = path.join(
       ROOT,
@@ -2009,10 +2044,7 @@ async function resumeAttemptUnlocked(request) {
     );
     return;
   }
-  if (inputManifest.fingerprint !== sha256(stableInputFingerprint(inputs)))
-    fail(
-      "assessment evidence, source SHA, or asset hashes changed after preparation; create a new assessment",
-    );
+  assertReusablePreparedInputs(inputManifest, inputs);
   if (inputManifest.challenge_sha256 !== sha256(JSON.stringify(savedChallenge)))
     fail("saved live challenge changed after preparation; create a new assessment");
   validateSavedChallenge(savedChallenge, {
