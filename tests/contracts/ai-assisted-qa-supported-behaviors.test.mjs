@@ -142,6 +142,20 @@ describe("サポート機能の仕様と実装の追跡", () => {
     );
   });
 
+  it("rejects analyzed requirements whose representative behaviors still need review", () => {
+    for (const requirementId of ["AC-STOREFRONT-001", "ROLE-01"]) {
+      const changed = mutated((next) => {
+        const requirement = next.requirements.find((item) => item.id === requirementId);
+        const representativeId = requirement.requirement_analysis.representative_behaviors[0];
+        const representative = next.behaviors.find((item) => item.id === representativeId);
+        representative.analysis_status = "review_required";
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /requirement analysis lacks verified evidence:/,
+      );
+    }
+  });
+
   it("tracks Signup Web/Native destinations without claiming runtime PASS", () => {
     const signup = data.behaviors.find((entry) => entry.id === "SCREEN-AUTH-SIGNUP-A02-03");
     expect(signup?.analysis_status).toBe("analyzed");
