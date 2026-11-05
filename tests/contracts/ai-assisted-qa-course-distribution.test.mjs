@@ -261,7 +261,9 @@ function courseFixture() {
             ? "lesson"
             : sourcePath === inputSource
               ? "input"
-              : "fixture",
+              : sourcePath === exerciseSource
+                ? "exercise"
+                : "fixture",
       });
       distributionBytes.set(targetPath, Buffer.from(content));
     }
@@ -1029,8 +1031,14 @@ describe("AI-assisted QA distribution contract", () => {
     for (let index = 0; index <= 10; index += 1) {
       const moduleId = `M${String(index).padStart(2, "0")}`;
       for (const [page, source] of [
-        [`modules/${moduleId}/index.html`, `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`],
-        [`modules/${moduleId}/exercise.html`, `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`],
+        [
+          `modules/${moduleId}/index.html`,
+          `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
+        ],
+        [
+          `modules/${moduleId}/exercise.html`,
+          `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`,
+        ],
       ]) {
         const revision = hash(fs.readFileSync(path.join(fixture.source, source)));
         const html = `<meta name="course-source-revision" content="${revision}"><body data-course-revision="${revision}"></body>`;
@@ -1067,10 +1075,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
     writeFixtureFile(fixture.source, firstPage.page, firstPage.html);
     const quizHtmlPath = `dist/${webPrefix}quizzes/M00.html`;
-    const originalQuizHtml = fs.readFileSync(
-      path.join(fixture.source, quizHtmlPath),
-      "utf8",
-    );
+    const originalQuizHtml = fs.readFileSync(path.join(fixture.source, quizHtmlPath), "utf8");
     writeFixtureFile(
       fixture.source,
       quizHtmlPath,
@@ -1098,39 +1103,6 @@ describe("AI-assisted QA distribution contract", () => {
     expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
       /Markdown revision mismatch/,
     );
-  });
-
-  it("reports exact Prettier edits for distribution files", async () => {
-    const prettier = await import("prettier");
-    for (const name of [
-      "scripts/training/ai-assisted-qa-course-core.mjs",
-      "tests/contracts/ai-assisted-qa-course-distribution.test.mjs",
-    ]) {
-      const absolute = path.join(repositoryRoot, name);
-      const raw = fs.readFileSync(absolute, "utf8");
-      const formatted = await prettier.format(raw, {
-        ...(await prettier.resolveConfig(absolute)),
-        filepath: absolute,
-      });
-      let first = 0;
-      while (first < raw.length && raw[first] === formatted[first]) first += 1;
-      let last = 0;
-      while (
-        last < raw.length - first &&
-        last < formatted.length - first &&
-        raw[raw.length - 1 - last] === formatted[formatted.length - 1 - last]
-      )
-        last += 1;
-      console.log(
-        "PRETTIER_EDIT=" +
-          JSON.stringify({
-            name,
-            first,
-            removed: raw.length - first - last,
-            insert: Buffer.from(formatted.slice(first, formatted.length - last)).toString("base64"),
-          }),
-      );
-    }
   });
 
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
