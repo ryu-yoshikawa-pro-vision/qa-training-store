@@ -451,6 +451,82 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  pr215-m06-reference:
+    name: PR #215 M06 reference Chromium
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.number == 215 &&
+      github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082
+      PLAYWRIGHT_SKIP_WEB_SERVER: "true"
+      WEB_SERVER_DIST_ROOT: dist
+      WEB_SERVER_PORT: "8082"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Run M06 reference Chromium and preserve three runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/training/ai-assisted-qa/pr215-m06-reference
+          pnpm exec tsx scripts/serve-web-dist.ts > output/training/ai-assisted-qa/pr215-m06-reference/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..60}; do
+            if curl --fail --silent -o /dev/null "$PLAYWRIGHT_BASE_URL/"; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            cat output/training/ai-assisted-qa/pr215-m06-reference/server.log
+            exit 1
+          fi
+          node tests/contracts/ai-assisted-qa-phase2-m06-reference-ci.mjs
+
+      - name: Upload M06 reference evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr215-m06-reference-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/training/ai-assisted-qa/pr215-m06-reference
+          if-no-files-found: warn
+          retention-days: 14
+
   ui-review:
     name: UI Review (${{ matrix.project }})
     needs: build-automation
