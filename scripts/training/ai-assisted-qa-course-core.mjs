@@ -139,7 +139,7 @@ function validateModuleLoadCoverage(loadFiles, distributionFiles) {
       (entry) =>
         entry.module_id === "M03" &&
         entry.source_path === m03RiskPath &&
-        entry.target_path === m03RiskPath,
+        entry.target_path === "workspace/M03/public-sample/risk-input.csv",
     )
   )
     fail("M03 public Risk input must be distributed and loaded with its module");
