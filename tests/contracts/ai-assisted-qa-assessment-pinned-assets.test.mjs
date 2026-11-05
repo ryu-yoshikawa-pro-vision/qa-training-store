@@ -94,7 +94,10 @@ describe("formal assessment pinned HTTP assets", () => {
         sourceSha: SOURCE_SHA,
         fetchImpl: serve(asset, scoringText, {
           headers: {
-            get: (name) => (name === "content-length" ? "2000000" : "application/json"),
+            get: (name) => {
+              if (name === "content-length") return "2000000";
+              return "application/json";
+            },
           },
         }),
       }),
