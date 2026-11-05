@@ -2260,6 +2260,7 @@ it("restores a completed result only with the matching candidate and passing cal
   const result = finalizeAssessment({
     candidate,
     calibration,
+    requiredObjectiveIds: ["M04-01"],
     sourceSha,
     versions: {
       attempt: 1,
