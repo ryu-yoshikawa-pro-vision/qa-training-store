@@ -47,6 +47,8 @@ M07 `maintenance.spec.ts`のbeforeは2テストのRunと当時の保存済みspe
 
 ## M07 のPage Object・fixtureとRun証拠
 
+M07の`maintenance.spec.ts`は、beforeの各test（2件以上）・afterの各test（3件以上）に、定数だけを使わないPlaywright Assertionがあることを実行前と再評価時のspec snapshotに対して検査します。空test、test名の重複、`expect(true).toBe(true)`だけの形式的なAssertionは拒否します。このTypeScript構文検査は「数量1・2の意味」「Resetの独立性」「別ページ経由のCart再入場」の実証や、ローカルRun一式の偽造検出を保証しません。それらは本人の実Runと正式AI評価で別途確認します。
+
 M07の`workspace/M07/maintenance.spec.ts`は、教材の指定どおりPage Objectとfixtureを**同じspec内**に定義してください。Nodeの`course:run`はTypeScript構文を読み、`@playwright/test`と固定教材の`../../training/playwright/support/reset-scenario`以外のstatic import/re-export、dynamic import、`require`を拒否します。評価時も現在のspecとRunに保存されたspec snapshotの両方を再検査します。
 
 この制約は、別ファイルのPage Object/fixtureを変更しただけで、元のspec snapshotのSHAが変わらない問題を防ぐものです。別ファイルへ分割した実装を合格させる契約ではありません。配布済みReset補助関数の同一性は、事前に検証した教材の固定source SHAに依存します。TypeScriptのimport検査だけでテスト内容・業務Assertionの妥当性やRun実行の真正性を保証できるわけではありません。M07のbefore/afterは別Runの成功・テスト数・specの変更と、提出物にある数量Assertion・Cart再入場などを別に評価します。
