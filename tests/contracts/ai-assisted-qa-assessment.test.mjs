@@ -3338,7 +3338,10 @@ describe("AI-assisted QA formal assessment contracts", () => {
       const originalSpec = report.suites[0].specs[0];
       originalSpec.file = "new-case.spec.ts";
       originalSpec.title = "CASE-CART-004 remove the last cart line";
-      report.suites[0].specs.push({ ...originalSpec, title: "CASE-CART-005 retain changed quantity" });
+      report.suites[0].specs.push({
+        ...originalSpec,
+        title: "CASE-CART-005 retain changed quantity",
+      });
       const reportBytes = Buffer.from(JSON.stringify(report));
       fs.writeFileSync(reportPath, reportBytes);
 
@@ -3377,14 +3380,12 @@ describe("AI-assisted QA formal assessment contracts", () => {
               label: "initial",
               minimum_tests: 2,
               expected_outcome: "passed",
-              required_case_ids: ["CASE-CART-004", "CASE-CART-005"],
             },
             {
               spec: "new-case.spec.ts",
               label: "repeat",
               minimum_tests: 2,
               expected_outcome: "passed",
-              required_case_ids: ["CASE-CART-004", "CASE-CART-005"],
             },
           ],
         },
