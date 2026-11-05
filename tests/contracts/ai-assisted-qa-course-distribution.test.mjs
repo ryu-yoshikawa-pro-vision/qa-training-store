@@ -913,6 +913,26 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("rejects a symlinked Web build root before copying any files", async () => {
+    const fixture = courseFixture();
+    const originalDist = path.join(fixture.source, "dist");
+    const relocatedDist = path.join(fixture.source, "outside-dist");
+    fs.renameSync(originalDist, relocatedDist);
+    fs.symlinkSync(relocatedDist, originalDist, "dir");
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/symlink path is prohibited/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
   it("blocks missing bundled Web runtime assets before writing and after manifest forgery", async () => {
     const fixture = courseFixture();
     const scriptPath = "dist/_expo/static/js/web/entry.js";
