@@ -1106,6 +1106,62 @@ describe("AI-assisted QA distribution contract", () => {
     expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(11);
   });
 
+  it("resolves learner runtime imports after their manifest and module-load placements", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const runtime = manifest.local_files.filter(
+      (entry) => entry.role === "runtime" && /\.(?:mjs|tsx?|jsx?)$/.test(entry.target_path),
+    );
+    const targets = new Set([
+      ...manifest.local_files.map((entry) => entry.target_path),
+      ...manifest.load_files.map((entry) => entry.target_path),
+    ]);
+    const pkg = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"));
+    const packages = { ...pkg.dependencies, ...pkg.devDependencies };
+    let localImports = 0;
+    for (const entry of runtime) {
+      const source = fs.readFileSync(path.join(repositoryRoot, entry.source_path), "utf8");
+      const placements = manifest.load_files
+        .filter((load) => load.source_path === entry.target_path)
+        .map((load) => load.target_path);
+      if (placements.length === 0) placements.push(entry.target_path);
+      for (const match of source.matchAll(
+        /\b(?:from\s+|import\s*(?:\(\s*)?)["']([^"']+)["']/g,
+      )) {
+        const specifier = match[1];
+        if (specifier.startsWith("node:")) continue;
+        if (!specifier.startsWith(".")) {
+          const parts = specifier.split("/");
+          const packageName = specifier.startsWith("@")
+            ? parts.slice(0, 2).join("/")
+            : parts[0];
+          expect(packages[packageName], `${entry.target_path} -> ${specifier}`).toBeDefined();
+          continue;
+        }
+        localImports += 1;
+        for (const placement of placements) {
+          const resolved = path.posix.normalize(
+            path.posix.join(path.posix.dirname(placement), specifier),
+          );
+          expect(
+            [resolved, `${resolved}.ts`, `${resolved}.tsx`, `${resolved}.js`, `${resolved}.mjs`].some(
+              (candidate) => targets.has(candidate),
+            ),
+            `${placement} -> ${specifier}`,
+          ).toBe(true);
+        }
+      }
+    }
+    expect(runtime.length).toBeGreaterThan(10);
+    expect(localImports).toBeGreaterThan(10);
+    expect(
+      manifest.load_files.some(
+        (entry) =>
+          entry.source_path === "course/exercises/M07/failure-assertion.spec.ts" &&
+          entry.target_path === "workspace/M07/failure-assertion.spec.ts",
+      ),
+    ).toBe(true);
+  });
+
   it("pins all Web lesson, exercise and quiz HTML revisions to learner Markdown and JSON", async () => {
     const fixture = courseFixture();
     const pages = [];
