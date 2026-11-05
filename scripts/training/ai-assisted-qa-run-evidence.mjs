@@ -743,7 +743,8 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
       }
       const record = verified.record;
       const caseIds = record.tests.map((test) => {
-        const matched = typeof test.title === "string" ? test.title.match(/\\bCASE-CART-00[1-5]\\b/g) : null;
+        const matched =
+          typeof test.title === "string" ? test.title.match(/\bCASE-CART-00[1-5]\b/g) : null;
         return matched?.length === 1 ? matched[0] : null;
       });
       const casesComplete =
