@@ -1042,6 +1042,70 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("verifies HTML srcset, CSS imports and JavaScript module asset dependencies", async () => {
+    const cases = [
+      {
+        file: "dist/index.html",
+        source: '<img srcset="/assets/one.webp 1x, /assets/two.webp 2x">',
+      },
+      {
+        file: "dist/preview.html",
+        source: '<link imagesrcset="/assets/preview.png 1x">',
+      },
+      {
+        file: "dist/styles/main.css",
+        source: '@import "./theme.css";',
+      },
+      {
+        file: "dist/scripts/entry.mjs",
+        source: 'import { value } from "./chunk.mjs";',
+      },
+      {
+        file: "dist/scripts/lazy.mjs",
+        source: 'const load = () => import("./lazy-chunk.mjs");',
+      },
+    ];
+    for (const { file, source } of cases) {
+      const fixture = courseFixture();
+      writeFixtureFile(fixture.source, file, source);
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "e".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/bundled Web asset is missing/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+
+    const fixture = courseFixture();
+    for (const { file, source } of cases) writeFixtureFile(fixture.source, file, source);
+    for (const asset of [
+      "assets/one.webp",
+      "assets/two.webp",
+      "assets/preview.png",
+      "styles/theme.css",
+      "scripts/chunk.mjs",
+      "scripts/lazy-chunk.mjs",
+    ]) {
+      writeFixtureFile(fixture.source, `dist/${asset}`, "fixture asset");
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(11);
+  });
+
   it("pins all Web lesson, exercise and quiz HTML revisions to learner Markdown and JSON", async () => {
     const fixture = courseFixture();
     const pages = [];
