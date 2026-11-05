@@ -651,7 +651,7 @@ function validateBundledShopAssets(files) {
       ? path.posix.normalize(prefix + decoded.slice(1))
       : path.posix.normalize(path.posix.join(path.posix.dirname(file.target_path), decoded));
     if (!required.startsWith(prefix) || !targets.has(required) || targets.get(required).length === 0)
-      fail(`bundled Web asset is missing from distribution: ${file.target_path} -> ${required}`);
+      fail(`${file.target_path.endsWith(".js") ? "bundled Web runtime asset" : "bundled Web asset"} is missing from distribution: ${file.target_path} -> ${required}`);
   };
   for (const file of files) {
     if (!file.target_path.startsWith(prefix)) continue;
