@@ -175,9 +175,11 @@ export function assertM07SourceDependencies(specBytes, moduleId, specName) {
         fail("M07 maintenance imports an untracked Page Object, fixture, or module");
     }
     if (
-      ts.isCallExpression(node) &&
-      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-        (ts.isIdentifier(node.expression) && node.expression.text === "require"))
+      ts.isImportEqualsDeclaration(node) ||
+      ts.isImportTypeNode(node) ||
+      (ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === "require")))
     )
       fail("M07 maintenance uses a dynamic or untracked module import");
     ts.forEachChild(node, visit);
