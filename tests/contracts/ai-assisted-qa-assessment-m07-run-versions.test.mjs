@@ -200,3 +200,11 @@ it("rejects a fabricated passing M07 after report without a business assertion",
   expect(result.status).toBe("ungradable");
   expect(result.reasons.join(" ")).toMatch(/business assertion/);
 });
+
+it("rejects a PASS report whose test title is absent from the saved M07 spec", () => {
+  const renamed = afterCode.replace("cart reentry retains two", "new cart behavior");
+  const { verify } = setupM07Runs({ after: renamed });
+  const result = verify();
+  expect(result.status).toBe("ungradable");
+  expect(result.reasons.join(" ")).toMatch(/report test titles do not match/);
+});
