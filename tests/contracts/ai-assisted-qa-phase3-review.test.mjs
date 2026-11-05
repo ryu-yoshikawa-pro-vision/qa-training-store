@@ -82,7 +82,9 @@ describe("M08-03 PR comparison and evidence contract", () => {
       expect(draftEvidence.unknown).toContain("CI was not run");
 
       const exercise = read("training/ai-assisted-qa-course/exercises/M08/exercise.md");
-      const submission = read("training/ai-assisted-qa-course/exercises/M08/submission-template.md");
+      const submission = read(
+        "training/ai-assisted-qa-course/exercises/M08/submission-template.md",
+      );
       expect(exercise).toContain("commit単独");
       expect(exercise).toContain("base/head");
       expect(exercise).toContain("Run ID（なければ「未実行」）");
