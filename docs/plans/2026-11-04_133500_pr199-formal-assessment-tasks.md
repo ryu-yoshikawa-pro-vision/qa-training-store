@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは10/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは12/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -27,13 +27,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 ## OpenCode実モデル・最小権限
 
 - [x] `@opencode/cli`の対象版・`opencode run`の非対話/JSONイベント・stderr/終了コード/タイムアウトを仕様・既存コードと照合し、イベントを模擬したパーサ/異常系契約テストを追加。学習環境での認証付き実CLI接続は#199へ渡す（OpenCode V2のCLI/Config仕様とNode実装を照合。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`では`ai-assisted-qa-assessment-process.test.mjs`の4件・既存イベント異常系を含む`Vitest (contracts)`が成功。本人認証付き実CLIは#199で実施）
-- [ ] 無料モデルの選択・料金確認を起動前ガードとして実装/文書化し、認証欠落・429・上限/不明価格を`blocked`として拒否する負例テストを用意。本人の実契約/費用確認・モデル接続は#199へ渡す
+- [x] 無料モデルの選択・料金確認を起動前ガードとして実装/文書化し、認証欠落・429・上限/不明価格を`blocked`として拒否する負例テストを用意。本人の実契約/費用確認・モデル接続は#199へ渡す（公開Models.devカタログの全公表単価0・正確なモデルIDを検査し、CLI列挙に存在しないモデル・価格不明・非200/429・外部送信不能をNodeでblockedとする。固定HEAD `7402bc0ff149f66f020a568566da4695ce85003a` のCI Run `41963853602`で料金負例を含む契約テスト成功。本人契約と実認証は#199）
 - [ ] 学習用セッションから分離した評価プロセス/権限設定を実装し、Shell/edit/Web/MCP/Skill/子Agent禁止の設定と模擬拒否を契約テストで検証。実モデル環境の権限拒否確認は#199へ渡す
 - [ ] 本人提出・ログ中のPrompt Injectionを命令として実行せず、許可した資料/節だけをサイズ上限・Secret除外後に外部モデルへ渡すこと
 
 ## 校正・誤PASS拒否
 
-- [ ] 正答・誤答・許容別解・部分達成・根拠不足・未実行の固定校正fixtureと判定契約を整備し、Node集計・モデル応答異常/欠落の負例をCIで検証する。**実モデルでの最終校正は#199**
+- [x] 正答・誤答・許容別解・部分達成・根拠不足・未実行の固定校正fixtureと判定契約を整備し、Node集計・モデル応答異常/欠落の負例をCIで検証する。**実モデルでの最終校正は#199**（M00〜M10の106固定Case、各5分類と11件のPrompt Injection負例を検査し、誤PASSをNode校正失敗へ分類。欠落/重複/不明ID・無根拠/未実行も拒否。固定HEAD `7402bc0ff149f66f020a568566da4695ce85003a` のCI Run `41963853602`で契約テスト成功。実モデル校正は#199）
 - [ ] 旧SHA/別Run、改ざん・偽Trace、重複/欠落ID、Prompt Injection、異常JSON、タイムアウトの負例をCIへ追加。模擬評価器の重大誤PASSを0にし、**実モデルの重大誤PASS 0件は#199最終実受入**で別に確認
 - [x] 校正記録へモデルID/版・CLI版・Prompt Hash・rubric Hash・資料SHAを保存する契約を実装し、不一致時の再校正要求をテスト。実モデル校正結果の確定は#199へ渡す（モデル/CLI/Prompt/評価資料SHAの校正identity、正常再利用・不一致拒否を`ai-assisted-qa-assessment-calibration-identity.test.mjs`・既存校正cacheテストで確認。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`で契約テスト成功。本人の実モデル校正は#199）
 - [x] 不一致/校正不能時は合格へ繰り上げず`blocked`/`ungradable`等の正しい状態にし、再試行条件を提示（`isPassingCalibration`・`finalizeAssessment`・`resumeAttempt`・`saveSummary`、失敗校正cacheの拒否/候補欠落/再開負例を固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI `41953473479`の契約テスト成功で確認）
@@ -52,6 +52,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 料金ガード・106校正Caseの検証
+
+- **項目7・10をチェック：** 固定HEAD `7402bc0ff149f66f020a568566da4695ce85003a` の [GitHub Actions Run 41963853602](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41963853602) の `Vitest (contracts)` ログは82ファイル、1132テスト成功、1件expected fail、15件skip。公開料金カタログがゼロ単価の`opencode`系モデルだけを採用し、価格不明・非0・欠落・401/429・redirect・不正JSON・モデル列挙不一致を拒否する模擬契約テストを確認。本人認証/契約料金/残クォータの実受入は#199に残す。校正fixture 106件（M00〜M10各5分類）、11件のPrompt Injectionを誤PASSとした場合のNode校正失敗、校正結果の欠落・重複・不明Case・不正判定を拒否するテストも成功。実モデルの重大誤PASS 0件は未確認。
+- **Style Qualityは当時失敗：** 同Runで`Style Quality`が3ファイルを指摘。CI用の一時診断テストを使用してPrettierの正確な差分を取得し、評価器1か所、校正テスト3か所、料金テスト4か所を修正した。診断用テストは削除済み。修正後のCI成功は未確認であり、項目18は未チェック。
+- **残る制約：** 価格カタログは公開の参考値であり、実アカウントの課金/無料枠を保証しない。`OPENCODE_DISABLE_PROJECT_CONFIG`は公式V2仕様上、グローバル`AGENTS.md`を遮断しないため、チューター由来の指示流入を完全には排除できていない。独立評価環境・権限と実モデル校正は完了扱いにしない。
 
 ## 2026-11-05 OpenCode固定HEAD契約の確認・価格事前ガード
 
