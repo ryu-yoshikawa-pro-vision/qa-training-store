@@ -43,6 +43,8 @@
   - 4種の`course:run outcome`とreceipt未生成の未実行、Playwright test状態・Run ID/配布/spec/report SHAの照合を教材/提出欄に追加。既存評価テストの同一Run・旧source SHA・初回/repeat逆転拒否と照合。共有実行器の相対パス不具合は#217へ引継ぎ済み。
 - [ ] 公開参考specの固定3件と004/005を専用Config・実行可能な環境で技術的に検証し、Run/対象HEAD/初回・再実行の結果を記録。**本人の独立実装・初回/repeat達成の判定は行わない**。
   - **未完了理由**：専用8082のShop、pnpm/Chromium、実行checkoutがなくRun未取得。固定3件（`cart-cases.spec.ts`）と004/005（`remove-item.spec.ts`/`quantity-update.spec.ts`）の初回・再実行の3コマンドと必要な証拠を[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ追記した。004参考test名にCase IDがない点は[#217](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)へ引継ぎ済み。
+  - **2026-11-05追加対応**：ユーザーが許可したPR #215専用CIジョブを`.github/workflows/ci.yml`に追加。`pr215-m06-reference`はPR番号215かつ当該branchのときだけ実行し、同じCIの`web-dist-automation`を8082で配信する。固定3件・004/005初回2件・再実行2件を`playwright.ai-assisted-qa.config.ts`のChromiumで独立Runとして実行し、終了コード・JSON/HTML report・HEAD・spec SHA・trace等を14日保存する。`tests/contracts/ai-assisted-qa-phase2-m06-reference-ci.mjs`は全7件の実行、対象spec・report件数・結果・対象HEADを検証する。**実Runの結果を確認するまでは未完了**。
+
 
 ## M07：失敗解析・保守設計
 
