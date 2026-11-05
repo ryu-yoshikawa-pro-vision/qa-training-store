@@ -654,9 +654,16 @@ function validateWebCourseRevisions(files) {
       const source = targets.get(learner);
       const expected = source?.source_sha256;
       const html = web?.bytes.toString("utf8") ?? "";
-      const revision = html.match(/<meta name="course-source-revision" content="([a-f0-9]{64})"/i)?.[1];
+      const revision = html.match(
+        /<meta name="course-source-revision" content="([a-f0-9]{64})"/i,
+      )?.[1];
       const body = html.match(/\bdata-course-revision="([a-f0-9]{64})"/i)?.[1];
-      if (!web || !/^[a-f0-9]{64}$/.test(expected ?? "") || revision !== expected || body !== expected)
+      if (
+        !web ||
+        !/^[a-f0-9]{64}$/.test(expected ?? "") ||
+        revision !== expected ||
+        body !== expected
+      )
         fail(`Web/Template Markdown revision mismatch (BLOCKED): ${page} -> ${learner}`);
     }
     const quizPath = `course/quizzes/${moduleId}.json`;
