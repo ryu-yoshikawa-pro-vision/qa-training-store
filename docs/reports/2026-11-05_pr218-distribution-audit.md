@@ -62,3 +62,11 @@
 | Webのbundled JSとその他の画像・依存物 | `learner-THIRD_PARTY_NOTICES.md`は旧CI `41297580957`のReact・bezier-easing表示等を記載。今回のBuild Artifactは別HEAD・別JS bundle | 旧Build結果を新規Buildの権利証拠へ流用しない。**全第三者依存物／生成JS表示の網羅監査は未完了** |
 
 この節は許諾の最終判断ではない。#199で公開対象・再配布可否を確認するまで、配布除外とライセンス監査のチェックを付けない。
+
+## 2026-11-05 CI不具合修正とチェック証拠（継続）
+
+- [CI Run #41967650261](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)、HEAD `594a72b724eb`：`Vitest (contracts)`は5件FAIL（既存M03 Risk CSVのworkspace配置先を誤って要求した新しいguardが原因）、`Style Quality`はPrettier違反。同Run内で固定commit fixtureの再同期・clean/dirty/別branch・`course:load`の不正ID・全22状態・prebuilt Shop検証・`serve-web-dist.test.ts`は個別PASS、Web Buildとtraining Web Chromium E2Eは成功。全RunのPASSを意味しない。
+- [CI Run #41970080624](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41970080624)、一時診断commit `25a8e76eb2ac`：M03 guardの強制条件が汎用`courseFixture()`の独立したテスト用manifestに適用され、契約テスト37件FAIL。**原因は汎用fixtureへ製品固有の追加必須条件を強制したことで、37件の異なる製品欠陥ではない**。
+- 後続commit `822a826d5ab1`で重複するM03強制guardを削除。既存の`loads the M03 public risk row only with M03 and requires it for the independent fallback`および静的参照テストによる対象範囲の確認を残した。診断用TEMPテストは`31154915f074`で削除し、CI内のPrettier APIが指摘した`for (const skill of [...])`の配列を1行へ整形した。**修正後HEADでのテスト・書式検査結果は未確定**。
+- 専用チェックリストに、個別PASSとソース照合の根拠を明記して固定SHA再同期、`course:load` ID境界、11モジュール/22状態、配布済みShopの`verify-distribution`・loopback 8082・Seed/Reset入口・全Buildへのfallback禁止を追加チェック。合計 **6/21件**。実Shopを含む`course:sync`結合実行、Private Codespaces Port/Reset/Browser、旧教材除外、全権利許諾は未完。
+- Webと配布元Git treeの11 quiz JSONは、CI Artifact `web-dist-production`（同Run `41967650261`）でGit Blob SHAとサイズが11/11一致。一方、公開Web側の`source_sha`表示・不一致時BLOCKED説明は未確定。引継ぎ：[PR #199 comment](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6649975046)。
