@@ -189,6 +189,15 @@ function assertNotWorkflowPath(value, description) {
   return value;
 }
 
+function lstatIfExists(absolute) {
+  try {
+    return fs.lstatSync(absolute);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 function assertNoSymlinkPath(root, relativePath, includeLeaf = true) {
   const normalized = normalizeRelativePath(relativePath);
   const parts = normalized.split("/");
@@ -196,9 +205,8 @@ function assertNoSymlinkPath(root, relativePath, includeLeaf = true) {
   let current = path.resolve(root);
   for (const part of parts.slice(0, limit)) {
     current = path.join(current, part);
-    if (!fs.existsSync(current)) continue;
-    const stat = fs.lstatSync(current);
-    if (stat.isSymbolicLink()) fail(`symlink path is prohibited: ${relativePath}`);
+    if (lstatIfExists(current)?.isSymbolicLink())
+      fail(`symlink path is prohibited: ${relativePath}`);
   }
   const absolute = path.resolve(root, ...parts);
   const rel = path.relative(path.resolve(root), absolute);
@@ -570,11 +578,11 @@ function preflightWrites(targetRoot, files) {
   const writes = [];
   for (const file of files) {
     const absolute = assertNoSymlinkPath(targetRoot, file.target_path, false);
-    if (!fs.existsSync(absolute)) {
+    const stat = lstatIfExists(absolute);
+    if (!stat) {
       writes.push(file);
       continue;
     }
-    const stat = fs.lstatSync(absolute);
     if (stat.isSymbolicLink() || !stat.isFile()) {
       conflicts.push(file.target_path);
       continue;
@@ -1504,8 +1512,8 @@ export function loadModule({ root, moduleId, now = new Date() }) {
   const conflicts = [];
   for (const file of inputs) {
     const destination = assertNoSymlinkPath(targetRoot, file.target_path, false);
-    if (!fs.existsSync(destination)) continue;
-    const stat = fs.lstatSync(destination);
+    const stat = lstatIfExists(destination);
+    if (!stat) continue;
     if (stat.isSymbolicLink() || !stat.isFile() || !fs.readFileSync(destination).equals(file.bytes))
       conflicts.push(file.target_path);
   }
