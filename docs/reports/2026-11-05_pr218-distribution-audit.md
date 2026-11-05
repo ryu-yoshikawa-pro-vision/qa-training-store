@@ -86,3 +86,12 @@
 - チューターの読取許可には`workspace/<moduleId>/*`があり、対象module内に受講者がSecretや個人情報を置くケースについて、文面上の警告のみでは外部送信防止を保証できない。正式評価側の正規表現も未知の個人情報を全検出しない。**外部送信/権限のチェックは未完**として#199の本人実確認と所有者側の検証に引き継ぐ。
 
 専用タスクリストは本追補時点で**9/21件チェック済み**。配布元からの実Build同期、再配布権利、旧教材除外、正式評価・チューターの実モデル権限など、完了証拠のない項目は未チェック。
+
+## M03開始入力の参照欠落を拒否する追加検査
+
+- 固定`course/modules/M03/inputs/start.md`について`SCOPE-101`、`RISK-CART-001`、`Authority Entity`、`BR-CART-001`、`AC-CART-001`の出典・参照識別子が欠落した状態を、`course:sync`の書き込み前と`verify-distribution`、`course:load M03`の書き込み前に拒否する処理を追加。
+- M03公開Risk CSVは`course/modules/M03/inputs/public-risk-input.csv`から`workspace/M03/public-sample/risk-input.csv`へコピーする実契約を使用。同期元manifestと配布後manifestの両方で削除・不正リダイレクトを拒否する。汎用の先行検証とM03固有条件を分離し、他モジュールの一般的なloadエラー検証を先に通す。
+- 契約テストではAuthority・Risk・Scope識別子をそれぞれ欠落させた同期が空の出力先を保って失敗すること、配布後にScopeを削ってSHA-256を書き換えたmanifestでも`verify-distribution`と`course:load M03`が拒否すること、必要な外部Skill helper 7 scriptが固定Git blob SHAとともにmanifestへ入ることを検証する。
+- 本検査は参照**存在**の契約検証であり、M02の意味抽出やAuthority/Risk/Scopeの意味的正しさを証明するものではない。**新規テスト導入後のCI結果は別途確認**し、M03の完了チェックを増やさない。
+
+[CI #41974335705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41974335705)（HEAD `d81a9afa21119562fd855f0dd3203109ac3700ed`）では`Style Quality`、`Code Quality`、`Vitest (contracts)`の各ジョブ成功を確認。これは上記M03参照欠落検査を追加する**前**のHEADであり、上記新規検査のPASSとは扱わない。
