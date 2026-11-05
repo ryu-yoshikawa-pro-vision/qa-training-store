@@ -1105,6 +1105,29 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects generated Web assets under node_modules even when JS refers to them", async () => {
+    const fixture = courseFixture();
+    const image = "assets/node_modules/.pnpm/expo-router/icon.png";
+    writeFixtureFile(fixture.source, `dist/${image}`, "bundled image bytes");
+    writeFixtureFile(
+      fixture.source,
+      "dist/_expo/static/js/web/entry.js",
+      `const icon = {uri:"/${image}"};`,
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/generated target_path is prohibited/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
