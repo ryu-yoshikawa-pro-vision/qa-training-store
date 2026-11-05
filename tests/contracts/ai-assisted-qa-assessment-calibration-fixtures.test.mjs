@@ -77,9 +77,7 @@ describe("formal evaluator published calibration case contracts", () => {
   it("rejects absent, duplicate or fabricated cases and malformed model judgments", () => {
     const response = structuredClone(evaluated);
     const omitted = response.slice(1);
-    expect(() => validateCalibrationOutput({ case_results: omitted }, expected)).toThrow(
-      /omitted/,
-    );
+    expect(() => validateCalibrationOutput({ case_results: omitted }, expected)).toThrow(/omitted/);
     const duplicate = structuredClone(response);
     duplicate[1].case_id = duplicate[0].case_id;
     expect(() => validateCalibrationOutput({ case_results: duplicate }, expected)).toThrow(
@@ -92,13 +90,13 @@ describe("formal evaluator published calibration case contracts", () => {
     );
     const missingRationale = structuredClone(response);
     missingRationale[0].rationale = "";
-    expect(() =>
-      validateCalibrationOutput({ case_results: missingRationale }, expected),
-    ).toThrow(/rationale is missing/);
+    expect(() => validateCalibrationOutput({ case_results: missingRationale }, expected)).toThrow(
+      /rationale is missing/,
+    );
     const invalidDecision = structuredClone(response);
     invalidDecision[0].decision = "not_run";
-    expect(() =>
-      validateCalibrationOutput({ case_results: invalidDecision }, expected),
-    ).toThrow(/decision is invalid/);
+    expect(() => validateCalibrationOutput({ case_results: invalidDecision }, expected)).toThrow(
+      /decision is invalid/,
+    );
   });
 });
