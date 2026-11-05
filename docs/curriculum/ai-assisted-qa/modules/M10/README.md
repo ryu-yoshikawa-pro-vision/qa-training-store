@@ -294,6 +294,19 @@ M09の公開完成見本は、M10の正式評価器と同じ契約に従う必�
 3. **権限・費用・対象PR**：信頼済みPrivate repo、権限を持つ本人、実行対象PR、`pull_request`イベント、forkからの未信頼コードの扱い、標準Runner、請求先・予算/利用枠・停止条件を確認します。`pull_request_target`への変更、deploy、`contents: write`、Secretの渡し込み、関係のないWeb/Mobile CIの起動を認めません。料金・権限・配布版の出所・対象specのいずれかが未確認なら`BLOCKED`です。
 4. **後片付けと記録**：対象PR head SHA、Run ID/attempt、Check、Artifact、`target-sha.txt`、実行されたspecを保存・照合します。完了後は不要になった専用workflowの自動起動を本人のPrivate repoで無効化し、残るRunとArtifactの保存・保持期限・課金状況を確認します。無効化やArtifact整理を先に行って必要な証拠を失わず、`git clean -fd`などで学習成果物を無断削除しません。
 
+#### 実行前の確認結果と停止条件
+
+| 対象 | 実行前に確認する操作・根拠 | 期待結果 | 停止条件 |
+| --- | --- | --- | --- |
+| Repoと配布元 | `git remote -v`、`git rev-parse HEAD`、信頼済みbaseと承認済み配布元SHA | 本人Private repoの正しいbranchで、配布元を第三者の記録から特定できる | 所有者・承認済みbase・配布元SHAが不明 |
+| 配布物の追跡 | `git ls-tree -r --name-only <承認済みbase SHA> -- course/shop .course/distribution-manifest.json`と`git diff --name-only <承認済みbase SHA>...HEAD -- course/shop .course/distribution-manifest.json` | index.htmlとmanifestを含む必要ファイルが追跡され、今回のPRで無断改変されていない | 欠落・未追跡・PR差分・配布元と異なるSHA。変更が正当なら承認後に再検証 |
+| 配布物の内容 | `node scripts/training/ai-assisted-qa-course.mjs verify-distribution`とmanifestの`source_sha`を承認済み記録に照合 | 全ファイルのSHA-256検証が成功、配布元の完全SHAが一致 | 検証失敗、配布元未確認、検証スクリプトの未承認変更 |
+| SpecとRuntime | `git diff --cached --name-only`、Config、lockfile、Reset import、学習用のローカルRun | 1つの対象specと必要な依存のみがあり、M07のTODOは修正済み、またはM10公開fallbackがロード済み | Secret/Trace・無関係なファイル、未修正TODO、依存欠落、対象外spec |
+| CI契約と料金 | `.disabled`を外す前にworkflow差分、本人のActions/Billing画面、Runner・trigger・fork制限を確認 | `pull_request`、`contents: read`、資格情報非保持、事前ビルド版、対象1 spec、Artifact 2ファイル、実行権限/予算を確認 | 旧fallbackのまま、`pull_request_target`、権限拡大、費用・許可不明 |
+| Runと終了処理 | 同じPR HEADのRun/attempt/Check/Artifactと`target-sha.txt`・JSONを照合し、不要なtriggerを本人が無効化 | 対象のspecと結果まで確認でき、必要な証拠を残し、意図しない次回実行を防止 | 旧HEAD、違うspec、Artifact不足、停止して必要な証拠が失われた |
+
+ここでのコマンドは本人の確認用です。本PR #216ではPrivate repoへ接続して実行したことを意味しません。読み取り専用の確認は済ませても、本人の課金・権限判断がない限りworkflowの有効化へ進みません。
+
 #### 操作手順
 
 1. **現在のブランチとリポジトリを確認する**：\
