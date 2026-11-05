@@ -822,7 +822,7 @@ describe("AI-assisted QA distribution contract", () => {
         (file) =>
           file.module_id === "M03" &&
           file.source_path === riskPath &&
-          file.target_path === riskPath,
+          file.target_path === "workspace/M03/public-sample/risk-input.csv",
       ),
     ).toBe(true);
     expect(() =>
