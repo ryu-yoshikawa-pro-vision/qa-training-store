@@ -2486,9 +2486,7 @@ it("accepts the M05 P05 locator spec only through the approved course:run entryp
     "course:run requires the verified distribution source SHA",
   );
   const otherArgs = ["M05", "other.spec.ts", "--label", "main"];
-  expect(() => runAiAssistedQaSpecCli(otherArgs, { root })).toThrow(
-    /Usage: pnpm course:run/,
-  );
+  expect(() => runAiAssistedQaSpecCli(otherArgs, { root })).toThrow(/Usage: pnpm course:run/);
 });
 
 it("requires a verified distribution SHA before course:run can access learner files", () => {
