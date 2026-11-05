@@ -16,6 +16,19 @@
 - Public Templateの実公開は#199マージ後の本人作業。Private repo/2コアCodespaces実受入は他の全作業完了後の本人作業で、マージ前必須ゲートに戻さない。未実行をPASSとは記録しない。実受講者の習熟試行も後続工程。
 - 本リストの作成・PRのDraft解除・CI通過はmerge許可と同義ではない。#199をmainへマージしない。
 
+## PR #218から移管した未完了タスク（2026-11-05）
+
+[PR #218の配布・安全性タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-distribution-security/docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md)にあった未完了6項目の責任を整理する。**以下6件はすべて未完了**。先頭1件はWeb生成物の受入部分のみを移管し、配布manifest/validator・配布固有契約テストの実装と確認は引き続き#218が担当する。残り5件は受入条件ごと#199へ移管する。既存の横断項目（公開Web、配布・個人データ保護、通常チューター、最終実受入）との関係を残すが、同じ実績を二重に完了計上しない。#218の過去のチェック済み15件はそのまま保持する。
+
+- [ ] **#218から一部移管：生成Webの実ファイル依存閉包。** #199所有の`scripts/docs/build-ai-assisted-qa.ts`・Web Build生成物で、JSの画像URI12件に対応する実ファイルを`node_modules/.pnpm`を含まない安全な公開パスへ出力し、参照URIを一致させる。HTML `src/href/srcset`、CSS `url/@import`、JS静的/動的import・runtime assetまで、同一固定HEADの実Artifact・manifestで欠落/0 byte/禁止パス0を確認する。旧教材5ページとそのリンク12件も生成物から除外する。**出力側の不備を配布側ガードの緩和で回避しない**。#218は`training/course-sync/manifest.json`のallowlist、固定Skill・SHA、生成物検証guardと契約テストを継続する。元タスク：#218「配布物の生成と固定SHA」先頭。
+- [ ] **#218から移管：固定commitからの実Shop全量同期。** 生成Webの修正後、cleanな同一commitで`pnpm run build:web`→`course:sync`→`verify-distribution`→再同期・SHA/manifest/Skill照合を実施し、正常・失敗時の実行コマンド、exit、Run ID、Artifact、差分と最終HEADを残す。fixtureだけの同期PASSやWeb CIの単純なbuild成功で代替しない。本人のPrivate Codespaces実配布はこのリスト末尾の最終実受入として別判定。元タスク：#218「配布物の生成と固定SHA」2番目。
+- [ ] **#218から移管：公開禁止資料・Secret・個人データの全成果物除外。** Web Build/Template/配布Artifactから`assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec、正式workflow、旧教材、個人成績、`.env`/credential/secretが除外されていることを実ファイルと負例で確認。旧教材HTML5件とそのリンク12件は生成元を修正してから再検査する。既知Secretの正規表現0件だけで個人情報やバイナリの無害化を保証しない。#218で既に実装したTemplate/manifest拒否テストは再作成せず、統合最終HEADで受け入れる。元タスク：#218「配布除外・法的条件・安全性」先頭。
+- [ ] **#218から移管：通常AIへの送信・保存境界。** 通常チューターの外部AI送信対象を本人回答・関連教材節・必要なRun要約に限定して明示する。送信前にToken/Secret・個人情報・無関係ファイルを拒否/除外し、ファイル別・総量・モデル入力のサイズ上限と負例を設ける。OpenCodeの読取許可・通常会話のGit外保存/保持先・復元/削除の説明を実装と一致させる。正式AI評価側の送信・権限・履歴は#217と境界を突合し、#217所有コードは直接重複実装しない。元タスク：#218「配布除外・法的条件・安全性」外部AI項目。
+- [ ] **#218から移管：公開WebとTemplateの版不一致表示・受講者向け受入。** Web/Templateの同一Markdown・クイズJSONとrevisionの一致を維持し、WebでGit commitの`source_sha`（40桁）と教材内容SHA-256 revision（64桁）を混同せず提示する。異版時には原因・再生成/再読込方法を表示し、旧回答を無断流用・個人評価履歴を上書きしない。公開Webの一問ずつのクイズ操作・キーボード/アクセシビリティ・共通生成処理を#199のWeb受入で検証する。#219の製品画面受入とは分離する。#218で完了した**静的な35/35教材版照合と異版BLOCKED契約**は再実装しない。元タスク：#218「Web・AIチューター・成果物保全との接続」Web項目。
+- [ ] **#218から移管：通常OpenCodeチューターと独立正式評価の分離。** 無料モデルの明示選択・Secret/Agent権限、段階ヒント・別条件・復習入力と、M04/M07/M10の独立正式AI評価の送信内容・権限・保存履歴/再開を、配布ファイル・公開設定・契約/負例テストで検証する。通常会話のSecret/PII・サイズ保護は直前の送信境界タスクと一緒に実装してよいが、両受入条件は個別に判定する。**実モデル認証・実料金・実対話は本人の最終実受入**へ残し、モック成功でPASSにしない。元タスク：#218同節のOpenCode項目。
+
+既存の#199横断チェックに含まれる条件も、上記の担当変更で消去しない。**開始順**はWebの生成不備修正→実Shop全量同期/配布除外→Web版表示と通常AI送信/チューター境界→同一最終HEADのCI・最終実受入。#199の他の進行中作業・製品SUT変更禁止・マージ承認境界は変更しない。根拠：[PR #218監査レポート](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-distribution-security/docs/reports/2026-11-05_pr218-distribution-audit.md)、[Web生成不備の引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6657664676)。
+
 ## 個別PRの統合と重複管理
 
 - [ ] #213〜#219すべての最新HEAD/差分/チェック項目/未確認/BLOCKED/外部依存を確認。受入完了した範囲を#199へ統合し、各PRの未解決条件をこのリストで調停。**マージは個別の明示承認後のみ**。
