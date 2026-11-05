@@ -3,7 +3,7 @@
 模範解答、採点テスト、完成状態データ、Phase別ルーブリックはpublicなqa-training-storeに通常のMarkdown/JSONファイルとして保存します。Git差分とPull Requestで内容をレビューできます。これらは秘密ではありません。
 
 - reference-solutions/M00.md〜M10.md: 各モジュールの根拠付き標準例。文面一致ではなく意味・出典・判断・証拠を評価します。
-- playwright/M05〜M07/: M05の修正版リンクspec、M06の3つのCart Case、M07の意図的失敗specと修正版spec。公開評価用の完成コードです。
+- playwright/M05〜M07/: M05の修正版リンクspec、M06の固定3 Caseと追加2 Case（CASE-CART-004/005）、M07の意図的失敗specと修正版spec。公開評価用の完成コードです。
 - scoring-tests/M00.json〜M10.json: 学習目標/知識ノード別基準と正答/誤答/部分/許容別解/評価不能の公開校正例。`expected_decision`は校正fixtureのラベルであり、受講者のLevel 0〜3へ変換しません。正式評価はM04/M07/M10で独立AI候補、実証拠・版のNode.js検証、全Phase目標の決定論的集計を行います。
 - completed-states/M00.json〜M10.json: end-state契約に対応する完成参照データ。reference_onlyであり、受講者本人の評価結果や実行成功を記録したものではありません。
 
