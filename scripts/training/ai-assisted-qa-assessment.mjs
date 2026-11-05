@@ -504,13 +504,15 @@ export function assertReusablePreparedInputs(inputManifest, inputs) {
     !isDeepStrictEqual(inputManifest.criteria_by_objective, inputs.criteriaByObjective) ||
     !isDeepStrictEqual(
       inputManifest.input_snapshot,
-      inputs.evidence.map(({ evidence_id, module_id, path: evidencePath, sha256: digest, size }) => ({
-        evidence_id,
-        module_id,
-        path: evidencePath,
-        sha256: digest,
-        size,
-      })),
+      inputs.evidence.map(
+        ({ evidence_id, module_id, path: evidencePath, sha256: digest, size }) => ({
+          evidence_id,
+          module_id,
+          path: evidencePath,
+          sha256: digest,
+          size,
+        }),
+      ),
     ) ||
     inputManifest.fingerprint !== sha256(stableInputFingerprint(inputs))
   )
@@ -535,7 +537,9 @@ export function assertReusableFinalizedAnswer({
     result?.challenge?.id !== savedChallenge.id ||
     result.challenge.answer_sha256 !== answer.answer_sha256
   )
-    fail("finalized assessment answer or challenge changed; preserve the result and create a new assessment");
+    fail(
+      "finalized assessment answer or challenge changed; preserve the result and create a new assessment",
+    );
 }
 
 function systemPromptHash(systemPrompt) {
@@ -1985,7 +1989,10 @@ async function resumeAttemptUnlocked(request) {
       inputManifest,
       savedChallenge,
       answer,
-      receipt: readJson(path.join(attemptDirectory, "challenge-answer.json"), "saved challenge answer"),
+      receipt: readJson(
+        path.join(attemptDirectory, "challenge-answer.json"),
+        "saved challenge answer",
+      ),
       result: readJson(savedResultPath, "saved finalized assessment"),
     });
   }
