@@ -570,10 +570,9 @@ CIが赤色（FAIL / 失敗）になったとき、多くの初学者は画面�
 GitHub Actionsのrunnerは、クラウド上に用意された本物のサーバー計算資源を使って動いています。
 そのため、実行には当然ながらコスト（利用料金や無料枠の消費）が伴います。
 
-料金体系（毎月の無料枠分数や超過時の従量課金）は、**リポジトリの公開設定（PublicかPrivateか）、アカウントの契約プラン（Free、Team、Enterprise）、使用するrunnerのOS種別（Linux、Windows、macOS）**によって大きく異なります。
-特に、macOSのrunnerはLinuxのrunnerに比べて10倍近く高い課金レートが設定されていることが一般的です。
+料金体系とプランに含まれる利用枠は、**リポジトリの公開設定（PublicかPrivateか）、請求先アカウントのプラン、使用するrunnerの種類・OS、実行時間、成果物の保存量**などによって異なります。現在のGitHubの利用枠は料金相当額などで表示される場合もあるため、古い「毎月〇分まで」という記述や他人のアカウントの使用実績を、自分の上限に置き換えてはいけません。
 
-そのため、「教材にこう書いてあったから無料だ」「〇回実行したから必ず〇〇円だ」と勝手に決めつけてはいけません。**利用する時点のGitHub公式の料金ドキュメントおよび自身のアカウントの請求設定画面（Billing）**を確認して判断する必要があります。
+「教材にこう書いてあったから無料だ」「〇回実行したから必ず〇〇円だ」とは判断せず、[GitHub Actionsの課金と使用](https://docs.github.com/en/actions/concepts/billing-and-usage)、[プラン別に含まれる利用量](https://docs.github.com/en/billing/reference/product-usage-included)と、本人のBilling画面でプラン・利用済み量・残量・予算/停止設定を確認します。請求先・権限・予算上限が確定していない場合は、無効workflowを有効化せず`BLOCKED`と記録します。
 
 #### 実行トリガーの設計判断（自動 vs 手動）
 
@@ -616,7 +615,7 @@ permissions:
 | `pnpm install`・Chromium導入・ローカルShopのServe・限定spec実行 | Runner内の処理。実行する依存と外部Actionの出所・版を確認する | deploy用Secret、リポジトリ書込権限 |
 | `actions/upload-artifact@v4`で結果を保存 | 同じRunのArtifactサービスへ結果を送る。通常のArtifact uploadのために`contents: write`を付ける必要はない | `write-all`、公開先へのデプロイ |
 
-`permissions`は主に`GITHUB_TOKEN`の権限を制限するもので、Runner上のコマンドや外部通信をすべて禁止する仕組みではありません。`persist-credentials: false`も**すべてのSecret漏えいを防ぐ保証ではありません**。PR由来のコードや依存スクリプトを実行する前に、イベント（`pull_request` / `pull_request_target`等）、forkからの入力、Action/依存、Secretの受け渡し、ログ・Artifactの出力範囲を別々に確認します。**この学習用workflowはSecretを必要とせず、`pull_request_target`への変更やdeploy用権限の追加を認めません。** 別のCIや公開操作を同じJobへ混ぜず、必要性が生じたら有効化前に責務と権限を再設計します。
+`permissions`は主に`GITHUB_TOKEN`の権限を制限するもので、Runner上のコマンドや外部通信をすべて禁止する仕組みではありません。`persist-credentials: false`も**すべてのSecret漏えいを防ぐ保証ではありません**。PR由来のコードや依存スクリプトを実行する前に、イベント（`pull_request` / `pull_request_target`等）、forkからの入力、Action/依存、Secretの受け渡し、ログ・Artifactの出力範囲を別々に確認します。**この学習用workflowはSecretを必要とせず、`pull_request_target`への変更やdeploy用権限の追加を認めません。** フォークを含む外部PRのHEADをcheckoutして`pnpm install`やテストを動かすと、第三者が変更した依存スクリプトも実行され得ます。`pull_request`の権限制限・Secretの提供条件・フォーク承認ポリシーを事前に確認し、本人の学習用Private repoで許可した変更だけを対象にします。参考：[GitHub公式：pull_request_targetの安全な使用](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target)。別のCIや公開操作を同じJobへ混ぜず、必要性が生じたら有効化前に責務と権限を再設計します。
 
 #### やってはいけない危険な例
 
