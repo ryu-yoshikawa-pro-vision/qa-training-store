@@ -915,7 +915,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
-  it("rejects a partial Web curriculum without HTML even when all quiz JSON matches", async () => {
+  it("rejects a partial Web curriculum HTML even when all quiz JSON matches", async () => {
     const fixture = courseFixture();
     const webPrefix = "docs/curriculum/ai-assisted-qa/quizzes/";
     for (let index = 0; index <= 10; index += 1) {
@@ -923,6 +923,11 @@ describe("AI-assisted QA distribution contract", () => {
       const quiz = fs.readFileSync(path.join(fixture.source, webPrefix, `${moduleId}.json`));
       writeFixtureFile(fixture.source, `dist/${webPrefix}${moduleId}.json`, quiz);
     }
+    writeFixtureFile(
+      fixture.source,
+      "dist/docs/curriculum/ai-assisted-qa/quizzes/M00.html",
+      "<html><body>Partial quiz page</body></html>",
+    );
     await expect(
       syncCourse({
         root: fixture.source,
