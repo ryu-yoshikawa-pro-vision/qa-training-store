@@ -157,3 +157,11 @@
 - [CI #41989887188](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41989887188)では`Code Quality`と`Style Quality`が成功した一方、新しいcommitの発生により`Vitest (contracts)`はcancelled。**追加修正後HEADの全件テストは未完了**。契約追加をPASSに換算せず、Web/Template版整合・実Build同期・依存閉包のチェックは引き続き未完了とする。
 
 専用チェックリストは**12/21件完了**のまま。実Shop Build、Webのsource SHA/revision表示、旧教材除外、第三者ライセンス、本人環境での送信/保全は別途受入が必要。
+
+## 2026-11-05 旧教材5ページの配布拒否（追加）
+
+- [Web CI #41967650261](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)で取得したWeb Build Artifactには、`docs/curriculum/00_learning-design.html`、`01_spreadsheet-test-design.html`、`02_competency-rubric.html`、`03_instructor-reference.html`、`04_learning-effort-reference.html`が存在した。講師向けの`03_instructor-reference.html`も含まれる。これはその**固定HEADの実測**であり、最新Web Buildの内容まで確認したことを意味しない。
+- 配布処理`verifyPublicFileContent()`で、これら5名称のHTML/Markdownを`course/shop/docs/curriculum/**`に含めようとした場合、同期の書込前に`legacy curriculum page must not be distributed`で停止する検証を追加した。配布後に生成物とmanifestのハッシュを改変した場合も`verify-distribution`で同じ理由で拒否する。
+- 契約テストで5名称をそれぞれ生成`dist/**`に追加して同期が未書込で失敗する負例、および正常同期後に講師向けページをmanifestへ追加した改ざんを検出する負例を追加。
+- **この変更によって、旧ページが残るWeb Buildからの`course:sync`は成功しなくなる**。これは安全側の拒否であり、旧教材を公開Web側から除外したことではない。Web Build生成の修正・公開WebとTemplate双方の実確認は#199本体に[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6652852811)で依頼した。
+- 上記修正後HEADの契約テスト結果は未確定。旧教材・講師向け資料の完全除外、最新Build Artifactの内容確認、再配布許諾の最終判定は**引き続き未完**で、専用タスクリストは**12/21件**のまま。
