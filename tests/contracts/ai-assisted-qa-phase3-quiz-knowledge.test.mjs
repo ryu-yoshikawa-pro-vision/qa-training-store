@@ -145,7 +145,7 @@ describe("Phase 3 quiz and understanding coverage", () => {
     expect(visited.size).toBe(19);
   });
 
-  it("traces each Phase 3 goal through lesson, practice, submission and assessment reference", () => {
+  it("traces Phase 3 goals through lessons, practice and assessment references", () => {
     for (const module of modules) {
       const lesson = fs.readFileSync(
         path.join(root, "docs/curriculum/ai-assisted-qa/modules", module.id, "README.md"),
