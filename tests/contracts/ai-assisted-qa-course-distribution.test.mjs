@@ -670,7 +670,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(snapshotDirectory(fixture.target)).toEqual(original);
   });
 
-  it("reproduces a clean pinned Git distribution and rejects dirty or divergent sources", async () => {
+  it("re-syncs a pinned Git commit and rejects dirty or divergent sources", async () => {
     const fixture = courseFixture();
     const git = (...args) =>
       execFileSync("git", args, { cwd: fixture.source, encoding: "utf8" }).trim();
