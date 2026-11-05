@@ -689,7 +689,7 @@ M09では、この練習用ファイルを完成見本と比較しながら修�
 - **A（Build）**：依存導入後のBuildがimport解決エラーで非0終了。Testはskippedなので合否は未確認です。製品不具合と断定しません。
 - **B（Test）**：数量Assertionが失敗。Artifact uploadは`if: always()`で後続実行されるため、「失敗後は全step未実行」とは限りません。期待値・Seed・画面を追加調査するまで原因は未確定です。
 - **C（Artifact）**：Testは成功という合成条件ですが、`if-no-files-found: error`を指定したUploadが対象ファイルなしで失敗。Test成功と証拠保存成功は別判定です。`warn`なら警告にとどまり得るため、設定とstep conclusionを確認します。
-- **別条件**：P03の架空X（Browser導入失敗）、Y（Test PASS・Upload失敗）、Z（checkout対象SHA不一致）はA/B/Cとは別課題です。Zはcheckout成功でも証拠不採用となる場合があり、失敗stepを創作しません。
+- **別条件**：P03の架空X（Browser導入失敗）、Y（Test PASS・Upload失敗）、Z（checkout対象SHA不一致）はA〜Fとは別課題です。Zはcheckout成功でも証拠不採用となる場合があり、失敗stepを創作しません。
 
 - **D（Install）**：`pnpm install --frozen-lockfile`が先に失敗し、配布検証とテストは未実行。後続のArtifact保存失敗は派生結果です。
 - **E（配布検証）**：checkoutしたShop/manifestの不足で配布検証が失敗。Browser・Assertionは未実行です。Runnerで`build:web`へ切り替えず、配布元・追跡済みファイル・SHA-256を調べます。
