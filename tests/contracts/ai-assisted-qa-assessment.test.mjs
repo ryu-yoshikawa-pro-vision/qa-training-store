@@ -22,6 +22,7 @@ import {
   parseStrictJsonResponse,
   sha256,
   validateCandidate,
+  validatePhaseObjectiveIds,
   validateSavedChallenge,
 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 import {
@@ -2860,6 +2861,59 @@ describe("AI-assisted QA formal assessment contracts", () => {
     ];
     for (const [changedChallenge, error] of changedChallenges) {
       expect(() => validateSavedChallenge(changedChallenge, context)).toThrow(error);
+    }
+  });
+
+  it("requires exactly the published Phase objective IDs without duplicates or unknown IDs", () => {
+    const phases = [
+      ["P1", "M04", ["M00", "M01", "M02", "M03", "M04"], 22],
+      ["P2", "M07", ["M05", "M06", "M07"], 15],
+      ["P3", "M10", ["M08", "M09", "M10"], 14],
+    ];
+    for (const [phaseId, terminal, modules, count] of phases) {
+      const terminalState = JSON.parse(
+        fs.readFileSync(
+          path.resolve(`training/ai-assisted-qa-course/states/${terminal}/end.json`),
+          "utf8",
+        ),
+      );
+      const scoringByModule = new Map(
+        modules.map((moduleId) => [
+          moduleId,
+          JSON.parse(
+            fs.readFileSync(
+              path.resolve(`training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`),
+              "utf8",
+            ),
+          ),
+        ]),
+      );
+      const verify = (scoring = scoringByModule, state = terminalState) =>
+        validatePhaseObjectiveIds({ phaseId, scoringByModule: scoring, terminalState: state });
+      const expected = terminalState.phase_assessment.required_objective_ids;
+      expect(verify()).toEqual(expected);
+      expect(expected).toHaveLength(count);
+
+      const missing = new Map(scoringByModule);
+      missing.delete(modules[0]);
+      expect(() => verify(missing)).toThrow(/invalid/);
+
+      const duplicate = structuredClone(scoringByModule);
+      const first = duplicate.get(modules[0]);
+      first.objective_ids[1] = first.objective_ids[0];
+      expect(() => verify(duplicate)).toThrow(/differ/);
+
+      const unknown = structuredClone(scoringByModule);
+      unknown.get(modules[0]).objective_ids[0] = modules[0] + "-99";
+      expect(() => verify(unknown)).toThrow(/differ/);
+
+      const incompleteState = structuredClone(terminalState);
+      incompleteState.phase_assessment.required_objective_ids.pop();
+      expect(() => verify(scoringByModule, incompleteState)).toThrow(/invalid required/);
+
+      const foreignState = structuredClone(terminalState);
+      foreignState.phase_assessment.required_objective_ids[0] = "M99-01";
+      expect(() => verify(scoringByModule, foreignState)).toThrow(/differ/);
     }
   });
 
