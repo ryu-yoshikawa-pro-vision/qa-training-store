@@ -19,6 +19,7 @@ afterEach(() => {
   for (const directory of runs.splice(0)) fs.rmSync(directory, { recursive: true, force: true });
 });
 
+/** 教材の指定見出し直下からコード例を抽出する。 */
 function exampleAfter(markdown, heading, language) {
   const section = markdown.split(heading);
   expect(section).toHaveLength(2);
@@ -31,6 +32,7 @@ function exampleAfter(markdown, heading, language) {
   return rest.slice(0, end);
 }
 
+/** 教材中のJavaScriptサンプルを隔離Nodeプロセスで実行する。 */
 function runNode(script) {
   return spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
     cwd: root,
@@ -79,6 +81,7 @@ describe("M05-01：教材コードの動作とspec変更の境界", () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "course-m05-foundations-"));
     runs.push(directory);
     const file = path.join(directory, "practice.ts");
+    /** TypeScript学習コードを変更前後で実行する。 */
     function run() {
       return spawnSync("pnpm", ["exec", "tsx", file], {
         cwd: root,
