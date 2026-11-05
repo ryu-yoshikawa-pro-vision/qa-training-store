@@ -9,7 +9,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
 });
 
-it("binds saved calibration to model, CLI, prompts, rubric, and scoring source hashes", async () => {
+it("binds calibration to model, CLI, prompts, and pinned assets", async () => {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "assessment-calibration-"));
   roots.push(workspaceRoot);
   const sourceHashes = [
