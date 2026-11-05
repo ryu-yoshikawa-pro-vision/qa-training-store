@@ -131,3 +131,10 @@
 `pnpm-lock.yaml`のimporterとresolutionは`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`を固定（`package.json`宣言は`^5.3.0`）。生成JSにはReact関連の`@license`ブロック7件とbezier-easingのCopyrightブロック1件を確認した。MITやOFLは条件付きの再配布を許すが、**固定Skill全体や未同定の依存・画像の許諾を推定しない**。前掲のリンク切れ・旧教材同梱も配布承認の独立した阻害要因として残る。
 
 本節は原典・著作権者・NOTICE状況と未確認項目を管理する**調査台帳**であり、法律上の最終判断、Public Template公開の承認ではない。最終許諾判定は#199へ引継ぐ。
+
+## Phase 1/2成果物のGit不要保全：既存手順と不足（2026-11-05）
+
+- `training/ai-assisted-qa-course/templates/learner-repo-README.md`は、Phase 1/2成果物をGit操作なしでエクスポートする方針と、`workspace/Mxx/`編集・`pnpm course:assess`を説明しているが、**提出Markdown・作成spec・Playwright Config・Trace・Run一式をCodespacesからダウンロードする具体的な対象パス、操作、復元確認の手順がない**。
+- 既存の`ai-assisted-qa-assessment.mjs`には`course:assess M04|M07 --export <assessment UUID>`があり、正式評価完了済みattemptだけを`workspace/course-assessment-exports/<UUID>/`へコピーする。名前を固定した9ファイル以外は持ち出さず、元ファイルや既存exportを置換せず、途中失敗では公開先へ部分コピーを残さない。現行[評価契約テスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/tests/contracts/ai-assisted-qa-assessment.test.mjs)の`exports a finalized assessment once...`、`does not publish a partial export...`、`preserves a destination...`、`leaves no published export after abrupt process termination...`が挙動を規定している。ただし**これは提出Markdown/spec/Trace/Runの総合エクスポート機構ではない**。
+- `workspace/.gitignore`には`/M00/`〜`/M07/`、`/.course-assessments/`、`/course-assessment-exports/`などの保護がある。root`.gitignore`には`output/`等の除外がある。**Gitに載せないだけでCodespaces内のファイルを永続化・ダウンロードしたことにはならない**。
+- #199への引継ぎ：Codespacesの作業終了前に、(1)本人提出・実装・設定、(2)Trace/ログ/Run/スクリーンショット、(3)正式評価履歴/明示exportのそれぞれの対象パスとSecret除外を本人が確認し、**Git/PRを使用せず手元へ保存してバイト照合・復元する手順**を受講者READMEに追加・実受入する。CLIでの追加自動化が必要なら、共有`ai-assisted-qa-course.mjs`と評価専用コードの所有者で境界を調停する。本ブランチではこれらの所有ファイルを変更しない。実ダウンロード・復元は未実施のため該当チェックは未完了。
