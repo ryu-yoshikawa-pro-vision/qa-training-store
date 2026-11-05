@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync, gunzipSync } from "node:zlib";
+import { assertNoSecretText } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
@@ -11,8 +12,8 @@ const MAX_TOTAL_BYTES = 256 * 1024 * 1024;
 const MAX_FILES = 10000;
 const MAX_ARCHIVE_BYTES = 384 * 1024 * 1024;
 const MODULES = Array.from({ length: 8 }, (_, i) => "M" + String(i).padStart(2, "0"));
-const SECRET_PATTERN =
-  /(?:\bgh[pousr]_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b|\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b|\bAIza[0-9A-Za-z_-]{35}\b|\bxox[baprs]-[A-Za-z0-9-]{20,}\b|\bglpat-[A-Za-z0-9_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)/i;
+const PERSONAL_EMAIL_PATTERN =
+  /\b[A-Z0-9._%+-]+@(?:gmail\.com|yahoo\.(?:co\.jp|com)|icloud\.com|outlook\.(?:com|jp)|hotmail\.com)\b/i;
 const TEXT_FILE = /\.(?:md|txt|json|jsonl|log|ts|tsx|js|mjs|yaml|yml|csv|html|xml|ini|config)$/i;
 
 function fail(message) {
@@ -130,8 +131,12 @@ function collectLearnerFiles(root) {
     if (bytes.length !== stat.size) fail("learner file changed while being read");
     totalBytes += bytes.length;
     if (totalBytes > MAX_TOTAL_BYTES) fail("backup total size limit exceeded");
-    if (TEXT_FILE.test(relative) && SECRET_PATTERN.test(bytes.toString("utf8")))
-      fail("potential Secret in learner file; backup aborted: " + relative);
+    if (TEXT_FILE.test(relative)) {
+      const content = bytes.toString("utf8");
+      assertNoSecretText(content, relative);
+      if (PERSONAL_EMAIL_PATTERN.test(content))
+        fail("potential personal email in learner file; backup aborted: " + relative);
+    }
     files.push({
       path: relative,
       bytes: bytes.length,
@@ -211,8 +216,12 @@ function unpack(root, archivePath) {
       fail("backup file digest or size mismatch: " + relative);
     totalBytes += data.length;
     if (totalBytes > MAX_TOTAL_BYTES) fail("backup total size limit exceeded");
-    if (TEXT_FILE.test(relative) && SECRET_PATTERN.test(data.toString("utf8")))
-      fail("potential Secret in archived learner file");
+    if (TEXT_FILE.test(relative)) {
+      const content = data.toString("utf8");
+      assertNoSecretText(content, relative);
+      if (PERSONAL_EMAIL_PATTERN.test(content))
+        fail("potential personal email in archived learner file");
+    }
     files.push({ relative, data });
   }
   if (totalBytes !== archive.total_bytes) fail("backup total bytes mismatch");
