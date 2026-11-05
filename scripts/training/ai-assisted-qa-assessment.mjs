@@ -1426,10 +1426,7 @@ export function assertFreeModelCatalogEntry(modelId, catalog) {
 }
 
 export function assertAvailableModelListing(modelId, stdout) {
-  if (
-    typeof stdout !== "string" ||
-    !stdout.split(/\r?\n/).some((line) => line.trim() === modelId)
-  )
+  if (typeof stdout !== "string" || !stdout.split(/\r?\n/).some((line) => line.trim() === modelId))
     fail("BLOCKED: selected model is unavailable or its provider authentication is missing");
   return modelId;
 }
