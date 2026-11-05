@@ -678,6 +678,56 @@ describe("AI-assisted QA distribution contract", () => {
     expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
   });
 
+  it("keeps runtime and module-loaded relative imports inside the declared distribution", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const sourceByTarget = new Map(
+      manifest.local_files.map((file) => [file.target_path, file.source_path]),
+    );
+    const available = new Set([
+      ...manifest.local_files.map((file) => file.target_path),
+      ...manifest.load_files.map((file) => file.target_path),
+    ]);
+    const isCode = /\.(?:mjs|cjs|js|ts|tsx)$/;
+    const executableFiles = [
+      ...manifest.local_files
+        .filter(
+          (file) => isCode.test(file.target_path) && !file.target_path.startsWith("course/"),
+        )
+        .map((file) => ({ sourcePath: file.source_path, targetPath: file.target_path })),
+      ...manifest.load_files
+        .filter((file) => isCode.test(file.target_path))
+        .map((file) => ({
+          sourcePath: sourceByTarget.get(file.source_path),
+          targetPath: file.target_path,
+        })),
+    ];
+    for (const { sourcePath, targetPath } of executableFiles) {
+      expect(sourcePath, `missing import source for ${targetPath}`).toBeTruthy();
+      const content = fs.readFileSync(path.join(repositoryRoot, sourcePath), "utf8");
+      const importPattern = /\b(?:from\s*|import\s*\(|require\s*\()\s*["'`]([^"'`]+)["'`]/g;
+      for (const match of content.matchAll(importPattern)) {
+        const specifier = match[1];
+        if (!specifier.startsWith(".")) continue;
+        const resolved = path.posix.normalize(
+          path.posix.join(path.posix.dirname(targetPath), specifier),
+        );
+        expect(
+          [
+            resolved,
+            `${resolved}.ts`,
+            `${resolved}.tsx`,
+            `${resolved}.js`,
+            `${resolved}.mjs`,
+            `${resolved}.json`,
+            `${resolved}/index.ts`,
+          ].some((candidate) => available.has(candidate)),
+          `${targetPath} imports missing packaged file ${specifier}`,
+        ).toBe(true);
+      }
+    }
+    expect(executableFiles.length).toBeGreaterThan(20);
+  });
+
   it("rejects invalid module load bindings before writing files", async () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m05 = manifest.load_files.find(
