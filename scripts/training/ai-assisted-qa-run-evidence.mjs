@@ -187,7 +187,11 @@ function visitTestCalls(source, callback) {
 
 export function assertM07SourceDependencies(specBytes, moduleId, specName) {
   if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
-  const source = parseSpecSource(specBytes, specName, "M07 maintenance source contains invalid TypeScript syntax");
+  const source = parseSpecSource(
+    specBytes,
+    specName,
+    "M07 maintenance source contains invalid TypeScript syntax",
+  );
   const permitted = new Set([
     "@playwright/test",
     "../../training/playwright/support/reset-scenario",
@@ -274,7 +278,7 @@ function containsRuntimeReference(expression, constants, seen = new Set()) {
 function hasPlaywrightAssertion(callback) {
   const constants = new Map();
   const collect = (node) => {
-    if (ts.isVariableDeclarationList(node) && (node.flags & ts.NodeFlags.Const))
+    if (ts.isVariableDeclarationList(node) && node.flags & ts.NodeFlags.Const)
       for (const declaration of node.declarations)
         if (ts.isIdentifier(declaration.name) && declaration.initializer)
           constants.set(declaration.name.text, declaration.initializer);
@@ -319,7 +323,11 @@ function hasPlaywrightAssertion(callback) {
 export function assertM07MaintenanceAssertions(specBytes, moduleId, specName, label) {
   if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
   if (label !== "before" && label !== "after") return;
-  const source = parseSpecSource(specBytes, specName, "M07 maintenance source contains invalid TypeScript syntax");
+  const source = parseSpecSource(
+    specBytes,
+    specName,
+    "M07 maintenance source contains invalid TypeScript syntax",
+  );
   const titles = new Set();
   let testCount = 0;
   visitTestCalls(source, (title, callback) => {
@@ -337,7 +345,11 @@ export function assertM07MaintenanceAssertions(specBytes, moduleId, specName, la
 export function assertM06CaseAssertions(specBytes, specName, label) {
   const required = M06_CASE_IDS[specName + "|" + label];
   if (!required) return;
-  const source = parseSpecSource(specBytes, specName, "M06 learner spec contains invalid TypeScript syntax");
+  const source = parseSpecSource(
+    specBytes,
+    specName,
+    "M06 learner spec contains invalid TypeScript syntax",
+  );
   const found = new Set();
   visitTestCalls(source, (title, callback) => {
     const ids = required.filter((id) => title.includes(id));
@@ -355,7 +367,11 @@ export function assertM06CaseAssertions(specBytes, specName, label) {
 
 export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specName, tests) {
   if (moduleId !== "M06" && moduleId !== "M07") return;
-  const source = parseSpecSource(snapshotBytes, specName, "Playwright source snapshot contains invalid TypeScript syntax");
+  const source = parseSpecSource(
+    snapshotBytes,
+    specName,
+    "Playwright source snapshot contains invalid TypeScript syntax",
+  );
   const declared = [];
   visitTestCalls(source, (title) => declared.push(title));
   const reported = Array.isArray(tests) ? tests.map((test) => test?.title) : [];
@@ -370,7 +386,11 @@ export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specNa
 }
 
 function m07QuantityAssertionsByTest(specBytes) {
-  const source = parseSpecSource(specBytes, "maintenance.spec.ts", "M07 maintenance snapshot contains invalid TypeScript syntax");
+  const source = parseSpecSource(
+    specBytes,
+    "maintenance.spec.ts",
+    "M07 maintenance snapshot contains invalid TypeScript syntax",
+  );
   const values = new Map();
   visitTestCalls(source, (title, callback) => {
     const titles = new Set();
