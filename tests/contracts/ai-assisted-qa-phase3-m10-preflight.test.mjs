@@ -79,11 +79,7 @@ describe("M10-01 spec and dependency closure", () => {
     const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
     try {
-      for (const dir of [
-        "workspace/M07",
-        "training/playwright/support",
-        "output",
-      ]) {
+      for (const dir of ["workspace/M07", "training/playwright/support", "output"]) {
         fs.mkdirSync(path.join(cwd, dir), { recursive: true });
       }
       const templates = "training/ai-assisted-qa-course/templates";
@@ -100,9 +96,13 @@ describe("M10-01 spec and dependency closure", () => {
       git("init", "-q");
       git("add", "--", ".gitignore", "workspace/.gitignore", helper);
       git(
-        "-c", "user.name=Fixture",
-        "-c", "user.email=fixture@example.invalid",
-        "commit", "-qm", "baseline with reviewed helper",
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "baseline with reviewed helper",
       );
 
       expect(git("check-ignore", "-v", "--", spec)).toContain("workspace/M07");
