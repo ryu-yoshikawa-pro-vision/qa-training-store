@@ -520,7 +520,7 @@ function expandBuildOutput(root, manifest) {
   const config = manifest.generated?.shop_build;
   if (!config) fail("manifest has no generated Scenario Shop build contract");
   const targetPrefix = config.target.replace(/\/?\*\*\/?$/, "").replace(/\/$/, "");
-  const sourceRoot = assertNoSymlinkPath(root, "dist", false);
+  const sourceRoot = assertNoSymlinkPath(root, "dist", true);
   const files = [];
   const walk = (directory, relativeDirectory = "") => {
     const entries = fs.readdirSync(directory, { withFileTypes: true });
