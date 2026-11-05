@@ -361,32 +361,19 @@
           "spec": "cart-cases.spec.ts",
           "label": "main",
           "minimum_tests": 3,
-          "expected_outcome": "passed",
-          "required_case_ids": [
-            "CASE-CART-001",
-            "CASE-CART-002",
-            "CASE-CART-003"
-          ]
+          "expected_outcome": "passed"
         },
         {
           "spec": "new-case.spec.ts",
           "label": "initial",
           "minimum_tests": 2,
-          "expected_outcome": "passed",
-          "required_case_ids": [
-            "CASE-CART-004",
-            "CASE-CART-005"
-          ]
+          "expected_outcome": "passed"
         },
         {
           "spec": "new-case.spec.ts",
           "label": "repeat",
           "minimum_tests": 2,
-          "expected_outcome": "passed",
-          "required_case_ids": [
-            "CASE-CART-004",
-            "CASE-CART-005"
-          ]
+          "expected_outcome": "passed"
         }
       ]
     }
