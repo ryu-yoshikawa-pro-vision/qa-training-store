@@ -46,7 +46,7 @@ describe("formal assessment pinned HTTP assets", () => {
   });
   const rubricText = "# Phase 1 rubric\n";
 
-  it("accepts only byte-identical scoring and rubric responses at the fixed source SHA", async () => {
+  it("accepts scoring and rubric only at their fixed source SHA", async () => {
     for (const [sourcePath, content] of [
       [SCORING_PATH, scoringText],
       [RUBRIC_PATH, rubricText],
@@ -61,16 +61,15 @@ describe("formal assessment pinned HTTP assets", () => {
     }
   });
 
-  it("rejects redirects, HTML, mismatched URLs, content hashes, and oversized responses", async () => {
+  it("rejects unsafe HTTP assets and mismatched content", async () => {
     const asset = assetFor(SCORING_PATH, scoringText);
     const changed = [
       { status: 302 },
       { redirected: true },
       { url: "https://example.org/assessment.json" },
       { headers: { get: () => "text/html" } },
-      { headers: { get: () => "application/json", contentLength: 2_000_000 } },
     ];
-    for (const change of changed.slice(0, 4)) {
+    for (const change of changed) {
       await expect(
         fetchPinnedAssessmentAsset({
           asset,
@@ -91,13 +90,15 @@ describe("formal assessment pinned HTTP assets", () => {
         asset,
         sourceSha: SOURCE_SHA,
         fetchImpl: serve(asset, scoringText, {
-          headers: { get: (name) => (name === "content-length" ? "2000000" : "application/json") },
+          headers: {
+            get: (name) => (name === "content-length" ? "2000000" : "application/json"),
+          },
         }),
       }),
     ).rejects.toThrow(/exceeds/);
   });
 
-  it("rejects forged source SHA, unknown paths, and schema, module, or revision mismatch", async () => {
+  it("rejects unknown sources and incompatible scoring schema", async () => {
     const asset = assetFor(SCORING_PATH, scoringText);
     for (const invalid of [
       { ...asset, source_sha: "b".repeat(40) },
