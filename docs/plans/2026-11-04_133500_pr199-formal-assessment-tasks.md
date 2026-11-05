@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは1/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは2/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -18,7 +18,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 ## 入力・根拠・決定論的検査
 
-- [ ] `course:assess` がM04/M07/M10を区別して正しい必須目標ID集合（22/15/14）、重複・欠落・不明IDを検査
+- [x] `course:assess` がM04/M07/M10を区別して正しい必須目標ID集合（22/15/14）、重複・欠落・不明IDを検査（固定HEADの契約テストと本節の直接照合で検証）
 - [ ] 固定`source_sha`で公開のscoring/rubric/referenceの必要な資料だけを読取り取得し、source/path/Hash/Schema/revisionの不整合・redirect・HTML等を拒否
 - [ ] 仕様・Skill・state/revision、本人の提出ファイル・Run/Trace・証拠Snapshotのpath/SHA-256を検証し、別HEAD/旧Run/架空ログをPASSにできないこと
 - [ ] M04の別条件・本人判断、M07のE2E before/after・Trace、M10のPR head/Run/Check/Artifact/target SHAを、それぞれ必要な実行証拠として独立に確認
@@ -52,6 +52,11 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 継続作業の検証
+
+- **必須目標ID 22/15/14：チェック済み。** `validatePhaseObjectiveIds`はPhaseと終端stateのID・件数・重複、各scoringのmodule接頭辞・ID集合・欠落・余分を検査。`tests/contracts/ai-assisted-qa-assessment.test.mjs`の正例・欠落・重複・不明ID・終端state不一致を含む既存HEAD `6da6af7e41568bd66aa3634f04e4f51ac0522f82`に対する GitHub Actions [Run 41942464990](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41942464990)の`Vitest (contracts)`は成功。`assessment/scoring-tests/M00..M10.json`とM04/M07/M10終端stateの直接照合でも、P1=22/22、P2=15/15、P3=14/14で順序を含め一致。Run全体は`Style Quality / Format check`失敗のため成功扱いにしない。整形を修正済みだが修正後CIは未確認。
+- **コード整形の修正：** 前述Runの`Style Quality`ログでは`scripts/training/ai-assisted-qa-assessment.mjs`と`tests/contracts/ai-assisted-qa-assessment.test.mjs`の2ファイルがPrettier警告。該当ブロックを整形し後続Runを確認する。修正後のformatterが成功したとは記載しない。
 
 ## 2026-11-05 の検証・変更記録
 
