@@ -1,4 +1,6 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -67,6 +69,52 @@ describe("M10-01 spec and dependency closure", () => {
       "scripts/training/ai-assisted-qa-course-core.mjs",
     ]) {
       expect(distributed(needed, needed), needed + " was not distributed").toBe(true);
+    }
+  });
+
+  it("stages only the repaired M07 spec, not ignored learner secrets or traces", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "m10-stage-"));
+    const spec = "workspace/M07/repaired-assertion.spec.ts";
+    const helper = "training/playwright/support/reset-scenario.ts";
+    const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+
+    try {
+      for (const dir of [
+        "workspace/M07",
+        "training/playwright/support",
+        "output",
+      ]) {
+        fs.mkdirSync(path.join(cwd, dir), { recursive: true });
+      }
+      const templates = "training/ai-assisted-qa-course/templates";
+      for (const [source, target] of [
+        ["learner-repo.gitignore", ".gitignore"],
+        ["workspace.gitignore", "workspace/.gitignore"],
+      ]) {
+        fs.copyFileSync(path.join(root, templates, source), path.join(cwd, target));
+      }
+      fs.writeFileSync(path.join(cwd, helper), "export const safe = true;\n");
+      fs.writeFileSync(path.join(cwd, spec), "export const repaired = true;\n");
+      fs.writeFileSync(path.join(cwd, ".env"), "DUMMY=not-a-secret\n");
+      fs.writeFileSync(path.join(cwd, "output/trace.zip"), "synthetic trace");
+      git("init", "-q");
+      git("add", "--", ".gitignore", "workspace/.gitignore", helper);
+      git(
+        "-c", "user.name=Fixture",
+        "-c", "user.email=fixture@example.invalid",
+        "commit", "-qm", "baseline with reviewed helper",
+      );
+
+      expect(git("check-ignore", "-v", "--", spec)).toContain("workspace/M07");
+      expect(git("check-ignore", "-v", "--", ".env")).toContain(".env");
+      expect(git("check-ignore", "-v", "--", "output/trace.zip")).toContain("output/");
+      git("add", "-f", "--", spec);
+      expect(git("diff", "--cached", "--name-only")).toBe(spec);
+      expect(git("diff", "--cached", "--check")).toBe("");
+      expect(git("status", "--short", "--untracked-files=all")).not.toContain(".env");
+      expect(git("status", "--short", "--untracked-files=all")).not.toContain("trace.zip");
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
     }
   });
 
