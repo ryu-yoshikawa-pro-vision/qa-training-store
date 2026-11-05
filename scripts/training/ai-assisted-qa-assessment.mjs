@@ -627,7 +627,7 @@ function buildCalibrationPrompt(inputs) {
   };
 }
 
-function validateCalibrationOutput(output, expected) {
+export function validateCalibrationOutput(output, expected) {
   if (!(expected instanceof Map) || expected.size === 0) fail("calibration has no expected cases");
   if (!output || typeof output !== "object" || !Array.isArray(output.case_results))
     fail("calibration response has no case_results array");
