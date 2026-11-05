@@ -8,7 +8,7 @@
 
 GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/CI操作例・無効workflow見本と安全な配布/証拠検証コード、契約・負例テストおよび既存CIを担当する。**本人Private repoでの課金/権限判断・実PR・実CIとOpenCode実モデルの学習/修了は#199の最後に受け入れる**。ここでの成功は技術準備/自動テストの成功であり、受講者の修了ではない。
 
-現在6/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。GitHub Actionsの変更後CIは完了確認前のため、CI合格を根拠とする他項目は未チェック。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
+現在10/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。Web CI Run `41947629131`（HEAD `5d254ce9f2a4`）でStyle Quality・Code Quality・Vitest (contracts)・Training runtime contractsの成功を確認。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
 
 ## 変更範囲
 
@@ -39,6 +39,15 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 - **M09-05（安全性の契約PASS・チェック済み）**：完成見本の`pull_request`、`contents: read`、`persist-credentials: false`、Secret/deploy不要を確認。既存のworkflow負例テストで`pull_request_target`、`contents: write`、credential永続化、改変Artifact、配布ガード無効化を拒否。Web CI `41942109034`の`Vitest (contracts)`=success。外部PRからの未信頼コード実行とAction/依存取得は残リスクとして教材に明記し、本人Private repoでフォーク許可設定と権限・配布元を確認するまでworkflowを有効化しない。
 - **CI**：直近途中HEAD `a9f89a7ad12d`の`Vitest (contracts)`は当時実行中、`Style Quality`が追加テスト2ファイルを指摘、`Code Quality`は新規テストの`Buffer`未importで失敗。その後`Buffer`明示import、重複したvalidator負例の削除、Prettierの行分割を修正した。**最新HEADのCI成功は未確認**。Runを待って作業停止しないが、FAILが残れば再開時に修正する。
 
+## 2026-11-05 完了済みCIを用いた判定
+
+- **検証基点**：HEAD `5d254ce9f2a4d8b5ec4826427b461266a8f530ba`、Web CI Run `41947629131` はsuccess。`Style Quality`、`Code Quality`、`Vitest (contracts)`、`Training runtime contracts`もsuccess。過去の失敗した途中HEADの結果はこのHEADの判定へ流用しない。
+- **M09-01（エージェント技術準備完了）**：YAML 11ステップ、event/job/runner、配布元の`prepare-learner-template.mjs`→`course:sync`→tracked `course/shop/**`と`.course/distribution-manifest.json`→Private repoのcheckout→`verify-distribution`→prebuilt Serve/Testを教材、配布manifest、専用テストで照合。隔離Git cloneと改変時SHA-256不一致のテストは上記CIでPASS。本人Private repoの信頼済みbase SHA・配布元SHA・追跡・権限は未確認で、実Runnerでの有効化は#199最終受入までBLOCKED。
+- **M09-03（エージェント技術準備完了）**：合成A〜FのBuild/Install/配布検証/Serve/Test/Artifact失敗、別条件X/Y/Z、`if: always()`と`if-no-files-found: error`、SHA不一致と下流の未実行を教材・提出欄・専用テストで照合。静的/合成事例の確認であり、実CI事故ではない。
+- **M09-04（エージェント技術準備完了）**：7日間の自動Run架空A=21回・B=2回、手動0回時の未検証、対象spec/Runner/Artifact保存量・Billingの確認先・不明時BLOCKEDを教材/提出様式/クイズ/専用契約テストで照合。本人Private repoの実請求設定確認と有効化は#199最終受入に残す。
+- **M10-03（エージェント技術準備完了）**：`scripts/training/ai-assisted-qa-github-run-evidence.mjs`と既存`ai-assisted-qa-github-run-evidence.test.mjs`が、PR API/merge SHA、Run/attempt、job Check、Artifact digest、target SHA、Playwright結果を同一Runで照合し、旧HEAD・別attempt・欠落/改変Artifact・対象外spec・失敗reportを拒否することを上記CIで確認。本人Private repoの実PR/Runは#199最終受入まで未実行。
+- このチェックは担当ブランチの実装・教材・自動テスト契約の検証であり、本人の学習修了やPrivate repoの課金・認証・実CI受入ではない。M10 fallback workflow旧契約（共有`inputs/M10/public-sample-workflow.yml.disabled`）は別担当との調停待ちであり、関連項目は未チェックのまま。
+
 ## M08：Git・PR・変更レビュー（4目標）
 
 - [x] `M08-01`：作業用の隔離Git fixture/既存CIでworking tree→stage→commitの教材・証拠様式を検証。受講者本人のGit操作は#199最終実受入へ渡す
@@ -48,17 +57,17 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 
 ## M09：CI・品質ゲート（5目標）
 
-- [ ] `M09-01`：YAML event/job/step/runner、配布済みShopの生成者・取得・Serve・Test、install/build/server/testの責務を教材と完成見本で対応
+- [x] `M09-01`：YAML event/job/step/runner、配布済みShopの生成者・取得・Serve・Test、install/build/server/testの責務を教材と完成見本で対応
 - [x] `M09-02`：PR head/merge SHA、Run/attempt/Check/Artifact、`target-sha.txt`の照合を固定SHAの正例・旧Run負例で確認
-- [ ] `M09-03`：install/配布/Serve/test/artifactの最初の失敗箇所と、`if-no-files-found`、`if: always()`、SHA不一致の扱いを別条件で確認
-- [ ] `M09-04`：本人Private repoの無料Actions条件・trigger・回数/保存・費用/停止条件を複数の架空ケースで判断。費用不明時はBLOCKED
+- [x] `M09-03`：install/配布/Serve/test/artifactの最初の失敗箇所と、`if-no-files-found`、`if: always()`、SHA不一致の扱いを別条件で確認
+- [x] `M09-04`：本人Private repoの無料Actions条件・trigger・回数/保存・費用/停止条件を複数の架空ケースで判断。費用不明時はBLOCKED
 - [x] `M09-05`：外部PRと`pull_request_target`の危険、checkout・依存取得・Browser・Artifact・Secret・権限の最小化を判断し、安全なworkflow例へ対応
 
 ## M10：同一specのCI実行・Phase 3総合演習（5目標）
 
 - [ ] `M10-01`：M07参考spec/Config/ResetとM10のfallbackの依存閉包・安全なstageリストを契約テストで照合。本人specの選択・stage操作は#199で受け入れる
 - [ ] `M10-02`：無効workflowを本人が安全に有効化する条件（無料枠、権限、対象spec、cleanup）を教材へ明示。**#199では完成見本を無効のまま**にする
-- [ ] `M10-03`：実GitHub APIを想定したPR HEAD・Run attempt・Check/Artifact・target SHA照合のコード/fixture/旧Run負例を整備し、既存公開CIで検査。本人Private repoの実PR/実Run照合は#199へ渡す
+- [x] `M10-03`：実GitHub APIを想定したPR HEAD・Run attempt・Check/Artifact・target SHA照合のコード/fixture/旧Run負例を整備し、既存公開CIで検査。本人Private repoの実PR/実Run照合は#199へ渡す
 - [ ] `M10-04`：CI固有の失敗、製品/テスト失敗をログ/環境/対象SHAで分類して再実行判断を示す
 - [ ] `M10-05`：AI提案の採否、CIが保証する範囲と未確認/残リスクの報告を具体的な証拠で確認
 
