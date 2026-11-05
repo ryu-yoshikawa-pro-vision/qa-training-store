@@ -18,7 +18,9 @@ import { isPublicCourseAsset } from "../../scripts/docs/build-ai-assisted-qa.ts"
 import { validateTemplateTarget } from "../../scripts/training/prepare-learner-template.mjs";
 
 const repositoryRoot = process.cwd();
-const fixtureRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-qa-course-contract-"));
+const fixtureRoot = fs.mkdtempSync(
+  path.join(fs.realpathSync(tmpdir()), "ai-qa-course-contract-"),
+);
 
 function writeFixtureFile(root, relativePath, content) {
   const destination = path.join(root, ...relativePath.split("/"));
