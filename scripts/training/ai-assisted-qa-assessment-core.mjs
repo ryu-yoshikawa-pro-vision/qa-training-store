@@ -357,7 +357,9 @@ export function parseOpenCodeJsonEvents(stdout, exitCode = 0) {
     if (!event || typeof event !== "object" || typeof event.type !== "string")
       fail(`OpenCode emitted an invalid event on line ${index + 1}`);
     if (terminalStop) fail("OpenCode emitted events after the terminal step_finish");
-    if (event.type === "error" || event.type === "tool_use" || event.type === "tool")
+    if (event.type === "error")
+      fail("BLOCKED: OpenCode emitted a provider or CLI error event; evaluation stops");
+    if (event.type === "tool_use" || event.type === "tool")
       fail(`OpenCode emitted a tool/error event (${event.type}); evaluation stops`);
     if (
       event.part?.type === "tool" ||
