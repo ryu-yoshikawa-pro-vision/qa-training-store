@@ -635,8 +635,10 @@ function validateWebCourseRevisions(files) {
   const targets = new Map(files.map((file) => [file.target_path, file]));
   const webRoot = "course/shop/docs/curriculum/ai-assisted-qa/";
   // Incomplete generated HTML must not bypass revision checks by omitting module indexes.
-  if (!files.some((file) => file.target_path.startsWith(webRoot) && file.target_path.endsWith(".html")))
-    return;
+  const hasWebHtml = files.some(
+    (file) => file.target_path.startsWith(webRoot) && file.target_path.endsWith(".html"),
+  );
+  if (!hasWebHtml) return;
   const start = targets.get("course/start-here.md");
   const startHtml = targets.get(`${webRoot}index.html`)?.bytes.toString("utf8") ?? "";
   const startExpected = start?.source_sha256;
