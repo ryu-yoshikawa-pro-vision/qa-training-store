@@ -4,9 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import {
-  validateCourseWorkflow,
-} from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
+import { validateCourseWorkflow } from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const manifest = JSON.parse(
