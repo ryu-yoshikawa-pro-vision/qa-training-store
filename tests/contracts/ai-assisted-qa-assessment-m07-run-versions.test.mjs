@@ -290,8 +290,8 @@ it("rejects M07 after runs that remove an original test assertion while retainin
 
 it("rejects M07 after runs with no new quantity 2 regression assertion", () => {
   const changed = afterCode.replace(
-    '  await expect(page.getByLabel("数量")).toHaveValue("2");\n});',
-    '  await expect(page.getByLabel("数量")).toBeVisible();\n});',
+    '  await page.goto("/cart");\n  await expect(page.getByLabel("数量")).toHaveValue("2");',
+    '  await page.goto("/cart");\n  await expect(page.getByLabel("数量")).toBeVisible();',
   );
   const proof = setupM07Runs({ after: changed }).verify();
   expect(proof.status).toBe("ungradable");
