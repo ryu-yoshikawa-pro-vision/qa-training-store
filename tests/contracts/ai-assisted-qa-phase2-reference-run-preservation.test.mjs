@@ -76,7 +76,7 @@ function fixture() {
 }
 
 /** set -e有効のBashで参考コマンドを実行し、毎回の成果物ディレクトリを検査する。 */
-function runReferenceScript(script, failMatch = "") {
+function runReferenceScript(script, failMatch = "", expectedStatus = 0) {
   const { root, bin } = fixture();
   const result = spawnSync("bash", ["-e", "-c", script], {
     cwd: root,
@@ -89,7 +89,7 @@ function runReferenceScript(script, failMatch = "") {
     timeout: 15_000,
   });
   expect(result.error).toBeUndefined();
-  expect(result.status, result.stderr + result.stdout).toBe(0);
+  expect(result.status, result.stderr + result.stdout).toBe(expectedStatus);
   const output = path.join(root, outputParent);
   const entries = fs.readdirSync(output, { withFileTypes: true });
   expect(entries.every((entry) => entry.isDirectory())).toBe(true);
@@ -146,8 +146,8 @@ describe("M06/M07公開参考Runの成果物保全（隔離stub。実Chromiumで
     }
   });
 
-  linuxIt("M06初回のPlaywright失敗を記録し、set -eでも再実行を続ける", () => {
-    const runs = runReferenceScript(m06Script, "remove-item.spec.ts");
+  linuxIt("M06の失敗記録と再実行を維持し、手順全体は非0終了にする", () => {
+    const runs = runReferenceScript(m06Script, "remove-item.spec.ts", 1);
     expect(runs).toHaveLength(3);
     expect(runWithPrefix(runs, "m06-reference-fixed-").exitCode).toBe("0");
     expect(runWithPrefix(runs, "m06-reference-initial-").exitCode).toBe("9");
@@ -174,8 +174,8 @@ describe("M06/M07公開参考Runの成果物保全（隔離stub。実Chromiumで
     }
   });
 
-  linuxIt("M07 afterのPlaywright失敗も終了コードとreportを保全する", () => {
-    const runs = runReferenceScript(m07Script, "maintenance-after");
+  linuxIt("M07 afterが失敗した場合、証拠を保全して全体を非0終了にする", () => {
+    const runs = runReferenceScript(m07Script, "maintenance-after", 1);
     expect(runs).toHaveLength(2);
     expect(runWithPrefix(runs, "m07-reference-before-").exitCode).toBe("0");
     expect(runWithPrefix(runs, "m07-reference-after-").exitCode).toBe("9");
