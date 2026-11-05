@@ -707,6 +707,32 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("refuses a missing referenced Shop image before changing learner workspace", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      "# M00\\n![Image](../../assets/figures/M00/course-figure.svg)\\n",
+    );
+    const assetPath = "docs/curriculum/ai-assisted-qa/assets/figures/M00/course-figure.svg";
+    writeFixtureFile(fixture.source, `dist/${assetPath}`, "<svg/>");
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "f".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    fs.rmSync(path.join(fixture.target, `course/shop/${assetPath}`));
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /distributed (?:file|source) is missing/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("rejects forged learner links even when distribution hashes are rewritten", async () => {
     const fixture = courseFixture();
     await syncCourse({
