@@ -9,12 +9,13 @@ import {
 } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
 const requiredCases = ["CASE-CART-001", "CASE-CART-002", "CASE-CART-003"];
-const validTest = (id) => [
-  'import { expect, test } from "@playwright/test";',
-  `test("${id}: enforce cart behavior", async ({ page }) => {`,
-  '  await expect(page.getByLabel("数量")).toHaveValue("1");',
-  "});",
-].join("\n");
+const validTest = (id) =>
+  [
+    'import { expect, test } from "@playwright/test";',
+    `test("${id}: enforce cart behavior", async ({ page }) => {`,
+    '  await expect(page.getByLabel("数量")).toHaveValue("1");',
+    "});",
+  ].join("\n");
 const valid = requiredCases.map(validTest).join("\n");
 
 it("requires an actual Playwright assertion for each pinned M06 CASE-CART test", () => {
@@ -22,9 +23,9 @@ it("requires an actual Playwright assertion for each pinned M06 CASE-CART test",
     assertM06CaseAssertions(Buffer.from(valid), "cart-cases.spec.ts", "main"),
   ).not.toThrow();
   const missing = requiredCases.slice(0, 2).map(validTest).join("\n");
-  expect(() =>
-    assertM06CaseAssertions(Buffer.from(missing), "cart-cases.spec.ts", "main"),
-  ).toThrow(/missing one or more required/);
+  expect(() => assertM06CaseAssertions(Buffer.from(missing), "cart-cases.spec.ts", "main")).toThrow(
+    /missing one or more required/,
+  );
   const noAssertion = valid.replace(
     'await expect(page.getByLabel("数量")).toHaveValue("1");',
     'console.log("TODO removed");',
