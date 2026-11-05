@@ -443,7 +443,7 @@ function courseFixture() {
     assessment_asset_allowlist: assessmentAssetAllowlist,
     generated: {
       shop_build: {
-        command: "fixture",
+        command: "pnpm run build:web",
         source: "dist/**",
         target: "course/shop/**",
         required: true,
@@ -482,6 +482,57 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
+  it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    for (const [field, value] of [
+      ["command", "pnpm run build"],
+      ["source", "dist/public/**"],
+      ["target", "course/modules/**"],
+      ["required", false],
+    ]) {
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          generated: { shop_build: { ...manifest.generated.shop_build, [field]: value } },
+        }),
+      ).toThrow(/pin the required Shop build/);
+    }
+    for (const value of ["${SOURCE_SHA_FAKE}", "a".repeat(40)]) {
+      expect(() => validateCourseManifest({ ...manifest, source_sha: value })).toThrow(
+        /exact runtime-bound placeholder/,
+      );
+    }
+  });
+
+  it("rejects local files colliding with generated Shop outputs before any sync writes", async () => {
+    const fixture = courseFixture();
+    const modified = {
+      ...fixture.manifest,
+      local_files: [
+        ...fixture.manifest.local_files,
+        {
+          source_path: "docs/spec/features/cart.md",
+          target_path: "course/shop/index.html",
+          module_id: null,
+          role: "reference",
+        },
+      ],
+    };
+    writeFixtureFile(fixture.source, "training/course-sync/manifest.json", JSON.stringify(modified));
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "a".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/duplicate distribution target across local, Skill, and Shop files/);
+    expect(snapshotDirectory(fixture.target)).toEqual([]);
+  });
+
   it("keeps the Plan-pinned external Skill allowlist complete and excludes evals", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const result = validateCourseManifest(manifest);
