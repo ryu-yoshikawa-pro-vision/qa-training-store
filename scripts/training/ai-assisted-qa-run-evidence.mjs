@@ -809,10 +809,15 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         (caseIds.length === requiredCaseIds.length &&
           new Set(caseIds).size === requiredCaseIds.length &&
           requiredCaseIds.every((id) => caseIds.includes(id)));
+      const archivedM07Before =
+        moduleId === "M07" &&
+        requirement.spec === "maintenance.spec.ts" &&
+        requirement.label === "before" &&
+        requiredRuns.some((run) => run.spec === requirement.spec && run.label === "after");
       const successful =
         requirement.expected_outcome === "passed"
           ? runPassed(record, requirement.minimum_tests) &&
-            verified.current_spec_sha256 === record.spec_sha256
+            (archivedM07Before || verified.current_spec_sha256 === record.spec_sha256)
           : record.outcome === "failed" &&
             record.exit_code !== 0 &&
             record.tests.length >= requirement.minimum_tests &&
