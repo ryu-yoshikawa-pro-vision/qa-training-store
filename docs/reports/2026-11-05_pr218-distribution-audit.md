@@ -43,3 +43,22 @@
 ### 完了チェックの扱い
 
 専用21件のうち本追補で新たにチェックを増やしていない。機能・負例テストの追加を、CI/実同期の成功へ換算しない。固定SHAの確定したログと全対象での検査後に該当項目を再判定する。
+
+## 2026-11-05 Web Build成果物の現物監査
+
+- 対象：[Web CI #41967650261](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)の`build-production`成功、Artifact `web-dist-production`（ID `13388865001`、実行HEAD `594a72b724ebbd27f8c61d3af9c64507f1e9b9e9`）。ダウンロードZIPのSHA-256：`a5e6c1d95e8b670efe4dedd5722e2f9349410566aeb89953f79cd62a51a5aebd`。
+- ZIP内312ファイル、展開後25,667,824 bytes。内訳：`docs/` 280、`_expo/` 18、`images/` 11、root 3。Webフォント12ファイル、生成JS2ファイル。ZIPに`dist/`のprefixはなく、`course/shop/`配下へ配置される想定で調査した。
+- ZIPパスに`.env`、`.git`、`.github`、`node_modules`、`scoring-tests`、`reference-solutions`、`completed-states`、`evals`を含むものは0件。HTML/JS/CSS/JSON/Markdown等のテキストファイルに既知のGitHub/OpenAI/AWS/Google/Slack token、秘密鍵、主要個人メールドメインの明示パターン一致は0件。**未知形式の機密・個人情報やJS内部の第三者著作権表示までの完全性を保証しない**。
+- HTMLの`src`/`href`とCSSの`url(...)`に出るローカル参照は、クエリ/アンカー・root相対/ディレクトリ`index.html`を正規化して静的照合し、参照先不在0件。JS runtimeの動的参照、実ブラウザの404、`course:sync`後のasset解決は別の確認が必要。
+- **除外条件の未達候補**：生成物には従来の`docs/curriculum/00_learning-design.html`、`01_spreadsheet-test-design.html`、`02_competency-rubric.html`、`03_instructor-reference.html`、`04_learning-effort-reference.html`の5ページが存在する。特に`03_instructor-reference.html`は講師向け資料で、文章中に「模範解答」という語がある。旧教材の公開対象範囲を#199で明確化し、不要ならWeb生成処理側で除外すること。**現行`generated.shop_build.source=dist/**`ならこれらもTemplateの`course/shop/**`へコピーされる**ため、除外項目はチェック不可。Web生成ソースは#199担当範囲で、本PRでは無断変更しない。
+
+## 固定Skillと第三者素材の権利資料（途中経過）
+
+| 対象 | 一次資料・固定版の事実 | 利用許諾・残条件 |
+| --- | --- | --- |
+| Learner Template独自ファイル | `training/ai-assisted-qa-course/templates/learner-LICENSE`、Copyright (c) 2026 ryu-yoshikawa-pro-vision、MIT全文 | その権利者が許諾できる部分のみに適用。第三者コードやSkill原著作者を包含したと推定しない |
+| 固定`qa-workflow-skills`13 Skill／105ファイル | [固定commit `7cc6cba7772de549841a39d71694cbafbc783324`](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/tree/7cc6cba7772de549841a39d71694cbafbc783324)の完全Git treeには`LICENSE`/`NOTICE`のパスが0件 | **固定repoで全体に適用する明示LICENSEを確認できない**。同じGitHub ownerというだけでは権利許諾を証明できない。再配布前に#199で著作権者・同梱素材の権利・明示的な許諾を確認する |
+| Inter／Noto Sans JP | `learner-THIRD_PARTY_NOTICES.md`、`learner-OFL-1.1.txt`。今回Web Artifactに`woff/woff2`12ファイルあり | NOTICEはOFL-1.1、パッケージ`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`、著作権・Reserved Font Nameを表示。実fontメタデータと上流原典を全て独立照合するまでは最終判断しない |
+| Webのbundled JSとその他の画像・依存物 | `learner-THIRD_PARTY_NOTICES.md`は旧CI `41297580957`のReact・bezier-easing表示等を記載。今回のBuild Artifactは別HEAD・別JS bundle | 旧Build結果を新規Buildの権利証拠へ流用しない。**全第三者依存物／生成JS表示の網羅監査は未完了** |
+
+この節は許諾の最終判断ではない。#199で公開対象・再配布可否を確認するまで、配布除外とライセンス監査のチェックを付けない。
