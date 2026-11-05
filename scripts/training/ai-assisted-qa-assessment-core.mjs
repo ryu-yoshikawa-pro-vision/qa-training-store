@@ -162,7 +162,7 @@ export function buildAssessmentAgentConfig({ modelId, agentId, systemPrompt }) {
   return {
     $schema: "https://opencode.ai/config.json",
     model: modelId,
-    autoupdate: false,
+    update: "disable",
     agents: {
       [agentId]: {
         mode: "primary",
