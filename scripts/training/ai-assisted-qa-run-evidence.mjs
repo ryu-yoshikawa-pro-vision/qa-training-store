@@ -8,7 +8,7 @@ import { assertNoSecretText, sha256 } from "./ai-assisted-qa-assessment-core.mjs
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODULE_SPECS = Object.freeze({
-  M05: new Set(["product-link.spec.ts"]),
+  M05: new Set(["product-link.spec.ts", "p05-cart-locator.spec.ts"]),
   M06: new Set(["cart-cases.spec.ts", "new-case.spec.ts"]),
   M07: new Set(["failure-assertion.spec.ts", "repaired-assertion.spec.ts", "maintenance.spec.ts"]),
 });
@@ -650,7 +650,22 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
       evidence: [],
     };
   const contract = scoring?.evaluation_policy?.execution_evidence;
-  const requiredRuns = contract?.required_runs;
+  const publishedRuns = contract?.required_runs;
+  const requiredRuns = Array.isArray(publishedRuns)
+    ? [
+        ...publishedRuns,
+        ...(moduleId === "M05"
+          ? [
+              {
+                spec: "p05-cart-locator.spec.ts",
+                label: "main",
+                minimum_tests: 1,
+                expected_outcome: "passed",
+              },
+            ]
+          : []),
+      ]
+    : null;
   if (
     contract?.schema_version !== 1 ||
     contract?.kind !== "playwright-run-record" ||
