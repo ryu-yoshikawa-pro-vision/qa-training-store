@@ -298,6 +298,7 @@ function completeRequirement(item, root, behaviorById, directlyLinkedRequirement
     const evidence = audit.implementation_refs.find((ref) => ref.behavior_id === id);
     if (
       !behavior ||
+      !completeAnalysis(behavior) ||
       !evidence ||
       evidence.path !== behavior.implementation_evidence?.path ||
       evidence.line !== behavior.implementation_evidence?.line
