@@ -570,7 +570,20 @@ const PUBLIC_CONTENT_PATTERNS = [
 const PUBLIC_TEXT_FILE =
   /(?:\.(?:css|csv|gitignore|html|js|json|jsx|log|md|mjs|py|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
 
+const LEGACY_CURRICULUM_PAGES = new Set([
+  "00_learning-design",
+  "01_spreadsheet-test-design",
+  "02_competency-rubric",
+  "03_instructor-reference",
+  "04_learning-effort-reference",
+]);
+
 function verifyPublicFileContent(targetPath, bytes) {
+  if (targetPath.startsWith("course/shop/docs/curriculum/")) {
+    const name = path.posix.basename(targetPath).replace(/\\.(?:html|md)$/i, "");
+    if (LEGACY_CURRICULUM_PAGES.has(name))
+      fail(`legacy curriculum page must not be distributed: ${targetPath}`);
+  }
   if (!PUBLIC_TEXT_FILE.test(targetPath)) return;
   const content = bytes.toString("utf8");
   for (const [description, pattern] of PUBLIC_CONTENT_PATTERNS) {
