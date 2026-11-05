@@ -777,6 +777,56 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(sibling)).toBe(false);
   });
 
+  it("rejects dangling symlink files and ancestors before learner sync writes", async () => {
+    for (const kind of ["leaf", "ancestor"]) {
+      const fixture = courseFixture();
+      const shopDirectory = path.join(fixture.target, "course/shop");
+      fs.mkdirSync(path.dirname(shopDirectory), { recursive: true });
+      const linkedPath =
+        kind === "leaf" ? path.join(shopDirectory, "index.html") : shopDirectory;
+      if (kind === "leaf") fs.mkdirSync(shopDirectory);
+      fs.symlinkSync("not-created", linkedPath, kind === "leaf" ? "file" : "dir");
+      const before = snapshotDirectory(fixture.target);
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "d".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/symlink path is prohibited|existing destination content differs/);
+      expect(fs.lstatSync(linkedPath).isSymbolicLink()).toBe(true);
+      expect(snapshotDirectory(fixture.target)).toEqual(before);
+    }
+  });
+
+  it("rejects dangling learner-file symlinks before loading any module file", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "d".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = path.join(fixture.target, "workspace/M05/submission.md");
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.symlinkSync("missing-submission.md", targetPath, "file");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
+      /existing learner files differ; nothing was overwritten/,
+    );
+    expect(fs.lstatSync(targetPath).isSymbolicLink()).toBe(true);
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M05/product-link.spec.ts"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("rejects unknown, multiple, and traversal module IDs in the public load CLI", () => {
     const root = fs.mkdtempSync(path.join(fixtureRoot, "load-cli-"));
     const cli = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs");
