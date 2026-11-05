@@ -229,6 +229,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **#199実施手順と未受入：** 上記「#199最終実受入へ渡す手順・期待値」の4項目にPrivate CodespacesのCLI版/権限拒否、モデル提供者の料金・認証、本人`course:run`とTrace、本人M04/M07/M10の採点・106 Caseの重大誤PASS 0件、Private GitHub APIの照合を列記。本人のToken・Private repo・実モデルへの接続権限がなく未実施。CIのMockを実受入へ転用しない。
 - **後続差分：** 本項目のチェックは上記固定HEADの実際のCIを根拠とする。この記録コミット以降のHEADの品質ゲートは別途検証し、CI完了を待たずに実行可能な項目へ進む。タスクリスト**19/22件**。
 
+## 2026-11-05 M07 before/after Assertion照合の続行
+
+- **検証済みの基点:** HEAD `425b5cf753d6c54150f8286307d51c74c86473b5` の [Web CI Run 42004329823](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42004329823) は全体成功。`Vitest (contracts)`87ファイル・1159件PASS（expected fail 1、skip 15）。M07のNode `ungradable`をAIのLevel 3/完了申告で覆せない直接契約を含み、Style Quality・Code Quality・Training runtime・ビルド・Chromium E2E・verify/validateが成功。これは追加のAssertion保持検査**前**のHEAD。
+- **M07の新たなNode照合:** `ai-assisted-qa-run-evidence.mjs`でbefore/afterの保存`maintenance.spec.ts`を比較。変更前の別testにある`expect(...).toHaveValue("1")`と`toHaveValue("2")`が変更後の同名testにも残り、変更後に追加したtestが`toHaveValue("2")`を持つことをTypeScript ASTから検査。保存snapshotを用い、同じRunのreport/receiptハッシュ検証・before/after別Run ID/実行順序・現行after SHA照合を維持する。元の数量Assertionが削除・別値に改変されれば`ungradable`。Playwright実Runや業務意味をNodeが証明したとは扱わない。
+- **契約fixture/負例:** `ai-assisted-qa-assessment-m07-run-versions.test.mjs`の正常afterを、同一spec内のPage Object、`base.extend`によるfixture、各test前Reset、数量1・数量2の維持、別ページ→Cart再入場・数量2を表す模擬コードに更新。元の`toHaveValue("1")`の値変更・Assertion削除、新しい3件目の数量2 Assertion削除を拒否する負例を追加。既存の未追跡import拒否・別Run/順序・偽report拒否の契約も維持。
+- **NodeとAIの境界:** Nodeは保存specとreport・別Run・数量Matcherの文字列上の保持を検査し、AIはPage Object/fixtureの実際の責務、Locatorの対象、数量維持、再入場の業務意味と本人の根拠を採点する。M07の学習者実Chromiumと認証済みモデルでの意味評価は#199最終受入。報告文字列・Matcherが同じでも実際のブラウザ実行や意味的な正しさを保証しない。
+- **チェック保留:** この追加差分のHEAD `b954b0e129915323b85a6037b6ed243805e1d166` 以降のCIは確認時に未確定。前回の成功CIを新差分へ転用せず、M07補完項目のチェックは現段階では保留。ローカル証拠一式の出自、本人M04/M07/M10実受入の2項目も未完了のまま。19/22件を維持。
+
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
 - 本人の認証済みOpenCode実モデルを独立・制限権限で起動し、M04/M07/M10を未演習条件で採点
