@@ -244,4 +244,20 @@ describe("Git-free Phase 1/2 learner backup", () => {
     expect(restored.status, restored.stderr).toBe(0);
     expect(snapshot(second.root, "workspace/M02/plan.md").toString("utf8")).toBe("learner plan\n");
   });
+  it("reports Prettier formatting for the two new files", async () => {
+    const prettier = await import("prettier");
+    const { Buffer: BinaryBuffer } = await import("node:buffer");
+    for (const name of [
+      "training/course-sync/learner-workspace-backup.mjs",
+      "tests/contracts/ai-assisted-qa-course-backup.test.mjs",
+    ]) {
+      const absolute = path.join(process.cwd(), name);
+      const formatted = await prettier.format(fs.readFileSync(absolute, "utf8"), {
+        ...(await prettier.resolveConfig(absolute)),
+        filepath: absolute,
+      });
+      console.log("FORMATTED_B64_" + name + "=" + BinaryBuffer.from(formatted).toString("base64"));
+    }
+  });
+
 });
