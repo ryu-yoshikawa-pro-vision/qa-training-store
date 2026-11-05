@@ -8,16 +8,23 @@
 
 GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/CI操作例・無効workflow見本と安全な配布/証拠検証コード、契約・負例テストおよび既存CIを担当する。**本人Private repoでの課金/権限判断・実PR・実CIとOpenCode実モデルの学習/修了は#199の最後に受け入れる**。ここでの成功は技術準備/自動テストの成功であり、受講者の修了ではない。
 
-現在0/24件チェック済み（HEAD `0a7fe2e7c092`、個別作業PRの実装差分はタスクリストのみ）。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
+現在2/24件チェック済み。M08-01/02は隔離Git fixtureによる技術検証であり、本人のGit実操作を受け入れたものではない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。GitHub Actionsの変更後CIは完了確認前のため、CI合格を根拠とする他項目は未チェック。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
 
 ## 変更範囲
 
 14学習目標。編集：`docs/curriculum/ai-assisted-qa/modules/M08..M10/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M08.json`〜`M10.json`・`templates/phase3/**`・`scripts/training/ai-assisted-qa-github-run-evidence.mjs`・固有の契約テスト。配布manifest、course sync、正式採点エンジン、共通テスト/lockfileは別担当。
 
+## 2026-11-05 技術検証・引継ぎ
+
+- **M08-01/02（隔離Git検証：PASS）**：対応テスト`tests/contracts/ai-assisted-qa-phase3-git-fixture.test.mjs`を追加。実装基点`61796817e8b2`、Linux・Git 2.47.3・Node.js 22.16.0。作業環境の一時リポジトリで`git init`、`git switch -c practice/m08-review`、`git status --short --untracked-files=all`、`git add -- <個別パス>`、`git diff --cached --name-only`、`git diff --cached --check`、`git commit`、`git show --name-only`を実行し、対象ファイルのみの記録を確認。`.env`、`output/trace.zip`、`workspace/M08/local-only-run.log`は配布用ignore契約で除外され、`git add -f -- .env`は強制stageできる負例、`git restore --staged`後に作業ファイルが残ることも確認。ダミー値のみ使用。新規Vitest自体のGitHub CI結果は未確認であり、本人の操作や修了の証明ではない。
+- **M09→M10の配布物検証契約（修正済み・受入未完）**：`scripts/training/ai-assisted-qa-github-run-evidence.mjs`の検証条件を`templates/phase3/course-e2e.workflow.yml.disabled`の11 step、`verify-distribution`、`PLAYWRIGHT_USE_PREBUILT_DIST="true"`に合わせた。専用テストに完成見本の正例、配布確認省略・製品フルBuild・prebuilt無効・旧fallbackの拒否を追加。実コードの安全性・テストの成功は変更後CIで再確認するまで未確定。
+- **残る受入阻害条件**：`training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled`は旧契約のままで、配布物検証とprebuilt固定を欠く。所有範囲に明示されていないため、このPRでは直接変更しない。#199統合側で修正または所有者を確定し、M10 fallbackを改めて契約テストする。本人Private repoのRunnerへ`course/shop/index.html`と`.course/distribution-manifest.json`を取得・配置する固定SHA/ハッシュ付き経路も未確定。生成・配布契約の担当PRと照合するまでworkflowを有効化せず、受入をBLOCKEDとする。
+- **CI**：基点`f6b104187781`のWeb CIは成功。以後の実装HEADではGitHub Actionsの再検証中であり、旧HEADのPASSを現在HEADへ流用しない。途中RunのPrettier警告に対する書式修正も行ったが、最新HEADの結果は確認が必要。
+
 ## M08：Git・PR・変更レビュー（4目標）
 
-- [ ] `M08-01`：作業用の隔離Git fixture/既存CIでworking tree→stage→commitの教材・証拠様式を検証。受講者本人のGit操作は#199最終実受入へ渡す
-- [ ] `M08-02`：安全なstage/ignore対象とSecret/Trace混入の禁止を教材・隔離Gitの負例テストで照合し、本人のリポジトリ選択操作は#199へ渡す
+- [x] `M08-01`：作業用の隔離Git fixture/既存CIでworking tree→stage→commitの教材・証拠様式を検証。受講者本人のGit操作は#199最終実受入へ渡す
+- [x] `M08-02`：安全なstage/ignore対象とSecret/Trace混入の禁止を教材・隔離Gitの負例テストで照合し、本人のリポジトリ選択操作は#199へ渡す
 - [ ] `M08-03`：PR base/head、差分、Case/spec/Run/SHA説明表の教材と固定サンプル・API/テスト契約を照合。本人によるPR説明は#199へ移す
 - [ ] `M08-04`：AIレビューの誤指摘・見落とし・不要な抽象化を根拠付きで採否。数の多さで評価しない
 
