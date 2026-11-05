@@ -2871,7 +2871,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readFileSync(failingDestination, "utf8")).toContain("# M01");
   });
 
-  it("keeps other modules, private assessments, and traces untouched across load failures", async () => {
+  it("preserves private work across reloads and interrupted module loads", async () => {
     const fixture = courseFixture();
     await syncCourse({
       root: fixture.source,
@@ -2887,7 +2887,10 @@ describe("AI-assisted QA distribution contract", () => {
       ["workspace/M04/previous.md", Buffer.from("previous phase answer\\n")],
       ["workspace/M05/notes.md", Buffer.from("learner notes\\n")],
       ["workspace/M06/private-notes.md", Buffer.from("other module answer\\n")],
-      ["workspace/.course-assessments/P1/attempts/old/result.json", Buffer.from('{"private":true}\\n')],
+      [
+        "workspace/.course-assessments/P1/attempts/old/result.json",
+        Buffer.from('{"private":true}\\n'),
+      ],
       ["workspace/.course-exports/previous.zip", Buffer.from([0, 1, 2, 255])],
       ["output/training/ai-assisted-qa/test-results/trace.zip", Buffer.from([5, 4, 3, 2])],
     ]);
@@ -2911,10 +2914,12 @@ describe("AI-assisted QA distribution contract", () => {
 
     const failedTarget = path.join(fixture.target, "workspace/M06/cart-cases.spec.ts");
     const originalCopy = fs.copyFileSync.bind(fs);
-    const copySpy = vi.spyOn(fs, "copyFileSync").mockImplementation((source, destination, ...args) => {
-      if (destination === failedTarget) throw new Error("injected M06 interruption");
-      return originalCopy(source, destination, ...args);
-    });
+    const copySpy = vi
+      .spyOn(fs, "copyFileSync")
+      .mockImplementation((source, destination, ...args) => {
+        if (destination === failedTarget) throw new Error("injected M06 interruption");
+        return originalCopy(source, destination, ...args);
+      });
     try {
       expect(() => loadModule({ root: fixture.target, moduleId: "M06" })).toThrow(
         /injected M06 interruption/,
@@ -2923,7 +2928,10 @@ describe("AI-assisted QA distribution contract", () => {
       copySpy.mockRestore();
     }
     expect(fs.existsSync(failedTarget)).toBe(false);
-    expect(fs.readdirSync(path.join(fixture.target, ".course-load")).some((name) => name.startsWith("M06-"))).toBe(false);
+    const newReceipts = fs
+      .readdirSync(path.join(fixture.target, ".course-load"))
+      .filter((name) => name.startsWith("M06-"));
+    expect(newReceipts).toEqual([]);
 
     const submission = path.join(fixture.target, "workspace/M05/submission.md");
     fs.appendFileSync(submission, "learner modification\\n");
