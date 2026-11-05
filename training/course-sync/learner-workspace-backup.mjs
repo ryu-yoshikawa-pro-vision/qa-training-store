@@ -51,13 +51,15 @@ function safeRelative(relative) {
 }
 
 function excluded(relative) {
-  return relative.split("/").some(
-    (name) =>
-      /^\.env(?:\.|$)/i.test(name) ||
-      /^(?:\.git|\.ssh|node_modules|\.npmrc|\.course-assessment-tmp)$/i.test(name) ||
-      /(?:secret|credential|private-key|access-token)/i.test(name) ||
-      /\.(?:pem|key|p12|pfx)$/i.test(name),
-  );
+  return relative
+    .split("/")
+    .some(
+      (name) =>
+        /^\.env(?:\.|$)/i.test(name) ||
+        /^(?:\.git|\.ssh|node_modules|\.npmrc|\.course-assessment-tmp)$/i.test(name) ||
+        /(?:secret|credential|private-key|access-token)/i.test(name) ||
+        /\.(?:pem|key|p12|pfx)$/i.test(name),
+    );
 }
 
 function safePath(root, relative) {
@@ -90,7 +92,10 @@ function outsideRepository(root, location, mustExist) {
     fail("backup location must be an absolute path outside the learner repository");
   const absolute = path.resolve(location);
   const relative = path.relative(path.resolve(root), absolute);
-  if (relative === "" || (relative !== ".." && !relative.startsWith("../") && !path.isAbsolute(relative)))
+  if (
+    relative === "" ||
+    (relative !== ".." && !relative.startsWith("../") && !path.isAbsolute(relative))
+  )
     fail("backup location must be outside the learner repository");
   let current = path.parse(absolute).root;
   for (const component of absolute.slice(current.length).split(path.sep).filter(Boolean)) {
@@ -175,7 +180,14 @@ export function exportLearnerWorkspace({ root = ROOT, target }) {
   } finally {
     if (lstatIfExists(temporary)) fs.unlinkSync(temporary);
   }
-  return { status: "exported", path: destination, files: files.length, total_bytes: totalBytes, excluded: excludedCount, ...identity };
+  return {
+    status: "exported",
+    path: destination,
+    files: files.length,
+    total_bytes: totalBytes,
+    excluded: excludedCount,
+    ...identity,
+  };
 }
 
 function unpack(root, archivePath) {
@@ -247,12 +259,21 @@ export function restoreLearnerWorkspace({ root = ROOT, source }) {
     fs.writeFileSync(absolute, data, { flag: "wx", mode: 0o600 });
     restored += 1;
   }
-  return { status: "restored", files_verified: files.length, newly_restored: restored, existing_files_overwritten: 0, git_required: false };
+  return {
+    status: "restored",
+    files_verified: files.length,
+    newly_restored: restored,
+    existing_files_overwritten: 0,
+    git_required: false,
+  };
 }
 
 function main() {
   const [command, flag, value] = process.argv.slice(2);
-  if (process.argv.length !== 5) fail("Usage: node scripts/training/learner-workspace-backup.mjs export --target /outside/backup.json.gz | restore --source /outside/backup.json.gz");
+  if (process.argv.length !== 5)
+    fail(
+      "Usage: node scripts/training/learner-workspace-backup.mjs export --target /outside/backup.json.gz | restore --source /outside/backup.json.gz",
+    );
   const result =
     command === "export" && flag === "--target"
       ? exportLearnerWorkspace({ target: value })
@@ -266,7 +287,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     main();
   } catch (error) {
-    console.error("Learner backup BLOCKED: " + (error instanceof Error ? error.message : String(error)));
+    console.error(
+      "Learner backup BLOCKED: " + (error instanceof Error ? error.message : String(error)),
+    );
     process.exitCode = 1;
   }
 }
