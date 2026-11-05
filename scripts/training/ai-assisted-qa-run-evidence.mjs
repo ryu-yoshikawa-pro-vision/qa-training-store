@@ -242,8 +242,7 @@ export function assertM06CaseAssertions(specBytes, specName, label) {
       const ids = required.filter((id) => title.includes(id));
       if (ids.length === 1) {
         const id = ids[0];
-        if (found.has(id))
-          fail("M06 spec duplicates a required CASE-CART test: " + id);
+        if (found.has(id)) fail("M06 spec duplicates a required CASE-CART test: " + id);
         found.add(id);
         if (!hasPlaywrightAssertion(node.arguments[1]))
           fail("M06 required CASE-CART test lacks a Playwright business assertion: " + id);
