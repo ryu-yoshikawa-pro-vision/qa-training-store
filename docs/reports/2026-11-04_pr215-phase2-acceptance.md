@@ -554,3 +554,10 @@ test "$reference_run_failed" -eq 0
 - **証拠の同一性**：CI配布Shopの`dist/index.html` SHA-256は`eb6083240069c456206ffbdf478739803d1679347f3caab02642837c73cc75d1`。参照spec SHA-256は`cart-cases.spec.ts=563fadd2327a2c8559a0a13502e7f60ad03c9a665d7a6112394bd9031197342f`、`remove-item.spec.ts=487f6bfde1592195b67a949da4ba9d1d28bd6b727bb017a9ccaf92b0bda490f6`、`quantity-update.spec.ts=72c19bf7629c0a15b8758623b050ccdff25b46ada027d73ebc4354f97e2afaa9`。`config.rootDir`はM06参考spec領域。検証器は同一ファイル内の複数testを正しく数え、独立した各testの数・状態まで照合した。
 - **判定範囲**：PR #215の「公開参考specを専用Chromiumで技術検証する」項目を完了。学習者の`workspace/M06`独立実装・本人初回/repeat受入、独立した正式AI評価には流用しない。参考004のtest名に`CASE-CART-004`が含まれない点は#217側の未統合差異として維持。M07保守後3件目の別ページ経由のCart再入場も、#217の修正の統合と専用before2/after3実Runがないため未完了。
 - **進捗**：**Progress: 97% (32/33)**。最新のタスクリスト・本レポート追記後のHEADに対するCI結果は別途確認し、未実行のM07をPASSとしない。
+
+## 2026-11-06 M07保守前2件・保守後3件の分離検証
+
+- **対象と変更境界**：PR #215の現HEADでは`maintenance-before/cart.spec.ts`の2testを実行可能。ただし`maintenance-after/cart.spec.ts`（Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`）は3件目が`page.reload()`のみで教材のCart外→Cart再入場条件を満たさない。#217の固定commit `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`には修正版（Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613`）が存在する。
+- **今回の実装**：`.github/workflows/ci.yml`にPR #215のみで実行する`pr215-m07-reference`ジョブを追加。`actions/checkout`で#217の固定commitから対象の1ファイルをsparse checkoutし、commit/blobを検証したうえで、PR #215のCI作業ツリーに一時・未追跡のM07参考test rootを作成する。製品コード、正式`assessment/**`の追跡ファイル、PR #217本体は変更しない。
+- **検証条件**：保守前の独立2testと保守後の独立3testを、同じCIの配布Shopを8082で配信して別Run・`--retries=0`で実行。`tests/contracts/ai-assisted-qa-phase2-m07-reference-ci.mjs`がPlaywright JSONの`config.rootDir`・test名・対象spec・project・各testの期待/実結果・retry/skip/flaky不在を検証する。実行終了コードとconsole、report、PR #215 source HEAD、CI merge SHA、#217の固定commit/blob SHA、ビルドとspecのSHAを`summary.json`と別々の成果物へ記録する。失敗時にも`if: always()`で成果物を14日間保存する。契約テストには受入2/3件および件数、別test、誤project、期待失敗、skip/retry、report欠落の負例を追加。
+- **現時点の判定**：この手段で取得するafter3 Runは**#217固定ソースの分離検証**であり、#215の採用HEADで3件目の正しい実装が動いた証拠にはならない。#217を統合して再検証し、関連レビューthreadを確認するまで`M07-05`は未チェック。**Progress: 97% (32/33)**を維持。CI結果未取得時点でPASSを記載しない。
