@@ -152,6 +152,7 @@ describe("M10-01 spec and dependency closure", () => {
     expect(submission).toContain("残るリスク・未確認事項");
     expect(submission).toContain("成功への読み替え禁止");
   });
+
   it("separates staged OpenCode hints from final M10 assessment", () => {
     const m09 = read("docs/curriculum/ai-assisted-qa/modules/M09/README.md");
     const m10 = read("docs/curriculum/ai-assisted-qa/modules/M10/README.md");
@@ -168,5 +169,4 @@ describe("M10-01 spec and dependency closure", () => {
     expect(m10).toContain("Tokenや非公開履歴をAIモデルへ送信せず");
     expect(exercise).toContain("API tokenはAIへ送信しません");
   });
-
 });
