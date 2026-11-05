@@ -808,6 +808,41 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("requires M03 public Risk input and source-backed Authority and Scope instructions", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const riskPath = "course/modules/M03/inputs/public-risk-input.csv";
+    expect(
+      manifest.local_files.some(
+        (file) =>
+          file.module_id === "M03" && file.role === "input" && file.target_path === riskPath,
+      ),
+    ).toBe(true);
+    expect(
+      manifest.load_files.some(
+        (file) =>
+          file.module_id === "M03" &&
+          file.source_path === riskPath &&
+          file.target_path === riskPath,
+      ),
+    ).toBe(true);
+    expect(() =>
+      validateCourseManifest({
+        ...manifest,
+        local_files: manifest.local_files.filter((file) => file.target_path !== riskPath),
+        load_files: manifest.load_files.filter((file) => file.source_path !== riskPath),
+      }),
+    ).toThrow(/M03 public Risk input/);
+    const start = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M03/start.md"),
+      "utf8",
+    );
+    expect(start).toContain("SCOPE-101");
+    expect(start).toContain("Authority Entity");
+    expect(start).toContain("RISK-CART-001");
+    expect(start).toContain("BR-CART-001");
+    expect(start).toContain("AC-CART-001");
+  });
+
   it("rejects invalid module load bindings before writing files", async () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m05 = manifest.load_files.find(
