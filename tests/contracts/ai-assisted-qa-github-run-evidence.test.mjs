@@ -40,7 +40,10 @@ function reviewedWorkflow({ asBuffer = false } = {}) {
       "workspace/M07/repaired-assertion.spec.ts",
       "workspace/M10/public-sample/handoff-smoke.spec.ts",
     )
-    .replace("PLAYWRIGHT_TEST_ROOT: workspace/M07", "PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+    .replace(
+      "PLAYWRIGHT_TEST_ROOT: workspace/M07",
+      "PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample",
+    );
   return asBuffer ? Buffer.from(workflow, "utf8") : workflow;
 }
 
@@ -368,16 +371,23 @@ describe("M10 GitHub Run evidence contract", () => {
     ].join("\n");
     const removedVerification = workflow.replace(verifyStep, "");
     expect(removedVerification).not.toBe(workflow);
-    expect(() => validateCourseWorkflow(removedVerification, evidence.workflow_path, evidence))
-      .toThrow(/reviewed checkout, SHA, test, and upload order/);
+    expect(() =>
+      validateCourseWorkflow(removedVerification, evidence.workflow_path, evidence),
+    ).toThrow(/reviewed checkout, SHA, test, and upload order/);
 
     for (const [changed, reason] of [
       [
-        workflow.replace("node scripts/training/ai-assisted-qa-course.mjs verify-distribution", "pnpm run build:web"),
+        workflow.replace(
+          "node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+          "pnpm run build:web",
+        ),
         /unapproved shell command/,
       ],
       [
-        workflow.replace('PLAYWRIGHT_USE_PREBUILT_DIST: "true"', 'PLAYWRIGHT_USE_PREBUILT_DIST: "false"'),
+        workflow.replace(
+          'PLAYWRIGHT_USE_PREBUILT_DIST: "true"',
+          'PLAYWRIGHT_USE_PREBUILT_DIST: "false"',
+        ),
         /prebuilt distribution enabled/,
       ],
       [
@@ -401,7 +411,10 @@ describe("M10 GitHub Run evidence contract", () => {
 
   it("rejects an earlier M10 fallback without distribution verification or prebuilt mode", () => {
     const oldFallback = fs.readFileSync(
-      path.join(root, "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled"),
+      path.join(
+        root,
+        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+      ),
       "utf8",
     );
     expect(() => validateCourseWorkflow(oldFallback, evidence.workflow_path, evidence)).toThrow(
