@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { describe, expect, it, vi } from "vitest";
 import {
+  assertAvailableModelListing,
   assertFreeModelCatalogEntry,
   verifyCurrentFreeModelPrice,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
@@ -112,6 +113,25 @@ describe("formal evaluator pricing preflight", () => {
         },
       }),
     ).rejects.toThrow(/BLOCKED/);
+  });
+
+  it("requires the exact selected model to appear in the available model listing", () => {
+    expect(
+      assertAvailableModelListing(
+        "opencode/sample-free",
+        "opencode/other-free\\nopencode/sample-free\\n",
+      ),
+    ).toBe("opencode/sample-free");
+    for (const output of [
+      "opencode/other-free\\n",
+      "opencode/sample-free-extra\\n",
+      "opencode/sample-free#paid\\n",
+      "",
+    ]) {
+      expect(() => assertAvailableModelListing("opencode/sample-free", output)).toThrow(
+        /BLOCKED/,
+      );
+    }
   });
 
   it("never fetches a price for unsupported providers", async () => {
