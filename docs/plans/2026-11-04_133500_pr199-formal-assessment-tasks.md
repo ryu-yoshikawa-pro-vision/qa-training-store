@@ -53,6 +53,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
 
+## 2026-11-05 再開・Trace回帰の新規CIと整形修正
+
+- **再開時の履歴保全（項目16は未チェック）：** `resumeAttemptUnlocked`の完成済み`result.json`再公開前に、`loadPhaseInputs`を実行して現在のsource SHA/状態revision/scoring・rubric Asset・目標ID・必要提出物/Run SHA（Phase 3は現行GitHub API）を再確認。保存`challenge.json`、`answers.md`、`challenge-answer.json`、`result.challenge.answer_sha256`も一致して初めて旧結果を再公開する。不一致なら元の正式結果・履歴は書き換えず、別の試行IDで再評価を要求。`ai-assisted-qa-assessment-resume-current.test.mjs`は同一/異版/異証拠/欠落ID相当/回答変更・receipt改変を検証。途中切断で完成済み結果がある場合も、オンライン資料取得ができなければ自動再公開せず、履歴を残して停止。
+- **失敗テスト固有のTrace（項目3・4・19の一部）：** `reportSpecs`が失敗したテスト自身にTraceを付けているかを保持し、`verifyModuleRunEvidence`で`require_trace`かつ失敗Runの場合は、そのテストの添付を要求するよう修正。report/receipt/TraceのSHAが一致していても、別のPASSテストにTraceを付け替えれば`ungradable`となる負例を追加。すべてのローカル証拠を同時に捏造できる場合の出自保証とは異なるため項目3・19は未チェック。
+- **検証済み範囲：** 中間HEAD `6843ad154c49b0a12f9b58c24ad29df1efa53ce3` の [CI Run 41984064210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41984064210) では`Vitest (contracts)`87ファイル・1150件PASS、`Code Quality`と2種類のビルドも成功した。一方`Style Quality`は`ai-assisted-qa-assessment.mjs`と再開契約テストのPrettier差分で失敗。CIの一時診断で出力された正確な差分（ソース3か所、テスト2か所）を適用し、診断用契約テストを削除した。
+- **完了判定：** 新しい整形修正HEADのCI完了は未確認。従来の完了16/22件を維持し、項目16・18はまだチェックしない。本人の実認証・実Chromium/実モデル評価は#199で実施する。
+
 ## 2026-11-05 固定HEADでの完了確認と再開時の入力再検査
 
 - **項目9・11をチェック：** [CI Run 41972670377](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41972670377) / HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`で全体成功、`Vitest (contracts)`85ファイル・1146件PASS。4件の`untrusted-input`、3件の`m06-assertions`、11件のPrompt Injection誤PASS検知、偽Trace・改変Run・不正Case・JSON/CLI異常系も成功を確認。Nodeが本人テキストをコマンドとして実行しない契約および公開出典許可リストまでを完了とし、モデルが意味的に指示へ従う可能性は#199の実モデル校正で評価する。ローカルreceipt/report/snapshotの一括偽造への耐性は項目3として未完了。
