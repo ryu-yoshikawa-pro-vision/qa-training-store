@@ -3561,7 +3561,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
       report.config.rootDir = moduleRoot;
       const originalSpec = report.suites[0].specs[0];
       originalSpec.file = "new-case.spec.ts";
-      originalSpec.title = "CASE-CART-004 remove the last cart line";
+      originalSpec.title = "CASE-CART-004 remove item";
       report.suites[0].specs.push({
         ...originalSpec,
         title: "CASE-CART-005 retain changed quantity",
@@ -3630,6 +3630,21 @@ describe("AI-assisted QA formal assessment contracts", () => {
     const repeatReportPath = path.join(path.dirname(repeatPath), "playwright-result.json");
     const validReportBytes = fs.readFileSync(repeatReportPath);
     const validReceiptBytes = fs.readFileSync(repeatPath);
+    const inventedReport = JSON.parse(validReportBytes.toString("utf8"));
+    inventedReport.suites[0].specs[0].title = "CASE-CART-004 invented passing test";
+    const inventedBytes = Buffer.from(JSON.stringify(inventedReport));
+    fs.writeFileSync(repeatReportPath, inventedBytes);
+    const inventedReceipt = JSON.parse(validReceiptBytes.toString("utf8"));
+    inventedReceipt.report_sha256 = sha256(inventedBytes);
+    inventedReceipt.tests[0].title = inventedReport.suites[0].specs[0].title;
+    fs.writeFileSync(repeatPath, JSON.stringify(inventedReceipt));
+    expect(verify()).toMatchObject({
+      status: "ungradable",
+      reasons: [expect.stringMatching(/report test titles do not match/)],
+    });
+    fs.writeFileSync(repeatReportPath, validReportBytes);
+    fs.writeFileSync(repeatPath, validReceiptBytes);
+
     const duplicateReport = JSON.parse(validReportBytes.toString("utf8"));
     duplicateReport.suites[0].specs[1].title = "CASE-CART-004 duplicated";
     const forgedReportBytes = Buffer.from(JSON.stringify(duplicateReport));
@@ -3640,14 +3655,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     fs.writeFileSync(repeatPath, JSON.stringify(duplicateReceipt));
     const duplicateResult = verify();
     expect(duplicateResult.status).toBe("ungradable");
-    expect(duplicateResult.checks).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "M06-RUN-new-case.spec.ts-repeat",
-          status: "ungradable",
-        }),
-      ]),
-    );
+    expect(duplicateResult.reasons.join(" ")).toMatch(/report test titles do not match/);
     fs.writeFileSync(repeatReportPath, validReportBytes);
     fs.writeFileSync(repeatPath, validReceiptBytes);
     const repeat = JSON.parse(fs.readFileSync(repeatPath, "utf8"));
