@@ -49,8 +49,9 @@ it("validates both added M06 cases and refuses duplicate IDs or malformed syntax
   expect(() =>
     assertM06CaseAssertions(Buffer.from(added), "new-case.spec.ts", "repeat"),
   ).not.toThrow();
+  const duplicated = added + "\n" + validTest("CASE-CART-004");
   expect(() =>
-    assertM06CaseAssertions(Buffer.from(added + "\n" + validTest("CASE-CART-004")), "new-case.spec.ts", "initial"),
+    assertM06CaseAssertions(Buffer.from(duplicated), "new-case.spec.ts", "initial"),
   ).toThrow(/duplicates/);
   expect(() =>
     assertM06CaseAssertions(Buffer.from('test("CASE-CART-004",'), "new-case.spec.ts", "initial"),
