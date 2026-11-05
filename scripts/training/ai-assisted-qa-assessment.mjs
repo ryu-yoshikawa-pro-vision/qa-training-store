@@ -2116,7 +2116,8 @@ export function showHistory(phaseId, workspaceRoot = WORKSPACE) {
 }
 
 export function exportAssessment(phaseId, assessmentId, workspaceRoot = WORKSPACE) {
-  if (phaseId === "P3") fail("Phase 3 export is not available; use its explicit Git handoff");
+  if (phaseId !== "P1" && phaseId !== "P2")
+    fail("Git-free assessment export is available for Phase 1 and Phase 2 only");
   if (!ASSESSMENT_ID_PATTERN.test(assessmentId))
     fail("assessment export source is missing or unsafe");
   const sourceRelative = `.course-assessments/${phaseId}/attempts/${assessmentId}`;
