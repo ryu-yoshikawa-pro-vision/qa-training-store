@@ -111,6 +111,51 @@ function readDistributionManifest(root) {
   );
 }
 
+const ALLOWED_ASSESSMENT_SKILLS = new Set([
+  "qa-workflow",
+  "spec-analysis",
+  "test-analysis",
+  "test-requirement-design",
+  "test-condition-design",
+  "test-case-design",
+  "coverage-analysis",
+  "adversarial-review",
+  "e2e-test-inspection",
+  "e2e-test-implementation",
+  "e2e-test-execution",
+  "e2e-test-reporting",
+  "e2e-test-result-analysis",
+]);
+
+export function assertAllowedAssessmentSourcePath(moduleId, sourcePath, distribution) {
+  if (!/^M(?:0[0-9]|10)$/.test(moduleId ?? "") || typeof sourcePath !== "string")
+    fail("assessment source module and path are invalid");
+  const allowed = new Set([
+    `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
+    `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`,
+    `docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.json`,
+    `training/ai-assisted-qa-course/states/${moduleId}/end.json`,
+    "docs/curriculum/ai-assisted-qa/knowledge-graph.json",
+    "docs/spec/README.md",
+    "docs/spec/features/cart.md",
+    "docs/spec/features/storefront.md",
+    "training/workbook/01_target-risk.csv",
+    "training/ai-assisted-qa-course/integrations/M02-M03-contract.md",
+  ]);
+  if (allowed.has(sourcePath)) return sourcePath;
+  const pin = distribution?.external_skill_source;
+  const prefix =
+    typeof pin?.repository === "string" && /^[a-f0-9]{40}$/.test(pin.commit ?? "")
+      ? `${pin.repository}@${pin.commit}:skills/`
+      : null;
+  if (prefix && sourcePath.startsWith(prefix)) {
+    const relative = sourcePath.slice(prefix.length);
+    const skill = relative.match(/^([a-z-]+)\/SKILL\.md$/)?.[1];
+    if (skill && ALLOWED_ASSESSMENT_SKILLS.has(skill)) return sourcePath;
+  }
+  fail("assessment references a source outside the public allowlist: " + sourcePath);
+}
+
 function safeSourceText(sourcePath, assetContents, distribution) {
   const pinned = assetContents.get(sourcePath);
   if (pinned)
@@ -168,6 +213,7 @@ async function loadPhaseInputs(phaseId) {
   const sourceMaterials = new Map();
   for (const scoring of scoringByModule.values()) {
     for (const sourcePath of scoring.sources ?? []) {
+      assertAllowedAssessmentSourcePath(scoring.module_id, sourcePath, distribution);
       if (sourceMaterials.has(sourcePath)) continue;
       const source = safeSourceText(sourcePath, assetContents, distribution);
       if (sourcePath.endsWith("/knowledge-graph.json"))
