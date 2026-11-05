@@ -635,6 +635,16 @@ function validateWebCourseRevisions(files) {
   const targets = new Map(files.map((file) => [file.target_path, file]));
   const webRoot = "course/shop/docs/curriculum/ai-assisted-qa/";
   if (!MODULE_IDS.some((id) => targets.has(`${webRoot}modules/${id}/index.html`))) return;
+  const start = targets.get("course/start-here.md");
+  const startHtml = targets.get(`${webRoot}index.html`)?.bytes.toString("utf8") ?? "";
+  const startExpected = start?.source_sha256;
+  if (
+    !startExpected ||
+    startHtml.match(/<meta name="course-source-revision" content="([a-f0-9]{64})"/i)?.[1] !==
+      startExpected ||
+    startHtml.match(/\bdata-course-revision="([a-f0-9]{64})"/i)?.[1] !== startExpected
+  )
+    fail("Web/Template Markdown revision mismatch (BLOCKED): index.html -> course/start-here.md");
   for (const moduleId of MODULE_IDS) {
     for (const [page, learner] of [
       [`modules/${moduleId}/index.html`, `course/modules/${moduleId}/README.md`],
@@ -852,7 +862,7 @@ export async function syncCourse({
       target_path: entry.target_path,
       bytes,
       origin: "local",
-      ...(entry.role === "lesson" || entry.role === "exercise"
+      ...(entry.role === "lesson" || entry.role === "exercise" || entry.role === "guide"
         ? { source_sha256: sha256(raw) }
         : {}),
       module_id: entry.module_id,
