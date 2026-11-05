@@ -2,6 +2,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const testRoot = "training/ai-assisted-qa-course/assessment/playwright/M06";
 const configFile = "playwright.ai-assisted-qa.config.ts";
@@ -19,7 +20,7 @@ function sha256(file) {
 }
 
 /** Reject missing, skipped, unrelated and expected-to-fail tests in a Playwright JSON report. */
-function validateReport(file, selectedFiles, count) {
+export function validateReport(file, selectedFiles, count) {
   if (!fs.existsSync(file)) throw new Error("Playwright JSON report is missing");
   const report = JSON.parse(fs.readFileSync(file, "utf8"));
   const expectedRoot = path.resolve(testRoot);
@@ -33,7 +34,8 @@ function validateReport(file, selectedFiles, count) {
   }
   for (const suite of report.suites ?? []) visit(suite);
 
-  const foundFiles = specs.map((spec) => path.basename(spec.file ?? "")).sort();
+  // Playwright JSON emits one spec entry per test, even for tests sharing a spec file.
+  const foundFiles = [...new Set(specs.map((spec) => spec.file))].sort();
   const requiredFiles = [...selectedFiles].sort();
   if (JSON.stringify(foundFiles) !== JSON.stringify(requiredFiles)) {
     throw new Error("JSON report contains unexpected or missing spec files");
@@ -69,6 +71,10 @@ function main() {
   if (!fs.existsSync(distIndex)) throw new Error("CI automation build artifact is missing");
 
   const headSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const prHeadSha = process.env.PR_HEAD_SHA;
+  if (!prHeadSha || !/^[0-9a-f]{40}$/.test(prHeadSha)) {
+    throw new Error("M06 reference CI requires the pull request source SHA");
+  }
   if (process.env.GITHUB_SHA && process.env.GITHUB_SHA !== headSha) {
     throw new Error("Checkout HEAD differs from the GitHub Actions SHA");
   }
@@ -79,7 +85,8 @@ function main() {
     sourceFiles.map((name) => [name, sha256(path.join(testRoot, name))]),
   );
   const summary = {
-    head_sha: headSha,
+    checkout_head_sha: headSha,
+    pr_head_sha: prHeadSha,
     config: configFile,
     project,
     test_root: testRoot,
@@ -177,7 +184,8 @@ function main() {
       [
         "### PR #215 M06 reference Chromium",
         "",
-        "Checkout HEAD: " + headSha,
+        "Checkout merge HEAD: " + headSha,
+        "Pull request source HEAD: " + prHeadSha,
         "",
         "| Run | Tests | Exit code | Result |",
         "| --- | --- | --- | --- |",
@@ -191,4 +199,6 @@ function main() {
   }
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
