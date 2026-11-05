@@ -300,7 +300,7 @@ function relativeWorkspacePath(filePath, root = ROOT) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
 
-function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
+function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn = spawnSync }) {
   if (!SOURCE_SHA.test(sourceSha ?? ""))
     fail("course:run requires the verified distribution source SHA");
   const workspaceRoot = path.join(root, "workspace");
@@ -339,7 +339,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
     AI_QA_OUTPUT_ROOT: runDirectory,
   };
   const launcher = process.platform === "win32" ? "corepack.cmd" : "corepack";
-  const result = spawnSync(launcher, commandArgs, {
+  const result = spawn(launcher, commandArgs, {
     cwd: root,
     env: environment,
     encoding: "utf8",
@@ -429,7 +429,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
 
 export function runAiAssistedQaSpecCli(
   argv = process.argv.slice(2),
-  { root = ROOT, sourceSha } = {},
+  { root = ROOT, sourceSha, spawn = spawnSync } = {},
 ) {
   const moduleId = argv[0];
   const specName = argv[1];
@@ -445,7 +445,7 @@ export function runAiAssistedQaSpecCli(
     fail(
       "Usage: pnpm course:run M05|M06|M07 <allowed-spec.spec.ts> --label main|initial|repeat|before|after",
     );
-  return executeSpec({ moduleId, specName, label, root, sourceSha });
+  return executeSpec({ moduleId, specName, label, root, sourceSha, spawn });
 }
 
 function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
