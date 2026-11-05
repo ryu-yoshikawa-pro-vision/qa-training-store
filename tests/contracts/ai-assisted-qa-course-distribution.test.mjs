@@ -582,9 +582,7 @@ describe("AI-assisted QA distribution contract", () => {
       "test-case-design",
     ]) {
       const sourcePath = `skills/${skill}/scripts/runtime_v1_cutover.py`;
-      const entry = manifest.external_skill_files.find(
-        (file) => file.source_path === sourcePath,
-      );
+      const entry = manifest.external_skill_files.find((file) => file.source_path === sourcePath);
       expect(entry, `missing pinned cutover helper for ${skill}`).toMatchObject({
         skill,
         target_path: `.agents/${sourcePath}`,
