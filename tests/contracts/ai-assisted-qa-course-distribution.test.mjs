@@ -1124,9 +1124,8 @@ describe("AI-assisted QA distribution contract", () => {
         .filter((load) => load.source_path === entry.target_path)
         .map((load) => load.target_path);
       if (placements.length === 0) placements.push(entry.target_path);
-      for (const match of source.matchAll(
-        /\b(?:from\s+|import\s*(?:\(\s*)?)["']([^"']+)["']/g,
-      )) {
+      const importPattern = /\b(?:from\s+|import\s*(?:\(\s*)?)["']([^"']+)["']/g;
+      for (const match of source.matchAll(importPattern)) {
         const specifier = match[1];
         if (specifier.startsWith("node:")) continue;
         if (!specifier.startsWith(".")) {
@@ -1140,16 +1139,9 @@ describe("AI-assisted QA distribution contract", () => {
           const resolved = path.posix.normalize(
             path.posix.join(path.posix.dirname(placement), specifier),
           );
-          expect(
-            [
-              resolved,
-              `${resolved}.ts`,
-              `${resolved}.tsx`,
-              `${resolved}.js`,
-              `${resolved}.mjs`,
-            ].some((candidate) => targets.has(candidate)),
-            `${placement} -> ${specifier}`,
-          ).toBe(true);
+          const extensions = ["", ".ts", ".tsx", ".js", ".mjs"];
+          const resolves = extensions.some((extension) => targets.has(resolved + extension));
+          expect(resolves, `${placement} -> ${specifier}`).toBe(true);
         }
       }
     }
