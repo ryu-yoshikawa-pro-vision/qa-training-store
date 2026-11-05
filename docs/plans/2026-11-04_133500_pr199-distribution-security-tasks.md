@@ -19,6 +19,7 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## 配布物の生成と固定SHA
 
 - [ ] `training/course-sync/manifest.json`のallowlist、外部Skill元、`source_sha`、`generated.shop_build`と実ファイル依存閉包（import/asset/runtime）を全件照合
+  - 2026-11-05追補：配布coreの生成HTML/CSS静的asset閉包を追加し、欠落・0 byteとmanifest改ざんを同期前・配布後に拒否する負例テストを追加。旧Web ZIPのHTML URL 2485件/CSS 12件は欠落0、JS URI 12件は欠落12。さらにURIの`/assets/node_modules/.pnpm/...`をそのままdistへ追加しても既存`FORBIDDEN_PATH`が拒否するため、#199で参照URIと安全な出力先の両方を修正する必要がある。現物の全依存閉包は**未達**。
   - 2026-11-05の[追加監査](../reports/2026-11-05_pr218-distribution-audit.md)：監査元HEAD `7904bb6f4d39` のproduction ArtifactではHTML/CSS静的asset参照168件の欠落0に対し、Expo Router/React NavigationのJS組込み`/assets/*.png` 12 URIがZIP内に存在しない。配布側の事前・事後拒否と負例を追加（修正HEADのCIは未確認）。#199のWeb Buildで実ファイルを揃えてから全量再検証する。**未完のまま**。
 - [ ] cleanな固定commitを入力とする`course:sync`→`verify-distribution`→Shop Build→SHA/manifest照合を既存のGitHub Actions・契約テストで確認し、実行ログ/結果/失敗を記録。学習者個人の実配布は#199へ引継ぐ
   - 2026-11-05判定：[Web CI #41991216665](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41991216665)のBuild自体は成功したが、監査元HEAD `7904bb6f4d39` の実Artifactに旧教材5ページとJS参照画像12件が残る。現行の配布guardにより実Shop全量`course:sync`の正常系を立証できない。固定fixtureの同期成功とは別判定。#199のWeb Build修正・新Artifact確認後に再実施。
@@ -43,11 +44,13 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 - [x] 先行成果物を失った場合でも、公開可能な独立開始入力で着手でき、本人の前Phase修了を架空に復元しないこと
   - 証拠：[Web CI #41970742046 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41970742046/job/127058237043)（HEAD `c1238c0961f9`、契約テスト74ファイル・1104件PASS）。`uses the module's public start sample when a predecessor artifact is absent`でM00成果物がないM01に`course:load`を実施し、`checkState(start)`の`status=ready`と`input.source=module-public-sample`を確認。`rejects forged fallback references before copying learner files`、`rejects predecessor ID, path, revision, and stale load-receipt mismatches`も同RunでPASS。現branchの11 start JSONすべてに`public_fallback.public=true`と本人提出物とは別のartifact/revisionが定義され、`loadModule`のreceiptは`learner_completion_inferred=false`を固定。公開サンプル利用は本人の前Phase修了を示さない。実個人環境の復元検証は#199。
 - [ ] Web生成物と学習Templateが同一のMarkdown/クイズJSON・固定SHA/revisionに対応することを静的/CIで検証し、異版時のBLOCKEDと再読込非上書き契約を確認。公開Webの実ブラウザ受入は#199へ渡す
+  - 2026-11-05追補：Web生成側が既に出力する`course-source-revision`/`quiz-revision`を使用し、開始ページ、11教材/演習HTML、11クイズHTML/JSONのSHA-256を、Template側の元Markdown（リンク変換前）・配布JSONと照合する`validateWebCourseRevisions()`を実装。異版を`course:sync`書込前と`verify-distribution`でBLOCKED。fixtureのexercise role誤設定に起因する一時CI失敗を修正し、書式診断コードを削除。**最終修正後HEADのPASSと実Web/Template全量版一致は未確定**、そのため未チェック。
   - 2026-11-05判定：Web Artifactのクイズ11件は同HEADのGit Blobと一致、配布時のWeb/Template全11件バイト照合のfixture契約はある。しかしHTML化された教材本文の版対応、Webに表示する`source_sha`/revision、異版時BLOCKEDはWeb生成所有者の確認が残り、複合項目は未完。
 
 ## 配布除外・法的条件・安全性
 
 - [ ] `assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec、正式workflow、旧教材、個人成績、`.env`/credential/secretがTemplate・Web・Build/Artifactへ混入しないことを検証
+  - 2026-11-05追補：現物Web ZIPで旧教材5 HTML（講師向け`03_instructor-reference.html`を含む）の残存が確認されている。PR #218の`verifyPublicFileContent()`は配布前に拒否するが、Web Build Artifactからの生成除外は#199所有。生成側が除外しても旧HTMLから残るリンクは新しいHTMLの静的リンク検査で検出する。現時点では全Artifact混入なしを証明できず、未チェック。
   - 2026-11-05判定：監査元Artifactに非公開assessment用の上記ディレクトリ名は確認されなかったが、旧教材5 HTML（講師用`03_instructor-reference.html`を含む）が存在。個人成績・Secretの全内容監査も未完。配布側の拒否テストがPASSでも、Web Build側の完全除外の代替にはならない。
 - [x] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の必要`SKILL.md/references/assets/scripts`全ファイルと改変有無を照合。不要な`evals/**`や内部評価runtimeを配布しない
   - 証拠：[2026-11-05配布監査](../reports/2026-11-05_pr218-distribution-audit.md)。固定Git tree `truncated=false`、13 Skillの105/105ファイルでパス・Blob SHA・サイズ一致、欠落/改変0。`evals/**`配布0。本人Codespacesへの実配置・Python実行は別受入。
@@ -69,6 +72,7 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## Web・AIチューター・成果物保全との接続（補完）
 
 - [ ] 公開Webと学習用Templateが同一教材Markdown/クイズJSONの版を参照し、`source_sha`/revisionの不一致を受講者へ説明・受入可能にする契約を検証。Web画面の一問ずつの操作・アクセシビリティ・共通生成処理の修正は**#199本体**へ引継ぎ、製品画面の実受入である#219と混同しない
+  - 2026-11-05追補：Web HTMLの`course-source-revision`は元MarkdownのSHA256（64桁）であり、Git commitの`source_sha`（40桁）ではない。配布側で両者を混同せずに元MarkdownのSHAと一致確認するguardを追加。Web利用者へのsource commit表示・異版時の説明、ブラウザでの受入は#199側の実装待ち。
   - 2026-11-05：Web Artifactのクイズ11件は同一元HEADと一致したが、実学習用Templateの生成成功、HTML化教材のrevision/SHA表示、Web側異版時BLOCKEDは未受入。旧教材5ページ・リンク12件・JS参照画像欠落12件の是正とWeb共通画面契約は#199の所有者待ち。
 - [x] Phase 1/2の提出Markdown・spec/Config・Trace/Run・非公開評価結果についてGit/PR不要のエクスポート手順・保存先・除外・再ロード非破壊性をfixture/契約・CIで検証。本人のダウンロード・復元は#199へ渡す
   - **完了証拠（2026-11-05）**：[Web CI #42011215918 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42011215918/job/127191145655)、固定HEAD `6433402aab4bb7145a9528f963bc2b54d0647f36`。新設`tests/contracts/ai-assisted-qa-course-backup.test.mjs` **9/9 PASS**、全契約75ファイル・1131 PASS、1 expected fail、15 skipped。`training/course-sync/learner-workspace-backup.mjs`と手順書を配布manifestに登録し、実Node CLIでGitなしの提出Markdown/spec/Config/Run/Trace（バイナリ）・評価履歴・ロード記録のバックアップ/復元、SHA・revision拒否、除外・Secret・個人メール・Symlink・改ざん・非破壊性をfixtureで確認。利用者のCodespacesダウンロード/実復元は#199の本人受入。[監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)にデータ上限・非暗号化・中断時の残ファイル・真正性保証なしを記録。同RunのStyle Qualityは手順書MD047でFAILしたが末尾改行は後続commit `90fdb7a9`で修正。新HEADの全CI PASSは未確認。
