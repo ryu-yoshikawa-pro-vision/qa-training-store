@@ -19,7 +19,7 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## 配布物の生成と固定SHA
 
 - [ ] `training/course-sync/manifest.json`のallowlist、外部Skill元、`source_sha`、`generated.shop_build`と実ファイル依存閉包（import/asset/runtime）を全件照合
-  - 2026-11-05最新実物：CI #42022449903のproduction ZIP（Artifact `13412915763`／SHA-256 `be725b85b76ea0570f7f423f300eac1b88ae65cb98688a64777f0ca00b9bcab9`）を再検査。旧教材5 HTML、そこへのリンク12件、JS画像URI欠落12件（すべて`node_modules/.pnpm`パス）を再現。さらにWeb教材の11クイズJSONだけ存在しHTMLがない場合のrevision検証抜けを修正（`5a2036a8`）し、同期前にBLOCKEDする負例を追加（`b3dd0b27`）。**依存閉包は未完でチェックしない**。
+  - 2026-11-05最新実物：CI #42022449903のproduction ZIP（Artifact `13412915763`／SHA-256 `be725b85b76ea0570f7f423f300eac1b88ae65cb98688a64777f0ca00b9bcab9`）を再検査。旧教材5 HTML、そこへのリンク12件、JS画像URI欠落12件（すべて`node_modules/.pnpm`パス）を再現。Web教材の一部HTMLが存在してもモジュール`index.html`が全欠落する場合のrevision検証抜けを修正した。初期修正`5a2036a8`は画像/JSON単体fixtureを誤って拒否し、CI #42023504519の契約テスト3件がFAIL。修正`ead49c3e`・`c2d18874`で**生成HTMLが一部存在する場合**にだけ全版検査を起動し、全11クイズJSON+M00クイズHTMLのみの負例で同期前BLOCKEDを確認するようテスト`1a4d4ff4`を変更。修正後のCI #42024731679は確認待ち。**依存閉包は未完でチェックしない**。
   - 2026-11-05追補：配布coreの生成HTML/CSS静的asset閉包を追加し、欠落・0 byteとmanifest改ざんを同期前・配布後に拒否する負例テストを追加。旧Web ZIPのHTML URL 2485件/CSS 12件は欠落0、JS URI 12件は欠落12。さらにURIの`/assets/node_modules/.pnpm/...`をそのままdistへ追加しても既存`FORBIDDEN_PATH`が拒否するため、#199で参照URIと安全な出力先の両方を修正する必要がある。現物の全依存閉包は**未達**。
   - 2026-11-05の[追加監査](../reports/2026-11-05_pr218-distribution-audit.md)：監査元HEAD `7904bb6f4d39` のproduction ArtifactではHTML/CSS静的asset参照168件の欠落0に対し、Expo Router/React NavigationのJS組込み`/assets/*.png` 12 URIがZIP内に存在しない。配布側の事前・事後拒否と負例を追加（修正HEADのCIは未確認）。#199のWeb Buildで実ファイルを揃えてから全量再検証する。**未完のまま**。
 - [ ] cleanな固定commitを入力とする`course:sync`→`verify-distribution`→Shop Build→SHA/manifest照合を既存のGitHub Actions・契約テストで確認し、実行ログ/結果/失敗を記録。学習者個人の実配布は#199へ引継ぐ
