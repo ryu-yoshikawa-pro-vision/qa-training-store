@@ -53,6 +53,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
 
+## 2026-11-05 CI失敗の修復（追記）
+
+- **原因確認：** 固定HEAD `365c951cc48588188ce60254c4f4b4b6cab46775` の [CI Run 41949252201](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41949252201) は `Style Quality`（Prettier警告3ファイル）と `build-automation` / `build-production` の失敗を確認。ビルドで最初に起きた失敗は共有 `scripts/training/validate-ai-assisted-qa.ts:565` における M06 `evaluation_policy.execution_evidence.required_runs` の固定配列不一致。原因は本PRで追加した `required_case_ids` 属性。
+- **修正：** 共有Validator/manifestは編集しない。M06の `required_runs` を元の固定構造に戻し、追加Case ID (001〜005) の必須集合は担当スクリプト `ai-assisted-qa-run-evidence.mjs` の `M06_CASE_IDS` として保持。`ai-assisted-qa-assessment.test.mjs` のモックも固定構造に戻し、重複ID拒否の負例を維持。Prettierが警告した3ファイルのうちM06.jsonの追加配列を撤去し、残り2ファイルも短い配列などの整形を修正。
+- **部分的に確認した新しいCI：** 固定HEAD `68f26855e54a16fcefffecc4b504f147d60afe01` の [CI Run 41950254754](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41950254754) では `build-production`、`build-automation`、`Training runtime contracts`、`Code Quality` が成功。`Style Quality` は `ai-assisted-qa-assessment-pinned-assets.test.mjs` の1ファイルのみ警告で失敗。その後、100文字以内に折り畳めるJSON負例の短い配列を整形したが、修正後のCI成功は未確認。
+- **受入判定：** 新規テストは固定HEADの `Vitest (contracts)` 成功を確認してからチェックする。Run証拠の偽造耐性にはself-generated receiptの限界が残るため、モックPASSだけで「架空ログは通過不能」とは断定しない。現時点のチェックは3/22のまま。
+
 ## 2026-11-05 継続作業・実装結果
 
 - **固定SHA取得の完了チェック：** `fetchPinnedAssessmentAsset`の検査と`tests/contracts/ai-assisted-qa-assessment-pinned-assets.test.mjs`の負例は、固定HEAD `25efa45848c43bc74e73dfc83984b50aef12806e`のGitHub Actions [Run 41946344709](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41946344709)で`Vitest (contracts)`成功。タスクリスト項目2をチェック。Run全体の`Style Quality`は`tests/contracts/ai-assisted-qa-assessment-pinned-assets.test.mjs`と`ai-assisted-qa-assessment.test.mjs`のPrettier失敗。2ファイルの折返しを再修正したが、修正後CIは未確認。
