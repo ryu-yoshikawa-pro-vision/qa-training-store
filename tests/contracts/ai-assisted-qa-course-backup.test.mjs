@@ -166,6 +166,62 @@ describe("Git-free Phase 1/2 learner backup", () => {
     }
   });
 
+  it("refuses an existing restore file swapped to a symlink before its no-follow read", () => {
+    const first = fixture();
+    write(first.root, "workspace/M00/submission.md", "answer\n");
+    exportLearnerWorkspace({ root: first.root, target: first.backup });
+    const second = fixture();
+    const target = write(second.root, "workspace/M00/submission.md", "answer\n");
+    const outside = write(second.root, "outside.md", "answer\n");
+    const open = fs.openSync.bind(fs);
+    let swapped = false;
+    const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && location === target) {
+        swapped = true;
+        fs.renameSync(target, target + ".original");
+        fs.symlinkSync(outside, target);
+      }
+      return open(location, ...args);
+    });
+    try {
+      expect(() => restoreLearnerWorkspace({ root: second.root, source: first.backup })).toThrow(
+        /ELOOP|symlink|no-follow|link/i,
+      );
+      expect(swapped).toBe(true);
+      expect(fs.readFileSync(outside, "utf8")).toBe("answer\n");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("refuses a backup archive swapped to a symlink before its no-follow read", () => {
+    const first = fixture();
+    write(first.root, "workspace/M01/submission.md", "answer\n");
+    exportLearnerWorkspace({ root: first.root, target: first.backup });
+    const second = fixture();
+    const outside = path.join(tempRoot, randomUUID() + ".json.gz");
+    fs.copyFileSync(first.backup, outside);
+    const open = fs.openSync.bind(fs);
+    let swapped = false;
+    const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && location === first.backup) {
+        swapped = true;
+        fs.renameSync(first.backup, first.backup + ".original");
+        fs.symlinkSync(outside, first.backup);
+      }
+      return open(location, ...args);
+    });
+    try {
+      expect(() => restoreLearnerWorkspace({ root: second.root, source: first.backup })).toThrow(
+        /ELOOP|symlink|no-follow|link/i,
+      );
+      expect(swapped).toBe(true);
+      expect(fs.existsSync(path.join(second.root, "workspace/M01/submission.md"))).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("blocks wrong source SHA or revision before any restore writes", () => {
     const first = fixture();
     write(first.root, "workspace/M00/submission.md", "answer\n");

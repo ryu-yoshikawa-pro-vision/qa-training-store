@@ -78,11 +78,36 @@ function safePath(root, relative) {
   return current;
 }
 
+function readUnchangedFile(absolute, expectedStat, label) {
+  if (!expectedStat?.isFile()) fail("not a regular file: " + label);
+  const noFollow = fs.constants.O_NOFOLLOW;
+  if (!Number.isInteger(noFollow) || noFollow === 0)
+    fail("safe no-follow file access is unsupported on this platform");
+  const descriptor = fs.openSync(absolute, fs.constants.O_RDONLY | noFollow);
+  try {
+    const opened = fs.fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      opened.size !== expectedStat.size ||
+      opened.dev !== expectedStat.dev ||
+      opened.ino !== expectedStat.ino
+    )
+      fail(label + " changed while being read");
+    const bytes = fs.readFileSync(descriptor);
+    if (bytes.length !== expectedStat.size) fail(label + " changed while being read");
+    return bytes;
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
 function courseIdentity(root) {
   const location = safePath(root, ".course/distribution-manifest.json");
   const stat = lstatIfExists(location);
   if (!stat?.isFile()) fail("verified learner distribution manifest is required");
-  const value = JSON.parse(fs.readFileSync(location, "utf8"));
+  const value = JSON.parse(
+    readUnchangedFile(location, stat, "learner distribution manifest").toString("utf8"),
+  );
   if (!/^[a-f0-9]{40}$/.test(value.source_sha ?? "") || !value.state_contract_revision)
     fail("learner source SHA or revision is invalid");
   return { source_sha: value.source_sha, revision: value.state_contract_revision };
@@ -136,25 +161,7 @@ function collectLearnerFiles(root) {
     if (!stat.isFile() || !safeRelative(relative)) fail("unsafe learner entry: " + relative);
     if (stat.size > MAX_FILE_BYTES || files.length >= MAX_FILES)
       fail("backup file size or count limit exceeded");
-    const noFollow = fs.constants.O_NOFOLLOW;
-    if (!Number.isInteger(noFollow) || noFollow === 0)
-      fail("safe no-follow file access is unsupported on this platform");
-    const descriptor = fs.openSync(absolute, fs.constants.O_RDONLY | noFollow);
-    let bytes;
-    try {
-      const opened = fs.fstatSync(descriptor);
-      if (
-        !opened.isFile() ||
-        opened.size !== stat.size ||
-        opened.dev !== stat.dev ||
-        opened.ino !== stat.ino
-      )
-        fail("learner file changed while being read");
-      bytes = fs.readFileSync(descriptor);
-    } finally {
-      fs.closeSync(descriptor);
-    }
-    if (bytes.length !== stat.size) fail("learner file changed while being read");
+    const bytes = readUnchangedFile(absolute, stat, "learner file");
     totalBytes += bytes.length;
     if (totalBytes > MAX_TOTAL_BYTES) fail("backup total size limit exceeded");
     if (TEXT_FILE.test(relative)) {
@@ -216,7 +223,7 @@ function unpack(root, archivePath) {
   const source = outsideRepository(root, archivePath, true);
   const stat = fs.lstatSync(source);
   if (stat.size > MAX_ARCHIVE_BYTES) fail("backup archive exceeds allowed size");
-  const bytes = gunzipSync(fs.readFileSync(source), {
+  const bytes = gunzipSync(readUnchangedFile(source, stat, "backup archive"), {
     maxOutputLength: Math.ceil((MAX_TOTAL_BYTES * 4) / 3) + MAX_FILES * 500,
   });
   const archive = JSON.parse(bytes.toString("utf8"));
@@ -269,7 +276,7 @@ export function restoreLearnerWorkspace({ root = ROOT, source }) {
   for (const { relative, data } of files) {
     const absolute = safePath(root, relative);
     const stat = lstatIfExists(absolute);
-    if (stat && (!stat.isFile() || !fs.readFileSync(absolute).equals(data)))
+    if (stat && (!stat.isFile() || !readUnchangedFile(absolute, stat, "existing learner file").equals(data)))
       fail("restore conflict; existing learner file was not overwritten: " + relative);
   }
   let restored = 0;
