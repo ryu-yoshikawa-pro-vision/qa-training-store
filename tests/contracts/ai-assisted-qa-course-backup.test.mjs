@@ -12,9 +12,7 @@ import {
 } from "../../training/course-sync/learner-workspace-backup.mjs";
 import { loadCourseManifest } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 
-const tempRoot = fs.realpathSync(
-  fs.mkdtempSync(path.join(tmpdir(), "learner-backup-contract-")),
-);
+const tempRoot = fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(), "learner-backup-contract-")));
 const identity = {
   source_sha: "a".repeat(40),
   state_contract_revision: "ai-assisted-qa-course-v3",
