@@ -79,6 +79,35 @@ it("does not inherit tutor AGENTS, config, credentials, or project directory", a
   expect(fs.existsSync(runtime.cwd)).toBe(false);
 });
 
+it("passes only an explicitly selected OpenCode credential into the isolated child", () => {
+  const source = {
+    PATH: process.env.PATH,
+    HOME: "/example/tutor",
+    OPENCODE_API_KEY: "test-selected-provider-key",
+    GITHUB_TOKEN: "test-github-key",
+    OPENAI_API_KEY: "test-other-provider-key",
+  };
+  const authorized = createIsolatedAssessmentRuntime({
+    source,
+    providerId: "opencode",
+  });
+  const unrelated = createIsolatedAssessmentRuntime({
+    source,
+    providerId: "unknown",
+  });
+  try {
+    expect(authorized.env.OPENCODE_API_KEY).toBe("test-selected-provider-key");
+    expect(authorized.env.GITHUB_TOKEN).toBeUndefined();
+    expect(authorized.env.OPENAI_API_KEY).toBeUndefined();
+    expect(unrelated.env.OPENCODE_API_KEY).toBeUndefined();
+    expect(authorized.cwd).not.toBe(unrelated.cwd);
+    expect(authorized.env.OPENCODE_DB).toBe(":memory:");
+  } finally {
+    authorized.dispose();
+    unrelated.dispose();
+  }
+});
+
 it("denies all tool categories and omits ambient instructions from assessor config", () => {
   const config = buildAssessmentAgentConfig({
     modelId: "opencode/free-model",
