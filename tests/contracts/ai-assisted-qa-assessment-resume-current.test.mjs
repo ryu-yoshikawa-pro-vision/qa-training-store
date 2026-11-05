@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { sha256 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 import {
+  assertReusableDeterministicChecks,
   assertReusableFinalizedAnswer,
   assertReusablePreparedInputs,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
@@ -124,4 +125,47 @@ it("rejects altered answers and receipts without rewriting history", () => {
   const originalHistory = JSON.stringify(saved.result);
   for (const changed of cases) expect(() => verify(changed)).toThrow(/create a new assessment/);
   expect(JSON.stringify(saved.result)).toBe(originalHistory);
+});
+
+it("rejects republishing a completed PASS after live deterministic evidence becomes invalid", () => {
+  const checks = [
+    { id: "M04-END-STRUCTURE", status: "passed" },
+    { id: "M10-GITHUB-RUN-EVIDENCE", status: "passed" },
+  ];
+  const result = {
+    completed: true,
+    deterministic_checks: [...checks, { id: "CALIBRATION", status: "passed" }],
+  };
+  const verify = (nextChecks, nextResult = result) =>
+    assertReusableDeterministicChecks(nextResult, nextChecks);
+  expect(() => verify(checks)).not.toThrow();
+
+  const invalid = [
+    [{ ...checks[0], status: "ungradable" }, checks[1]],
+    [checks[0], { ...checks[1], status: "blocked" }],
+    [checks[0]],
+    [checks[0], checks[0]],
+    [...checks, { id: "M07-PLAYWRIGHT-RUN-EVIDENCE", status: "passed" }],
+    [{ ...checks[0], id: "OTHER-END-STRUCTURE" }, checks[1]],
+  ];
+  for (const changed of invalid) {
+    expect(() => verify(changed)).toThrow(/create a new assessment/);
+  }
+  expect(() =>
+    verify(checks, {
+      ...result,
+      deterministic_checks: [checks[0], checks[0], result.deterministic_checks[2]],
+    }),
+  ).toThrow(/create a new assessment/);
+  expect(() => verify([], result)).toThrow(/create a new assessment/);
+
+  // An incomplete historical result may retain its blocked state, but must
+  // still describe the same current checks before it can be republished.
+  const blocked = [
+    { id: "M04-END-STRUCTURE", status: "passed" },
+    { id: "M10-GITHUB-RUN-EVIDENCE", status: "blocked" },
+  ];
+  const incomplete = { completed: false, deterministic_checks: blocked };
+  expect(() => verify(blocked, incomplete)).not.toThrow();
+  expect(() => verify(checks, incomplete)).toThrow(/create a new assessment/);
 });
