@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは7/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは8/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
 
 ## 変更範囲と受入の区別
 
@@ -50,8 +50,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 - [ ] 評価器のNode側が許可したspec/Configで新しいPlaywright Runを要求・検証する処理と、旧Run/手入力PASS/別spec拒否のfixture・CIテストを整備。本人spec・実Codespacesでの新Runによる受入は#199へ渡す
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
-- [ ] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す
+- [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
+
+## 2026-11-05 M10既存API検証の確認・Prettier修復
+
+- **項目21チェック済み：** `scripts/training/ai-assisted-qa-github-run-evidence.mjs`の`verifyGitHubRunEvidence`と`tests/contracts/ai-assisted-qa-github-run-evidence.test.mjs`を確認。PR head exact SHA、pull_request Run、run_attemptと成功Check/Job、Artifact digest、Zip内`target-sha.txt`とPlaywright JSON結果を別々に照合。API mockにはmerge-refの誤用、別Run attempt/Job、偽Artifact/異常digest、別spec、再試行・異常結果・権限過大workflowの拒否がある。トークンを実行証拠JSONへ格納できないschemaと、固定された読取りAPI呼び出し・権限不足時のBLOCKEDも確認。コードとテストは本PRで変更しておらず、固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d` の [Run 41953473479](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41953473479) `Vitest (contracts)`が成功。**Private repoの実API権限と実Run/Artifact照合は#199最終受入**に残し、実施済みとは記録しない。
+- **Style Qualityの差分確定：** 本PR HEAD `e4ceac26c4410ff0675c127942cd3d9f60a5d483` の [Run 41958961076](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41958961076) で診断用の一時的なVitestを実行。`Vitest (contracts)`は78 test files・1118 tests PASS。Prettier 3.8.1の差分は `tests/contracts/ai-assisted-qa-assessment.test.mjs` の `toThrow(/Usage: pnpm course:run/)` の改行のみだった。出力された差分どおりに1行へ修正し、診断専用テストファイルを削除済み。**修正後のStyle Quality成功は未確認**であり、該当CIの完了は待たない。
 
 ## 2026-11-05 M07外部import境界とCI記録
 
