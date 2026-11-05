@@ -3718,6 +3718,31 @@ it("exports a finalized assessment once without copying unexpected files", () =>
   expect(() => exportAssessment("P1", id, root)).toThrow(/already exists/);
 });
 
+it("exports Phase 2 without a Git or PR prerequisite and permits a new attempt", () => {
+  const root = path.join(tempRoot, "phase2-git-free-reassessment");
+  const assessmentId = "123e4567-e89b-42d3-a456-426614174024";
+  const newAssessmentId = "123e4567-e89b-42d3-a456-426614174025";
+  const attempt = path.join(root, ".course-assessments", "P2", "attempts", assessmentId);
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
+  fs.writeFileSync(path.join(attempt, "summary.md"), "# 復習対象\\n");
+  expect(parseAssessmentArgs(["M07", "--export", assessmentId])).toMatchObject({
+    action: "export",
+    phase: "P2",
+    assessmentId,
+  });
+  expect(() => parseAssessmentArgs(["M10", "--export", assessmentId])).toThrow(/Git-free/);
+  exportAssessment("P2", assessmentId, root);
+  const exported = path.join(root, "course-assessment-exports", assessmentId);
+  expect(fs.readdirSync(exported).sort()).toEqual(["result.json", "summary.md"]);
+  const nextAttempt = createAttemptDirectory(root, "P2", newAssessmentId);
+  expect(fs.statSync(nextAttempt).isDirectory()).toBe(true);
+  expect(fs.readFileSync(path.join(exported, "summary.md"), "utf8")).toBe("# 復習対象\\n");
+  expect(fs.readFileSync(path.join(attempt, "result.json"), "utf8")).toBe(
+    '{"completed":false}',
+  );
+});
+
 it("does not publish a partial export after a failed copy", () => {
   const root = path.join(tempRoot, "export-copy-failure");
   const id = "123e4567-e89b-42d3-a456-426614174010";
