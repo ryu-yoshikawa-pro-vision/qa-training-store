@@ -17,6 +17,8 @@
 
 Run receiptにはspec snapshot・JSON reportのSHA-256に加え、Trace等のattachmentのSHA-256も記録します。既存のreceiptにattachmentのSHA-256がない場合、添付物の改変を検出できないため正式な実行証拠として再利用せず、元の履歴を保持したまま新しい`course:run`で再実行してください。これらのハッシュはRun保存後の改変検出であり、外部から持ち込んだログが実際に実行されたことを単独で証明するものではありません。
 
+Traceが必須の失敗Runでは、失敗したテスト自身のPlaywright JSON reportにTrace添付が存在することを検査します。同じRun内の別のPASSテストにTraceがあっても失敗テストの証拠とは見なしません。添付ファイル・report・receiptのSHA-256一致も必要です。これらはローカルファイルの整合検査であり、Run記録一式を意図的に捏造した場合の実行証明にはなりません。
+
 ## M06のCASE-CARTごとの実行条件
 
 `course:run`は、M06の`cart-cases.spec.ts`で`CASE-CART-001`〜`003`、`new-case.spec.ts`で`004`・`005`を確認します。各Caseのtest本文にPlaywrightのAssertionが存在しない場合、たとえ`TODO`例外を削除して実行が正常終了する状態でも、Runの発行前に拒否します。正式評価で保存済みRunを再検証する際も、現在のspecと当時のsnapshotの両方に同条件を適用します。
@@ -61,6 +63,8 @@ M07の`workspace/M07/maintenance.spec.ts`は、教材の指定どおりPage Obje
 同じ`--resume`コマンドを再実行してください。
 `result.json`、`calibration-result.json`、`ai-candidate.json`などの評価記録は削除しないでください。
 別試行のロックは削除しないでください。
+
+同じ試行IDの`--resume`で完了済みの`result.json`を再公開する場合も、現在の配布source・scoring/rubricのHash・状態revision・必須目標・提出ファイル・Run証拠・live challenge/回答のSHAを検査します。不一致・ファイル欠落があれば旧結果と履歴を保持して再公開を中止し、**新規試行IDでの再評価**を求めます。Phase 3ではGitHub APIの現行Run確認も必要です。オフラインやAPI障害では完了済み結果の自動復旧ができない場合があり、その場合は保存済み履歴の確認と接続復旧を先に実施します。
 
 ## 最新結果ポインタの公開中断
 
