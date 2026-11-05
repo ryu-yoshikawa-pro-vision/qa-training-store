@@ -18,7 +18,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 ## 入力・根拠・決定論的検査
 
-- [x] `course:assess` がM04/M07/M10を区別して正しい必須目標ID集合（22/15/14）、重複・欠落・不明IDを検査（固定HEADの契約テストと本節の直接照合で検証）
+- [x] `course:assess` がM04/M07/M10を区別して正しい必須目標ID集合（22/15/14）、重複・欠落・不明IDを検査（確認コマンド：`.github/workflows/ci.yml` の `pnpm run test:contracts`。固定HEAD `6fa63235fb5ff3db421ed4d8298afba07b659c38`、[Web CI Run 42009280765](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42009280765) の `Vitest (contracts)` 成功。証拠：`tests/contracts/ai-assisted-qa-assessment.test.mjs`、`scripts/training/ai-assisted-qa-assessment-core.mjs`、`scripts/training/ai-assisted-qa-assessment.mjs`。本人の実モデルでの必須ID判定は未確認、#199最終受入へ移管）
 - [x] 固定`source_sha`で公開のscoring/rubric/referenceの必要な資料だけを読取り取得し、source/path/Hash/Schema/revisionの不整合・redirect・HTML等を拒否（固定HEAD `25efa45848c43bc74e73dfc83984b50aef12806e`、Web CI Run `41946344709` の `Vitest (contracts)` 成功。Prettier失敗は別途修正中）
 - [ ] 仕様・Skill・state/revision、本人の提出ファイル・Run/Trace・証拠Snapshotのpath/SHA-256を検証し、別HEAD/旧Run/架空ログをPASSにできないこと（**#199の最終実受入で判定・未チェック。** #217のNode検査・SHA/版照合・負例契約は実装済みだが、受講者がspec/report/receipt/Trace/Hashを一括偽造できる場合の独立した実行出自保証は未成立。信頼できる発行元・検証権限と拒否条件を#199で確認する。引継ぎ：[PR #199コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6655395515)）
 - [ ] M04の別条件・本人判断、M07のE2E before/after・Trace、M10のPR head/Run/Check/Artifact/target SHAを、それぞれ必要な実行証拠として独立に確認（**#199の最終実受入で判定・未チェック。** M04の別条件と本人回答、M07の本人Chromium before/after/Traceと業務意味、M10の本人Private PR/Run/Artifact API照合、認証済み実モデルの校正は未実施。#217の実装・モック結果と区別する。引継ぎ：[PR #199コメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6655395515)）
@@ -252,3 +252,9 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - 本人Private 2コアCodespacesでの新規Playwright RunとPrivate GitHub APIのRun/Artifact照合、個人成績の保全・再評価
 
 ここでのモックCI成功は実モデル校正の代替にならない。実モデル校正未達は正式修了をBLOCKEDとする。
+
+## 2026-11-05 PR #217 レビュー照合・統合時の依存事項
+
+- **M00 P04の架空誤回答：** PR #217のbase `docs/plan-ai-agent-qa-curriculum-redesign` の演習には当該条件がない。一方、[#214](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/214) の教材ブランチ `work/pr199-curriculum-phase1`、`training/ai-assisted-qa-course/exercises/M00/exercise.md` Blob `36267f0dd54573b043e16be6405b16606f4ffcae` には、架空誤回答の独立訂正・2資料の出典・実AIの回答との区別と提出証拠が追加済み。#217では他ブランチ所有の教材を重複編集せず、#199への統合時に教材と採点基準が両方含まれることを検証する。統合前の本PR単体ではCodeRabbitの指摘は未解決。
+- **M05 P05必須Run：** #217の `verifyModuleRunEvidence` は `p05-cart-locator.spec.ts|main` を追加要求する。公開 `M05.json` へ同じRunを単純移管すると、共有 `scripts/training/validate-ai-assisted-qa.ts` が要求する2件固定の `required_runs` と衝突してビルド・検証が失敗する。共有Validatorは#217の所有範囲外。#199で両定義とValidatorの同期を取り、その後にM05専用のコード注入を廃止するまでは変更しない。
+- **今回のレビュー対応：** `ai-assisted-qa-run-evidence.mjs` のローカルexport、Assertionの動的値確認と広いmatcher、TypeScript解析重複を修正し、`ai-assisted-qa-assessment-m07-dependencies.test.mjs` と `ai-assisted-qa-assessment-practical-criteria.test.mjs` に負例を追加。修正後HEADのCI結果は別途確認し、モックPASSを本人の実受入としない。
