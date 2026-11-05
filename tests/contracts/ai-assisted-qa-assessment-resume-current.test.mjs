@@ -81,7 +81,7 @@ function fixture() {
   return { inputManifest, inputs, savedChallenge: challenge, answer, receipt, result };
 }
 
-it("reuses a finalized assessment only with an identical prepared source and evidence snapshot", () => {
+it("reuses only an identical prepared source and evidence snapshot", () => {
   const { inputManifest, inputs } = fixture();
   expect(() => assertReusablePreparedInputs(inputManifest, inputs)).not.toThrow();
   const revisions = [
@@ -100,21 +100,27 @@ it("reuses a finalized assessment only with an identical prepared source and evi
   }
   const tampered = { ...inputManifest, input_snapshot: [] };
   expect(() => assertReusablePreparedInputs(tampered, inputs)).toThrow(/create a new assessment/);
-  expect(() => assertReusablePreparedInputs({ ...inputManifest, fingerprint: "0".repeat(64) }, inputs))
-    .toThrow(/create a new assessment/);
+  const invalidFingerprint = { ...inputManifest, fingerprint: "0".repeat(64) };
+  expect(() => assertReusablePreparedInputs(invalidFingerprint, inputs)).toThrow(
+    /create a new assessment/,
+  );
 });
 
-it("rejects a changed learner answer, challenge, or receipt without mutating historical results", () => {
+it("rejects altered answers and receipts without rewriting history", () => {
   const saved = fixture();
   const verify = (overrides = {}) =>
     assertReusableFinalizedAnswer({ ...saved, ...overrides });
   expect(verify).not.toThrow();
+  const changedResult = {
+    ...saved.result,
+    challenge: { ...saved.result.challenge, answer_sha256: "3".repeat(64) },
+  };
   const cases = [
     { answer: { ...saved.answer, answer_sha256: "0".repeat(64) } },
     { answer: { ...saved.answer, file_sha256: "1".repeat(64) } },
     { receipt: { ...saved.receipt, answer_sha256: "2".repeat(64) } },
     { receipt: { ...saved.receipt, challenge_id: "other" } },
-    { result: { ...saved.result, challenge: { ...saved.result.challenge, answer_sha256: "3".repeat(64) } } },
+    { result: changedResult },
     { inputManifest: { ...saved.inputManifest, challenge_sha256: "4".repeat(64) } },
     { savedChallenge: { ...saved.savedChallenge, id: "unrelated" } },
   ];
