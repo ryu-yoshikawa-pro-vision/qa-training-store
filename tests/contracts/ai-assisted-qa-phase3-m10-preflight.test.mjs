@@ -93,4 +93,36 @@ describe("M10-01 spec and dependency closure", () => {
     expect(workflow).not.toContain("pull_request_target:");
     expect(workflow).not.toContain("pnpm run build:web");
   });
+
+  it("documents first failures, follow-on artifacts and evidence-backed AI reporting", () => {
+    const lesson = read("docs/curriculum/ai-assisted-qa/modules/M10/README.md");
+    const exercise = read("training/ai-assisted-qa-course/exercises/M10/exercise.md");
+    const submission = read("training/ai-assisted-qa-course/exercises/M10/submission-template.md");
+    for (const kind of [
+      "Install失敗",
+      "配布検証失敗",
+      "Shop Serve失敗",
+      "Browser導入失敗",
+      "Assertion期待不一致",
+      "Artifact保存失敗",
+      "旧SHAの成功Run",
+    ]) {
+      expect(exercise).toContain(kind);
+      expect(submission).toContain(kind);
+    }
+    for (const condition of [
+      "M10-02 有効化前・後片付けの確認",
+      "M10-04 原因分類と再実行判断",
+      "M10-05 AI提案の採否と最終報告",
+      "Run ID/attempt",
+      "PLAYWRIGHT",
+    ]) {
+      const text = lesson + exercise + submission;
+      expect(text.toUpperCase()).toContain(condition.toUpperCase());
+    }
+    expect(lesson).toContain("if-no-files-found: error");
+    expect(lesson).toContain("同じRunでInstallとArtifact uploadの両方がFAIL");
+    expect(submission).toContain("残るリスク・未確認事項");
+    expect(submission).toContain("成功への読み替え禁止");
+  });
 });
