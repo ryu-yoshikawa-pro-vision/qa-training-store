@@ -11,6 +11,7 @@ const reference = read(
 const cartSpec = read("docs/spec/features/cart.md");
 const exercise = read("training/ai-assisted-qa-course/exercises/M06/exercise.md");
 
+/** M06教材から対象Case IDの定義部分を抽出する。 */
 function caseSection(source, id) {
   const starts = [...source.matchAll(/test\("M06 [^"\n]*CASE-CART-00[1-3][^"\n]*"/g)];
   const current = starts.find((match) => match[0].includes(id));
