@@ -165,3 +165,13 @@
 - 契約テストで5名称をそれぞれ生成`dist/**`に追加して同期が未書込で失敗する負例、および正常同期後に講師向けページをmanifestへ追加した改ざんを検出する負例を追加。
 - **この変更によって、旧ページが残るWeb Buildからの`course:sync`は成功しなくなる**。これは安全側の拒否であり、旧教材を公開Web側から除外したことではない。Web Build生成の修正・公開WebとTemplate双方の実確認は#199本体に[引継ぎコメント](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6652852811)で依頼した。
 - 上記修正後HEADの契約テスト結果は未確定。旧教材・講師向け資料の完全除外、最新Build Artifactの内容確認、再配布許諾の最終判定は**引き続き未完**で、専用タスクリストは**12/21件**のまま。
+
+## 2026-11-05 最新HEADのCIと本番Web Artifact実物照合
+
+- **監査元HEAD**：`7904bb6f4d3995ab6f97a0878af273547fbeb5f3`（PR #218、base `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`。監査時点のPR #199 HEADと一致）。本節を記録するcommit後のHEADについてCI成功を主張しない。
+- **同一監査元HEADのCI**：[Web CI #41991216665](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41991216665)が`success`。Vitest (contracts) 74ファイル・1120 PASS・1 expected fail・15 skipped、Training runtime contracts 2/2 PASS。Style Quality、Code Quality、Build、production smoke、Chromium E2E、verify、validateも成功。skippedはPASSに含めない。
+- **現物取得**：同Runの`web-dist-production`（Artifact ID `13398845703`）をZIPとして取得し、ローカル計算SHA-256 `5ca19ff169f2c7706f75a84bcd58aa62e381a93f31c1d3c551efb8410249979b`がGitHub記録の`digest`と一致。ZIP内312ファイル、Symlink 0。ファイル名検査では`assessment/reference-solutions/`、`assessment/scoring-tests/`、`assessment/completed-states/`、`.env`、`.git/`のパスなし。これは内容全体にSecret/個人情報が存在しないことの証明ではない。
+- **クイズ元データの照合**：`docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M10.json`が11件存在し、各ZIP内バイト列から算出したGit Blob SHA-1が監査元HEADの同パスのGitHub Blob SHAと**11/11一致**。Web BuildとGitソースのJSON照合であり、生成後Template側との全量実同期やブラウザ版表示を立証しない。
+- **旧教材の残存を最新Artifactで再現**：`docs/curriculum/00_learning-design.html`、`01_spreadsheet-test-design.html`、`02_competency-rubric.html`、`03_instructor-reference.html`、`04_learning-effort-reference.html`の5件が**全て存在**。講師向け`03_instructor-reference.html`も含む。現在の`verifyPublicFileContent()`はこれらの配布を拒否するため、**このArtifactを用いた`course:sync`成功は未実証であり、旧ページを残したままの配布成功を受け入れない**。Web生成側の除外はPR #199の所有範囲。
+- **公開評価基準との区別**：ZIPに`assessment/phase-1-rubric.md`〜`phase-3-rubric.md`の3件があるが、各本文は公開評価基準と明記。非公開の`scoring-tests`や模範解答と同一視しない。公開可否の最終判定・第三者権利の確認は引き続き未完。
+- **残条件**：実Shopの全import/asset/runtime依存閉包、旧Planの公開参照、Template/Webの教材本文・SHA/revision・異版BLOCKED、実`build:web → course:sync → verify-distribution → 再同期`、外部AI送信範囲・Git不要総合export・再配布権利・本人環境の実受入は未確認。**専用チェックリスト12/21件を維持**し、複合条件が残る項目にはチェックを追加しない。
