@@ -3,6 +3,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import readline from "node:readline/promises";
@@ -562,33 +563,71 @@ export function recordModelInvocation(input) {
   });
 }
 
+export function createIsolatedAssessmentRuntime({ source = process.env, platform = process.platform } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "qa-course-assessor-"));
+  try {
+    const config = path.join(root, "config");
+    const data = path.join(root, "data");
+    const cache = path.join(root, "cache");
+    for (const dir of [config, data, cache]) fs.mkdirSync(dir, { mode: 0o700 });
+    const env = buildOpenCodeEnvironment({
+      source,
+      platform,
+      extra: {
+        HOME: root,
+        USERPROFILE: root,
+        APPDATA: config,
+        LOCALAPPDATA: data,
+        XDG_CONFIG_HOME: config,
+        XDG_DATA_HOME: data,
+        XDG_CACHE_HOME: cache,
+        OPENCODE_CONFIG_DIR: config,
+        OPENCODE_DB: ":memory:",
+        OPENCODE_PURE: "true",
+        OPENCODE_DISABLE_PROJECT_CONFIG: "true",
+        OPENCODE_DISABLE_EXTERNAL_SKILLS: "true",
+      },
+    });
+    delete env.HOMEDRIVE;
+    delete env.HOMEPATH;
+    return { cwd: root, env, dispose: () => fs.rmSync(root, { recursive: true, force: true }) };
+  } catch (error) {
+    fs.rmSync(root, { recursive: true, force: true });
+    throw error;
+  }
+}
+
 async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, fileName }) {
   const promptPath = path.join(directory, fileName);
   writeImmutableOpenCodePrompt(promptPath, prompt);
-  const environment = buildOpenCodeEnvironment({
-    extra: {
-      OPENCODE_DB: ":memory:",
-      OPENCODE_DISABLE_PROJECT_CONFIG: "true",
-      OPENCODE_DISABLE_EXTERNAL_SKILLS: "true",
+  const runtime = createIsolatedAssessmentRuntime();
+  try {
+    const environment = {
+      ...runtime.env,
       OPENCODE_CONFIG_CONTENT: JSON.stringify(
         buildAssessmentAgentConfig({ modelId, agentId: ASSESSOR_ID, systemPrompt }),
       ),
-    },
-  });
-  const command = process.platform === "win32" ? "opencode.cmd" : "opencode";
-  const args = buildOpenCodeRunArgs({ modelId, agentId: ASSESSOR_ID, promptPath });
-  const result = await runCaptured(command, args, { cwd: ROOT, env: environment });
-  if (result.exitCode !== 0)
-    fail(
-      `BLOCKED: OpenCode CLI exited with code ${result.exitCode}; check provider authentication, rate limit, and quota before retrying`,
-    );
-  const events = parseOpenCodeJsonEvents(result.stdout, result.exitCode);
-  return {
-    value: parseStrictJsonResponse(events.response),
-    sessionId: events.sessionId,
-    promptSha256: sha256(prompt),
-    openCodeVersion: version,
-  };
+    };
+    const command = process.platform === "win32" ? "opencode.cmd" : "opencode";
+    const args = buildOpenCodeRunArgs({ modelId, agentId: ASSESSOR_ID, promptPath });
+    const result = await runCaptured(command, args, {
+      cwd: runtime.cwd,
+      env: environment,
+    });
+    if (result.exitCode !== 0)
+      fail(
+        `BLOCKED: OpenCode CLI exited with code ${result.exitCode}; check provider authentication, rate limit, and quota before retrying`,
+      );
+    const events = parseOpenCodeJsonEvents(result.stdout, result.exitCode);
+    return {
+      value: parseStrictJsonResponse(events.response),
+      sessionId: events.sessionId,
+      promptSha256: sha256(prompt),
+      openCodeVersion: version,
+    };
+  } finally {
+    runtime.dispose();
+  }
 }
 
 function buildCalibrationPrompt(inputs) {
