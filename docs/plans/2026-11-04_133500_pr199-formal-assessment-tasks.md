@@ -53,6 +53,15 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
 
+## 2026-11-05 モデル入力の境界とM06 no-op拒否
+
+- **前回HEADのCI：** 固定HEAD `511c342f00e23a1879be97febbdb5900fc8e6c2a` の [Run 41969416598](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41969416598) が全体成功。今回追加した修正の検証結果とは区別する。
+- **項目9・11（引き続き未チェック）：** `readChallengeAnswer`に通常ファイル/symlink拒否、256 KiB上限、UTF-8/NUL、Secret検査を追加。 `buildCalibrationPrompt`も4 MiB上限・Secret検査を実行する。`buildAssessmentPrompt`/校正Promptは文字列をJSONに格納し、学習者によるrole偽装やTool使用要求をデータとして扱う契約テスト`ai-assisted-qa-assessment-untrusted-input.test.mjs`を追加。NodeはToolイベントを拒否するが、実モデルの意味的な誘導を全面的に防いだとは言えない。11件のInjection校正fixtureに対する実モデルの重大誤PASS 0件は#199最終受入。
+- **公開出典の許可リスト：** `assertAllowedAssessmentSourcePath`で対象モジュールの教材/演習/クイズ/end-state、Phase知識グラフ、公開の仕様/演習契約、および外部Skillの固定repo/commitからの許可済み`SKILL.md`以外の参照を拒否。M00〜M10の全`scoring.sources`を受け入れ、`workspace`/`.github`/評価器コード/別モジュールの参照を拒否するテストを追加。各ファイル・合計・モデル入力のサイズ制限とSecret検査を保持。
+- **項目19（引き続き未チェック）：** `assertM06CaseAssertions`でM06の`CASE-CART-001〜005`を含む必須testにPlaywright AssertionがあることをAST検査し、`TODO`を除去しただけのno-op、定数に対する`expect(true)`、Case欠落・重複・構文異常を拒否する。 `course:run`実行前と保存済みRunの現行spec/snapshotの両方に適用。これは業務上の正しさの意味判定でも、偽のreceipt/JSON/Hashを同時生成した場合の実行証明でもないため、現時点で「架空ログをPASSにできない」とは宣言しない。
+- **検証：** `readChallengeAnswer`と外部モデル入力の負例、新規M06 Assertionテストを追加しているが、当該HEADの契約テストは未確認。中間Runの`Style Quality`は評価器・Run検証・新規2テストの整形不一致を検出。正確なPrettier差分取得用の一時契約テストを追加した。差分適用後にこの診断テストを削除する。現時点のチェックは14/22を維持する。
+- **#199での最終受入：** 本人が実Codespacesと認証済みOpenCodeを利用し、公開資料/本人成果物以外の情報が送られないこと、Prompt Injectionとno-opを実モデルが誤PASSしないこと、M06/07の新規Playwright Runと業務Assertionを、独立した元データ・ブラウザ結果で確認する。実現できないローカルRunの暗号学的な出自保証をモックで代用しない。
+
 ## 2026-11-05 評価CLI事前確認の分離とM07実行数
 
 - **版・モデル一覧も独立プロセスで検査：** `getOpenCodeVersion`と`verifyOpenCodeModelAvailable`を共通`runIsolatedOpenCodeCommand`へ統一し、正式評価と同様の独立HOME/CWD/Configと明示選択した`opencode/`の認証キーのみ使用。新しい`ai-assisted-qa-assessment-isolation.test.mjs`のmockでは、版確認のKeyなし、モデル列挙の選択Keyのみ、学習用HOME/Token未継承、正常・例外時の一時ディレクトリ削除を検証する。**変更後のCI成功は未確認。**
