@@ -145,6 +145,8 @@ it("rejects republishing a completed PASS after live deterministic evidence beco
     [checks[0], { ...checks[1], status: "blocked" }],
     [checks[0]],
     [checks[0], checks[0]],
+    [{ ...checks[0], run_id: "another-run" }, checks[1]],
+    [checks[0], { ...checks[1], target_sha: "a".repeat(40) }],
     [...checks, { id: "M07-PLAYWRIGHT-RUN-EVIDENCE", status: "passed" }],
     [{ ...checks[0], id: "OTHER-END-STRUCTURE" }, checks[1]],
   ];
@@ -168,4 +170,40 @@ it("rejects republishing a completed PASS after live deterministic evidence beco
   const incomplete = { completed: false, deterministic_checks: blocked };
   expect(() => verify(blocked, incomplete)).not.toThrow();
   expect(() => verify(checks, incomplete)).toThrow(/create a new assessment/);
+});
+
+it("requires exact evidence values even when live verification remains passed", () => {
+  const oldChecks = [
+    {
+      id: "M10-GITHUB-RUN-EVIDENCE",
+      status: "passed",
+      checks: [
+        { id: "M10-RUN", status: "passed", run_id: 123, workflow_run_head_sha: "a".repeat(40) },
+        { id: "M10-ARTIFACT", status: "passed", digest: "sha256:" + "b".repeat(64) },
+      ],
+    },
+  ];
+  const result = {
+    completed: true,
+    deterministic_checks: [...oldChecks, { id: "CALIBRATION", status: "passed" }],
+  };
+  expect(() => assertReusableDeterministicChecks(result, oldChecks)).not.toThrow();
+
+  for (const check of [
+    {
+      id: "M10-RUN",
+      status: "passed",
+      run_id: 124,
+      workflow_run_head_sha: "a".repeat(40),
+    },
+    { id: "M10-ARTIFACT", status: "passed", digest: "sha256:" + "c".repeat(64) },
+  ]) {
+    const modified = oldChecks.map((entry) => ({
+      ...entry,
+      checks: entry.checks.map((item) => (item.id === check.id ? check : item)),
+    }));
+    expect(() => assertReusableDeterministicChecks(result, modified)).toThrow(
+      /create a new assessment/,
+    );
+  }
 });
