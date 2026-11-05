@@ -405,7 +405,7 @@ pnpm course:run M06 new-case.spec.ts --label repeat
 | --- | --- | --- |
 | 前提（Role/State/Data） | Resetのscenario、Browser Context | 設定値・Run ID・前提の実観測 |
 | 操作（Journey） | 対象ページ、Locator、Action | 対象Caseの実行結果、必要なTrace |
-| 期待結果（BR/AC） | 数量や明細を直接確認するAssertion | JSON reportの対象test・期待/観測、実行時spec SHA |
+| 期待結果（BR/AC） | 数量や明細を直接確認するAssertion | `spec-snapshot.ts`で実行時のAssertionと期待値を確認し、`run-evidence.json`の`spec_sha256`と照合する。JSON reportでは対象testの結果と失敗時の詳細を確認する |
 
 ファイル名やPASSだけではこの対応を確認できません。Reportに対象Caseが含まれない、仕様を保証しないAssertionしかない、または修正前のRunを流用している場合は受入不可です。
 
