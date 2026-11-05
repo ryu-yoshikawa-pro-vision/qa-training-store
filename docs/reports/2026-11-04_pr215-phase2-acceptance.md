@@ -458,3 +458,38 @@
 - **意味と限界**：`tests/contracts/ai-assisted-qa-phase2-*`と既存M05〜M07の共通契約テストが品質ゲートを通過したことを確認した。`training-web-baseline`は`pnpm run training:web:baseline`＋`playwright.training.config.ts`であり、`playwright.ai-assisted-qa.config.ts`を使ったM06参考spec、M07参考spec・本人specの専用Chromium成功ではない。CI上の`passed`を本人学習目標・正式採点PASSへ転用しない。
 - **今回の判定**：「M05〜M07の契約テストと既存検証を、最終**実装コード**を含むHEADでCI確認する」技術項目を完了とする。本項とタスクリストの追記で新しい**文書のみのHEAD**が作成されるため、そのHEADのCI成功までは主張しない。更新によって実装・テストの変更があれば改めて同一HEADで検証する。
 - **引き続き未完了**：M06公開参考5testの専用Chromiumを使う固定/initial/repeatの3 Runは未実施。#217のM07保守後参考specは3件目の別ページ遷移が未実装で、専用実Runもない。#199最終実受入へ引継ぎ済み。
+
+
+## 2026-11-05 PR #215レビュー指摘の補修とM07保守Run再開条件
+
+- **検証範囲**：PR #215（補修開始時のHEAD `657e600762f56e621cd91b25c107f1c0ad8075ee`）のCodeRabbitレビュー8件を調査。M05 `cart_items.variantId`から`product_variants.id/sku`への照合、M06の`spec-snapshot.ts`/`run-evidence.json`/JSON reportの責務、M06参考Runごとの一意な出力先を教材・レポートで補修した。
+- **M07保全**：Codespacesの元アーカイブを展開して外部コピーの保存成功と誤判定する手順を廃止。WSL/Linuxのローカル非公開保管先にダウンロードした`phase2.tgz`のSHA-256を照合して復元する。Codespaces側で採取した原本SHAとの独立照合も必須。復元先の既存ディレクトリ・symlinkを拒否する。保全先は`umask 077`とディレクトリ権限700、作成ファイル権限600を用いる。アーカイブ生成**後**に保管先・復元結果を追記した`phase2-handoff.md`は、同じ非公開領域へ個別に再ダウンロードして両端のSHA-256一致を確認する。実受講者環境でのダウンロード・復元は未実施。
+- **回帰契約**：`tests/contracts/ai-assisted-qa-phase2-export-guard.test.mjs`に権限制限、元ファイル削除後のダウンロードコピー復元、改変コピー・既存復元先・symlink拒否を追加。新規`tests/contracts/ai-assisted-qa-phase2-m07-maintenance.test.mjs`は保守前2testの個別Reset/数量Assertion、保守後3test/fixture/Page Object、教材の別ページ再入場要求、before/afterの別Runとspec SHA証拠を静的に検査する。**これは専用Chromium実行の代用ではない**。
+- **PR #217との境界**：#215で参照する`assessment/playwright/M07/maintenance-after/cart.spec.ts`はBlob `32ae928733c440daaf7a9cc294c68a03e6b9a604`で、3件目が`page.reload()`のみ。#217 HEAD `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`では同ファイルがBlob `7a488032ae98efcbcf63fd867234fd7b44ee2613`になり、`page.goto("/products/product-mug")`→`page.goto("/cart")`を実装済み。#215に変更を重複反映しない。#217修正の統合後に採用SHAを再確認し、実Chromiumのbefore/afterを取得するまでM07-05は未完了。
+- **M06参考Chromium**：本レポートの固定3件・004/005初回・再実行コマンドは`mktemp -d`でそれぞれ新規出力先を作るよう修正。今回のGitHub接続作業環境では実行可能なcheckout/Shop/8082がないため、3 Run・実結果・Traceは**未取得**。前HEADのWeb CIが成功していても、`playwright.ai-assisted-qa.config.ts`の参照5test実行とは判定しない。
+
+### M07公開参考specのbefore/after（統合後の専用Chromium実行例）
+
+#217の保守後参考修正が採用されたGit HEADのcheckoutと、pnpm依存・Chromium・8082上のShopを準備する。配布済みShopを利用する場合は専用Configが要求する配布manifest/Shopの検証も先に通す。**次は本作業で実行したログではなく再開用コマンド**。出力ディレクトリは実行ごとに一意にし、実行終了コードを直後に採取する。Linux/Bashの例。
+
+```bash
+export PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082
+mkdir -p output/training/ai-assisted-qa
+export PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-before
+export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m07-reference-before-XXXXXXXX) || exit 1
+pnpm exec playwright test cart.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0
+printf '%s\n' "$?" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
+git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
+sha256sum "$PLAYWRIGHT_TEST_ROOT/cart.spec.ts" > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
+
+export PLAYWRIGHT_TEST_ROOT=training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after
+export AI_QA_OUTPUT_ROOT=$(mktemp -d output/training/ai-assisted-qa/m07-reference-after-XXXXXXXX) || exit 1
+pnpm exec playwright test cart.spec.ts --config=playwright.ai-assisted-qa.config.ts --project=ai-assisted-qa-chromium --retries=0
+printf '%s\n' "$?" > "$AI_QA_OUTPUT_ROOT/exit-code.txt"
+git rev-parse HEAD > "$AI_QA_OUTPUT_ROOT/head-sha.txt"
+sha256sum "$PLAYWRIGHT_TEST_ROOT/cart.spec.ts" > "$AI_QA_OUTPUT_ROOT/spec-sha256.txt"
+```
+
+受入時は、beforeで2件・afterで3件の**対象testがすべて実行**されたこと、testごとのReset/独立性、数量1・2の業務Assertion、3件目の別ページ経由のCart再入場、終了コード、JSON reportの`config.rootDir`と`spec.file`、spec SHA/HEAD、必要な失敗時Trace/Screenshotを照合する。共有実行器の正式採点/学習者`course:run`とは別の**公開参考spec直接実行**であり、これだけで本人修了とはしない。
+
+**Progress: 94% (31/33)**。残件はM06参考5testの専用実Chromiumと、M07保守後参考の統合・専用実Runの2件。レビュー補修と静的契約を追加しても実Run未取得のチェックを完了へ変更しない。GitHub Actionsの新HEADでの結果は実際に確認できたRunだけを追記する。
