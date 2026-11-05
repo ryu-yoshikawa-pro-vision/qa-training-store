@@ -1041,8 +1041,8 @@ export async function fetchPinnedAssessmentAsset({ asset, sourceSha, fetchImpl =
 function verifiedCourseSource(root, distribution, sourcePath) {
   const entry = distribution.files.find((file) => file.target_path === sourcePath);
   if (!entry) fail(`file is not included in the pinned course distribution: ${sourcePath}`);
-  const absolute = resolveWithin(root, sourcePath);
-  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile())
+  const absolute = assertNoSymlinkPath(root, sourcePath, true);
+  if (!fs.existsSync(absolute) || !fs.lstatSync(absolute).isFile())
     fail(`distributed input is missing: ${sourcePath}`);
   const bytes = fs.readFileSync(absolute);
   if (sha256(bytes) !== entry.sha256) fail(`distributed input changed after sync: ${sourcePath}`);
