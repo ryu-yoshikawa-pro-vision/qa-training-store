@@ -82,9 +82,9 @@ function prepareAfterReference() {
   if (sha256(staged) !== sha256(source)) {
     throw new Error("PR #217 M07 after source changed while staging");
   }
-  const thirdTest = fs.readFileSync(staged, "utf8").split(
-    'test("数量2への変更はカートを開き直しても維持される"',
-  )[1];
+  const thirdTest = fs
+    .readFileSync(staged, "utf8")
+    .split('test("数量2への変更はカートを開き直しても維持される"')[1];
   if (
     !thirdTest ||
     !thirdTest.includes('page.goto("/products/product-mug")') ||
@@ -210,10 +210,7 @@ function main() {
     console.log("M07 reference " + entry.label + ": " + status + " (" + count + " tests)");
     if (validationError) console.error(validationError);
   }
-  fs.writeFileSync(
-    path.join(outputRoot, "summary.json"),
-    JSON.stringify(summary, null, 2) + "\n",
-  );
+  fs.writeFileSync(path.join(outputRoot, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
