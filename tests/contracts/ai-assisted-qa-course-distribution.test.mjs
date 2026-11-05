@@ -913,6 +913,42 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("blocks missing bundled Web runtime assets before writing and after manifest forgery", async () => {
+    const fixture = courseFixture();
+    const scriptPath = "dist/_expo/static/js/web/entry.js";
+    const assetPath = "assets/icons/back.png";
+    writeFixtureFile(
+      fixture.source,
+      scriptPath,
+      'const icon = {uri:"/assets/icons/back.png"};',
+    );
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web runtime asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(fixture.source, `dist/${assetPath}`, "fixture image");
+    await syncCourse(options);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(3);
+
+    const targetAsset = `course/shop/${assetPath}`;
+    fs.unlinkSync(path.join(fixture.target, targetAsset));
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.files = distribution.files.filter((entry) => entry.target_path !== targetAsset);
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /bundled Web runtime asset is missing/,
+    );
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
