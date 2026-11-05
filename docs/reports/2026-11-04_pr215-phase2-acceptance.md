@@ -438,3 +438,11 @@
 - **取得すべき証拠**：実行環境・採用Git HEAD/参照spec SHA、Shop/配布source SHAとConfig、3 Runそれぞれの終了コード、`playwright-result.json`内の`config.rootDir`・対象testのspec.file・期待件数（固定3、initial2、repeat2）・個別状態、HTML report、失敗時Trace/Screenshot/Video、Reset Seedと実行順序。成功時は`retain-on-failure`のTraceを必須としない。参考specが成功しても本人の独立実装・初回/再実行成功ではない。
 - **追加不整合（#217担当）**：`remove-item.spec.ts`のtest名は`M06 reference: remove the only item from the guest cart`で`CASE-CART-004`を含まない。一方005参考test名は`CASE-CART-005`を含み、教材/提出は両Case IDと別Runの照合を要求する。削除の業務内容は004に対応するが、reportのtest名からの機械的照合を困難にする。[#217へ追加引継ぎ済み](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)。具体的な評価失敗は未再現なので断定しない。
 - **判定**：本項目は**未完了**。再現可能な環境と3 Runの実証が必要であり、設定と実行方法の記録だけでチェックを付けない。本人実受入は#199の最後に実施する。
+
+## 2026-11-05 最終コードHEADのCI成功
+
+- **検証対象HEAD**：`9e5dc5ab7496720aee579660ab9f0a125001c562`。このHEADは本項追加前のPR #215最新コミットで、M05〜M07の教材と専用契約テスト、既存のPrettier修正、M06参考spec再開手順とタスクリストを含む。
+- **GitHub Actionsの結果**：[Web CI #41938306165](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41938306165) は `completed/success`。29ジョブ中27件が`success`、2件が`skipped`（`Extended E2E (mobile-chromium)`と`deploy-production`）で、`failure`は0件。`Vitest (contracts)`、`Training runtime contracts`、`Style Quality`、`Code Quality`、`Vitest (unit/integration/component/repository)`、`build-production`、`Chromium E2E (training-web-baseline/required/accessibility/cross-role/mobile-boundary)`、`verify`、`validate`が成功した。
+- **意味と限界**：`tests/contracts/ai-assisted-qa-phase2-*`と既存M05〜M07の共通契約テストが品質ゲートを通過したことを確認した。`training-web-baseline`は`pnpm run training:web:baseline`＋`playwright.training.config.ts`であり、`playwright.ai-assisted-qa.config.ts`を使ったM06参考spec、M07参考spec・本人specの専用Chromium成功ではない。CI上の`passed`を本人学習目標・正式採点PASSへ転用しない。
+- **今回の判定**：「M05〜M07の契約テストと既存検証を、最終**実装コード**を含むHEADでCI確認する」技術項目を完了とする。本項とタスクリストの追記で新しい**文書のみのHEAD**が作成されるため、そのHEADのCI成功までは主張しない。更新によって実装・テストの変更があれば改めて同一HEADで検証する。
+- **引き続き未完了**：M06公開参考5testの専用Chromiumを使う固定/initial/repeatの3 Runは未実施。#217のM07保守後参考specは3件目の別ページ遷移が未実装で、専用実Runもない。#199最終実受入へ引継ぎ済み。
