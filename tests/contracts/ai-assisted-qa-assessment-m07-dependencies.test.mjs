@@ -1,8 +1,10 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assertM07SourceDependencies,
+  runAiAssistedQaSpecCli,
 } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
 const verify = (code, moduleId = "M07", specName = "maintenance.spec.ts") =>
@@ -42,6 +44,25 @@ describe("M07 maintenance Playwright source dependency closure", () => {
       'import { something } from "node:fs";',
     ]) {
       expect(() => verify(code)).toThrow(/untracked/);
+    }
+  });
+
+  it("blocks an untracked M07 import before starting Playwright", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "m07-import-boundary-"));
+    try {
+      const moduleRoot = path.join(root, "workspace", "M07");
+      fs.mkdirSync(moduleRoot, { recursive: true });
+      fs.writeFileSync(
+        path.join(moduleRoot, "maintenance.spec.ts"),
+        'import { CartPage } from "./cart-page";',
+      );
+      const args = ["M07", "maintenance.spec.ts", "--label", "after"];
+      expect(() => runAiAssistedQaSpecCli(args, { root, sourceSha: "a".repeat(40) })).toThrow(
+        /untracked Page Object/,
+      );
+      expect(fs.existsSync(path.join(moduleRoot, "evidence"))).toBe(false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
     }
   });
 
