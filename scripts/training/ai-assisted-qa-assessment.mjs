@@ -294,8 +294,7 @@ async function loadPhaseInputs(phaseId) {
       checks: verifiedRun.checks,
     });
   }
-  const terminalStatePath =
-    `training/ai-assisted-qa-course/states/${phase.terminal}/end.json`;
+  const terminalStatePath = `training/ai-assisted-qa-course/states/${phase.terminal}/end.json`;
   const terminalStateBytes = readVerifiedCourseSource({
     root: ROOT,
     sourcePath: terminalStatePath,
