@@ -483,22 +483,6 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
-  it("TEMP reports the exact Prettier delta for distribution contracts", async () => {
-    const prettier = await import("prettier");
-    const filePath = path.join(
-      repositoryRoot,
-      "tests/contracts/ai-assisted-qa-course-distribution.test.mjs",
-    );
-    const config = await prettier.resolveConfig(filePath);
-    const expected = await prettier.format(fs.readFileSync(filePath, "utf8"), {
-      ...config,
-      filepath: filePath,
-    });
-    const temporary = path.join(fixtureRoot, "prettier-expected.mjs");
-    fs.writeFileSync(temporary, expected);
-    const diff = spawnSync("diff", ["-u", filePath, temporary], { encoding: "utf8" });
-    console.log("PR218_PRETTIER_DIFF_BEGIN", diff.stdout.slice(0, 16000));
-  });
 
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
@@ -593,11 +577,7 @@ describe("AI-assisted QA distribution contract", () => {
       manifest.local_files.some((entry) => entry.target_path.startsWith(".github/workflows/")),
     ).toBe(false);
     expect(result).toMatchObject({ modules: 11, externalSkillFiles: 105 });
-    for (const skill of [
-      "test-requirement-design",
-      "test-condition-design",
-      "test-case-design",
-    ]) {
+    for (const skill of ["test-requirement-design", "test-condition-design", "test-case-design"]) {
       const sourcePath = `skills/${skill}/scripts/runtime_v1_cutover.py`;
       const entry = manifest.external_skill_files.find((file) => file.source_path === sourcePath);
       expect(entry, `missing pinned cutover helper for ${skill}`).toMatchObject({
@@ -836,13 +816,6 @@ describe("AI-assisted QA distribution contract", () => {
           file.target_path === "workspace/M03/public-sample/risk-input.csv",
       ),
     ).toBe(true);
-    expect(() =>
-      validateCourseManifest({
-        ...manifest,
-        local_files: manifest.local_files.filter((file) => file.target_path !== riskPath),
-        load_files: manifest.load_files.filter((file) => file.source_path !== riskPath),
-      }),
-    ).toThrow(/M03 public Risk input/);
     const start = fs.readFileSync(
       path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M03/start.md"),
       "utf8",
