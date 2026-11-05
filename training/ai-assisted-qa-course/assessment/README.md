@@ -97,13 +97,21 @@ Nodeは標準出力のNDJSONを検査し、Tool使用・複数session・終了�
 
 ## 無料モデルの価格・利用可能性を送信前に確認
 
-正式評価を開始する際は`--model opencode/<model-id>`または`--model opencode-go/<model-id>`で明示的にモデルを選択してください。Nodeは回答送信前に次を順に検証します。
+正式評価を開始する際は`--model opencode/<model-id>`で明示的にモデルを選択してください。OpenCode Goは月額契約が必要になるため、モデル単価が0でも正式評価の無料モデルとしては許可しません。Nodeは回答送信前に次を順に検証します。
 
 1. 固定HTTPS URL `https://models.dev/api.json`へ読取りGETし、JSON・200・非redirect・20MiB上限を検証します。**学習者データ、Token、選択モデルIDをこのGETへ送信しません。**
 2. 選択した提供者・モデルIDがカタログに存在し、入力・出力・その他の公表単価が数値の0であることを確認します。有料・不明・欠落・非数値・非0の料金、401/429、ネットワーク障害、モデル未登録はすべて送信前に`blocked`として拒否します。
 3. 評価とは別の`opencode models`で指定したモデルIDが現在のCLIから列挙できるか確認します。認証不足・提供者未接続・モデル無効の場合はモデル評価へ進みません。本人の`SEND <model-id>`による送信同意は従来どおり必須です。
 
 `models.dev`は公開されている参考料金カタログであり、**実アカウントの課金条件や無料枠の残量を保証しません**。本人が提供者の最新料金・利用規約・認証・上限を確認してください。`-free`という名前だけで料金を推定せず、有料モデルへの自動切替や再送を行いません。無料価格が確認できない場合は停止します。事前確認で`blocked`となった試行は勝手に修了・採点せず、価格/接続が正常になれば同じ回答を再開できます。本人の契約と料金の最終受入は#199で実施します。
+
+## 正式評価と学習用OpenCodeの設定分離
+
+正式評価の`opencode run`は、リポジトリ・学習用セッションとは別の、権限を制限した一時ディレクトリを作業ディレクトリにして実行します。`HOME`/`USERPROFILE`、`XDG_CONFIG_HOME`/`APPDATA`、`XDG_DATA_HOME`/`LOCALAPPDATA`、`XDG_CACHE_HOME`を一時ディレクトリへ切り替え、`OPENCODE_DB=:memory:`を使用します。終了後は作業ディレクトリを削除します。`--pure`、`OPENCODE_DISABLE_PROJECT_CONFIG`、`OPENCODE_DISABLE_EXTERNAL_SKILLS`に加え、評価Agentと全体の`permissions`でShell/edit/Web/MCP/Skill/子Agentの操作を拒否します。既存の学習用`AGENTS.md`・CLI構成・プラグインを正式評価の指示に取り込まないための措置です。
+
+この分離では、通常のOpenCodeユーザーDBに保存した認証アカウントも**自動的には引き継ぎません**。明示選択した`opencode/`提供者に限り、利用者が自分で設定した`OPENCODE_API_KEY`を認証のために子プロセスの環境変数へ渡せます。Tokenを評価Prompt・結果JSON・READMEへ記録せず、他提供者のキーやGitHub Tokenは引き渡しません。提供者キーが不要なモデル以外では、適切な認証がなければ`blocked`となります。認証・セッションの実際の分離と権限拒否がOpenCode `2.0.22`で成立することは、#199のPrivate Codespaces実受入で確認してください。
+
+OpenCode V2では`OPENCODE_DISABLE_PROJECT_CONFIG`だけではグローバル`AGENTS.md`を無効にできないため、一時HOMEと作業ディレクトリの分離が必要です。管理者が適用するOpenCodeの設定・ポリシーは通常設定より優先されることがあるため、CLIの実設定と模擬権限拒否も#199で検査します。これらの契約テストは実際のLLMに対する権限拒否の保証ではありません。
 
 ## OpenCode呼び出し中断時の扱い
 
