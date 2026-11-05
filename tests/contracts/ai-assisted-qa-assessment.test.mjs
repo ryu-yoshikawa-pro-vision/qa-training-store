@@ -2876,15 +2876,13 @@ describe("AI-assisted QA formal assessment contracts", () => {
         `training/ai-assisted-qa-course/states/${terminal}/end.json`,
       );
       const terminalState = JSON.parse(fs.readFileSync(terminalStateFile, "utf8"));
+      const scoringDirectory = path.resolve(
+        "training/ai-assisted-qa-course/assessment/scoring-tests",
+      );
       const scoringByModule = new Map(
         modules.map((moduleId) => [
           moduleId,
-          JSON.parse(
-            fs.readFileSync(
-              path.resolve(`training/ai-assisted-qa-course/assessment/scoring-tests/${moduleId}.json`),
-              "utf8",
-            ),
-          ),
+          JSON.parse(fs.readFileSync(path.join(scoringDirectory, `${moduleId}.json`), "utf8")),
         ]),
       );
       const verify = (scoring = scoringByModule, state = terminalState) =>
