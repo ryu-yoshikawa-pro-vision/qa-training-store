@@ -1493,7 +1493,14 @@ async function verifyOpenCodeModelAvailable(modelId) {
       {
         cwd: ROOT,
         env: buildOpenCodeEnvironment({
-          extra: { OPENCODE_DISABLE_PROJECT_CONFIG: "true" },
+          extra: {
+            OPENCODE_DISABLE_PROJECT_CONFIG: "true",
+            ...(modelId.startsWith("opencode/") &&
+            typeof process.env.OPENCODE_API_KEY === "string" &&
+            process.env.OPENCODE_API_KEY.trim()
+              ? { OPENCODE_API_KEY: process.env.OPENCODE_API_KEY.trim() }
+              : {}),
+          },
         }),
         timeoutMs: 15_000,
         maxBytes: 256_000,
