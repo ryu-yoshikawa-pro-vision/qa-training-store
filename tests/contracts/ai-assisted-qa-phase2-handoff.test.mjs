@@ -10,10 +10,12 @@ const transitions = [
   ["M07", "M08", 3],
 ];
 
+/** 指定モジュールの学習開始・終了状態定義を読み込む。 */
 function loadState(moduleId, phase) {
   return JSON.parse(fs.readFileSync(path.join(statesRoot, moduleId, `${phase}.json`), "utf8"));
 }
 
+/** モジュール境界のID・revision・contract不一致を列挙する。 */
 function handoffErrors(source, destination, fromModule) {
   const outputs = new Map(source.outputs.map((entry) => [entry.artifact_id, entry]));
   const errors = [];
