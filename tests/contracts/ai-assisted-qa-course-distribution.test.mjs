@@ -489,20 +489,6 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
-  it("TEMP displays the precise core Prettier delta", async () => {
-    const prettier = await import("prettier");
-    const source = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course-core.mjs");
-    const config = await prettier.resolveConfig(source);
-    const target = await prettier.format(fs.readFileSync(source, "utf8"), {
-      ...config,
-      filepath: source,
-    });
-    const temporary = path.join(fixtureRoot, "core-prettier-expected.mjs");
-    fs.writeFileSync(temporary, target);
-    const diff = spawnSync("diff", ["-u", source, temporary], { encoding: "utf8" });
-    console.log("PR218_CORE_PRETTIER_DIFF", diff.stdout.slice(0, 20000));
-  });
-
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     for (const [field, value] of [
