@@ -521,6 +521,35 @@ export function assertReusablePreparedInputs(inputManifest, inputs) {
     );
 }
 
+export function assertReusableDeterministicChecks(result, currentChecks) {
+  // A saved PASS must not be republished when a live GitHub API or Playwright
+  // verification has become blocked, ungradable, or disappeared.
+  const saved = Array.isArray(result?.deterministic_checks)
+    ? result.deterministic_checks.filter(
+        (check) => check?.id !== "CALIBRATION" && check?.id !== "AI-ASSESSMENT",
+      )
+    : null;
+  if (
+    !Array.isArray(saved) ||
+    !Array.isArray(currentChecks) ||
+    currentChecks.length === 0 ||
+    saved.length !== currentChecks.length ||
+    new Set(saved.map((check) => check?.id)).size !== saved.length ||
+    new Set(currentChecks.map((check) => check?.id)).size !== currentChecks.length ||
+    currentChecks.some(
+      (check) =>
+        typeof check?.id !== "string" ||
+        !check.id ||
+        typeof check.status !== "string" ||
+        (result.completed === true && check.status !== "passed") ||
+        saved.find((previous) => previous.id === check.id)?.status !== check.status,
+    )
+  )
+    fail(
+      "current deterministic evidence checks differ from the saved assessment; create a new assessment and preserve the old result",
+    );
+}
+
 export function assertReusableFinalizedAnswer({
   inputManifest,
   savedChallenge,
@@ -1985,6 +2014,8 @@ async function resumeAttemptUnlocked(request) {
       assessmentId: request.resumeId,
     });
     const answer = readChallengeAnswer(path.join(attemptDirectory, "answers.md"), savedChallenge);
+    const savedResult = readJson(savedResultPath, "saved finalized assessment");
+    assertReusableDeterministicChecks(savedResult, inputs.deterministicChecks);
     assertReusableFinalizedAnswer({
       inputManifest,
       savedChallenge,
@@ -1993,7 +2024,7 @@ async function resumeAttemptUnlocked(request) {
         path.join(attemptDirectory, "challenge-answer.json"),
         "saved challenge answer",
       ),
-      result: readJson(savedResultPath, "saved finalized assessment"),
+      result: savedResult,
     });
   }
   const reconciled = reconcileFinalizedAssessment({
