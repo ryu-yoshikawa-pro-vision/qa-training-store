@@ -12,6 +12,7 @@ const references = [
 const runner = read("scripts/training/ai-assisted-qa-run-evidence.mjs");
 const resetSource = read("training/playwright/support/reset-scenario.ts");
 
+/** Reset処理の順序とmetadata不一致を確認する疑似Pageを作る。 */
 function fakePage({ metadataOverride } = {}) {
   const events = [];
   const state = { scenario: "uninitialized" };
@@ -26,6 +27,7 @@ function fakePage({ metadataOverride } = {}) {
     },
   };
 
+  /** ブラウザのtest APIを一時的に公開し、終了時に必ず復元する。 */
   async function inBrowser(callback) {
     const previous = globalThis.window;
     globalThis.window = { __TEST_API__: api };
