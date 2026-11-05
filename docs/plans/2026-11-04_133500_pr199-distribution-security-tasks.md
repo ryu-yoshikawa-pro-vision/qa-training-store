@@ -8,7 +8,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **6/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **7/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallbackを完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
@@ -34,7 +34,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
   - 証拠：[Web CI #41967650261 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)（HEAD `594a72b724eb`）で`rejects unknown, multiple, and traversal module IDs in the public load CLI` **PASS**（6負例：引数なし、M11、M00+M01、`../M00`、`M00/../M01`、`M00 M01`）。`binds the fixed SHA, loads one module, preserves learner edits, and checks states read-only`もPASS。実装`scripts/training/ai-assisted-qa-course.mjs`の`args.length===1`、`loadModule()`の`MODULE_ID_PATTERN=/^M(?:0[0-9]|10)$/`を確認。manifestのload対象は全11 ID。**同Run全体は別のM03検証不整合によりFAIL**、修正後HEADのCIは別確認。本人Private Codespacesでの全11実ロードは#199。
 - [ ] 全11モジュールの開始入力・Skill-localファイル・start/end revisionをmanifest/validator/契約テストで検査し、M03のAuthority/Risk/Scope欠落を拒否。学習者による実ロード・修了の判定は#199へ渡す
 - [ ] 同じID再ロード・他モジュールを含む既存workspace・提出/Trace/個人評価履歴を上書き・削除しないことを成功/途中失敗の両方で確認
-- [ ] 先行成果物を失った場合でも、公開可能な独立開始入力で着手でき、本人の前Phase修了を架空に復元しないこと
+- [x] 先行成果物を失った場合でも、公開可能な独立開始入力で着手でき、本人の前Phase修了を架空に復元しないこと
+  - 証拠：[Web CI #41970742046 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41970742046/job/127058237043)（HEAD `c1238c0961f9`、契約テスト74ファイル・1104件PASS）。`uses the module's public start sample when a predecessor artifact is absent`でM00成果物がないM01に`course:load`を実施し、`checkState(start)`の`status=ready`と`input.source=module-public-sample`を確認。`rejects forged fallback references before copying learner files`、`rejects predecessor ID, path, revision, and stale load-receipt mismatches`も同RunでPASS。現branchの11 start JSONすべてに`public_fallback.public=true`と本人提出物とは別のartifact/revisionが定義され、`loadModule`のreceiptは`learner_completion_inferred=false`を固定。公開サンプル利用は本人の前Phase修了を示さない。実個人環境の復元検証は#199。
 - [ ] Web生成物と学習Templateが同一のMarkdown/クイズJSON・固定SHA/revisionに対応することを静的/CIで検証し、異版時のBLOCKEDと再読込非上書き契約を確認。公開Webの実ブラウザ受入は#199へ渡す
 
 ## 配布除外・法的条件・安全性
