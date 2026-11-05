@@ -630,18 +630,43 @@ function validateWebQuizParity(files) {
   }
 }
 
-// Metro may embed runtime-only image URLs that never appear in HTML or CSS.
+const SHOP_STATIC_ASSET_EXTENSION =
+  /\.(?:css|js|mjs|json|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|html?|webmanifest)$/i;
+
+// Check both static HTML/CSS links and Metro image references embedded only in JS.
 function validateBundledShopAssets(files) {
+  const prefix = "course/shop/";
   const targets = new Map(files.map((file) => [file.target_path, file.bytes]));
+  const requireAsset = (file, href) => {
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\?)/i.test(href)) return;
+    const pathname = href.split(/[?#]/, 1)[0];
+    if (!pathname || !SHOP_STATIC_ASSET_EXTENSION.test(pathname)) return;
+    let decoded;
+    try {
+      decoded = decodeURIComponent(pathname);
+    } catch {
+      fail(`invalid Web asset URL: ${file.target_path} -> ${href}`);
+    }
+    const required = decoded.startsWith("/")
+      ? path.posix.normalize(prefix + decoded.slice(1))
+      : path.posix.normalize(path.posix.join(path.posix.dirname(file.target_path), decoded));
+    if (!required.startsWith(prefix) || !targets.has(required) || targets.get(required).length === 0)
+      fail(`bundled Web asset is missing from distribution: ${file.target_path} -> ${required}`);
+  };
   for (const file of files) {
-    if (!file.target_path.startsWith("course/shop/") || !file.target_path.endsWith(".js")) continue;
+    if (!file.target_path.startsWith(prefix)) continue;
     const source = file.bytes.toString("utf8");
-    for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g)) {
-      const required = `course/shop${match[1]}`;
-      if (!targets.has(required) || targets.get(required).length === 0)
-        fail(
-          `bundled Web runtime asset is missing from distribution: ${file.target_path} -> ${required}`,
-        );
+    if (file.target_path.endsWith(".html")) {
+      for (const match of source.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi))
+        requireAsset(file, match[1]);
+    }
+    if (file.target_path.endsWith(".css")) {
+      for (const match of source.matchAll(/\burl\s*\(\s*["']?([^)"'\s]+)["']?\s*\)/gi))
+        requireAsset(file, match[1]);
+    }
+    if (file.target_path.endsWith(".js")) {
+      for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g))
+        requireAsset(file, match[1]);
     }
   }
 }
