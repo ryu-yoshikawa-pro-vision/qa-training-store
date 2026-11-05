@@ -2,6 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  validateCourseWorkflow,
+} from "../../scripts/training/ai-assisted-qa-github-run-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const manifest = JSON.parse(
@@ -65,6 +68,28 @@ describe("M10-01 spec and dependency closure", () => {
     ]) {
       expect(distributed(needed, needed), needed + " was not distributed").toBe(true);
     }
+  });
+
+  it("validates separate M07 and M10 test roots against the same pinned workflow contract", () => {
+    const template = read(
+      "training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled",
+    );
+    const workflowPath = ".github/workflows/course-e2e.yml";
+    const learner = {
+      test_file: "workspace/M07/repaired-assertion.spec.ts",
+      test_root: "workspace/M07",
+    };
+    const fallback = {
+      test_file: "workspace/M10/public-sample/handoff-smoke.spec.ts",
+      test_root: "workspace/M10/public-sample",
+    };
+    const sample = template
+      .replace(learner.test_file, fallback.test_file)
+      .replace("PLAYWRIGHT_TEST_ROOT: workspace/M07", "PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+    expect(validateCourseWorkflow(template, workflowPath, learner).check_name).toBe("course-e2e");
+    expect(validateCourseWorkflow(sample, workflowPath, fallback).check_name).toBe("course-e2e");
+    expect(() => validateCourseWorkflow(template, workflowPath, fallback)).toThrow();
+    expect(() => validateCourseWorkflow(sample, workflowPath, learner)).toThrow();
   });
 
   it("requires reviewed paths and explicit activation without leaking learner files", () => {
