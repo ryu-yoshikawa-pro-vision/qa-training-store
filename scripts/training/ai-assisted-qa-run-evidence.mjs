@@ -331,6 +331,75 @@ export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specNa
     fail("Playwright JSON report test titles do not match the saved source snapshot");
 }
 
+function m07QuantityAssertionsByTest(specBytes) {
+  const source = ts.createSourceFile(
+    "maintenance.spec.ts",
+    specBytes.toString("utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (source.parseDiagnostics.length > 0)
+    fail("M07 maintenance snapshot contains invalid TypeScript syntax");
+  const values = new Map();
+  const visit = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "test" &&
+      node.arguments.length >= 2 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      const titles = new Set();
+      const scan = (child) => {
+        if (
+          ts.isCallExpression(child) &&
+          ts.isPropertyAccessExpression(child.expression) &&
+          child.expression.name.text === "toHaveValue" &&
+          child.arguments.length === 1 &&
+          ts.isStringLiteral(child.arguments[0]) &&
+          ["1", "2"].includes(child.arguments[0].text)
+        ) {
+          const receiver = child.expression.expression;
+          if (
+            ts.isCallExpression(receiver) &&
+            ts.isIdentifier(receiver.expression) &&
+            receiver.expression.text === "expect"
+          )
+            titles.add(child.arguments[0].text);
+        }
+        ts.forEachChild(child, scan);
+      };
+      scan(node.arguments[1]);
+      values.set(node.arguments[0].text, titles);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return values;
+}
+
+export function assertM07OriginalQuantityAssertions(beforeBytes, afterBytes) {
+  const before = m07QuantityAssertionsByTest(beforeBytes);
+  const after = m07QuantityAssertionsByTest(afterBytes);
+  const hasOne = [...before.values()].some((values) => values.has("1"));
+  const hasTwo = [...before.values()].some((values) => values.has("2"));
+  const distinctOriginalTests = [...before.entries()].some(
+    ([first, values]) =>
+      values.has("1") &&
+      [...before.entries()].some(([second, other]) => second !== first && other.has("2")),
+  );
+  if (!hasOne || !hasTwo || !distinctOriginalTests)
+    fail("M07 before snapshot lacks independent quantity 1 and quantity 2 assertions");
+  for (const [title, values] of before) {
+    if (
+      values.size > 0 &&
+      (!after.has(title) || [...values].some((value) => !after.get(title).has(value)))
+    )
+      fail("M07 after snapshot changed an original quantity assertion: " + title);
+  }
+}
+
 function relativeWorkspacePath(filePath, root = ROOT) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
@@ -601,6 +670,7 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
     record,
     failed_trace_present: extracted.failedTracePresent,
     current_spec_sha256: sha256(specBytes),
+    snapshot_bytes: snapshotBytes,
     paths: [
       relativeWorkspacePath(absolute, root),
       relativeWorkspacePath(reportPath, root),
@@ -1023,6 +1093,8 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
       if (!before || !after) continue;
       const changed = before.record.spec_sha256 !== after.record.spec_sha256;
       const ordered = Date.parse(after.record.started_at) > Date.parse(before.record.finished_at);
+      if (moduleId === "M07" && requirement.spec === "maintenance.spec.ts")
+        assertM07OriginalQuantityAssertions(before.snapshot_bytes, after.snapshot_bytes);
       checks.push({
         id: moduleId + "-BEFORE-AFTER-" + requirement.spec,
         status: changed && ordered ? "passed" : "ungradable",
