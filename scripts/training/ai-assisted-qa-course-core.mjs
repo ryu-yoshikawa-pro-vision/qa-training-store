@@ -269,7 +269,9 @@ export function validateCourseManifest(manifest) {
       fail(`invalid module_id in distribution manifest: ${entry.module_id}`);
     if (manifest.external_skill_files.includes(entry)) {
       if (
-        !/^skills\/[a-z0-9-]+\/(?:SKILL\.md|(?:assets|references|scripts)\/.+)$/.test(source) ||
+        !/^skills\/[a-z0-9-]+\/(?:SKILL\.md|(?:assets|references|scripts)\/.+)$/.test(
+          source,
+        ) ||
         !source.startsWith(`skills/${entry.skill}/`) ||
         target !== `.agents/${source}`
       )
@@ -665,7 +667,9 @@ export async function syncCourse({
   const distributionTargets = new Set();
   for (const file of files) {
     if (distributionTargets.has(file.target_path))
-      fail(`duplicate distribution target across local, Skill, and Shop files: ${file.target_path}`);
+      fail(
+        `duplicate distribution target across local, Skill, and Shop files: ${file.target_path}`,
+      );
     distributionTargets.add(file.target_path);
     verifyPublicFileContent(file.target_path, file.bytes);
   }
