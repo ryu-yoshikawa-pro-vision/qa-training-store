@@ -150,7 +150,7 @@ export function assertAllowedAssessmentSourcePath(moduleId, sourcePath, distribu
       : null;
   if (prefix && sourcePath.startsWith(prefix)) {
     const relative = sourcePath.slice(prefix.length);
-    const skill = relative.match(/^([a-z-]+)\/SKILL\.md$/)?.[1];
+    const skill = relative.match(/^([a-z0-9-]+)\/SKILL\.md$/)?.[1];
     if (skill && ALLOWED_ASSESSMENT_SKILLS.has(skill)) return sourcePath;
   }
   fail("assessment references a source outside the public allowlist: " + sourcePath);
