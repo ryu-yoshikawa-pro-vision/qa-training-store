@@ -707,6 +707,36 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("rejects forged learner links even when distribution hashes are rewritten", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "f".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const relativePath = "course/modules/M00/README.md";
+    const filePath = path.join(fixture.target, relativePath);
+    const changed = fs.readFileSync(filePath, "utf8") + "\\n[Missing](../../broken-secret.txt)\\n";
+    fs.writeFileSync(filePath, changed);
+    const distributionPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(distributionPath, "utf8"));
+    const entry = distribution.files.find((file) => file.target_path === relativePath);
+    entry.sha256 = createHash("sha256").update(changed).digest("hex");
+    entry.bytes = Buffer.byteLength(changed, "utf8");
+    fs.writeFileSync(distributionPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /public Markdown link is missing from distribution/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /public Markdown link is missing from distribution/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
   it("prepares and verifies a complete Template from a clean main Git fixture", () => {
     const fixture = courseFixture();
     const cliSource = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs");
