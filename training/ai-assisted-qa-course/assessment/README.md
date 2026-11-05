@@ -17,6 +17,18 @@
 
 Run receiptにはspec snapshot・JSON reportのSHA-256に加え、Trace等のattachmentのSHA-256も記録します。既存のreceiptにattachmentのSHA-256がない場合、添付物の改変を検出できないため正式な実行証拠として再利用せず、元の履歴を保持したまま新しい`course:run`で再実行してください。これらのハッシュはRun保存後の改変検出であり、外部から持ち込んだログが実際に実行されたことを単独で証明するものではありません。
 
+## M06のCASE-CARTごとの実行条件
+
+`course:run`は、M06の`cart-cases.spec.ts`で`CASE-CART-001`〜`003`、`new-case.spec.ts`で`004`・`005`を確認します。各Caseのtest本文にPlaywrightのAssertionが存在しない場合、たとえ`TODO`例外を削除して実行が正常終了する状態でも、Runの発行前に拒否します。正式評価で保存済みRunを再検証する際も、現在のspecと当時のsnapshotの両方に同条件を適用します。
+
+これは**Assertionの存在確認**であり、数量上限の拒否、元数量の維持、在庫上限など、業務上の正しさを静的に証明するものではありません。これらは実行結果・本人の根拠と採点基準で独立に確認します。`expect(true).toBe(true)`のような定数に対する形式的なAssertionは受け入れません。
+
+## 外部評価に送る資料の制限
+
+`course:assess`がモデルに渡す公開出典は、対象モジュールの教材・演習・クイズ・状態、Phaseの知識グラフ（対象Phaseのノードだけ）、公開仕様・演習用契約、固定commitの公開Skillに制限します。別モジュールの教材、評価器コード、任意の`workspace`ファイル、`.env`、GitHub workflowは出典として読み込みません。提出証拠は各end-stateの`required_paths`とRun検証で得られたパスから選び、1ファイル256 KiB、Phase合計2 MiBの上限とSecret検査を適用します。ライブ回答`answers.md`も256 KiB上限、UTF-8、通常ファイル、Secretの検査を行います。
+
+モデル入力はJSONで構造化し、本人回答・ログ・公開校正Case中の指示らしき文字列を**データ**として扱います。モデルからTool呼び出しイベントが返った場合は評価を中断します。ただし、これだけでモデルによるPrompt Injectionの意味的な誤判定を防げるとは限りません。公開校正のInjection負例と、#199での実モデル校正を別に確認します。
+
 ## M05 P05 の独立した実行証拠
 
 M05の`product-link.spec.ts` before/afterとは別に、P05の本人作成`workspace/M05/p05-cart-locator.spec.ts`を `pnpm course:run M05 p05-cart-locator.spec.ts --label main` で実行できます。Phase 2の正式評価では、このmain RunのPASSとspec snapshot・report・receiptのSHA-256を追加で要求します。公開の`scoring-tests/M05.json`の`required_runs`は配布Validatorとの固定契約により変更しません。追加Runの照合規則は評価器側に置きます。
