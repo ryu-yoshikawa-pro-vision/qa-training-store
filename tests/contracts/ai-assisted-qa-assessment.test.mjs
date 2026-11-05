@@ -2547,19 +2547,19 @@ function writeM05RunEvidence(
 ) {
   const workspaceRoot = path.join(root, "workspace");
   const moduleRoot = path.join(workspaceRoot, "M05");
-  const specPath = path.join(moduleRoot, "product-link.spec.ts");
   const relative = (filePath) => path.relative(root, filePath).split(path.sep).join("/");
-  const command = [
+  const commandFor = (specName) => [
     "pnpm",
     "exec",
     "playwright",
     "test",
-    "product-link.spec.ts",
+    specName,
     "--config=playwright.ai-assisted-qa.config.ts",
     "--project=ai-assisted-qa-chromium",
     "--retries=0",
   ].join(" ");
-  const run = ({ label, code, outcome, exitCode, time, runId, withTrace = false }) => {
+  const run = ({ label, code, outcome, exitCode, time, runId, withTrace = false, specName = "product-link.spec.ts" }) => {
+    const specPath = path.join(moduleRoot, specName);
     const runRoot = path.join(moduleRoot, "evidence", "runs", runId);
     fs.mkdirSync(runRoot, { recursive: true });
     const spec = Buffer.from(code);
@@ -2585,7 +2585,7 @@ function writeM05RunEvidence(
         {
           specs: [
             {
-              file: "product-link.spec.ts",
+              file: specName,
               title: "product link",
               tests: [
                 {
@@ -2616,13 +2616,13 @@ function writeM05RunEvidence(
         run_id: runId,
         module_id: "M05",
         source_sha: sourceSha,
-        spec_path: "workspace/M05/product-link.spec.ts",
+        spec_path: `workspace/M05/${specName}`,
         spec_sha256: sha256(spec),
         source_snapshot_path: relative(snapshotPath),
         source_snapshot_sha256: sha256(spec),
         label,
         project: "ai-assisted-qa-chromium",
-        command,
+        command: commandFor(specName),
         started_at: time,
         finished_at: new Date(Date.parse(time) + 1000).toISOString(),
         exit_code: exitCode,
@@ -2670,7 +2670,16 @@ function writeM05RunEvidence(
     time: "2026-10-27T00:00:02.000Z",
     runId: runIds[1],
   });
-  return { workspaceRoot, reportPath: after, beforeReportPath: before };
+  const p05ReportPath = run({
+    label: "main",
+    code: 'test("M05 P05 read-only cart locator", async () => expect(true).toBe(true));\n',
+    outcome: "passed",
+    exitCode: 0,
+    time: "2026-10-27T00:00:04.000Z",
+    runId: runIds[2] ?? runIds[1].slice(0, -3) + "002",
+    specName: "p05-cart-locator.spec.ts",
+  });
+  return { workspaceRoot, reportPath: after, beforeReportPath: before, p05ReportPath };
 }
 
 describe("AI-assisted QA formal assessment contracts", () => {
