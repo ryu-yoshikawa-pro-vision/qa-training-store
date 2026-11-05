@@ -77,7 +77,10 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
 3. Codespacesのターミナルで、リポジトリルートから次のように、本人の成果物**だけ**を一覧にします。ファイルが未作成なら原因を確認し、架空の出力や空のファイルを作って完了扱いにしません。 **既存の`phase2-files.txt`があれば上書きしません。** 過去のRunや追加ファイルの一覧を残したまま内容を確認し、必要な行だけ編集してください。
 
    ```bash
-   mkdir -p workspace/M07/exports
+   umask 077
+   test ! -L workspace/M07/exports || { echo "保全先のsymlinkは使用しません"; exit 1; }
+   mkdir -p workspace/M07/exports || exit 1
+   chmod 700 workspace/M07/exports || exit 1
    (
      set -C
      cat > workspace/M07/exports/phase2-files.txt <<'EOF'
@@ -100,6 +103,11 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
 5. 下記で対象パス・通常ファイルであることを確認し、アーカイブを作成してチェックサムを検証します。**既存の`phase2.tgz`とチェックサムは上書きしません。** 以前の保全物があれば先に保管・照合し、別のバックアップとして保持したうえで新規作成してください。エラーになったら途中のアーカイブを成功証拠として使いません。
 
    ```bash
+   umask 077
+   test -d workspace/M07/exports && test ! -L workspace/M07/exports || {
+     echo "保全先が存在しないかsymlinkです"; exit 1;
+   }
+   chmod 700 workspace/M07/exports || exit 1
    workspace_root=$(realpath -e workspace)
    manifest=workspace/M07/exports/phase2-files.txt
    test -s "$manifest" || { echo "ファイル一覧が空です"; exit 1; }
@@ -142,13 +150,28 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
    tar -tzf "$archive"
    ```
 
-6. `phase2.tgz`と`phase2.tgz.sha256`をCodespacesから本人だけがアクセスできるローカル保管先へダウンロードします。実際に保管したアーカイブのSHA-256を照合し、信頼できる**空の非公開ディレクトリ**で解凍して提出物・Run記録を読み取れることを確認します。公開URLやGitHub PRへ貼り付けず、`phase2-handoff.md`に保存先（個人情報・秘密情報を含まない表記）、SHA、復元確認の結果を記録します。
+6. `phase2.tgz`と`phase2.tgz.sha256`をCodespacesから**本人だけがアクセスできるローカル保管先**へダウンロードします。Codespaces上で`sha256sum workspace/M07/exports/phase2.tgz`を実行し、原本のSHA-256を別途記録してください。以下は**ダウンロードしたローカルコピー**が置かれたWSL/LinuxのBashで実行する手順です。あらかじめ本人専用の`$HOME/phase2-private`ディレクトリ（権限700）を作成して2ファイルを保存し、異なる場所を使う場合は`cd`のパスを読み替えてください。**Codespaces上の原本は復元確認に使いません。**
 
    ```bash
-   mkdir -p workspace/M07/exports/restore-check
-   tar -xzf workspace/M07/exports/phase2.tgz \
-     -C workspace/M07/exports/restore-check --no-same-owner --no-same-permissions
+   cd "$HOME/phase2-private" || exit 1
+   umask 077
+   test -f phase2.tgz && test ! -L phase2.tgz && \
+     test -f phase2.tgz.sha256 && test ! -L phase2.tgz.sha256 || {
+       echo "ダウンロードしたアーカイブまたはチェックサムがありません"; exit 1;
+     }
+   expected_sha=$(cut -d ' ' -f 1 phase2.tgz.sha256)
+   [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "チェックサム形式が不正です"; exit 1; }
+   printf '%s  phase2.tgz\n' "$expected_sha" | sha256sum -c - || exit 1
+   # 上の値をCodespaces側で記録した原本SHA-256とも照合する
+   restore_dir=./restore-check
+   test ! -e "$restore_dir" && test ! -L "$restore_dir" || {
+     echo "既存の復元先は使用しません"; exit 1;
+   }
+   mkdir -m 700 "$restore_dir" || exit 1
+   tar -xzf ./phase2.tgz -C "$restore_dir" --no-same-owner --no-same-permissions || exit 1
    ```
+
+   原本SHA-256との一致を確認したうえで、復元した提出物・Run記録を読み取れることを確認します。公開URLやGitHub PRには保存先やファイルを掲載しません。確認後にCodespacesの`workspace/M07/phase2-handoff.md`へ保管先（秘密情報や個人情報を含まない表記）・原本SHA-256・復元結果を追記します。**この追記はアーカイブ作成後なので、アーカイブ内の同名ファイルには含まれません。** 更新後の`phase2-handoff.md`も同じ非公開保管先へ**別ファイルとして再ダウンロード**し、Codespaces側とローカル側でそれぞれ`sha256sum`を実行して一致を確かめます。更新後のhandoffが未保全なら完了とは記録しません。
 
 この手順の確認項目は**ファイルの保全・同一性・読取り**です。コピーしたRun記録だけで未実施のテストをPASSにしたり、実際の製品や本人の修了を証明したりはできません。Codespacesでアーカイブ作成・ダウンロード・復元が行えなかった場合は未実施/BLOCKEDと書き、手順を実施したと偽らないでください。
 
