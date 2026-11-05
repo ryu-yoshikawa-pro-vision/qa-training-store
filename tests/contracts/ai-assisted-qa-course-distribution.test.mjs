@@ -489,6 +489,20 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
+  it("TEMP records the remaining test Prettier changes", async () => {
+    const prettier = await import("prettier");
+    const filePath = path.join(repositoryRoot, "tests/contracts/ai-assisted-qa-course-distribution.test.mjs");
+    const config = await prettier.resolveConfig(filePath);
+    const output = await prettier.format(fs.readFileSync(filePath, "utf8"), {
+      ...config,
+      filepath: filePath,
+    });
+    const temporary = path.join(fixtureRoot, "test-prettier-target.mjs");
+    fs.writeFileSync(temporary, output);
+    const diff = spawnSync("diff", ["-u", filePath, temporary], { encoding: "utf8" });
+    console.log("PR218_TEST_PRETTIER_DIFF", diff.stdout.slice(0, 16000));
+  });
+
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     for (const [field, value] of [
