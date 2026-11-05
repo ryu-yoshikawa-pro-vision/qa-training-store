@@ -31,10 +31,7 @@ export function validateM07Report(file, root, expectedNames) {
     for (const child of suite.suites ?? []) collect(child);
   }
   for (const suite of report.suites ?? []) collect(suite);
-  if (
-    specs.length !== expectedNames.length ||
-    specs.some((spec) => spec.file !== "cart.spec.ts")
-  ) {
+  if (specs.length !== expectedNames.length || specs.some((spec) => spec.file !== "cart.spec.ts")) {
     throw new Error("M07 report contains an unexpected spec or test count");
   }
   const names = specs.map((spec) => spec.title).sort();
@@ -72,12 +69,7 @@ function prepareAfterReference() {
   if (revision !== referenceCommit) {
     throw new Error("PR #217 reference checkout SHA does not match the pinned revision");
   }
-  const source = path.join(
-    referenceCheckout,
-    m07Root,
-    "maintenance-after",
-    "cart.spec.ts",
-  );
+  const source = path.join(referenceCheckout, m07Root, "maintenance-after", "cart.spec.ts");
   const blob = execFileSync("git", ["hash-object", source], { encoding: "utf8" }).trim();
   if (blob !== referenceBlob) {
     throw new Error("PR #217 M07 after spec does not match the pinned Git blob");
@@ -129,7 +121,11 @@ function main() {
   const before = path.join(m07Root, "maintenance-before");
   const after = prepareAfterReference();
   const cases = [
-    { label: "before", root: before, expectedNames: ["追加したマグは数量1", "数量を2へ変更できる"] },
+    {
+      label: "before",
+      root: before,
+      expectedNames: ["追加したマグは数量1", "数量を2へ変更できる"],
+    },
     {
       label: "after-pr217",
       root: after.directory,
@@ -158,12 +154,21 @@ function main() {
   for (const entry of cases) {
     const directory = fs.mkdtempSync(path.join(outputRoot, entry.label + "-"));
     const source = path.join(entry.root, "cart.spec.ts");
-    fs.writeFileSync(path.join(directory, "spec-sha256.txt"), sha256(source) + "  " + source + "\n");
+    fs.writeFileSync(
+      path.join(directory, "spec-sha256.txt"),
+      sha256(source) + "  " + source + "\n",
+    );
     fs.writeFileSync(path.join(directory, "checkout-sha.txt"), checkoutSha + "\n");
     fs.writeFileSync(path.join(directory, "source-pr-sha.txt"), prHeadSha + "\n");
     const args = [
-      "exec", "playwright", "test", "cart.spec.ts",
-      "--config=" + configFile, "--project=" + project, "--retries=0", "--workers=1",
+      "exec",
+      "playwright",
+      "test",
+      "cart.spec.ts",
+      "--config=" + configFile,
+      "--project=" + project,
+      "--retries=0",
+      "--workers=1",
     ];
     const result = spawnSync("pnpm", args, {
       cwd: process.cwd(),
@@ -205,7 +210,10 @@ function main() {
     console.log("M07 reference " + entry.label + ": " + status + " (" + count + " tests)");
     if (validationError) console.error(validationError);
   }
-  fs.writeFileSync(path.join(outputRoot, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
+  fs.writeFileSync(
+    path.join(outputRoot, "summary.json"),
+    JSON.stringify(summary, null, 2) + "\n",
+  );
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
@@ -218,8 +226,15 @@ function main() {
         "| --- | --- | --- |",
         ...summary.runs.map(
           (run) =>
-            "| " + run.label + " | " + run.observed_test_count + "/" +
-            run.expected_test_count + " | " + run.status + " |",
+            "| " +
+            run.label +
+            " | " +
+            run.observed_test_count +
+            "/" +
+            run.expected_test_count +
+            " | " +
+            run.status +
+            " |",
         ),
         "",
       ].join("\n"),
