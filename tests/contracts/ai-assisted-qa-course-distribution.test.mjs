@@ -787,6 +787,27 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.existsSync(sibling)).toBe(false);
   });
 
+  it("rejects unknown, multiple, and traversal module IDs in the public load CLI", () => {
+    const root = fs.mkdtempSync(path.join(fixtureRoot, "load-cli-"));
+    const cli = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs");
+    for (const [args, errorPattern] of [
+      [["load"], /one module only/],
+      [["load", "M11"], /exactly one module ID/],
+      [["load", "M00", "M01"], /one module only/],
+      [["load", "../M00"], /exactly one module ID/],
+      [["load", "M00/../M01"], /exactly one module ID/],
+      [["load", "M00 M01"], /exactly one module ID/],
+    ]) {
+      const result = spawnSync(process.execPath, [cli, ...args], {
+        cwd: root,
+        encoding: "utf8",
+      });
+      expect(result.status, `load ${args.join(" ")} must fail`).not.toBe(0);
+      expect(result.stderr).toMatch(errorPattern);
+      expect(fs.readdirSync(root)).toEqual([]);
+    }
+  });
+
   it("rejects invalid module load bindings before writing files", async () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const m05 = manifest.load_files.find(
