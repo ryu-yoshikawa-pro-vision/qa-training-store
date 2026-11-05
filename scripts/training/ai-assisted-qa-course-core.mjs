@@ -632,7 +632,7 @@ function validateWebQuizParity(files) {
 
 // Metro may embed runtime-only image URLs that never appear in HTML or CSS.
 function validateBundledShopAssets(files) {
-  const targets = new Set(files.map((file) => file.target_path));
+  const targets = new Map(files.map((file) => [file.target_path, file.bytes]));
   for (const file of files) {
     if (
       !file.target_path.startsWith("course/shop/") ||
@@ -642,7 +642,7 @@ function validateBundledShopAssets(files) {
     const source = file.bytes.toString("utf8");
     for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g)) {
       const required = `course/shop${match[1]}`;
-      if (!targets.has(required))
+      if (!targets.has(required) || targets.get(required).length === 0)
         fail(
           `bundled Web runtime asset is missing from distribution: ${file.target_path} -> ${required}`,
         );
