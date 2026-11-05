@@ -50,9 +50,9 @@ describe("formal evaluator pricing preflight", () => {
       cost_per_million: { input: 0, output: 0 },
     });
     const fetchImpl = vi.fn(async () => response());
-    expect(
-      await verifyCurrentFreeModelPrice("opencode/sample-free", { fetchImpl }),
-    ).toMatchObject(catalog);
+    expect(await verifyCurrentFreeModelPrice("opencode/sample-free", { fetchImpl })).toMatchObject(
+      catalog,
+    );
     expect(fetchImpl).toHaveBeenCalledWith(
       URL,
       expect.objectContaining({ method: "GET", redirect: "manual" }),
@@ -79,9 +79,7 @@ describe("formal evaluator pricing preflight", () => {
       const catalog = {
         opencode: { models: { "sample-free": { cost } } },
       };
-      expect(() => assertFreeModelCatalogEntry("opencode/sample-free", catalog)).toThrow(
-        /BLOCKED/,
-      );
+      expect(() => assertFreeModelCatalogEntry("opencode/sample-free", catalog)).toThrow(/BLOCKED/);
     }
   });
 
@@ -128,17 +126,15 @@ describe("formal evaluator pricing preflight", () => {
       "opencode/sample-free#paid\n",
       "",
     ]) {
-      expect(() => assertAvailableModelListing("opencode/sample-free", output)).toThrow(
-        /BLOCKED/,
-      );
+      expect(() => assertAvailableModelListing("opencode/sample-free", output)).toThrow(/BLOCKED/);
     }
   });
 
   it("never fetches a price for unsupported providers", async () => {
     const fetchImpl = vi.fn(async () => response());
-    await expect(
-      verifyCurrentFreeModelPrice("anthropic/paid", { fetchImpl }),
-    ).rejects.toThrow(/BLOCKED/);
+    await expect(verifyCurrentFreeModelPrice("anthropic/paid", { fetchImpl })).rejects.toThrow(
+      /BLOCKED/,
+    );
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
