@@ -917,11 +917,7 @@ describe("AI-assisted QA distribution contract", () => {
     const fixture = courseFixture();
     const scriptPath = "dist/_expo/static/js/web/entry.js";
     const assetPath = "assets/icons/back.png";
-    writeFixtureFile(
-      fixture.source,
-      scriptPath,
-      'const icon = {uri:"/assets/icons/back.png"};',
-    );
+    writeFixtureFile(fixture.source, scriptPath, 'const icon = {uri:"/assets/icons/back.png"};');
     const options = {
       root: fixture.source,
       target: fixture.target,
