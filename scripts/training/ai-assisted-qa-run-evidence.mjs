@@ -13,6 +13,11 @@ const MODULE_SPECS = Object.freeze({
   M07: new Set(["failure-assertion.spec.ts", "repaired-assertion.spec.ts", "maintenance.spec.ts"]),
 });
 const LABELS = new Set(["main", "initial", "repeat", "before", "after"]);
+const M06_CASE_IDS = Object.freeze({
+  "cart-cases.spec.ts|main": ["CASE-CART-001", "CASE-CART-002", "CASE-CART-003"],
+  "new-case.spec.ts|initial": ["CASE-CART-004", "CASE-CART-005"],
+  "new-case.spec.ts|repeat": ["CASE-CART-004", "CASE-CART-005"],
+});
 const MAX_EVIDENCE_BYTES = 256 * 1024;
 const SOURCE_SHA = /^[a-f0-9]{40}$/;
 const RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -657,11 +662,8 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         !LABELS.has(run?.label) ||
         !Number.isInteger(run?.minimum_tests) ||
         run.minimum_tests < 1 ||
-        (run.required_case_ids !== undefined &&
-          (!Array.isArray(run.required_case_ids) ||
-            run.required_case_ids.length !== run.minimum_tests ||
-            new Set(run.required_case_ids).size !== run.required_case_ids.length ||
-            run.required_case_ids.some((id) => !/^CASE-CART-00[1-5]$/.test(id)))) ||
+        (moduleId === "M06" &&
+          M06_CASE_IDS[run.spec + "|" + run.label]?.length !== run.minimum_tests) ||
         (run?.require_trace !== undefined && typeof run.require_trace !== "boolean") ||
         !["passed", "failed"].includes(run?.expected_outcome),
     )
@@ -747,11 +749,13 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
           typeof test.title === "string" ? test.title.match(/\bCASE-CART-00[1-5]\b/g) : null;
         return matched?.length === 1 ? matched[0] : null;
       });
+      const requiredCaseIds =
+        moduleId === "M06" ? M06_CASE_IDS[requirement.spec + "|" + requirement.label] : null;
       const casesComplete =
-        requirement.required_case_ids === undefined ||
-        (caseIds.length === requirement.required_case_ids.length &&
-          new Set(caseIds).size === requirement.required_case_ids.length &&
-          requirement.required_case_ids.every((id) => caseIds.includes(id)));
+        requiredCaseIds === null ||
+        (caseIds.length === requiredCaseIds.length &&
+          new Set(caseIds).size === requiredCaseIds.length &&
+          requiredCaseIds.every((id) => caseIds.includes(id)));
       const successful =
         requirement.expected_outcome === "passed"
           ? runPassed(record, requirement.minimum_tests) &&
@@ -771,7 +775,7 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
             : record.outcome === "blocked"
               ? "blocked"
               : "ungradable",
-        required_case_ids: requirement.required_case_ids ?? [],
+        required_case_ids: requiredCaseIds ?? [],
         verified_case_ids: caseIds.filter(Boolean),
         run_id: record.run_id,
         spec_sha256: record.spec_sha256,
