@@ -27,6 +27,23 @@ const evidence = {
   test_root: "workspace/M10/public-sample",
 };
 
+function reviewedWorkflow({ asBuffer = false } = {}) {
+  const template = fs.readFileSync(
+    path.join(
+      root,
+      "training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled",
+    ),
+    "utf8",
+  );
+  const workflow = template
+    .replace(
+      "workspace/M07/repaired-assertion.spec.ts",
+      "workspace/M10/public-sample/handoff-smoke.spec.ts",
+    )
+    .replace("PLAYWRIGHT_TEST_ROOT: workspace/M07", "PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+  return asBuffer ? Buffer.from(workflow, "utf8") : workflow;
+}
+
 function crc32(bytes) {
   let crc = 0xffffffff;
   for (const byte of bytes) {
@@ -193,13 +210,7 @@ describe("M10 GitHub Run evidence contract", () => {
   });
 
   it("restricts the workflow to exact PR-head checkout, one target spec and result artifact", () => {
-    const workflow = fs.readFileSync(
-      path.join(
-        root,
-        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
-      ),
-      "utf8",
-    );
+    const workflow = reviewedWorkflow();
     const result = validateCourseWorkflow(workflow, evidence.workflow_path, evidence);
     expect(result.check_name).toBe("course-e2e");
     expect(result.sha256).toMatch(/^[a-f0-9]{64}$/);
@@ -254,13 +265,7 @@ describe("M10 GitHub Run evidence contract", () => {
   });
 
   it("rejects workflow-level privilege, job overrides, and step-level bypasses", () => {
-    const workflow = fs.readFileSync(
-      path.join(
-        root,
-        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
-      ),
-      "utf8",
-    );
+    const workflow = reviewedWorkflow();
     const cases = [
       [
         workflow.replace("jobs:\n", "env:\n  BASH_ENV: ./bootstrap.sh\njobs:\n"),
@@ -317,8 +322,8 @@ describe("M10 GitHub Run evidence contract", () => {
       ],
       [
         workflow.replace(
-          "      - run: mkdir -p output/training/ai-assisted-qa\n      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
-          "      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt\n      - run: mkdir -p output/training/ai-assisted-qa",
+          "      - run: mkdir -p output/training/ai-assisted-qa",
+          "      - run: git rev-parse HEAD > output/training/ai-assisted-qa/target-sha.txt",
         ),
         /reviewed checkout, SHA, test, and upload order/,
       ],
@@ -335,6 +340,75 @@ describe("M10 GitHub Run evidence contract", () => {
     }
   });
 
+  it("accepts the actual distributed M07 workflow and rejects missing distribution guards", () => {
+    const template = fs.readFileSync(
+      path.join(
+        root,
+        "training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled",
+      ),
+      "utf8",
+    );
+    const m07Evidence = {
+      ...evidence,
+      test_file: "workspace/M07/repaired-assertion.spec.ts",
+      test_root: "workspace/M07",
+    };
+    expect(validateCourseWorkflow(template, evidence.workflow_path, m07Evidence).check_name).toBe(
+      "course-e2e",
+    );
+
+    const workflow = reviewedWorkflow();
+    const verifyStep = [
+      "      - name: Verify pinned learner distribution before browser setup",
+      "        run: |",
+      "          test -s course/shop/index.html",
+      "          test -s .course/distribution-manifest.json",
+      "          node scripts/training/ai-assisted-qa-course.mjs verify-distribution",
+      "",
+    ].join("\n");
+    const removedVerification = workflow.replace(verifyStep, "");
+    expect(removedVerification).not.toBe(workflow);
+    expect(() => validateCourseWorkflow(removedVerification, evidence.workflow_path, evidence))
+      .toThrow(/reviewed checkout, SHA, test, and upload order/);
+
+    for (const [changed, reason] of [
+      [
+        workflow.replace("node scripts/training/ai-assisted-qa-course.mjs verify-distribution", "pnpm run build:web"),
+        /unapproved shell command/,
+      ],
+      [
+        workflow.replace('PLAYWRIGHT_USE_PREBUILT_DIST: "true"', 'PLAYWRIGHT_USE_PREBUILT_DIST: "false"'),
+        /prebuilt distribution enabled/,
+      ],
+      [
+        workflow.replace('          PLAYWRIGHT_USE_PREBUILT_DIST: "true"\n', ""),
+        /prebuilt distribution enabled/,
+      ],
+      [
+        workflow.replace(
+          "Verify pinned learner distribution before browser setup",
+          "Skip distribution verification",
+        ),
+        /must identify the pinned distribution verification step/,
+      ],
+    ]) {
+      expect(changed).not.toBe(workflow);
+      expect(() => validateCourseWorkflow(changed, evidence.workflow_path, evidence)).toThrow(
+        reason,
+      );
+    }
+  });
+
+  it("rejects an earlier M10 fallback without distribution verification or prebuilt mode", () => {
+    const oldFallback = fs.readFileSync(
+      path.join(root, "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled"),
+      "utf8",
+    );
+    expect(() => validateCourseWorkflow(oldFallback, evidence.workflow_path, evidence)).toThrow(
+      /reviewed checkout, SHA, test, and upload order/,
+    );
+  });
+
   it("extracts only expected, bounded evidence from ZIP and rejects traversal", () => {
     const archive = makeZip([
       ["target-sha.txt", SHA],
@@ -348,12 +422,7 @@ describe("M10 GitHub Run evidence contract", () => {
   });
 
   it("rejects oversized GitHub API JSON responses before unbounded buffering", async () => {
-    const workflow = fs.readFileSync(
-      path.join(
-        root,
-        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
-      ),
-    );
+    const workflow = reviewedWorkflow({ asBuffer: true });
     const archive = makeZip([
       ["target-sha.txt", SHA],
       ["playwright-result.json", JSON.stringify(acceptedPlaywrightReport())],
@@ -405,12 +474,7 @@ describe("M10 GitHub Run evidence contract", () => {
   });
 
   it("rejects oversized Artifact responses before unbounded buffering", async () => {
-    const workflow = fs.readFileSync(
-      path.join(
-        root,
-        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
-      ),
-    );
+    const workflow = reviewedWorkflow({ asBuffer: true });
     const archive = makeZip([
       ["target-sha.txt", SHA],
       ["playwright-result.json", JSON.stringify(acceptedPlaywrightReport())],
@@ -463,12 +527,7 @@ describe("M10 GitHub Run evidence contract", () => {
   });
 
   it("binds PR head, successful Run/Check and Artifact contents", async () => {
-    const workflow = fs.readFileSync(
-      path.join(
-        root,
-        "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
-      ),
-    );
+    const workflow = reviewedWorkflow({ asBuffer: true });
     const archive = makeZip([
       ["target-sha.txt", SHA],
       ["playwright-result.json", JSON.stringify(acceptedPlaywrightReport())],
