@@ -1401,6 +1401,71 @@ function classifyPreflightFailure(error) {
   };
 }
 
+const PRICE_CATALOG_URL = "https://models.dev/api.json";
+const MAX_PRICE_CATALOG_BYTES = 20 * 1024 * 1024;
+
+export function assertFreeModelCatalogEntry(modelId, catalog) {
+  const [providerId, modelName, extra] = String(modelId).split("/");
+  if (extra || !["opencode", "opencode-go"].includes(providerId) || !modelName)
+    fail("BLOCKED: select an OpenCode free-tier provider/model; other providers may bill");
+  const model = catalog?.[providerId]?.models?.[modelName];
+  if (!model || model.status === "deprecated")
+    fail("BLOCKED: selected model is absent or deprecated in the current pricing catalog");
+  const cost = model.cost;
+  if (
+    !cost ||
+    typeof cost !== "object" ||
+    Array.isArray(cost) ||
+    !Number.isFinite(cost.input) ||
+    !Number.isFinite(cost.output) ||
+    Object.values(cost).some((value) => !Number.isFinite(value) || value !== 0) ||
+    Object.keys(model).some((key) => key !== "cost" && /^(?:cost|pricing)[_-]/i.test(key))
+  )
+    fail("BLOCKED: selected model pricing is paid, incomplete, or unknown");
+  return { model_id: modelId, catalog_url: PRICE_CATALOG_URL, cost_per_million: cost };
+}
+
+export async function verifyCurrentFreeModelPrice(modelId, { fetchImpl = fetch } = {}) {
+  if (!/^opencode(?:-go)?\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(modelId ?? ""))
+    fail("BLOCKED: select an OpenCode free-tier provider/model; other providers may bill");
+  let response;
+  try {
+    response = await fetchImpl(PRICE_CATALOG_URL, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    fail("BLOCKED: current model pricing is unavailable; no model request was sent");
+  }
+  const length = Number(response.headers?.get("content-length") ?? 0);
+  if (
+    response.status !== 200 ||
+    response.redirected === true ||
+    response.url !== PRICE_CATALOG_URL ||
+    !/^application\/json(?:;|$)/i.test(response.headers?.get("content-type") ?? "") ||
+    !Number.isFinite(length) ||
+    length < 0 ||
+    length > MAX_PRICE_CATALOG_BYTES
+  )
+    fail("BLOCKED: model price catalog returned an unsafe or unavailable response");
+  let raw;
+  try {
+    raw = await response.arrayBuffer();
+  } catch {
+    fail("BLOCKED: model price catalog could not be read");
+  }
+  if (raw.byteLength < 1 || raw.byteLength > MAX_PRICE_CATALOG_BYTES)
+    fail("BLOCKED: model price catalog response size is invalid");
+  let catalog;
+  try {
+    catalog = JSON.parse(Buffer.from(raw).toString("utf8"));
+  } catch {
+    fail("BLOCKED: model price catalog is not valid JSON");
+  }
+  return assertFreeModelCatalogEntry(modelId, catalog);
+}
+
 async function confirmExternalSend(modelId, phaseId, inputs) {
   if (!process.stdin.isTTY || !process.stdout.isTTY)
     fail(
@@ -1824,6 +1889,10 @@ async function resumeAttemptUnlocked(request) {
       recorded_at: new Date().toISOString(),
     });
   }
+  const pricing = await verifyCurrentFreeModelPrice(request.modelId);
+  console.log(
+    `公開料金カタログの確認: ${pricing.model_id}（入力・出力・その他の公表単価は0）。本人の契約・上限も確認してください。`,
+  );
   const consent = await confirmExternalSend(request.modelId, request.phase, inputs);
   if (!consent) {
     console.log(
