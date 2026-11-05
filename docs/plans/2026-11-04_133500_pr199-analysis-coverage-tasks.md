@@ -1,6 +1,6 @@
 # PR #199 分析台帳・要件照合タスクリスト
 
-> 対象：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。この文書は作業ブランチ専用の未完了タスクリスト。開始時に`AGENTS.md`、[並行分担Plan](./2026-11-04_pr199-parallel-branches.md)、関連仕様・テスト、最新HEAD/CIを確認する。
+> 対象：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。この文書は作業ブランチ専用のタスクリスト。開始時に`AGENTS.md`、[並行分担Plan](./2026-11-04_pr199-parallel-branches.md)、関連仕様・テスト、最新HEAD/CIを確認する。
 >
 > **完了判定**：各項目の受入条件と検証証拠（対象HEAD、ファイル/Case、コマンド・Run/ログ・結果）を記録してから`[x]`へ変更する。調査・テスト追加・CI通過だけでは自動的に分析/教材受入完了にしない。実行不能なら未チェックで理由と再開条件を残し、他の着手可能な項目へ進む。
 >
@@ -56,8 +56,8 @@
 ## 要件ID・実行証拠の受渡し（補完）
 
 - [x] 79要件ごとに、正式仕様のBR/ACと期待結果、参照Behavior/横断契約、Risk/TR/Condition/Caseの採否、根拠ファイル・検証結果・未決事項を追跡する。**既存`supported-behaviors.json`を正本**にし、必要なら同JSONから参照対応を導出する。別の手入力正本は増やさない。未レビュー要件をまとめて完了扱いにしない
-- [x] 29件の直接未参照要件を、個別Behavior・既存テスト・横断契約と要件ID別に静的照合し、既存Case ID・追加が必要なCase候補・不足条件・対象Role/State/Seedを追跡可能にして#219と#199へ引継ぐ。実Run結果・正式な製品適合判定の取得は#199最終実受入で行い、そこで確定するCase IDを現時点で捏造しない
-- [x] #219から受け取った採用Caseの実行証拠は対象HEAD/Case IDを確認し、台帳へ必要な根拠を反映する。#219の動的PASSを基本分析ステータスへ自動転記せず、製品修正は#210へ引継ぐ
+- [x] 29件の直接未参照要件を、個別Behavior・既存テスト・横断契約と要件ID別に静的照合し、既存テスト名・暫定Web証拠キー候補・追加が必要なCase候補・不足条件・対象Role/State/Seedを追跡可能にして#219と#199へ引継ぐ。実Run結果・正式な製品適合判定の取得は#199最終実受入で行い、そこで確定するCase IDを現時点で捏造しない
+- [x] #219から受領した部分実行証拠の対象HEAD/Run/job・テスト名・観測結果を照合し、台帳へ必要な根拠を反映する。正式Case IDの採否と全採用Caseの実受入は#199の最終工程に残し、#219の動的PASSを基本分析ステータスへ自動転記せず、製品修正は#210へ引継ぐ
 
 ## 個別基本分析の検証記録
 
@@ -169,7 +169,7 @@
 
 - 監査対象#213 HEAD：`9405a4fa41aacdfe5f3013c698b91b03e42692da`。仕様/実装/Seedの静的分析が操作188/188、非default状態20/20、要件79/79であることを台帳ID別に再集計。188操作は画面操作172＋独立Use Case16。非default状態は操作に二重加算しない。29件の直接参照なし要件は個別の代表Behaviorと横断契約を保持。**静的分類・基本分析率100%**と、実製品受入・直接実行の完了を区別する。
 - #219側参照の固定Blob：`docs/reports/2026-11-04_pr219-case-traceability.csv`（`7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea`）。953行すべて `acceptance_status=未受入`、895行に`condition_ref`、58行は空。208 Behaviorすべてを追跡している。79要件ごとに`requirement_analysis.sut_case_trace`へ、代表Behaviorと#219 CSV上の正確な`behavior_id`/`condition_ref`の組を記録し、参照先不在0件。合計205組の代表Behavior、条件参照993件、条件空44件（要件間の重複を含む）。仕様期待・Risk/TR/Case採否・横断契約の正本は既存`requirement_analysis`と各要件本文。
-- **未受入**：#219 CSVに独立`case_id`列がなく、記録した組は正式Case IDの発行を意味しない。各Caseの採用確定と動的PASS、実Run ID/exit code/DB・Trace・Visual・Androidは未取得。直接参照なし29件の「Case ID/条件」を最終確定するチェックと#219実行証拠受領チェックは、#219によるCase ID発行/採否・対象HEAD付きの実Run受渡し後に判定する。CIの完了は待たず、今回の直接`pnpm`実行は未実施。
+- **未受入**：#219 CSVに独立`case_id`列がなく、記録した組は正式Case IDの発行を意味しない。各Caseの採用確定と動的PASS、実Run ID/exit code/DB・Trace・Visual・Androidは未取得。29件のCase候補・既存テストの静的照合と#219から受領した一部の実Run証拠の台帳反映は、担当タスクとして完了チェック済み。これは正式Case IDの発行や全採用Caseの採否・実Run/DB/Android/Visual受入を意味せず、未受入条件は#199の最終工程で判定する。CIの完了は待たず、今回の直接`pnpm`実行は未実施。
 
 ### #219実行証拠の受渡し（2026-11-04）
 
@@ -181,7 +181,7 @@
 
 - #213差分確認：base #199 `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、レビュー直前HEAD `73013e3b336d4840623542b07b7bc826a35ba727`。変更4ファイルは`training/ai-assisted-qa-course/coverage/supported-behaviors.json`、`scripts/training/validate-supported-behaviors.mjs`、`tests/contracts/ai-assisted-qa-supported-behaviors.test.mjs`、本タスクリストだけ。製品SUT/正式仕様/Seed/Reset/他PR専有資料・共通知識グラフの変更なし。PRはDraftであり独立レビュー承認やマージ許可ではない。
 - #219へ[実Run/Case IDの不足依頼](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/219#issuecomment-6626681708)を投稿。#213へ[レビュー用証拠・未受入の説明](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/213#issuecomment-6626771774)を投稿。10 Behaviorの18件の部分証拠と製品FAIL/TEST ERRORは正本JSONに記録し、Runと該当Caseを分離した。
-- CI確認（完了待ちはしない）：旧HEAD `7df0503`の[Web CI #41802509407](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41802509407)でStyle QualityはPrettier警告によりfailure。対象は本PR専有のValidatorと契約テスト。後続コミット`a578d12`と`73013e3`で条件式・長行を修正したが**最新HEADでのStyle/契約/verify成功は未確認**。直接`pnpm`/Vitestコマンドはこの環境から未実行であり、実行したと記載しない。検証結果の実施/未実施と他ブランチ依頼をレビュー可能な形で記録したため本項目のチェックを付すが、別項目のValidator/CI受入は未チェックのまま残す。
+- CI確認（完了待ちはしない）：旧HEAD `7df0503`の[Web CI #41802509407](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41802509407)でStyle QualityはPrettier警告によりfailure。対象は本PR専有のValidatorと契約テスト。後続コミット`a578d12`と`73013e3`で条件式・長行を修正したが**最新HEADでのStyle/契約/verify成功は未確認**。直接`pnpm`/Vitestコマンドはこの環境から未実行であり、実行したと記載しない。検証結果の実施/未実施と他ブランチ依頼をレビュー可能な形で記録したため本項目のチェックを付した。Validator/CI受入は後続HEAD `d213e5b1` のWeb CI #41807455738で成功を確認し、担当タスクのチェックを完了した。後続コミットのCI結果をこのRunから推認しない。
 
 ### 分析台帳・Validator・契約テストの固定HEAD受入（2026-11-04）
 
@@ -227,7 +227,7 @@
 
 - 採用判断：記載した不足条件は`test_condition`に従う実行候補。仕様対象外のNative管理機能・Guest Checkout・iOS実機検証、成立しない状態遷移や同一Caseの二重計上は不要。その他の不足条件は「未受入」であり「未テスト確定」ではない。必要な既存Caseを再利用し、足りない観測だけを#219が追加・実行する。証拠のないPASSやテスト作成済みだけのPASSを採用しない。
 - #219への依頼：29の要件IDそれぞれに採用/既存兼用/不要/保留を判断し、独立Case ID（`behavior_id`・`condition_ref`だけでない）と既存テスト名・具体的assertion、Platform/Role/Seed/Clock、#199側か#210側か識別できる固定SUT/Test HEAD、期待・観測・Run/job/exit・DB前後・Trace/Visual/Androidの実在する証拠、未実施なら再開条件を返す。#219の953条件参照CSV（blob `7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea`）には`case_id`列がなく、受入状態は全件「未受入」。実行Case IDを**創作しない**。
-- **未チェックの理由**：#219から29要件別の正式Case IDと採否・Run対応がまだ届かない。上記は静的な照合・依頼条件の整理まで。Case ID確定後、実行済み/未実行/製品FAIL/TEST ERRORを要件別に台帳へ反映してから最終チェックする。CIの完了待ちは行わない。
+- **完了チェックの範囲**：本項目は29要件の既存テスト・Case候補・不足条件を静的に照合し、#219/#199へ引き継ぐ作業としてチェック済み。正式Case IDの採用・全採用CaseのRun対応、実行済み/未実行/製品FAIL/TEST ERRORの最終受入判定は未完了であり、#199の最終工程で証拠付きで確定する。
 
 ## 2026-11-05 29横断要件の静的Case再利用・受渡し
 
@@ -235,4 +235,4 @@
 - 29要件全ての `requirement_analysis.case_reuse_review` に、実在する既存テスト名・参照先（16ファイル）、Role/Platform/State/Seed、追加Case候補の不足条件、#219のWeb暫定証拠キー候補を記録。代表Behavior一致の候補キーがある要件は10件、ない要件は19件（候補参照43件、要件間重複含む）。テスト名や`PR219-WEB-`キーは正式Case IDではない。
 - 各要件で既存テストの該当assertionを再利用し、不足条件を追加Case候補として#219へ引き継ぐ。Native管理/Guest Checkout/iOS実機など対象外の条件をCaseに追加しない。既存テスト・候補キーがあること自体を要件PASSとしない。正式Case ID、Run/DB/Android/Visualの製品適合、#210未マージ修正の受入は引き続き未確定・未受入。
 - 専用契約テストに29件全ての既存テスト名の実在・固定CSV参照・必要メタデータ・未受入状態の検査を追加。GitHub上で16テストファイルの実際のテスト名を静的確認済み。ローカル`pnpm`/Vitestは未実行。
-- 変更前HEAD `111061fb3ee9a334ab15ed180e4c9f0488c1a85b` の [Web CI #41862801885](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41862801885) はworkflow全体success。変更後HEADのCIは別途確認する。24/24は#213の静的分析・証拠引継ぎであり、#219と#199の最終実受入完了を意味しない。
+- 変更前HEAD `111061fb3ee9a334ab15ed180e4c9f0488c1a85b` の [Web CI #41862801885](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41862801885) はworkflow全体success。変更後HEAD `3251b58` の [Web CI #41936366723](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41936366723) は2026-11-05にworkflow全体`completed/success`（Style・Code・Vitest・Chromium・verify・validate成功）。本節以降の変更HEADのCIは別のRunで確認する。24/24は#213の静的分析・証拠引継ぎであり、#219と#199の最終実受入完了を意味しない。
