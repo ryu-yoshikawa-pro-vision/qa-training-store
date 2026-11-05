@@ -21,8 +21,26 @@ const beforeCode = [
   "});",
 ].join("\n");
 const afterCode = [
-  beforeCode,
-  'test("cart reentry retains two", async ({ page }) => {',
+  'import { expect, test as base, type Page } from "@playwright/test";',
+  'import { resetScenario } from "../../training/playwright/support/reset-scenario";',
+  "class CartPage {",
+  "  constructor(private readonly page: Page) {}",
+  '  async addMug() { await this.page.goto("/products/product-mug"); }',
+  "}",
+  "const test = base.extend<{ cart: CartPage }>({",
+  '  cart: async ({ page }, use) => { await resetScenario(page, "default"); await use(new CartPage(page)); },',
+  "});",
+  'test("mug quantity one", async ({ page, cart }) => {',
+  "  await cart.addMug();",
+  '  await expect(page.getByLabel("数量")).toHaveValue("1");',
+  "});",
+  'test("quantity two", async ({ page, cart }) => {',
+  "  await cart.addMug();",
+  '  await expect(page.getByLabel("数量")).toHaveValue("2");',
+  "});",
+  'test("cart reentry retains two", async ({ page, cart }) => {',
+  "  await cart.addMug();",
+  '  await page.getByLabel("数量").selectOption("2");',
   '  await page.goto("/products/product-mug");',
   '  await page.goto("/cart");',
   '  await expect(page.getByLabel("数量")).toHaveValue("2");',
@@ -251,4 +269,21 @@ it("keeps invalid M07 Run evidence ungradable even if the AI asserts a passing L
   });
   expect(final.completed).toBe(false);
   expect(final.status).toBe("ungradable");
+});
+
+it("rejects M07 after runs that replace an original quantity assertion", () => {
+  const changed = afterCode.replace('toHaveValue("1")', 'toHaveValue("2")');
+  const proof = setupM07Runs({ after: changed }).verify();
+  expect(proof.status).toBe("ungradable");
+  expect(proof.reasons.join(" ")).toMatch(/changed an original quantity assertion/);
+});
+
+it("rejects M07 after runs that remove an original test assertion while retaining a fake PASS", () => {
+  const changed = afterCode.replace(
+    '  await expect(page.getByLabel("数量")).toHaveValue("1");',
+    '  await expect(page.getByLabel("数量")).toBeVisible();',
+  );
+  const proof = setupM07Runs({ after: changed }).verify();
+  expect(proof.status).toBe("ungradable");
+  expect(proof.reasons.join(" ")).toMatch(/changed an original quantity assertion/);
 });
