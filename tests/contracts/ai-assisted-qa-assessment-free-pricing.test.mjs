@@ -119,13 +119,13 @@ describe("formal evaluator pricing preflight", () => {
     expect(
       assertAvailableModelListing(
         "opencode/sample-free",
-        "opencode/other-free\\nopencode/sample-free\\n",
+        "opencode/other-free\nopencode/sample-free\n",
       ),
     ).toBe("opencode/sample-free");
     for (const output of [
-      "opencode/other-free\\n",
-      "opencode/sample-free-extra\\n",
-      "opencode/sample-free#paid\\n",
+      "opencode/other-free\n",
+      "opencode/sample-free-extra\n",
+      "opencode/sample-free#paid\n",
       "",
     ]) {
       expect(() => assertAvailableModelListing("opencode/sample-free", output)).toThrow(
