@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは16/22件。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`のCI Run `41972670377`は`Vitest (contracts)`85ファイル・1146件PASS、整形・Lint・Training runtime contracts・2ビルド・verify/validate成功。今回追加した完了2件はこの固定HEADの契約検証に基づく。以降の再開処理の修正は別HEADであり、CI未確認として完了に含めない。
+現在のチェックは18/22件。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`のCI Run `41972670377`は`Vitest (contracts)`85ファイル・1146件PASS、整形・Lint・Training runtime contracts・2ビルド・verify/validate成功。今回追加した完了2件はこの固定HEADの契約検証に基づく。以降の再開処理の修正は別HEADであり、CI未確認として完了に含めない。
 
 ## 変更範囲と受入の区別
 
@@ -42,13 +42,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 
 - [x] `workspace/.course-assessments/`への非公開保存、Git除外、外部送信最小化、Machine/人間可読結果・復習先の整合を確認（既存の結果保存・履歴・要約生成・秘密情報除外を固定HEAD `2a91cae0a57297a53ad783e6eb5a1c9550a252b0` の契約CI成功で確認。本人の送信承認は別途必要）
 - [x] 試行ID、排他`.resume.lock`、`.current-publish.lock`、中断→再開/競合を検証。古い正式結果を上書き/削除しない（既存の契約テストと固定HEADの成功済みCIを確認。根拠は下記）
-- [ ] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する
+- [x] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する（完了済み`result.json`の再公開前に現行source・提出SHA・Run/APIの決定論的チェック全内容を保存結果と照合し、変更・欠落・追加・旧Run・別digest・校正不一致を拒否。旧結果と`current.json`を変更せず新試行を要求。`ai-assisted-qa-assessment-resume-current.test.mjs`4件を含む固定HEAD `76b1690ab9d2faab6b571cf9db1ea89b9b3abaa7` の [CI Run 41988470969](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41988470969) `Vitest (contracts)` 87ファイル1157件PASS。整形は別途修正、実利用者の再開は#199で受入）
 - [x] Phase 1/2はGit/PRを必須にせず結果の安全なエクスポートと復習後の再挑戦ができること（P1/P2エクスポートとP3/未知Phase拒否、別IDの新試行、元の結果不変、途中失敗/中断・競合を契約テストで確認。HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、Web CI `41953473479`成功）
 - [ ] 変更した評価器の直接契約/負例・モック実行・既存CIを固定HEADで検証し、実モデル校正/Private Codespaces/本人認証について#199向け実施手順・期待値・未実行理由を記録
 
 ## 実行証拠の真正性・チューターとの分離（補完）
 
-- [ ] 評価器のNode側が許可したspec/Configで新しいPlaywright Runを要求・検証する処理と、旧Run/手入力PASS/別spec拒否のfixture・CIテストを整備。本人spec・実Codespacesでの新Runによる受入は#199へ渡す
+- [x] 評価器のNode側が許可したspec/Configで新しいPlaywright Runを要求・検証する処理と、旧Run/手入力PASS/別spec拒否のfixture・CIテストを整備。本人spec・実Codespacesでの新Runによる受入は#199へ渡す（`runAiAssistedQaSpecCli`は固定Config・許可specで毎回別Run IDを発行し、`verifyModuleRunEvidence`は不足receipt・旧source SHA・別spec/report・改ざん・不一致を拒否。新規`ai-assisted-qa-assessment-fresh-run.test.mjs`は模擬spawn2回のRun分離、固定起動引数、発行receiptと改ざん拒否を検証。固定HEAD `76b1690ab9d2faab6b571cf9db1ea89b9b3abaa7` の [Run 41988470969](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41988470969) `Vitest (contracts)`成功。ローカルreceipt/report/Hashの一括偽造に対する実行出自保証は本項目でなく上記真正性項目として未完了）
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
@@ -205,6 +205,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **今回の変更：** `scripts/training/ai-assisted-qa-assessment.mjs`で完成済み試行を再公開する前に`assertReusableDeterministicChecks`を呼び出し、保存結果と現行チェックのID・status・集合を照合。完成済みPASSは現行チェックがすべて`passed`の場合だけ再公開する。差異は旧結果・currentポインタを書き換える前に拒否し、新規試行IDを要求。`tests/contracts/ai-assisted-qa-assessment-resume-current.test.mjs`へPASS、Run失効、blocked、欠落、追加、重複、ID差異、未完了結果の負例を追加。`assessment/README.md`にもこの制約を記載。
 - **検証とチェック：** 上記固定HEADのCI成功は確認したが、今回追加した変更後の最終HEADに対するformatter/契約CIは未確認。この差分の動作をPASSとは扱わず、専用タスクリストの**16/22件は据え置き**。項目16（再開）と18（変更後CI）は修正後CI・結果保存/再公開の検証を確認してからチェックする。
 - **依然未受入：** 本人による実Chromium/Private Codespaces・認証OpenCode/Private GitHub API、同時に偽造されたローカルRun一式の実行出自、M07業務Assertionの意味判定、実モデルの重大誤PASS 0件は#199の最終実受入へ引き継ぐ。製品SUT、他PRの教材・共有Validatorは変更していない。Draft維持・自動マージしない。
+
+## 2026-11-05 続行：保存結果照合・M07 Assertion・正式Runの契約
+
+- **今回チェックした2項目（16→18/22件）：** 固定HEAD `76b1690ab9d2faab6b571cf9db1ea89b9b3abaa7` の [Web CI Run 41988470969](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41988470969) で`Vitest (contracts)`87ファイル・1157件PASS（expected fail 1、skip 15）。再開時の版/証拠/校正の不一致拒否と、新しい公式`course:run`のNode起動/Config・receipt検証項目をチェック。完成済み結果の再公開時には決定論的チェックのstatusに加え、Run ID・target SHA・Artifact digestを含む値全体を`isDeepStrictEqual`で照合する。
+- **M07の追加対応（未チェック項目の一部）：** `assertM07MaintenanceAssertions`で同一spec内のbefore各test2件以上・after各test3件以上に動的Playwright Assertionがあることを確認。重複名、空test、定数`expect(true)`のみのtestをRun前・現行spec・保存snapshotで拒否する。依存import閉包、before/after別SHA・順序のテストも成功。ただし数量・Reset・別ページ再入場の業務意味、before/afterのAssertion不変性は静的なテストだけでは保証できないためM07の補完項目は未チェック。
+- **整形とCI：** 同Runの`Style Quality`は`ai-assisted-qa-run-evidence.mjs`とM07契約テストのPrettier不一致で失敗。CIの一時診断からPrettier 3.8.1の正確な整形済み内容を取得して反映し、診断テストは除去した。今回の修正後の最新HEADに対する最終CIは未確認のため、変更後CI完了の項目はチェックしていない。
+- **引き続き未完了（4項目）：** ローカル証拠一式を意図的に偽造した場合の実行出自保証、M04/M07/M10実行証拠と本人判断の実受入、最新HEADの全品質ゲート、M07の業務Assertion意味評価・不変性。本人のPrivate Codespaces/認証OpenCode/Private GitHub/実モデル106 Case校正と重大誤PASS 0件は従前どおり#199最後に実受入する。製品SUT・共有Validator・他PRの専有ファイルは変更していない。
 
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
