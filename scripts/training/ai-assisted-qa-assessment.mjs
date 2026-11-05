@@ -458,8 +458,7 @@ export function readChallengeAnswer(filePath, challenge) {
   if (stat.size === 0 || stat.size > MAX_EVIDENCE_FILE_BYTES)
     fail("challenge answer size is outside the allowed bounds");
   const bytes = fs.readFileSync(filePath);
-  if (bytes.length !== stat.size)
-    fail("challenge answer changed while it was being read");
+  if (bytes.length !== stat.size) fail("challenge answer changed while it was being read");
   const text = bytes.toString("utf8");
   if (text.includes("\ufffd") || text.includes("\0"))
     fail("challenge answer is not valid UTF-8 text");
