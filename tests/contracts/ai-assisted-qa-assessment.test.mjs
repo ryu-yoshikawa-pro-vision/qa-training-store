@@ -3740,9 +3740,7 @@ it("exports Phase 2 without a Git or PR prerequisite and permits a new attempt",
   const nextAttempt = createAttemptDirectory(root, "P2", newAssessmentId);
   expect(fs.statSync(nextAttempt).isDirectory()).toBe(true);
   expect(fs.readFileSync(path.join(exported, "summary.md"), "utf8")).toBe("# 復習対象\\n");
-  expect(fs.readFileSync(path.join(attempt, "result.json"), "utf8")).toBe(
-    '{"completed":false}',
-  );
+  expect(fs.readFileSync(path.join(attempt, "result.json"), "utf8")).toBe('{"completed":false}');
 });
 
 it("does not publish a partial export after a failed copy", () => {
