@@ -155,6 +155,12 @@
       "role": "workspace-protection"
     },
     {
+      "source_path": "training/course-sync/learner-workspace-backup.md",
+      "target_path": "course/learner-workspace-backup.md",
+      "module_id": null,
+      "role": "guide"
+    },
+    {
       "source_path": "docs/curriculum/ai-assisted-qa/start-here.md",
       "target_path": "course/start-here.md",
       "module_id": null,
@@ -907,6 +913,12 @@
     {
       "source_path": "scripts/training/ai-assisted-qa-course.mjs",
       "target_path": "scripts/training/ai-assisted-qa-course.mjs",
+      "module_id": null,
+      "role": "runtime"
+    },
+    {
+      "source_path": "training/course-sync/learner-workspace-backup.mjs",
+      "target_path": "scripts/training/learner-workspace-backup.mjs",
       "module_id": null,
       "role": "runtime"
     },
