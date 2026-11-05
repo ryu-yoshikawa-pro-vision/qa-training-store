@@ -86,9 +86,10 @@ function makeDownloadedCopy(fixture) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "course-phase2-downloaded-"));
   temporaryDirectories.push(home);
   const local = path.join(home, "phase2-private");
+  const exportsDir = path.join(fixture.root, "workspace/M07/exports");
   fs.mkdirSync(local, { mode: 0o700 });
   for (const name of ["phase2.tgz", "phase2.tgz.sha256"]) {
-    fs.copyFileSync(path.join(fixture.root, "workspace/M07/exports", name), path.join(local, name));
+    fs.copyFileSync(path.join(exportsDir, name), path.join(local, name));
   }
   return { home, local };
 }
@@ -174,7 +175,8 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
     let result = runDownloadedRestore(home);
     expect(result.status).not.toBe(0);
     expect(fs.existsSync(path.join(local, "restore-check"))).toBe(false);
-    fs.copyFileSync(path.join(fixture.root, "workspace/M07/exports/phase2.tgz"), downloadedArchive);
+    const originalArchive = path.join(fixture.root, "workspace/M07/exports/phase2.tgz");
+    fs.copyFileSync(originalArchive, downloadedArchive);
 
     const existing = path.join(local, "restore-check");
     fs.mkdirSync(existing);
