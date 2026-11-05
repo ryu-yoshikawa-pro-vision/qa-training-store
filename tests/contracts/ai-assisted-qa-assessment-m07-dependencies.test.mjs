@@ -10,10 +10,9 @@ const verify = (code, moduleId = "M07", specName = "maintenance.spec.ts") =>
 
 describe("M07 maintenance Playwright source dependency closure", () => {
   it("accepts in-file Page Object and trusted Reset imports", () => {
-    const starter = fs.readFileSync(
-      path.resolve("training/ai-assisted-qa-course/inputs/M07", "maintenance.spec.ts"),
-      "utf8",
-    );
+    const starterRoot = path.resolve("training/ai-assisted-qa-course/inputs/M07");
+    const starterFile = path.join(starterRoot, "maintenance.spec.ts");
+    const starter = fs.readFileSync(starterFile, "utf8");
     expect(() => verify(starter)).not.toThrow();
     const after = [
       'import { expect, test as base, type Page } from "@playwright/test";',
