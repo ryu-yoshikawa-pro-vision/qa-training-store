@@ -1042,6 +1042,13 @@ export function verifySyncedCourseDistribution({ root }) {
     verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
+  validatePublishedMarkdownLinks(
+    [...filesByTarget.entries()].map(([targetPath, value]) => ({
+      target_path: targetPath,
+      role: value.entry.role,
+      bytes: value.bytes,
+    })),
+  );
 
   const m03PublicStart = filesByTarget.get(M03_PUBLIC_START_PATH);
   if (!m03PublicStart) fail("M03 public start input is missing from distribution");
