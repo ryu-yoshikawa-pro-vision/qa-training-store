@@ -1985,6 +1985,7 @@ async function resumeAttemptUnlocked(request) {
   const result = finalizeAssessment({
     candidate: normalizedCandidate,
     calibration,
+    requiredObjectiveIds: inputs.objectiveIds,
     sourceSha: inputs.sourceSha,
     versions: {
       assessment_cli: 1,
