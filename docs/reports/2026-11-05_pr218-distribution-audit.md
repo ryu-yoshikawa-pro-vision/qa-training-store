@@ -70,3 +70,19 @@
 - 後続commit `822a826d5ab1`で重複するM03強制guardを削除。既存の`loads the M03 public risk row only with M03 and requires it for the independent fallback`および静的参照テストによる対象範囲の確認を残した。診断用TEMPテストは`31154915f074`で削除し、CI内のPrettier APIが指摘した`for (const skill of [...])`の配列を1行へ整形した。**修正後HEADでのテスト・書式検査結果は未確定**。
 - 専用チェックリストに、個別PASSとソース照合の根拠を明記して固定SHA再同期、`course:load` ID境界、11モジュール/22状態、配布済みShopの`verify-distribution`・loopback 8082・Seed/Reset入口・全Buildへのfallback禁止を追加チェック。合計 **6/21件**。実Shopを含む`course:sync`結合実行、Private Codespaces Port/Reset/Browser、旧教材除外、全権利許諾は未完。
 - Webと配布元Git treeの11 quiz JSONは、CI Artifact `web-dist-production`（同Run `41967650261`）でGit Blob SHAとサイズが11/11一致。一方、公開Web側の`source_sha`表示・不一致時BLOCKED説明は未確定。引継ぎ：[PR #199 comment](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6649975046)。
+
+## 継続確認：Symlink・学習者データ保全・Python依存（2026-11-05）
+
+- 配布側`assertNoSymlinkPath()`とsync/loadの事前競合検査は、`fs.existsSync()`だけでは検出できないリンク先不存在Symlinkも`lstatIfExists()`で拒否するように変更。既存ファイルを変更せず停止する負例を追加。[Web CI #41972606658](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41972606658)ではdangling Symlink祖先/ファイル、およびmodule load先のSymlink負例が個別PASS。そのRun全体の失敗は別の追加fixtureテストに起因し、別途修正した。
+- [Web CI #41973229193 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41973229193/job/127066168734)（HEAD `9ae5efba9057ed875037d9f97ce45b4c662416aa`）は**74ファイル／1108件PASS**（診断用テスト1件を含む）。同Run内でM05成功・同一ID再load、M06意図的コピー失敗、M05回答改変後の再load拒否を通じて、M04以前回答、M05本人メモ、M06私有ファイル、Private評価履歴、Git不要の評価export、Traceと元receiptのバイト保持を確認。一時診断テストを削除し、Prettier差分（`linkedPath`の不要な折返し1箇所）を後続commitで修正。**新しいHEADでのStyle Quality結果は別確認**。
+- 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`から配布されるPython script **44件を全件読み、`import`/`from`の参照を確認**した。必須のSkill-local moduleは同じ配布manifest内に存在し、外部非標準Python packageの必須importは確認されなかった。13`SKILL.md`のMarkdown形式の相対リンクは0件（コード中のパス文字列の完全な静的網羅を意味しない）。`qa-workflow/scripts/artifact_graph.py`と`workflow_runtime.py`には配布対象外の`wcag-conformance-evaluation/scripts/wcag_em_structure.py`と`wcag_runtime.py`を呼ぶ任意経路がある。対象scriptがない場合はそれぞれ`blocked`を返す明示契約であり、今回の13 Skillカリキュラム経路の実行PASSではない。将来WCAG用途に使う場合は、その追加Skillの配布とruntimeを別に受け入れる。
+- Web CIの生成Artifactは312ファイル（ZIP内Symlinkは0）。公開Quiz 11件はBuild元Git Blobと一致、HTML/CSSの既知ローカル参照不在0。**旧教材・講師向け5ページの同梱は残存**するので、最終除外は依然未完。
+- M03の必要Risk CSVについて、配布manifestの`course/modules/M03/inputs/public-risk-input.csv`から`workspace/M03/public-sample/risk-input.csv`への配置を、source manifest・配布後manifest双方のvalidatorに追加。fixtureも実際のロード先と揃え、削除・誤配置・配布後のload entry改変を負例で検査する。Authority/Risk/Scopeの公開開始入力と、7つの固定Skill scriptも静的契約テストの照合対象。**この変更後HEADのCIは未確定なので11モジュール全入力の完全検証項目は保留**。
+
+## 外部AI関連の仕様照合（静的確認のみ）
+
+- `ai-assisted-qa-assessment-core.mjs`は、証拠1ファイル最大256 KiB、合計2 MiB、モデル入力最大4 MiB、既知Secretパターンを設定している。`ai-assisted-qa-assessment.mjs`は明示的な`SEND provider/model-id`確認、版固定・履歴のGit外保存を持つ。`ai-assisted-qa-course-tutor.mjs`も`START provider/model-id`で本人確認するが、通常セッションの外部送信履歴・認証/料金は実未確認。
+- `buildTutorConfig()`が用いるV2の`agents`/`permissions`と`opencode mini --model ... --prompt ...`形式は、[OpenCode V2 Agents](https://dev.opencode.ai/v2/docs/agents/)・[Permissions](https://dev.opencode.ai/v2/docs/permissions/)・[CLI](https://dev.opencode.ai/v2/docs/cli/commands/)に掲載された形式と一致する。認可が実runtimeで機能した証拠にはならない。V1の`agent`/`permission`と混同しない。
+- チューターの読取許可には`workspace/<moduleId>/*`があり、対象module内に受講者がSecretや個人情報を置くケースについて、文面上の警告のみでは外部送信防止を保証できない。正式評価側の正規表現も未知の個人情報を全検出しない。**外部送信/権限のチェックは未完**として#199の本人実確認と所有者側の検証に引き継ぐ。
+
+専用タスクリストは本追補時点で**9/21件チェック済み**。配布元からの実Build同期、再配布権利、旧教材除外、正式評価・チューターの実モデル権限など、完了証拠のない項目は未チェック。
