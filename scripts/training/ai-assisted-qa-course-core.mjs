@@ -580,7 +580,7 @@ const LEGACY_CURRICULUM_PAGES = new Set([
 
 function verifyPublicFileContent(targetPath, bytes) {
   if (targetPath.startsWith("course/shop/docs/curriculum/")) {
-    const name = path.posix.basename(targetPath).replace(/\\.(?:html|md)$/i, "");
+    const name = path.posix.basename(targetPath).replace(/\.(?:html|md)$/i, "");
     if (LEGACY_CURRICULUM_PAGES.has(name))
       fail(`legacy curriculum page must not be distributed: ${targetPath}`);
   }
