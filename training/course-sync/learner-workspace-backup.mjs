@@ -64,14 +64,15 @@ function excluded(relative) {
 
 function safePath(root, relative) {
   const parts = relative.split("/");
-  let current = path.resolve(root);
+  const resolvedRoot = path.resolve(root);
+  let current = resolvedRoot;
   const rootStat = lstatIfExists(current);
   if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) fail("unsafe learner root");
   for (const part of parts) {
     current = path.join(current, part);
     const stat = lstatIfExists(current);
     if (stat?.isSymbolicLink()) fail("symlink is prohibited: " + relative);
-    if (stat && current !== path.join(root, ...parts) && !stat.isDirectory())
+    if (stat && current !== path.join(resolvedRoot, ...parts) && !stat.isDirectory())
       fail("non-directory ancestor: " + relative);
   }
   return current;
@@ -115,12 +116,14 @@ function collectLearnerFiles(root) {
   const files = [];
   let totalBytes = 0;
   let excludedCount = 0;
+  const excludedPaths = [];
   const visit = (relative) => {
     const absolute = safePath(root, relative);
     const stat = lstatIfExists(absolute);
     if (!stat) return;
     if (excluded(relative)) {
       excludedCount += 1;
+      excludedPaths.push(relative);
       return;
     }
     if (stat.isDirectory()) {
@@ -133,7 +136,24 @@ function collectLearnerFiles(root) {
     if (!stat.isFile() || !safeRelative(relative)) fail("unsafe learner entry: " + relative);
     if (stat.size > MAX_FILE_BYTES || files.length >= MAX_FILES)
       fail("backup file size or count limit exceeded");
-    const bytes = fs.readFileSync(absolute);
+    const noFollow = fs.constants.O_NOFOLLOW;
+    if (!Number.isInteger(noFollow) || noFollow === 0)
+      fail("safe no-follow file access is unsupported on this platform");
+    const descriptor = fs.openSync(absolute, fs.constants.O_RDONLY | noFollow);
+    let bytes;
+    try {
+      const opened = fs.fstatSync(descriptor);
+      if (
+        !opened.isFile() ||
+        opened.size !== stat.size ||
+        opened.dev !== stat.dev ||
+        opened.ino !== stat.ino
+      )
+        fail("learner file changed while being read");
+      bytes = fs.readFileSync(descriptor);
+    } finally {
+      fs.closeSync(descriptor);
+    }
     if (bytes.length !== stat.size) fail("learner file changed while being read");
     totalBytes += bytes.length;
     if (totalBytes > MAX_TOTAL_BYTES) fail("backup total size limit exceeded");
@@ -154,13 +174,14 @@ function collectLearnerFiles(root) {
   for (const phase of ["P1", "P2"]) visit("workspace/.course-assessments/" + phase);
   visit(".course-load");
   files.sort((a, b) => a.path.localeCompare(b.path));
-  return { files, totalBytes, excludedCount };
+  excludedPaths.sort();
+  return { files, totalBytes, excludedCount, excludedPaths };
 }
 
 export function exportLearnerWorkspace({ root = ROOT, target }) {
   const identity = courseIdentity(root);
   const destination = outsideRepository(root, target, false);
-  const { files, totalBytes, excludedCount } = collectLearnerFiles(root);
+  const { files, totalBytes, excludedCount, excludedPaths } = collectLearnerFiles(root);
   const archive = {
     schema_version: 1,
     ...identity,
@@ -186,6 +207,7 @@ export function exportLearnerWorkspace({ root = ROOT, target }) {
     files: files.length,
     total_bytes: totalBytes,
     excluded: excludedCount,
+    excluded_paths: excludedPaths,
     ...identity,
   };
 }
