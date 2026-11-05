@@ -8,7 +8,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **13/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例、第三者権利の原典調査と未確認事項の台帳化を完了（再配布許諾ではない）。上記12件に加え、固定HEAD `a44463d9` の配布契約・Build/Serve成功の証拠記録と#199引継ぎを完了としてチェック。実Shop全量同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **14/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合、prebuilt Shop/8082起動契約の静的・CI検証、独立公開開始入力のfallback、各種異常系とdangling Symlinkの拒否、再ロード・他モジュール/Trace/非公開評価履歴の保持、全11モジュール開始入力とM03必須参照の負例、第三者権利の原典調査と未確認事項の台帳化を完了（再配布許諾ではない）。上記12件に加え、固定HEAD `a44463d9` の配布契約・Build/Serve成功の証拠記録と#199引継ぎを完了としてチェック。 さらに固定HEAD `6433402a` のGit不要バックアップ/復元契約9/9 PASSを確認し、該当1件をチェック。実Shop全量同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
@@ -70,7 +70,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 
 - [ ] 公開Webと学習用Templateが同一教材Markdown/クイズJSONの版を参照し、`source_sha`/revisionの不一致を受講者へ説明・受入可能にする契約を検証。Web画面の一問ずつの操作・アクセシビリティ・共通生成処理の修正は**#199本体**へ引継ぎ、製品画面の実受入である#219と混同しない
   - 2026-11-05：Web Artifactのクイズ11件は同一元HEADと一致したが、実学習用Templateの生成成功、HTML化教材のrevision/SHA表示、Web側異版時BLOCKEDは未受入。旧教材5ページ・リンク12件・JS参照画像欠落12件の是正とWeb共通画面契約は#199の所有者待ち。
-- [ ] Phase 1/2の提出Markdown・spec/Config・Trace/Run・非公開評価結果についてGit/PR不要のエクスポート手順・保存先・除外・再ロード非破壊性をfixture/契約・CIで検証。本人のダウンロード・復元は#199へ渡す
+- [x] Phase 1/2の提出Markdown・spec/Config・Trace/Run・非公開評価結果についてGit/PR不要のエクスポート手順・保存先・除外・再ロード非破壊性をfixture/契約・CIで検証。本人のダウンロード・復元は#199へ渡す
+  - **完了証拠（2026-11-05）**：[Web CI #42011215918 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42011215918/job/127191145655)、固定HEAD `6433402aab4bb7145a9528f963bc2b54d0647f36`。新設`tests/contracts/ai-assisted-qa-course-backup.test.mjs` **9/9 PASS**、全契約75ファイル・1131 PASS、1 expected fail、15 skipped。`training/course-sync/learner-workspace-backup.mjs`と手順書を配布manifestに登録し、実Node CLIでGitなしの提出Markdown/spec/Config/Run/Trace（バイナリ）・評価履歴・ロード記録のバックアップ/復元、SHA・revision拒否、除外・Secret・個人メール・Symlink・改ざん・非破壊性をfixtureで確認。利用者のCodespacesダウンロード/実復元は#199の本人受入。[監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)にデータ上限・非暗号化・中断時の残ファイル・真正性保証なしを記録。同RunのStyle Qualityは手順書MD047でFAILしたが末尾改行は後続commit `90fdb7a9`で修正。新HEADの全CI PASSは未確認。
   - 2026-11-05確認：既存の`course:assess --export <UUID>`は正式評価の完了済みattemptと選定ファイルに限定。教材READMEには提出物のGit不要保存方針はあるが、提出Markdown/spec/Config/Trace/Runの全量取得先・除外/復元・整合性を示す契約が未整備。共有CLI/教材README/評価専用コードは#199と担当PR所有のため、このブランチでは無断編集しない。
 - [ ] 通常OpenCodeチューターの無料モデル/Secret・段階ヒント・復習用入力と正式評価の外部送信/権限/履歴の分離を、配布ファイルと公開設定/契約テストで検証。実モデル認証・料金/実対話は#199へ渡す
   - 2026-11-05：共有`ai-assisted-qa-course-tutor-core.mjs`は明示モデル選択・読取権限・段階ヒントの指示を備え、チューター固有契約テストがある。一方、`workspace/Mxx/*`読取にSecret/PII/サイズの送信前機械的検査がなく、OpenCodeの通常会話の保存先・履歴分離を実証していない。 [#199への具体的な引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6654777121)。未完。
