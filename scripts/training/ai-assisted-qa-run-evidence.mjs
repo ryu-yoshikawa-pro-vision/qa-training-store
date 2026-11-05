@@ -156,17 +156,38 @@ function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot)
   return { tests: found, attachments, failedTracePresent };
 }
 
-export function assertM07SourceDependencies(specBytes, moduleId, specName) {
-  if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
+/** Parse a learner spec and fail consistently on invalid TypeScript syntax. */
+function parseSpecSource(bytes, specName, syntaxError) {
   const source = ts.createSourceFile(
     specName,
-    specBytes.toString("utf8"),
+    bytes.toString("utf8"),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.TS,
   );
-  if (source.parseDiagnostics.length > 0)
-    fail("M07 maintenance source contains invalid TypeScript syntax");
+  if (source.parseDiagnostics.length > 0) fail(syntaxError);
+  return source;
+}
+
+/** Visit named Playwright test declarations in the parsed source. */
+function visitTestCalls(source, callback) {
+  const scan = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "test" &&
+      node.arguments.length >= 2 &&
+      ts.isStringLiteral(node.arguments[0])
+    )
+      callback(node.arguments[0].text, node.arguments[1]);
+    ts.forEachChild(node, scan);
+  };
+  scan(source);
+}
+
+export function assertM07SourceDependencies(specBytes, moduleId, specName) {
+  if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
+  const source = parseSpecSource(specBytes, specName, "M07 maintenance source contains invalid TypeScript syntax");
   const permitted = new Set([
     "@playwright/test",
     "../../training/playwright/support/reset-scenario",
@@ -174,7 +195,7 @@ export function assertM07SourceDependencies(specBytes, moduleId, specName) {
   const visit = (node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       const target = node.moduleSpecifier;
-      if (!target || !ts.isStringLiteral(target) || !permitted.has(target.text))
+      if (target && (!ts.isStringLiteral(target) || !permitted.has(target.text)))
         fail("M07 maintenance imports an untracked Page Object, fixture, or module");
     }
     if (
@@ -190,30 +211,104 @@ export function assertM07SourceDependencies(specBytes, moduleId, specName) {
   visit(source);
 }
 
+const STATIC_GLOBALS = new Set([
+  "undefined",
+  "NaN",
+  "Infinity",
+  "Math",
+  "JSON",
+  "Number",
+  "String",
+  "Boolean",
+  "Object",
+  "Array",
+  "BigInt",
+  "Symbol",
+  "Date",
+  "RegExp",
+  "Promise",
+]);
+
+/** Check whether the assertion input depends on a runtime value rather than constants. */
+function containsRuntimeReference(expression, constants, seen = new Set()) {
+  if (ts.isIdentifier(expression)) {
+    if (STATIC_GLOBALS.has(expression.text)) return false;
+    if (!constants.has(expression.text)) return true;
+    if (seen.has(expression.text)) return false;
+    const next = new Set(seen);
+    next.add(expression.text);
+    return containsRuntimeReference(constants.get(expression.text), constants, next);
+  }
+  if (
+    ts.isLiteralExpression(expression) ||
+    [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(
+      expression.kind,
+    )
+  )
+    return false;
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isTypeAssertionExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isSatisfiesExpression(expression)
+  )
+    return containsRuntimeReference(expression.expression, constants, seen);
+  if (ts.isPropertyAccessExpression(expression))
+    return containsRuntimeReference(expression.expression, constants, seen);
+  if (ts.isObjectLiteralExpression(expression))
+    return expression.properties.some((property) =>
+      ts.isPropertyAssignment(property)
+        ? containsRuntimeReference(property.initializer, constants, seen)
+        : ts.isShorthandPropertyAssignment(property) &&
+          containsRuntimeReference(property.name, constants, seen),
+    );
+  let runtime = false;
+  ts.forEachChild(expression, (child) => {
+    if (containsRuntimeReference(child, constants, seen)) runtime = true;
+  });
+  return runtime;
+}
+
+/** Find a Playwright matcher on expect, expect.soft, or expect.poll with runtime input. */
 function hasPlaywrightAssertion(callback) {
+  const constants = new Map();
+  const collect = (node) => {
+    if (ts.isVariableDeclarationList(node) && (node.flags & ts.NodeFlags.Const))
+      for (const declaration of node.declarations)
+        if (ts.isIdentifier(declaration.name) && declaration.initializer)
+          constants.set(declaration.name.text, declaration.initializer);
+    ts.forEachChild(node, collect);
+  };
+  collect(callback);
   let matched = false;
   const visit = (node) => {
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
-      /^to(?:Be|Have|Contain|Equal)/.test(node.expression.name.text)
+      /^to[A-Z]/.test(node.expression.name.text)
     ) {
       let receiver = node.expression.expression;
-      if (ts.isPropertyAccessExpression(receiver) && receiver.name.text === "not")
-        receiver = receiver.expression;
-      if (
-        ts.isCallExpression(receiver) &&
-        ts.isIdentifier(receiver.expression) &&
-        receiver.expression.text === "expect" &&
-        receiver.arguments.length === 1 &&
-        ![
-          ts.SyntaxKind.TrueKeyword,
-          ts.SyntaxKind.FalseKeyword,
-          ts.SyntaxKind.NumericLiteral,
-          ts.SyntaxKind.StringLiteral,
-        ].includes(receiver.arguments[0].kind)
+      while (
+        ts.isPropertyAccessExpression(receiver) &&
+        ["not", "resolves", "rejects"].includes(receiver.name.text)
       )
-        matched = true;
+        receiver = receiver.expression;
+      if (ts.isCallExpression(receiver)) {
+        const callee = receiver.expression;
+        const isExpect =
+          (ts.isIdentifier(callee) && callee.text === "expect") ||
+          (ts.isPropertyAccessExpression(callee) &&
+            ts.isIdentifier(callee.expression) &&
+            callee.expression.text === "expect" &&
+            ["soft", "poll"].includes(callee.name.text));
+        if (
+          isExpect &&
+          receiver.arguments.length >= 1 &&
+          containsRuntimeReference(receiver.arguments[0], constants)
+        )
+          matched = true;
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -224,36 +319,17 @@ function hasPlaywrightAssertion(callback) {
 export function assertM07MaintenanceAssertions(specBytes, moduleId, specName, label) {
   if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
   if (label !== "before" && label !== "after") return;
-  const source = ts.createSourceFile(
-    specName,
-    specBytes.toString("utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-  if (source.parseDiagnostics.length > 0)
-    fail("M07 maintenance source contains invalid TypeScript syntax");
+  const source = parseSpecSource(specBytes, specName, "M07 maintenance source contains invalid TypeScript syntax");
   const titles = new Set();
   let testCount = 0;
-  const scan = (node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "test" &&
-      node.arguments.length >= 2 &&
-      ts.isStringLiteral(node.arguments[0])
-    ) {
-      const title = node.arguments[0].text;
-      if (!title.trim() || titles.has(title))
-        fail("M07 maintenance contains an empty or duplicate Playwright test title");
-      titles.add(title);
-      testCount += 1;
-      if (!hasPlaywrightAssertion(node.arguments[1]))
-        fail("M07 maintenance test lacks a Playwright business assertion: " + title);
-    }
-    ts.forEachChild(node, scan);
-  };
-  scan(source);
+  visitTestCalls(source, (title, callback) => {
+    if (!title.trim() || titles.has(title))
+      fail("M07 maintenance contains an empty or duplicate Playwright test title");
+    titles.add(title);
+    testCount += 1;
+    if (!hasPlaywrightAssertion(callback))
+      fail("M07 maintenance test lacks a Playwright business assertion: " + title);
+  });
   if (testCount < (label === "before" ? 2 : 3))
     fail("M07 maintenance before/after has fewer than the required independent tests");
 }
@@ -261,65 +337,27 @@ export function assertM07MaintenanceAssertions(specBytes, moduleId, specName, la
 export function assertM06CaseAssertions(specBytes, specName, label) {
   const required = M06_CASE_IDS[specName + "|" + label];
   if (!required) return;
-  const source = ts.createSourceFile(
-    specName,
-    specBytes.toString("utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-  if (source.parseDiagnostics.length > 0)
-    fail("M06 learner spec contains invalid TypeScript syntax");
+  const source = parseSpecSource(specBytes, specName, "M06 learner spec contains invalid TypeScript syntax");
   const found = new Set();
-  const scan = (node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "test" &&
-      node.arguments.length >= 2 &&
-      ts.isStringLiteral(node.arguments[0])
-    ) {
-      const title = node.arguments[0].text;
-      const ids = required.filter((id) => title.includes(id));
-      if (ids.length === 1) {
-        const id = ids[0];
-        if (found.has(id)) fail("M06 spec duplicates a required CASE-CART test: " + id);
-        found.add(id);
-        if (!hasPlaywrightAssertion(node.arguments[1]))
-          fail("M06 required CASE-CART test lacks a Playwright business assertion: " + id);
-      }
+  visitTestCalls(source, (title, callback) => {
+    const ids = required.filter((id) => title.includes(id));
+    if (ids.length === 1) {
+      const id = ids[0];
+      if (found.has(id)) fail("M06 spec duplicates a required CASE-CART test: " + id);
+      found.add(id);
+      if (!hasPlaywrightAssertion(callback))
+        fail("M06 required CASE-CART test lacks a Playwright business assertion: " + id);
     }
-    ts.forEachChild(node, scan);
-  };
-  scan(source);
+  });
   if (found.size !== required.length)
     fail("M06 spec is missing one or more required CASE-CART tests");
 }
 
 export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specName, tests) {
   if (moduleId !== "M06" && moduleId !== "M07") return;
-  const source = ts.createSourceFile(
-    specName,
-    snapshotBytes.toString("utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-  if (source.parseDiagnostics.length > 0)
-    fail("Playwright source snapshot contains invalid TypeScript syntax");
+  const source = parseSpecSource(snapshotBytes, specName, "Playwright source snapshot contains invalid TypeScript syntax");
   const declared = [];
-  const scan = (node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "test" &&
-      node.arguments.length >= 2 &&
-      ts.isStringLiteral(node.arguments[0])
-    )
-      declared.push(node.arguments[0].text);
-    ts.forEachChild(node, scan);
-  };
-  scan(source);
+  visitTestCalls(source, (title) => declared.push(title));
   const reported = Array.isArray(tests) ? tests.map((test) => test?.title) : [];
   if (
     declared.length === 0 ||
@@ -332,50 +370,32 @@ export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specNa
 }
 
 function m07QuantityAssertionsByTest(specBytes) {
-  const source = ts.createSourceFile(
-    "maintenance.spec.ts",
-    specBytes.toString("utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-  if (source.parseDiagnostics.length > 0)
-    fail("M07 maintenance snapshot contains invalid TypeScript syntax");
+  const source = parseSpecSource(specBytes, "maintenance.spec.ts", "M07 maintenance snapshot contains invalid TypeScript syntax");
   const values = new Map();
-  const visit = (node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "test" &&
-      node.arguments.length >= 2 &&
-      ts.isStringLiteral(node.arguments[0])
-    ) {
-      const titles = new Set();
-      const scan = (child) => {
+  visitTestCalls(source, (title, callback) => {
+    const titles = new Set();
+    const scan = (child) => {
+      if (
+        ts.isCallExpression(child) &&
+        ts.isPropertyAccessExpression(child.expression) &&
+        child.expression.name.text === "toHaveValue" &&
+        child.arguments.length === 1 &&
+        ts.isStringLiteral(child.arguments[0]) &&
+        ["1", "2"].includes(child.arguments[0].text)
+      ) {
+        const receiver = child.expression.expression;
         if (
-          ts.isCallExpression(child) &&
-          ts.isPropertyAccessExpression(child.expression) &&
-          child.expression.name.text === "toHaveValue" &&
-          child.arguments.length === 1 &&
-          ts.isStringLiteral(child.arguments[0]) &&
-          ["1", "2"].includes(child.arguments[0].text)
-        ) {
-          const receiver = child.expression.expression;
-          if (
-            ts.isCallExpression(receiver) &&
-            ts.isIdentifier(receiver.expression) &&
-            receiver.expression.text === "expect"
-          )
-            titles.add(child.arguments[0].text);
-        }
-        ts.forEachChild(child, scan);
-      };
-      scan(node.arguments[1]);
-      values.set(node.arguments[0].text, titles);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
+          ts.isCallExpression(receiver) &&
+          ts.isIdentifier(receiver.expression) &&
+          receiver.expression.text === "expect"
+        )
+          titles.add(child.arguments[0].text);
+      }
+      ts.forEachChild(child, scan);
+    };
+    scan(callback);
+    values.set(title, titles);
+  });
   return values;
 }
 
