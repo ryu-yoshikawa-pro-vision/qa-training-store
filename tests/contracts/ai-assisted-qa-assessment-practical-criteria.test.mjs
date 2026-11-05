@@ -35,7 +35,9 @@ describe("formal assessor practical criteria", () => {
 
   it("M07 reference preserves quantity after navigating away from and back to Cart", () => {
     const source = fs.readFileSync(
-      path.resolve("training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts"),
+      path.resolve(
+        "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts",
+      ),
       "utf8",
     );
     const thirdTest = source.slice(source.indexOf('test("数量2への変更は'));
