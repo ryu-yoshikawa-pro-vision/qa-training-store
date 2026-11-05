@@ -102,4 +102,46 @@ describe("Phase 3 quiz and understanding coverage", () => {
     expect(findCorrect(m10, "M10-Q03")).toContain("target-sha.txt");
     expect(findCorrect(m10, "M10-Q06")).toContain("未確認");
   });
+  it("keeps draft graph prerequisites coherent without changing approval status", () => {
+    const knowledgeNodes = graph.nodes.filter(
+      (node) => node.type === "knowledge" && modules.some((module) => module.id === node.module),
+    );
+    const knowledgeIds = new Set(knowledgeNodes.map((node) => node.id));
+    const requires = graph.edges.filter(
+      (edge) => edge.relation === "requires" && knowledgeIds.has(edge.from),
+    );
+    for (const node of knowledgeNodes) {
+      expect(node.title.length).toBeGreaterThan(0);
+      expect(node.can_do.length).toBeGreaterThan(0);
+      expect(node.status).toBe("draft_requires_content_review");
+      expect(
+        graph.edges.some(
+          (edge) =>
+            edge.relation === "requires_knowledge" &&
+            edge.to === node.id &&
+            node.module === edge.from.slice(0, 3),
+        ),
+      ).toBe(true);
+    }
+    for (const edge of requires) {
+      expect(knowledgeIds.has(edge.to)).toBe(true);
+      expect(edge.status).toBe("draft");
+      expect(nodeById.get(edge.from).module).toBe(nodeById.get(edge.to).module);
+    }
+    const visiting = new Set();
+    const visited = new Set();
+    const assertAcyclic = (id) => {
+      if (visited.has(id)) return;
+      expect(visiting.has(id), id + " has a circular prerequisite").toBe(false);
+      visiting.add(id);
+      for (const edge of requires.filter((item) => item.from === id)) {
+        assertAcyclic(edge.to);
+      }
+      visiting.delete(id);
+      visited.add(id);
+    };
+    for (const node of knowledgeNodes) assertAcyclic(node.id);
+    expect(visited.size).toBe(19);
+  });
+
 });
