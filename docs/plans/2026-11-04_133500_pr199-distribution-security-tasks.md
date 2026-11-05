@@ -19,6 +19,7 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 ## 配布物の生成と固定SHA
 
 - [ ] `training/course-sync/manifest.json`のallowlist、外部Skill元、`source_sha`、`generated.shop_build`と実ファイル依存閉包（import/asset/runtime）を全件照合
+  - 2026-11-05の[追加監査](../reports/2026-11-05_pr218-distribution-audit.md)：監査元HEAD `7904bb6f4d39` のproduction ArtifactではHTML/CSS静的asset参照168件の欠落0に対し、Expo Router/React NavigationのJS組込み`/assets/*.png` 12 URIがZIP内に存在しない。配布側の事前・事後拒否と負例を追加（修正HEADのCIは未確認）。#199のWeb Buildで実ファイルを揃えてから全量再検証する。**未完のまま**。
 - [ ] cleanな固定commitを入力とする`course:sync`→`verify-distribution`→Shop Build→SHA/manifest照合を既存のGitHub Actions・契約テストで確認し、実行ログ/結果/失敗を記録。学習者個人の実配布は#199へ引継ぐ
 - [x] 同一固定SHAからの同期を再実行して成果物が一致し、作業中ファイル/未commit差分・別branch差が混入しないことを検証
   - 証拠：[Web CI #41967650261 / Vitest (contracts)](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)、HEAD `594a72b724eb`の`re-syncs a pinned Git commit and rejects dirty or divergent sources` **PASS**。一時Gitリポジトリのclean commit実SHAで同期、`verifySyncedCourseDistribution`で22状態確認、同SHA再同期の`copied=[]`と出力snapshot完全一致、未commitの追加ファイル拒否、別branchでcommit後のSHA不一致拒否、拒否後も出力snapshot不変を確認。CI Run全体は別件のM03検証不整合でFAILしたが、当該テストはPASS。これはcommit固定のfixture検証であり、実`dist/**`・現行コース固定HEADからのShop Build連結は次項で未完。
