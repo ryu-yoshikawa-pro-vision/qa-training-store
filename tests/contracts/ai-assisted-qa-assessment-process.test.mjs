@@ -11,7 +11,7 @@ const run = (source, overrides = {}) =>
 
 it("captures stdout, stderr, and the nonzero child exit independently", async () => {
   const result = await run(
-    'process.stdout.write("answer"); process.stderr.write("diagnostic"); process.exit(7);',
+    'process.stdout.write("answer"); process.stderr.write("diagnostic"); process.exitCode = 7;',
   );
   expect(result.stdout).toBe("answer");
   expect(result.stderr).toBe("diagnostic");
@@ -29,7 +29,7 @@ it("rejects oversized stdout even when the child continues running", async () =>
   await expect(run(source, { maxBytes: 128 })).rejects.toThrow(/exceeded the size limit/);
 });
 
-it("rejects a missing child executable without waiting for a model response", async () => {
+it.skipIf(process.platform === "win32")("rejects missing executables on POSIX", async () => {
   const command = "__missing_opencode_assessment_binary__";
   await expect(
     runCaptured(command, ["--version"], {
