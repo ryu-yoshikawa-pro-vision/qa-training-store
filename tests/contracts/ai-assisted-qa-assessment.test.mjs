@@ -2791,7 +2791,8 @@ describe("AI-assisted QA formal assessment contracts", () => {
       agentId: "qa-course-assessment",
       systemPrompt: "Read evidence only.",
     });
-    expect(config.autoupdate).toBe(false);
+    expect(config.update).toBe("disable");
+    expect(config).not.toHaveProperty("autoupdate");
     expect(config.agents["qa-course-assessment"].mode).toBe("primary");
     expect(config.agents["qa-course-assessment"].permissions).toEqual([
       { action: "*", resource: "*", effect: "deny" },
