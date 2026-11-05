@@ -213,6 +213,15 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **整形とCI：** 同Runの`Style Quality`は`ai-assisted-qa-run-evidence.mjs`とM07契約テストのPrettier不一致で失敗。CIの一時診断からPrettier 3.8.1の正確な整形済み内容を取得して反映し、診断テストは除去した。今回の修正後の最新HEADに対する最終CIは未確認のため、変更後CI完了の項目はチェックしていない。
 - **引き続き未完了（4項目）：** ローカル証拠一式を意図的に偽造した場合の実行出自保証、M04/M07/M10実行証拠と本人判断の実受入、最新HEADの全品質ゲート、M07の業務Assertion意味評価・不変性。本人のPrivate Codespaces/認証OpenCode/Private GitHub/実モデル106 Case校正と重大誤PASS 0件は従前どおり#199最後に実受入する。製品SUT・共有Validator・他PRの専有ファイルは変更していない。
 
+## 2026-11-05 継続：M06/M07 reportとspecの整合・M07 Assertion保持
+
+- **基点のCI成功：** 固定HEAD `61370459676f53c490d12d5f65c5f7e970d8a441` の [Web CI Run 41989340626](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41989340626) はworkflow全体成功。`Vitest (contracts)`、Style Quality、Code Quality、Training runtime contracts、両ビルド、verify/validate、Chromium E2E等の実ジョブ結果を確認。今回の追加変更**前**の結果であり、以後のコードに対する成功として転用しない。
+- **残項目「Run証拠の真正性」の実装修正：** `ai-assisted-qa-run-evidence.mjs`に`assertReportedTestsMatchSnapshot`を追加。M06/M07の保存`spec-snapshot.ts`のTypeScript ASTから静的`test("...")`のタイトルを取得し、Playwright JSON reportの実行test一覧との過不足・重複・名前差異を拒否。`ai-assisted-qa-assessment.test.mjs`の既存M06模擬receiptにあったsource/report test名の食い違いを修正し、report・receipt・SHAを**すべて更新しても**存在しないCASEタイトルを採用できない負例を追加。`ai-assisted-qa-assessment-m07-run-versions.test.mjs`にも不一致の負例を追加。既存の別HEAD・Trace SHA・Run時系列・許可Config検査は保持する。
+- **M07のAssertion・依存関係：** `ai-assisted-qa-assessment-practical-criteria.test.mjs`に、参考のbefore 2 testとafterの同名2 testで数量1・数量2の`toHaveValue`が保持され、afterがPage Objectと標準fixtureを使用することを確認する契約を追加。既存の3件目の別ページ遷移→Cart再入場テスト、実行時の空test・import拒否、before/after別Run・SHAの契約も維持する。このテストは**公開参考実装**の確認であり、本人が書いた任意の正当な別実装の業務意味を証明しない。
+- **未解決の出自保証：** 受講者が`workspace`のspec・report・receipt・Traceを全て編集できるため、SHA-256とAST一致だけでは、そのRunが実際にChromiumで実行されたことを独立に証明できない。改ざん防止を完了とするには、学習者とは別の信頼境界で実行・証拠を発行し検証できる条件が必要。Phase 1/2の「Git・PR不要」「本人Private保存」「外部送信の事前承認」に抵触し得るため、このPRの権限内で公開サービス・署名鍵・遠隔実行を勝手に追加しない。タスク3は未チェックのまま、#199の最終受入で必要な保証レベルと受入方法を調停する。
+- **残る独立実受入：** M04の本人の別条件と根拠、M07の本人before/after実Chromium・Trace・業務Assertionの意味、M10 Private PRのRun/Check/Artifact/target SHA、認証済みOpenCodeによる校正は未実施。模擬テストの成功で埋めない。タスク4・20も未チェック。
+- **CIとチェック数：** 追加修正後の最終HEADの全品質ゲートは未確認。ユーザー指定どおり完了待ちは行わず、タスク18は未チェックのままとする。既存の**18/22件**を維持し、CIが成功した固定HEADを確認してから追記・チェックする。作業ブランチはDraftの`work/pr199-formal-assessment`、SUT・共有Validator・教材専有ファイルの変更なし。
+
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
 - 本人の認証済みOpenCode実モデルを独立・制限権限で起動し、M04/M07/M10を未演習条件で採点
