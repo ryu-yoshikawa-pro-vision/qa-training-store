@@ -53,6 +53,21 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [ ] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ
 
+## 2026-11-05 継続実装：OpenCode V2と校正の版一致
+
+- **前回CI失敗：** 固定HEAD `49b256f9cc784a7baad0e8ac94f50dcf709cbadf` の [Run 41959640236](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41959640236) で `Code Quality / Lint`が失敗。原因は新設した`tests/contracts/ai-assisted-qa-assessment-m07-dependencies.test.mjs:11`の`Buffer`未import（`no-undef`）。`node:buffer`からのimportを追加。前回Runの`verify/validate`失敗はこの必須ジョブ失敗による。修正後CIは未確認。
+- **OpenCode V2設定の不整合を修正（項目6・8の一部）：** 公式V2 Configは自動更新制御に`update: "disable"`を要求し、旧`autoupdate: false`は不適切。`buildAssessmentAgentConfig`と契約テストを修正した。既存の`run --standalone --pure --model --agent --format json --file`、`permissions: [{action:"*",resource:"*",effect:"deny"}]`、project config/外部Skill無効化も照合した。根拠：[V2 Commands](https://dev.opencode.ai/v2/docs/cli/commands/)、[Config](https://dev.opencode.ai/v2/docs/config/)、[Permissions](https://dev.opencode.ai/v2/docs/permissions/)。実CLI `2.0.22` の権限拒否・認証との併用は未確認。
+- **子プロセス負例（項目6の一部）：** `runCaptured`のNode側境界を直接検証する`ai-assisted-qa-assessment-process.test.mjs`を追加。stderrとstdoutの分離、非0終了、強制終了時のtimeout/出力超過、実行不能コマンドの拒否を対象にした。Windowsの存在しない実行ファイルの動作はPOSIXとは異なるため、そのテストのみWindowsでskipする。現HEADの契約CI未確認。
+- **校正同一性（項目12の一部）：** `obtainCalibration`は`model_id`、`opencode_version`、校正/評価Prompt Hash、各Assetの`source_path`とSHAを含むidentityから不変校正IDを生成し、既存成功cacheのidentity/判定と一致しない場合に自動再利用・送信しない。今回`ai-assisted-qa-assessment-calibration-identity.test.mjs`を追加し、モデルID・CLI版・rubric SHA・scoring SHAの変更が別校正IDを要求することと旧cacheの改ざん拒否を確認する契約を記述した。CI未確認のため項目12はチェックしない。
+- **現時点の判定：** 既存の完了8/22は維持。Runの自己申告値・report・receiptの同時偽造耐性、料金が未知のモデルを実行前に排除する機構、実モデル校正とPrivate Codespaces権限検証は未完了として扱う。
+
+### #199最終実受入へ渡す手順・期待値
+
+1. Private Codespacesで`opencode --version`が固定の`2.0.22`を返し、評価用Agent設定が`update: disable`と全操作`deny`として読み込まれることを`opencode debug config`と専用Agent表示で確認する。グローバル`AGENTS.md`の混入や認証への依存も記録する。現状のモックだけで権限遮断済みとはしない。
+2. 本人のモデル提供者画面で無料枠/料金、認証、当日の利用上限を確認し、未知価格・無効認証・429・上限到達では**モデルへ再送せず**`blocked`となることを実確認する。料金は変動するため、モデル名の`free`表記だけでは判定しない。本人の明示的な送信承認がない間は実行しない。
+3. 検証済み教材と本人specで`pnpm course:run M05 p05-cart-locator.spec.ts --label main`、M07のbefore/after別Runを発行し、内容・SHA・Trace・業務Assertionを確認する。合成receiptを実Runの代わりにしない。
+4. `pnpm course:assess M04|M07|M10 --model <確認済みモデルID>`で初回・再開・欠落・改ざん・校正失敗・モデル異常・再評価を受け入れる。重大誤PASS 0件を実モデルで確認する。本人Private GitHubのPR HEAD/attempt/Check/Artifact/target SHAは別途実APIで照合し、同一の評価記録へ結果を残す。
+
 ## 2026-11-05 M10既存API検証の確認・Prettier修復
 
 - **項目21チェック済み：** `scripts/training/ai-assisted-qa-github-run-evidence.mjs`の`verifyGitHubRunEvidence`と`tests/contracts/ai-assisted-qa-github-run-evidence.test.mjs`を確認。PR head exact SHA、pull_request Run、run_attemptと成功Check/Job、Artifact digest、Zip内`target-sha.txt`とPlaywright JSON結果を別々に照合。API mockにはmerge-refの誤用、別Run attempt/Job、偽Artifact/異常digest、別spec、再試行・異常結果・権限過大workflowの拒否がある。トークンを実行証拠JSONへ格納できないschemaと、固定された読取りAPI呼び出し・権限不足時のBLOCKEDも確認。コードとテストは本PRで変更しておらず、固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d` の [Run 41953473479](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41953473479) `Vitest (contracts)`が成功。**Private repoの実API権限と実Run/Artifact照合は#199最終受入**に残し、実施済みとは記録しない。
