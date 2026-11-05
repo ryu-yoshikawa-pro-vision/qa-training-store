@@ -96,20 +96,23 @@
 
 [CI #41974335705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41974335705)（HEAD `d81a9afa21119562fd855f0dd3203109ac3700ed`）では`Style Quality`、`Code Quality`、`Vitest (contracts)`の各ジョブ成功を確認。これは上記M03参照欠落検査を追加する**前**のHEADであり、上記新規検査のPASSとは扱わない。
 
-## Markdownリンクの配布先依存閉包（2026-11-05追補）
+## Markdownリンクの配布先依存閉包（2026-11-05追補・訂正）
 
-固定HEAD `67ee9bff93bf8efa20a87523240064bac44f3fa8` の `training/course-sync/manifest.json` にある`local_files`のMarkdown **69件**をGitHubから全件取得し、`[...](relative/path)`形式の参照を各`target_path`のディレクトリ基準で正規化し、配布対象`local_files.target_path`＋固定Skill対象`external_skill_files.target_path`へ静的照合した。**69件中16件のMarkdownファイルで配布先参照が解決しなかった**（11モジュールREADME、`course/start-here.md`、仕様3ファイル、learning-map）。本調査は静的な通常Markdownリンクを対象とし、HTML内埋込・コードブロック・動的JS内の全参照を網羅した主張ではない。
+### 監査対象と初回判定の訂正
 
-| 対象 | 実際の未解決例 | 直接原因・影響 |
-| --- | --- | --- |
-| `course/modules/M00..M10/README.md` | `../../assets/figures/M03/01-test-design-methods.svg`、`../../../../../training/ai-assisted-qa-course/exercises/M05/exercise.md`、`../../../../spec/features/cart.md` | READMEの原本は`docs/curriculum/ai-assisted-qa/modules/Mxx/`基準。配布先`course/modules/Mxx/`では相対リンク先が`course/assets/**`、root `training/**`、root `spec/**`等へ変わる。manifestは図をこれらのpathには配置せず、演習は`course/exercises/**`、仕様は`docs/spec/**`に配置するため欠落。 |
-| `course/start-here.md` | `../../plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md` | 元パスから配布先への相対位置が変わり、配布済み`docs/plans/**`へ到達しない。 |
-| `docs/spec/features/cart.md`、`storefront.md`、`docs/spec/state-and-scenarios.md` | `../screen-catalog.md`、`../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp` | 原本が参照するscreen-catalog Markdownや画像は`local_files`に存在しない。生成ShopのZIPには`docs/spec/screen-catalog.html`や多くの`docs/spec/assets/screens/**`が存在するが、`course/shop/**`へ置かれるため既存の相対リンクからは到達できない。 |
-| `docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md` | 同じディレクトリの`..._assessment.md`、`..._states.md`、`..._progression.md`等 | 関連する内部Planはallowlistにない。追加配布すると旧教材・内部資料除外条件と競合する可能性があり、未確認のまま公開allowlistへ拡張しない。 |
+`training/course-sync/manifest.json`にあるMarkdown 69ファイルをGitHubから全件読み、配布先における相対リンクを確認した。**最初の監査は配布元のMarkdownを直接配布先へ置いたと仮定しており、既存の`remapMarkdownLinks()`を反映していなかった**。そのため当初報告した「16件でリンク切れ」という判定の一部と、[PR #199への最初の引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6651751536)に訂正が必要である。
 
-[Web CI #41967650261 のBuild Artifact](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)（ZIP内312ファイル）の一覧では教材図SVG 27、教材PNG 3、各種仕様画面WebP、`docs/spec/screen-catalog.html`の存在を確認できる。**WebにあることはMarkdownのリンク先が正しくなることを意味しない**。
+既存の`remapMarkdownLinks()`は`lesson`と`guide`の`source_path`→`target_path`対応を使ってリンクを書き換える。既存実装を再評価すると、`course/start-here.md`の相対リンク26件は解決済み。各モジュールREADMEの演習・仕様・rubric・学習マップへの既知の配布先参照も解決する。初回にこれらをリンク切れと記載したのは誤り。
 
-**修正方向と所有境界**：公開してよい原本リンクのみ、`source_path`→`target_path`の確定対応を使って配布時に相対リンクを再構成するか、必要な静的assetを明示allowlistへ追加する。Web Build由来のassetは`course/shop/**`の実ファイル存在を確かめる。未許可の古いPlanや評価内部資料は自動追加しない。教材の正本変更・公開対象の確定は#199/各Phase担当に引き継ぐ。本PRにおける配布変換を導入する場合も全69 Markdown・生成assetの負例/回帰テストが必須。**配布閉包とTemplate完全性のチェックは未完了**。
+**既存変換後に残る未解決は69ファイル中15件**：M00〜M10のREADME全11件（教材図SVG 26とPNG 3が`course/assets/**`には存在しない）、`docs/spec/**`の3件（画面WebP・screen-catalog Markdown参照）、`docs/plans/**learning-map.md`の1件（許可外の内部Planへのリンク）。ここでの「件」は、リンク数ではなく影響を受けるMarkdownファイル数である。通常のMarkdown相対リンクだけを検査し、HTML/JS内の全参照を網羅した主張ではない。
+
+### 配布処理での対応と残条件
+
+[Web CI #41967650261のBuild Artifact](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261)（ZIP内312ファイル）にはM00〜M10の図SVG 26とPNG 3、画面WebP、`docs/spec/screen-catalog.html`が実在する。今回の`ai-assisted-qa-course-core.mjs`修正では、配布用リンク変換に`reference`も追加し、まず許可済み`local_files`を優先した上で、**実際に生成した`dist/**`ファイルがある場合だけ**`course/shop/**`へリンクを書き換える。ソースの`.md`へのリンクは、生成Shopに同名の`.html`が実在する場合のみそこへ張り直す。図や画面WebPの重複コピーは増やさない。
+
+さらに`lesson`、`guide`、配布仕様（`docs/spec/features/**`・`docs/spec/state-and-scenarios.md`）について、配布先ファイルの存在を**書込前**に検査する`validatePublishedMarkdownLinks()`を追加した。図・仕様の正例と欠落図の負例を`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`に追加したが、**当該変更後HEADのCIはまだ最終確定していない**。生成Shopのasset構成が変わってリンク先が不足する場合、同期は失敗して未完成のTemplateを作らない。
+
+`docs/plans/**learning-map.md`が参照する配布対象外の旧Plan/評価関連文書は**自動追加・自動書換えしない**。公開してよい教材版の学習マップとPlan参照を#199と教材所有者が確定する必要がある。従って全69ファイルの依存閉包とTemplate完全性のチェックは未完了とし、元の公開除外要件を弱めない。
 
 ## 第三者素材・再配布許諾の原典照合台帳（追加調査）
 
