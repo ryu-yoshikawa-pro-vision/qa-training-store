@@ -45,7 +45,7 @@ P05はdefaultをResetし、Mugとlow-stockの各1点を追加したCartで、全
 
 M07 `maintenance.spec.ts`のbeforeは2テストのRunと当時の保存済みspec snapshotで確認し、afterは3テストのRun・保存snapshotと**現在のspec SHA**でも確認します。beforeのsnapshotがafterの現行specと同一SHAである必要はありません。むしろ両Runでspecが変更され、afterがbeforeの完了より後に実行されたことを別途検証します。現在のspecとbeforeのSHAを同一視すると、正常なリファクタリング後のbeforeが不合格になるため、この区別が必要です。
 
-この照合は当時のRunを再解釈する契約です。Nodeはbeforeの保存済みspecで別testに存在する数量1・数量2の`expect(...).toHaveValue("1"/"2")`をTypeScript構文から抽出し、afterの同名testに同じ期待値が残っていることも検査します。元の数量Assertionを削除・別の値に差し替え、reportをPASSに書き換えた場合は`ungradable`です。ただし、これは**test名・Matcher・期待値の静的照合**であり、Locatorが同じ要素を指すこと、Page Objectやfixtureが意図どおり動くこと、Cart再入場が正しいことを証明しません。これらの業務意味と別実装の適否は提出物と正式AI評価で独立に確認します。本人の実Chromium Runによる受入は#199に残ります。
+この照合は当時のRunを再解釈する契約です。Nodeはbeforeの保存済みspecで別testに存在する数量1・数量2の`expect(...).toHaveValue("1"/"2")`をTypeScript構文から抽出し、afterの同名testに同じ期待値が残り、afterで新たに追加されたtestにも数量2のAssertionが存在することを検査します。元の数量Assertionを削除・別の値に差し替え、reportをPASSに書き換えた場合は`ungradable`です。ただし、これは**test名・Matcher・期待値の静的照合**であり、Locatorが同じ要素を指すこと、Page Objectやfixtureが意図どおり動くこと、Cart再入場が正しいことを証明しません。これらの業務意味と別実装の適否は提出物と正式AI評価で独立に確認します。本人の実Chromium Runによる受入は#199に残ります。
 
 ## M07 のPage Object・fixtureとRun証拠
 
