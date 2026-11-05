@@ -198,6 +198,14 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **公開参照の整合：** `assessment/playwright/M06/remove-item.spec.ts`のtest名を`CASE-CART-004`へ修正し、`assessment/README.md`のCase件数を固定3件＋追加2件に修正。業務Assertionの実ブラウザRunは未実施。
 - **未完了：** 新規CI・formatter・Playwright実Run、M06/M07のAssertion内容と外部importの証拠閉包、OpenCode実CLI・実モデル校正、M10 Private API照合。新規Run成功を確認するまで上記実装項目にはチェックを付けない。本人認証・Private Codespaces・重大誤PASS 0件の実校正は#199最終受入へ引継ぐ。
 
+## 2026-11-05 PR #217 引継ぎ：完了結果の再公開ガード
+
+- **固定HEADの確認：** `8e855ca865662d2f8dc8968831640d210826691e` の [Web CI Run 41984914554](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41984914554) はworkflow全体成功。`Vitest (contracts)`、Style Quality、Code Quality、build2本、verify/validate、required Chromium E2Eも個別成功。これは今回の修正**前**の固定HEADの結果。
+- **再開時の問題：** 完了済み`result.json`について、`loadPhaseInputs`でPhase 3の現行GitHub Run/Checkを再取得しても、`assertReusablePreparedInputs`は保存された提出物/版/Hashしか照合していなかった。取得した`deterministicChecks`が`blocked`/`ungradable`へ変化しても、旧PASS結果を`reconcileFinalizedAssessment`で再公開できる経路があった。
+- **今回の変更：** `scripts/training/ai-assisted-qa-assessment.mjs`で完成済み試行を再公開する前に`assertReusableDeterministicChecks`を呼び出し、保存結果と現行チェックのID・status・集合を照合。完成済みPASSは現行チェックがすべて`passed`の場合だけ再公開する。差異は旧結果・currentポインタを書き換える前に拒否し、新規試行IDを要求。`tests/contracts/ai-assisted-qa-assessment-resume-current.test.mjs`へPASS、Run失効、blocked、欠落、追加、重複、ID差異、未完了結果の負例を追加。`assessment/README.md`にもこの制約を記載。
+- **検証とチェック：** 上記固定HEADのCI成功は確認したが、今回追加した変更後の最終HEADに対するformatter/契約CIは未確認。この差分の動作をPASSとは扱わず、専用タスクリストの**16/22件は据え置き**。項目16（再開）と18（変更後CI）は修正後CI・結果保存/再公開の検証を確認してからチェックする。
+- **依然未受入：** 本人による実Chromium/Private Codespaces・認証OpenCode/Private GitHub API、同時に偽造されたローカルRun一式の実行出自、M07業務Assertionの意味判定、実モデルの重大誤PASS 0件は#199の最終実受入へ引き継ぐ。製品SUT、他PRの教材・共有Validatorは変更していない。Draft維持・自動マージしない。
+
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
 - 本人の認証済みOpenCode実モデルを独立・制限権限で起動し、M04/M07/M10を未演習条件で採点
