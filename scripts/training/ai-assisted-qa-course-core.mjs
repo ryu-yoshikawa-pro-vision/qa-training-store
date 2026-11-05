@@ -634,8 +634,9 @@ function validateWebQuizParity(files) {
 function validateWebCourseRevisions(files) {
   const targets = new Map(files.map((file) => [file.target_path, file]));
   const webRoot = "course/shop/docs/curriculum/ai-assisted-qa/";
-  // A partial Web curriculum must not bypass revision checks by omitting every module index.
-  if (!files.some((file) => file.target_path.startsWith(webRoot))) return;
+  // Incomplete generated HTML must not bypass revision checks by omitting module indexes.
+  if (!files.some((file) => file.target_path.startsWith(webRoot) && file.target_path.endsWith(".html")))
+    return;
   const start = targets.get("course/start-here.md");
   const startHtml = targets.get(`${webRoot}index.html`)?.bytes.toString("utf8") ?? "";
   const startExpected = start?.source_sha256;
