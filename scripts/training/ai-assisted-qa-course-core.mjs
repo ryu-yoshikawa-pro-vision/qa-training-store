@@ -129,6 +129,20 @@ function validateModuleLoadCoverage(loadFiles, distributionFiles) {
         `${moduleId} public start input must be allowlisted under course/modules/${moduleId}/inputs/`,
       );
   }
+  const m03RiskPath = "course/modules/M03/inputs/public-risk-input.csv";
+  if (
+    !distributionFiles.some(
+      (entry) =>
+        entry.module_id === "M03" && entry.role === "input" && entry.target_path === m03RiskPath,
+    ) ||
+    !loadFiles.some(
+      (entry) =>
+        entry.module_id === "M03" &&
+        entry.source_path === m03RiskPath &&
+        entry.target_path === m03RiskPath,
+    )
+  )
+    fail("M03 public Risk input must be distributed and loaded with its module");
 }
 
 function validateLoadFileBindings(loadFiles, distributionTargets) {
