@@ -727,9 +727,7 @@ describe("AI-assisted QA distribution contract", () => {
     const isCode = /\.(?:mjs|cjs|js|ts|tsx)$/;
     const executableFiles = [
       ...manifest.local_files
-        .filter(
-          (file) => isCode.test(file.target_path) && !file.target_path.startsWith("course/"),
-        )
+        .filter((file) => isCode.test(file.target_path) && !file.target_path.startsWith("course/"))
         .map((file) => ({ sourcePath: file.source_path, targetPath: file.target_path })),
       ...manifest.load_files
         .filter((file) => isCode.test(file.target_path))
@@ -773,9 +771,7 @@ describe("AI-assisted QA distribution contract", () => {
     expect(validateTemplateTarget(sibling, source)).toBe(sibling);
     expect(fs.existsSync(sibling)).toBe(false);
     for (const target of [source, root, path.join(source, "nested")]) {
-      expect(() => validateTemplateTarget(target, source)).toThrow(
-        /outside the source checkout/,
-      );
+      expect(() => validateTemplateTarget(target, source)).toThrow(/outside the source checkout/);
     }
     const linked = path.join(root, "linked");
     fs.symlinkSync(root, linked, "dir");
