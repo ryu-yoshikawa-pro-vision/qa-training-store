@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-現在のチェックは18/22件。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`のCI Run `41972670377`は`Vitest (contracts)`85ファイル・1146件PASS、整形・Lint・Training runtime contracts・2ビルド・verify/validate成功。今回追加した完了2件はこの固定HEADの契約検証に基づく。以降の再開処理の修正は別HEADであり、CI未確認として完了に含めない。
+現在のチェックは19/22件。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`のCI Run `41972670377`は`Vitest (contracts)`85ファイル・1146件PASS、整形・Lint・Training runtime contracts・2ビルド・verify/validate成功。今回追加した完了2件はこの固定HEADの契約検証に基づく。以降の再開処理の修正は別HEADであり、CI未確認として完了に含めない。
 
 ## 変更範囲と受入の区別
 
@@ -44,7 +44,7 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] 試行ID、排他`.resume.lock`、`.current-publish.lock`、中断→再開/競合を検証。古い正式結果を上書き/削除しない（既存の契約テストと固定HEADの成功済みCIを確認。根拠は下記）
 - [x] 版・証拠・校正が一致する既存IDのみ安全に再利用し、変更されたIDと不足IDの再評価/履歴を保全する（完了済み`result.json`の再公開前に現行source・提出SHA・Run/APIの決定論的チェック全内容を保存結果と照合し、変更・欠落・追加・旧Run・別digest・校正不一致を拒否。旧結果と`current.json`を変更せず新試行を要求。`ai-assisted-qa-assessment-resume-current.test.mjs`4件を含む固定HEAD `76b1690ab9d2faab6b571cf9db1ea89b9b3abaa7` の [CI Run 41988470969](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41988470969) `Vitest (contracts)` 87ファイル1157件PASS。整形は別途修正、実利用者の再開は#199で受入）
 - [x] Phase 1/2はGit/PRを必須にせず結果の安全なエクスポートと復習後の再挑戦ができること（P1/P2エクスポートとP3/未知Phase拒否、別IDの新試行、元の結果不変、途中失敗/中断・競合を契約テストで確認。HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、Web CI `41953473479`成功）
-- [ ] 変更した評価器の直接契約/負例・モック実行・既存CIを固定HEADで検証し、実モデル校正/Private Codespaces/本人認証について#199向け実施手順・期待値・未実行理由を記録
+- [x] 変更した評価器の直接契約/負例・モック実行・既存CIを固定HEADで検証し、実モデル校正/Private Codespaces/本人認証について#199向け実施手順・期待値・未実行理由を記録（固定HEAD `68c8b2e5961eb76a06c1aee4c5786324407aed59` の [Web CI Run 41993611057](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41993611057) は全体成功。契約87ファイル・1158件PASS、Style/Code Quality・Training runtime・2ビルド・verify/validate・required Chromium E2E成功。M06/M07偽reportとM07 Assertion保持、再開/価格/権限/校正/不変履歴の直接・負例・モック契約を確認。#199最終実受入の手順、期待値、本人Private/実モデル/認証の未実施理由は本リスト「#199最終実受入へ渡す手順・期待値」と末尾に記録済み。実モデル・本人Chromium実受入を代替しない）
 
 ## 実行証拠の真正性・チューターとの分離（補完）
 
@@ -222,6 +222,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **未解決の出自保証：** 受講者が`workspace`のspec・report・receipt・Traceを全て編集できるため、SHA-256とAST一致だけでは、そのRunが実際にChromiumで実行されたことを独立に証明できない。改ざん防止を完了とするには、学習者とは別の信頼境界で実行・証拠を発行し検証できる条件が必要。Phase 1/2の「Git・PR不要」「本人Private保存」「外部送信の事前承認」に抵触し得るため、このPRの権限内で公開サービス・署名鍵・遠隔実行を勝手に追加しない。タスク3は未チェックのまま、#199の最終受入で必要な保証レベルと受入方法を調停する。
 - **残る独立実受入：** M04の本人の別条件と根拠、M07の本人before/after実Chromium・Trace・業務Assertionの意味、M10 Private PRのRun/Check/Artifact/target SHA、認証済みOpenCodeによる校正は未実施。模擬テストの成功で埋めない。タスク4・20も未チェック。
 - **CIとチェック数：** 追加修正後の最終HEADの全品質ゲートは未確認。ユーザー指定どおり完了待ちは行わず、タスク18は未チェックのままとする。既存の**18/22件**を維持し、CIが成功した固定HEADを確認してから追記・チェックする。作業ブランチはDraftの`work/pr199-formal-assessment`、SUT・共有Validator・教材専有ファイルの変更なし。
+
+## 2026-11-05 固定HEADのCI検証
+
+- **チェック済み（項目18）：** HEAD `68c8b2e5961eb76a06c1aee4c5786324407aed59` の [Web CI Run 41993611057](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41993611057) は全体`success`。ジョブ別に`Vitest (contracts)`87ファイル・1158件PASS（expected fail 1、skip 15）、Style Quality、Code Quality、Training runtime contracts、build-production、build-automation、verify、validate、Chromium E2E（required含む）が成功しており、失敗ジョブは0。変更時点の直接契約・負例・モック実行を固定HEADで検証できた。
+- **#199実施手順と未受入：** 上記「#199最終実受入へ渡す手順・期待値」の4項目にPrivate CodespacesのCLI版/権限拒否、モデル提供者の料金・認証、本人`course:run`とTrace、本人M04/M07/M10の採点・106 Caseの重大誤PASS 0件、Private GitHub APIの照合を列記。本人のToken・Private repo・実モデルへの接続権限がなく未実施。CIのMockを実受入へ転用しない。
+- **後続差分：** 本項目のチェックは上記固定HEADの実際のCIを根拠とする。この記録コミット以降のHEADの品質ゲートは別途検証し、CI完了を待たずに実行可能な項目へ進む。タスクリスト**19/22件**。
 
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
