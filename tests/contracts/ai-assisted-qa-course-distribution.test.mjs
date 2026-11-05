@@ -489,20 +489,6 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
-  it("TEMP records the remaining test Prettier changes", async () => {
-    const prettier = await import("prettier");
-    const filePath = path.join(repositoryRoot, "tests/contracts/ai-assisted-qa-course-distribution.test.mjs");
-    const config = await prettier.resolveConfig(filePath);
-    const output = await prettier.format(fs.readFileSync(filePath, "utf8"), {
-      ...config,
-      filepath: filePath,
-    });
-    const temporary = path.join(fixtureRoot, "test-prettier-target.mjs");
-    fs.writeFileSync(temporary, output);
-    const diff = spawnSync("diff", ["-u", filePath, temporary], { encoding: "utf8" });
-    console.log("PR218_TEST_PRETTIER_DIFF", diff.stdout.slice(0, 16000));
-  });
-
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     for (const [field, value] of [
@@ -764,11 +750,11 @@ describe("AI-assisted QA distribution contract", () => {
         'import fs from "node:fs";',
         'import path from "node:path";',
         'const prefix = "https://raw.githubusercontent.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/7cc6cba7772de549841a39d71694cbafbc783324/";',
-        'globalThis.fetch = async (url) => {',
+        "globalThis.fetch = async (url) => {",
         '  if (!url.startsWith(prefix)) throw new Error("unapproved fixture fetch");',
         '  const data = fs.readFileSync(path.join(process.env.COURSE_FIXTURE_ROOT, "mock-skills", url.slice(prefix.length)));',
         '  return { status: 200, redirected: false, url, headers: { get: (name) => name === "content-length" ? String(data.length) : "text/plain" }, arrayBuffer: async () => data };',
-        '};',
+        "};",
       ].join("\n"),
     );
     const git = (...args) =>
