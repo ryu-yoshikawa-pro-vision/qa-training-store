@@ -53,10 +53,8 @@ describe("M08-03 PR comparison and evidence contract", () => {
       expect(git(dir, "rev-parse", "HEAD^")).toBe(parentSha);
       expect(git(dir, "diff", "--name-only", "HEAD^", "HEAD")).toBe(reviewPath);
       expect(git(dir, "show", "--format=", "--name-only", "HEAD")).toBe(reviewPath);
-      expect(git(dir, "diff", "--name-only", "main...HEAD").split("\n").sort()).toEqual([
-        earlierPath,
-        reviewPath,
-      ]);
+      const prFiles = git(dir, "diff", "--name-only", "main...HEAD").split("\n").sort();
+      expect(prFiles).toEqual([earlierPath, reviewPath]);
       expect(git(dir, "merge-base", "main", "HEAD")).toBe(baseSha);
       expect(headSha).toMatch(/^[0-9a-f]{40}$/);
 
@@ -82,9 +80,8 @@ describe("M08-03 PR comparison and evidence contract", () => {
       expect(draftEvidence.unknown).toContain("CI was not run");
 
       const exercise = read("training/ai-assisted-qa-course/exercises/M08/exercise.md");
-      const submission = read(
-        "training/ai-assisted-qa-course/exercises/M08/submission-template.md",
-      );
+      const submissionPath = "training/ai-assisted-qa-course/exercises/M08/submission-template.md";
+      const submission = read(submissionPath);
       expect(exercise).toContain("commit単独");
       expect(exercise).toContain("base/head");
       expect(exercise).toContain("Run ID（なければ「未実行」）");
@@ -100,7 +97,8 @@ describe("M08-03 PR comparison and evidence contract", () => {
 describe("M08-04 review evidence, false positives, omissions and abstraction", () => {
   it("binds concrete review scenarios to exercise, submission and quiz", () => {
     const exercise = read("training/ai-assisted-qa-course/exercises/M08/exercise.md");
-    const submission = read("training/ai-assisted-qa-course/exercises/M08/submission-template.md");
+    const submissionPath = "training/ai-assisted-qa-course/exercises/M08/submission-template.md";
+    const submission = read(submissionPath);
     const module = read("docs/curriculum/ai-assisted-qa/modules/M08/README.md");
     const quiz = JSON.parse(read("docs/curriculum/ai-assisted-qa/quizzes/M08.json"));
 
@@ -118,12 +116,12 @@ describe("M08-04 review evidence, false positives, omissions and abstraction", (
     const reviewQuiz = objectives.get("M08-Q04");
     expect(prQuiz.objective_ids).toContain("M08-03");
     expect(reviewQuiz.objective_ids).toContain("M08-04");
-    expect(prQuiz.options.find((option) => option.value === prQuiz.correct_value).label).toContain(
-      "仕様IDとdiff",
+    const prAnswer = prQuiz.options.find((option) => option.value === prQuiz.correct_value);
+    const reviewAnswer = reviewQuiz.options.find(
+      (option) => option.value === reviewQuiz.correct_value,
     );
-    expect(
-      reviewQuiz.options.find((option) => option.value === reviewQuiz.correct_value).label,
-    ).toContain("現在の重複");
+    expect(prAnswer.label).toContain("仕様IDとdiff");
+    expect(reviewAnswer.label).toContain("現在の重複");
   });
 
   it("rejects unexecuted CI, missed staged paths and speculative abstractions", () => {
@@ -150,9 +148,8 @@ describe("M08-04 review evidence, false positives, omissions and abstraction", (
     expect(cases[0].observedRun).toBeNull();
     expect(cases[0].verifiedRun).toBe(false);
     expect(cases[0].safeToClaimCiPassed).toBe(false);
-    expect(cases[1].stagedPaths.every((file) => cases[1].allowedPaths.includes(file))).toBe(
-      false,
-    );
+    const stageIsSafe = cases[1].stagedPaths.every((file) => cases[1].allowedPaths.includes(file));
+    expect(stageIsSafe).toBe(false);
     expect(cases[1].safeToCommit).toBe(false);
     expect(cases[2].duplicateSites).toBe(0);
     expect(cases[2].measuredChangeCost).toBeNull();
