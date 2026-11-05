@@ -2578,15 +2578,18 @@ function writeM05RunEvidence(
       });
     }
     const report = {
+      config: { rootDir: moduleRoot },
       suites: [
         {
           specs: [
             {
-              file: specPath,
+              file: "product-link.spec.ts",
               title: "product link",
               tests: [
                 {
+                  projectName: "ai-assisted-qa-chromium",
                   expectedStatus: "passed",
+                  status: outcome === "passed" ? "expected" : "unexpected",
                   results: [
                     {
                       status: outcome === "passed" ? "passed" : "failed",
@@ -3123,6 +3126,76 @@ describe("AI-assisted QA formal assessment contracts", () => {
     ).toMatchObject({ status: "ungradable" });
   });
 
+  it("verifies rootDir-relative and nested Playwright JSON results, rejecting other roots and specs", () => {
+    const { workspaceRoot, reportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "playwright-rootdir-proof"),
+    );
+    const moduleRoot = path.join(workspaceRoot, "M05");
+    const receiptPath = path.join(path.dirname(reportPath), "run-evidence.json");
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            { spec: "product-link.spec.ts", label: "after", minimum_tests: 1, expected_outcome: "passed" },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    const original = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+    const writeReport = (report) => {
+      const bytes = Buffer.from(JSON.stringify(report));
+      fs.writeFileSync(reportPath, bytes);
+      const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+      receipt.report_sha256 = sha256(bytes);
+      fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+    };
+    expect(original.config.rootDir).toBe(moduleRoot);
+    expect(original.suites[0].specs[0].file).toBe("product-link.spec.ts");
+    expect(verify().status).toBe("passed");
+
+    const nested = structuredClone(original);
+    nested.suites = [{ suites: [{ specs: nested.suites[0].specs }] }];
+    writeReport(nested);
+    expect(verify().status).toBe("passed");
+
+    const badRoot = structuredClone(original);
+    badRoot.config.rootDir = path.dirname(workspaceRoot);
+    writeReport(badRoot);
+    expect(verify().status).toBe("ungradable");
+
+    const foreignSpec = structuredClone(original);
+    foreignSpec.suites[0].specs.push({
+      ...foreignSpec.suites[0].specs[0],
+      file: "another.spec.ts",
+    });
+    writeReport(foreignSpec);
+    expect(verify().status).toBe("ungradable");
+
+    const skipped = structuredClone(original);
+    skipped.suites[0].specs[0].tests[0].status = "skipped";
+    writeReport(skipped);
+    expect(verify().status).toBe("ungradable");
+
+    const expectedFailure = structuredClone(original);
+    expectedFailure.suites[0].specs[0].tests[0].expectedStatus = "failed";
+    writeReport(expectedFailure);
+    expect(verify().status).toBe("ungradable");
+
+    const missingAttempt = structuredClone(original);
+    missingAttempt.suites[0].specs[0].tests[0].results = [];
+    writeReport(missingAttempt);
+    expect(verify().status).toBe("ungradable");
+  });
+
   it("rejects reversed initial/repeat receipts even when both runs pass", () => {
     const { workspaceRoot } = writeM05RunEvidence(path.join(tempRoot, "m06-replay-order"));
     const sourceModule = path.join(workspaceRoot, "M05");
@@ -3146,8 +3219,9 @@ describe("AI-assisted QA formal assessment contracts", () => {
       fs.cpSync(sourceRun, targetRun, { recursive: true });
       const reportPath = path.join(targetRun, "playwright-result.json");
       const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+      report.config.rootDir = moduleRoot;
       const originalSpec = report.suites[0].specs[0];
-      originalSpec.file = specPath;
+      originalSpec.file = "new-case.spec.ts";
       report.suites[0].specs.push({ ...originalSpec, title: "second independent case" });
       const reportBytes = Buffer.from(JSON.stringify(report));
       fs.writeFileSync(reportPath, reportBytes);
