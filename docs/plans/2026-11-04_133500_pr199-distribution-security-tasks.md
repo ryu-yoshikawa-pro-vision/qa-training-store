@@ -8,7 +8,7 @@
 
 PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/check`・安全なTemplate生成/エクスポートをGitHub上のコード・契約/負例テスト・許可済みCIで検証し、ライセンス原典と通知条件を調査する。**学習者Private Codespacesへの実配布、実Port/本人ファイル保存・OpenCode認証/料金、実Web操作、再配布に必要な最終権利承認は#199の最後**に受け入れる。使用権限不明を「配布可能」と断定しない。
 
-2026-11-05時点 **4/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
+2026-11-05時点 **5/21件チェック済み**（根拠：[配布監査レポート](../reports/2026-11-05_pr218-distribution-audit.md)、監査対象HEAD `69e71fc685d3e66072c5cd21d17b140dd3a9c459`）。固定SkillのGitツリー全件照合、#216へのRunner取得契約引継ぎ、固定SHAのfixture再同期、`course:load`のID検証、11モジュール・22状態の静的照合を完了。新規修正後HEADのCI・実同期・本人環境の実受入は未確認であり、該当チェックを付けない。基点由来のMarkdown lint失敗は修正済み#199との同期後に再確認し、配布機構の不具合と決め付けない。
 
 ## 変更範囲
 
@@ -56,7 +56,8 @@ PR #218では配布許可リスト・固定版Skill/Shop・`course:sync/load/che
 - [ ] 公開Webと学習用Templateが同一教材Markdown/クイズJSONの版を参照し、`source_sha`/revisionの不一致を受講者へ説明・受入可能にする契約を検証。Web画面の一問ずつの操作・アクセシビリティ・共通生成処理の修正は**#199本体**へ引継ぎ、製品画面の実受入である#219と混同しない
 - [ ] Phase 1/2の提出Markdown・spec/Config・Trace/Run・非公開評価結果についてGit/PR不要のエクスポート手順・保存先・除外・再ロード非破壊性をfixture/契約・CIで検証。本人のダウンロード・復元は#199へ渡す
 - [ ] 通常OpenCodeチューターの無料モデル/Secret・段階ヒント・復習用入力と正式評価の外部送信/権限/履歴の分離を、配布ファイルと公開設定/契約テストで検証。実モデル認証・料金/実対話は#199へ渡す
-- [ ] 現ブランチの11モジュール・22状態のID/revision/公開サンプル/評価資料除外を固定版manifest・契約テストで照合。#214〜#217更新後の統合版を用いた実ロード/非破壊性の最終実受入は#199へ引継ぐ
+- [x] 現ブランチの11モジュール・22状態のID/revision/公開サンプル/評価資料除外を固定版manifest・契約テストで照合。#214〜#217更新後の統合版を用いた実ロード/非破壊性の最終実受入は#199へ引継ぐ
+  - 証拠：2026-11-05、HEAD `706484ba1b2da68f875177865bf6f066f635a244`の固定`manifest.json`を11 IDで集計。各IDのlesson/quiz/公開startはそれぞれ1、end state 1、load entries 7〜15件、配布禁止`reference-solutions/scoring-tests/completed-states/evals`のlocal source/target 0。GitHub上の全22 state JSONを実ファイル照合し、module_id・state・`revision=ai-assisted-qa-course-v3`・`source_sha=null`（sync時bind）・`public_contract=true`・`read_only=true`・非公開評価資料除外フラグが一致。11 startすべて`public_fallback.public=true`。さらに[Web CI #41967650261 / Vitest contracts](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41967650261/job/127048586023)で`checks all 22 module states without modifying state or learner files` **PASS**。修正後HEADのCI最終結果・本人Private環境は別受入。
 
 ## #199最後に実施する実受入（このPRのチェック対象外）
 
