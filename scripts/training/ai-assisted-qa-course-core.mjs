@@ -587,6 +587,7 @@ function validatePublishedMarkdownLinks(files, verifyTarget) {
     const isPublishedSpec =
       target === "docs/spec/state-and-scenarios.md" || target.startsWith("docs/spec/features/");
     if (!target.endsWith(".md") || (!isPublicGuide && !isPublishedSpec)) continue;
+    if (file.bytes === undefined) continue;
     const content = file.bytes.toString("utf8");
     for (const match of content.matchAll(/!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)/g)) {
       const href = match[1];
