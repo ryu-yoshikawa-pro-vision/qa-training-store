@@ -579,7 +579,7 @@ function verifyPublicFileContent(targetPath, bytes) {
   }
 }
 
-function validatePublishedMarkdownLinks(files) {
+function validatePublishedMarkdownLinks(files, verifyTarget) {
   const distributedPaths = new Set(files.map((file) => file.target_path));
   for (const file of files) {
     const target = file.target_path;
@@ -596,6 +596,7 @@ function validatePublishedMarkdownLinks(files) {
       const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(target), pathname));
       if (!distributedPaths.has(resolved))
         fail(`public Markdown link is missing from distribution: ${target} -> ${href}`);
+      if (verifyTarget) verifyTarget(resolved);
     }
   }
 }
@@ -612,6 +613,33 @@ function validateWebQuizParity(files) {
     const learner = byTarget.get(learnerPath);
     if (!web || !learner || !web.equals(learner))
       fail(`Web and learner quiz JSON are missing or differ at pinned revision: ${moduleId}`);
+  }
+}
+
+function validateModulePublishedMaterials(root, distribution, moduleId) {
+  const lessonPath = `course/modules/${moduleId}/README.md`;
+  const lesson = verifiedCourseSource(root, distribution, lessonPath);
+  const paths = distribution.files.map((file) => ({
+    target_path: file.target_path,
+    role: "dependency",
+  }));
+  paths.push({ target_path: lessonPath, role: "lesson", bytes: lesson });
+  validatePublishedMarkdownLinks(paths, (relativePath) =>
+    verifiedCourseSource(root, distribution, relativePath),
+  );
+
+  const webPrefix = "course/shop/docs/curriculum/ai-assisted-qa/quizzes/";
+  if (distribution.files.some((file) => file.target_path.startsWith(webPrefix))) {
+    const quizzes = [];
+    for (const id of MODULE_IDS) {
+      for (const relativePath of [`course/quizzes/${id}.json`, `${webPrefix}${id}.json`]) {
+        quizzes.push({
+          target_path: relativePath,
+          bytes: verifiedCourseSource(root, distribution, relativePath),
+        });
+      }
+    }
+    validateWebQuizParity(quizzes);
   }
 }
 
@@ -1604,6 +1632,7 @@ export function loadModule({ root, moduleId, now = new Date() }) {
   )
     fail(`pinned ${moduleId} start state does not match its distribution contract`);
   const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
+  validateModulePublishedMaterials(targetRoot, distribution, moduleId);
   if (!["module-public-sample", "learner-previous-artifact"].includes(selectedInput.source))
     fail(
       `invalid ${moduleId} start input: ${selectedInput.source}; ${(selectedInput.reasons ?? []).join("; ")}`,
