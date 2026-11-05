@@ -8,7 +8,7 @@
 
 GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/CI操作例・無効workflow見本と安全な配布/証拠検証コード、契約・負例テストおよび既存CIを担当する。**本人Private repoでの課金/権限判断・実PR・実CIとOpenCode実モデルの学習/修了は#199の最後に受け入れる**。ここでの成功は技術準備/自動テストの成功であり、受講者の修了ではない。
 
-現在10/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。Web CI Run `41947629131`（HEAD `5d254ce9f2a4`）でStyle Quality・Code Quality・Vitest (contracts)・Training runtime contractsの成功を確認。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
+現在12/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。検証基点の実装HEADは`61796817e8b2`（PR HEADは変更のたびに再取得する）。Web CI Run `41947629131`（HEAD `5d254ce9f2a4`）でStyle Quality・Code Quality・Vitest (contracts)・Training runtime contractsの成功を確認。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
 
 ## 変更範囲
 
@@ -48,6 +48,13 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 - **M10-03（エージェント技術準備完了）**：`scripts/training/ai-assisted-qa-github-run-evidence.mjs`と既存`ai-assisted-qa-github-run-evidence.test.mjs`が、PR API/merge SHA、Run/attempt、job Check、Artifact digest、target SHA、Playwright結果を同一Runで照合し、旧HEAD・別attempt・欠落/改変Artifact・対象外spec・失敗reportを拒否することを上記CIで確認。本人Private repoの実PR/Runは#199最終受入まで未実行。
 - このチェックは担当ブランチの実装・教材・自動テスト契約の検証であり、本人の学習修了やPrivate repoの課金・認証・実CI受入ではない。M10 fallback workflow旧契約（共有`inputs/M10/public-sample-workflow.yml.disabled`）は別担当との調停待ちであり、関連項目は未チェックのまま。
 
+## 2026-11-05 配布ガード・クイズ・M10継続
+
+- **配布ガード技術項目（チェック済み）**：`course-e2e.workflow.yml.disabled`の11 step、`verify-distribution`と`PLAYWRIGHT_USE_PREBUILT_DIST: "true"`、製品フルBuild禁止を`ai-assisted-qa-github-run-evidence.test.mjs`と`ai-assisted-qa-phase3-ci-diagnostics.test.mjs`の正例/負例で照合。固定HEAD `5d254ce9f2a4`・Web CI Run `41947629131`の`Vitest (contracts)`=success。この項目は**検証ガードが存在し欠落を拒否する契約**であり、本人Private repoに配布物が実際に存在することの受入ではない。
+- **クイズ・理解事項（静的監査チェック済み）**：M08 5問、M09 7問、M10 7問、合計19問が14学習目標を網羅し、19の`K-M08..`〜`K-M10..`理解ノードと復習先で対応することをGitHub内容の直接照合で確認。正解選択肢と各選択肢の理由、Secret除外、旧SHA不採用、公式料金確認、最小権限、対象spec不一致の未確認判定を点検。19ノードの`status`はすべて`draft_requires_content_review`、正式承認には変更していない。`ai-assisted-qa-phase3-quiz-knowledge.test.mjs`を追加。**新規テストの最新HEAD CI結果は未確認**であり、ここでのチェックは静的内容監査の完了を示す。グラフ全体の承認・共有ファイル編集は#199が担当する。
+- **M10準備（項目は未チェック）**：`modules/M10/README.md`と`exercises/M10/exercise.md`、`submission-template.md`に配布元SHA/信頼済みbase、M07未修正TODOとM10 fallbackの`course:load`・Reset依存、権限/Billing、停止条件、7種類のCI失敗分類とAI提案採否を追記。`ai-assisted-qa-phase3-m10-preflight.test.mjs`で両test root・相対import/manifest依存・危険なstage除外・教材欄を検査。途中HEAD `285bab5d34c9`の契約CIで教材表記`Browser未導入`とテスト期待`Browser導入失敗`の不一致1件を検出し、`28c8e54d0460`で表記修正。**最新HEADの新規CI成功は未確認**のためM10-01/02/04/05は未チェックのまま。
+- **既存の未解決条件**：配布元・Private repoの信頼済みbaseの実SHA/manifest監査、旧M10 fallback workflowの検証ガード欠落の修正（共有input側）は本人実受入/統合側の責務と区別し、workflowの有効化はしていない。
+
 ## M08：Git・PR・変更レビュー（4目標）
 
 - [x] `M08-01`：作業用の隔離Git fixture/既存CIでworking tree→stage→commitの教材・証拠様式を検証。受講者本人のGit操作は#199最終実受入へ渡す
@@ -74,7 +81,7 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 ## M09→M10の技術的受入
 
 - [ ] 配布済み`course/shop/index.html`と`.course/distribution-manifest.json`を、本人Private repoのRunnerへ**どの経路で取得・配置するか**を契約化。固定SHA、取得元、ハッシュ、許可範囲、権限を定義。配布ブランチのmanifest/生成契約と整合
-- [ ] 無効workflow見本の`verify-distribution`、`PLAYWRIGHT_USE_PREBUILT_DIST=true`を維持し、不足時に製品フルBuildへ暗黙にfallbackしないことを負例テストで確認
+- [x] 無効workflow見本の`verify-distribution`、`PLAYWRIGHT_USE_PREBUILT_DIST=true`を維持し、不足時に製品フルBuildへ暗黙にfallbackしないことを負例テストで確認
 - [ ] M07本人specとM10 fallbackが異なるtest rootで、相対import・fixture/Resetを含めローカルとCIで同一specを実行できる契約を照合
 - [ ] GitHub Actionsで使うworkflow権限、`persist-credentials: false`、pull_requestを使う場合の外部PR安全性、Artifact/ログのSecret防護とcleanup条件を点検
 - [ ] M08〜M10の14目標それぞれで教本・P01〜P06・提出・採点基準・復習先・stateの意味を確認し、専用契約テストと静的/実行証拠を記録。M10正式評価は評価ブランチへ引継ぐ
@@ -82,7 +89,7 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 
 ## クイズ・理解事項・任意Phaseの受入（補完）
 
-- [ ] `docs/curriculum/ai-assisted-qa/quizzes/M08.json`〜`M10.json`について、14目標/理解事項の判断能力、正誤理由、復習先を照合。安全でないCI操作や有料Runnerへの自動変更を正解例にしない
+- [x] `docs/curriculum/ai-assisted-qa/quizzes/M08.json`〜`M10.json`について、14目標/理解事項の判断能力、正誤理由、復習先を照合。安全でないCI操作や有料Runnerへの自動変更を正解例にしない
 - [ ] `knowledge-graph.json`のM08〜M10の理解事項の意味・粒度・前提・教材節・判断/実行の観測をレビューし、未承認ノードを形式的に承認済みにせず、共通グラフ修正は#199へ提案
 - [ ] M07→M08の本人作成spec/依存/Config/Reset/RunとM09→M10の配布済みShop/固定SHA/無効workflowの引継ぎをID・revision・ファイルで検査。**Phase 3は選択**であり、未受講によってPhase 1/2の修了が失われないことを確認
 - [ ] 通常OpenCodeのCIログ解説・段階ヒント・失敗時復習の教材/プロンプトとM10独立評価の権限境界を確認。実モデルとの学習対話・本人の正式修了は#199へ渡す
