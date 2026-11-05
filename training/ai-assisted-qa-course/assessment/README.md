@@ -17,6 +17,14 @@
 
 Run receiptにはspec snapshot・JSON reportのSHA-256に加え、Trace等のattachmentのSHA-256も記録します。既存のreceiptにattachmentのSHA-256がない場合、添付物の改変を検出できないため正式な実行証拠として再利用せず、元の履歴を保持したまま新しい`course:run`で再実行してください。これらのハッシュはRun保存後の改変検出であり、外部から持ち込んだログが実際に実行されたことを単独で証明するものではありません。
 
+## M05 P05 の独立した実行証拠
+
+M05の`product-link.spec.ts` before/afterとは別に、P05の本人作成`workspace/M05/p05-cart-locator.spec.ts`を `pnpm course:run M05 p05-cart-locator.spec.ts --label main` で実行できます。Phase 2の正式評価では、このmain RunのPASSとspec snapshot・report・receiptのSHA-256を追加で要求します。公開の`scoring-tests/M05.json`の`required_runs`は配布Validatorとの固定契約により変更しません。追加Runの照合規則は評価器側に置きます。
+
+P05はdefaultをResetし、Mugとlow-stockの各1点を追加したCartで、全体の数量select・削除buttonがそれぞれ2件、対象明細内ではそれぞれ1件、数量が1であることをread-only Assertionで検証します。削除は実行しません。**RunがPASSした事実だけで業務Assertionの妥当性・DB永続化まで証明したことにはなりません。** それぞれの証拠・本人の説明はM05の正式AI評価で区別します。
+
+教材PR #215のM05演習には従来の「`course:run`がP05を拒否する」という説明が残るため、#199への統合前に教材側の記述をこの実行契約へ合わせる必要があります。教材専有ファイルはこのPRで編集しません。
+
 ## 同一試行の再開と排他ロック
 
 `pnpm course:assess <module> --model <id> --resume <assessment-id>` は、
