@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -12,7 +13,10 @@ import {
 import { loadCourseManifest } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 
 const tempRoot = fs.mkdtempSync(path.join(tmpdir(), "learner-backup-contract-"));
-const identity = { source_sha: "a".repeat(40), state_contract_revision: "ai-assisted-qa-course-v3" };
+const identity = {
+  source_sha: "a".repeat(40),
+  state_contract_revision: "ai-assisted-qa-course-v3",
+};
 
 function fixture(name = randomUUID()) {
   const root = path.join(tempRoot, name);
@@ -63,8 +67,14 @@ describe("Git-free Phase 1/2 learner backup", () => {
       ["workspace/M05/evidence/runs/" + randomUUID() + "/trace.zip", trace],
       ["workspace/M06/evidence/runs/" + randomUUID() + "/run.json", '{"status":"passed"}'],
       ["workspace/M07/notes.md", "# Review\n"],
-      ["workspace/.course-assessments/P1/attempts/" + randomUUID() + "/result.json", '{"status":"blocked"}'],
-      ["workspace/.course-assessments/P2/attempts/" + randomUUID() + "/result.json", '{"status":"assessed"}'],
+      [
+        "workspace/.course-assessments/P1/attempts/" + randomUUID() + "/result.json",
+        '{"status":"blocked"}',
+      ],
+      [
+        "workspace/.course-assessments/P2/attempts/" + randomUUID() + "/result.json",
+        '{"status":"assessed"}',
+      ],
       [".course-load/M00-2026-11-05.json", '{"module_id":"M00"}'],
     ];
     for (const [relative, bytes] of paths) write(first.root, relative, bytes);
@@ -100,9 +110,9 @@ describe("Git-free Phase 1/2 learner backup", () => {
     }
     expect(fs.existsSync(path.join(second.root, "workspace/M08/submission.md"))).toBe(false);
     expect(fs.existsSync(path.join(second.root, "workspace/M00/.env.local"))).toBe(false);
-    expect(restoreLearnerWorkspace({ root: second.root, source: first.backup }).newly_restored).toBe(
-      0,
-    );
+    expect(
+      restoreLearnerWorkspace({ root: second.root, source: first.backup }).newly_restored,
+    ).toBe(0);
     const before = fs.readFileSync(first.backup);
     expect(() => exportLearnerWorkspace({ root: first.root, target: first.backup })).toThrow(
       /already exists/,
@@ -193,10 +203,7 @@ describe("Git-free Phase 1/2 learner backup", () => {
   });
 
   it("blocks known credentials and personal email contents before export", () => {
-    for (const text of [
-      "OPENROUTER_API_KEY=" + "A".repeat(24),
-      "recipient: learner@gmail.com",
-    ]) {
+    for (const text of ["OPENROUTER_API_KEY=" + "A".repeat(24), "recipient: learner@gmail.com"]) {
       const first = fixture();
       write(first.root, "workspace/M00/submission.md", text);
       expect(() => exportLearnerWorkspace({ root: first.root, target: first.backup })).toThrow(
@@ -224,18 +231,29 @@ describe("Git-free Phase 1/2 learner backup", () => {
   it("runs the distributed standalone CLI without Git or the shared router", () => {
     const first = fixture();
     write(first.root, "workspace/M02/plan.md", "learner plan\n");
-    const scriptSource = path.join(process.cwd(), "training/course-sync/learner-workspace-backup.mjs");
+    const scriptSource = path.join(
+      process.cwd(),
+      "training/course-sync/learner-workspace-backup.mjs",
+    );
     const script = write(first.root, "scripts/training/learner-workspace-backup.mjs", "");
     fs.copyFileSync(scriptSource, script);
-    const exported = spawnSync(
-      process.execPath,
-      [script, "export", "--target", first.backup],
-      { cwd: first.root, encoding: "utf8" },
+    const corePath = path.resolve("scripts/training/ai-assisted-qa-assessment-core.mjs");
+    fs.copyFileSync(
+      corePath,
+      write(first.root, "scripts/training/ai-assisted-qa-assessment-core.mjs", ""),
     );
+    const exported = spawnSync(process.execPath, [script, "export", "--target", first.backup], {
+      cwd: first.root,
+      encoding: "utf8",
+    });
     expect(exported.status, exported.stderr).toBe(0);
     const second = fixture();
     const secondScript = write(second.root, "scripts/training/learner-workspace-backup.mjs", "");
     fs.copyFileSync(scriptSource, secondScript);
+    fs.copyFileSync(
+      corePath,
+      write(second.root, "scripts/training/ai-assisted-qa-assessment-core.mjs", ""),
+    );
     const restored = spawnSync(
       process.execPath,
       [secondScript, "restore", "--source", first.backup],
@@ -244,20 +262,4 @@ describe("Git-free Phase 1/2 learner backup", () => {
     expect(restored.status, restored.stderr).toBe(0);
     expect(snapshot(second.root, "workspace/M02/plan.md").toString("utf8")).toBe("learner plan\n");
   });
-  it("reports Prettier formatting for the two new files", async () => {
-    const prettier = await import("prettier");
-    const { Buffer: BinaryBuffer } = await import("node:buffer");
-    for (const name of [
-      "training/course-sync/learner-workspace-backup.mjs",
-      "tests/contracts/ai-assisted-qa-course-backup.test.mjs",
-    ]) {
-      const absolute = path.join(process.cwd(), name);
-      const formatted = await prettier.format(fs.readFileSync(absolute, "utf8"), {
-        ...(await prettier.resolveConfig(absolute)),
-        filepath: absolute,
-      });
-      console.log("FORMATTED_B64_" + name + "=" + BinaryBuffer.from(formatted).toString("base64"));
-    }
-  });
-
 });
