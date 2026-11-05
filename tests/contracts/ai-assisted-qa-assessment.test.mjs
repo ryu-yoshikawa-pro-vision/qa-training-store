@@ -2955,6 +2955,22 @@ describe("AI-assisted QA formal assessment contracts", () => {
         0,
       ).response,
     ).toBe("{}");
+    for (const incompleteReason of ["length", "tool-calls", "error", "unknown", null]) {
+      const events = [
+        JSON.stringify({ type: "text", part: { type: "text", text: "{}" } }),
+        JSON.stringify({ type: "step_finish", reason: incompleteReason }),
+      ].join("\n");
+      expect(() => parseOpenCodeJsonEvents(events, 0)).toThrow(/clean text response/);
+    }
+    const validEvents = [
+      JSON.stringify({ type: "text", part: { type: "text", text: "{}" } }),
+      JSON.stringify({ type: "step_finish", reason: "stop" }),
+    ].join("\n");
+    expect(() => parseOpenCodeJsonEvents(validEvents + "\n" + validEvents)).toThrow(
+      /after the terminal/,
+    );
+    expect(() => parseOpenCodeJsonEvents(validEvents, 429)).toThrow(/exited with code/);
+    expect(() => parseOpenCodeJsonEvents("", 0)).toThrow(/no JSON event stream/);
     expect(() => parseStrictJsonResponse("```json\n{}\n```")).toThrow(/single JSON document/);
   });
 
