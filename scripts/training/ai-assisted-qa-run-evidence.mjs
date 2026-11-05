@@ -296,6 +296,41 @@ export function assertM06CaseAssertions(specBytes, specName, label) {
     fail("M06 spec is missing one or more required CASE-CART tests");
 }
 
+export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specName, tests) {
+  if (moduleId !== "M06" && moduleId !== "M07") return;
+  const source = ts.createSourceFile(
+    specName,
+    snapshotBytes.toString("utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (source.parseDiagnostics.length > 0)
+    fail("Playwright source snapshot contains invalid TypeScript syntax");
+  const declared = [];
+  const scan = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "test" &&
+      node.arguments.length >= 2 &&
+      ts.isStringLiteral(node.arguments[0])
+    )
+      declared.push(node.arguments[0].text);
+    ts.forEachChild(node, scan);
+  };
+  scan(source);
+  const reported = Array.isArray(tests) ? tests.map((test) => test?.title) : [];
+  if (
+    declared.length === 0 ||
+    declared.length !== reported.length ||
+    new Set(declared).size !== declared.length ||
+    new Set(reported).size !== reported.length ||
+    declared.some((title) => !reported.includes(title))
+  )
+    fail("Playwright JSON report test titles do not match the saved source snapshot");
+}
+
 function relativeWorkspacePath(filePath, root = ROOT) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
@@ -526,6 +561,12 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   const report = JSON.parse(reportText);
   const outputRoot = path.dirname(reportPath);
   const extracted = reportSpecs(report, path.dirname(specPath), specPath, outputRoot, root);
+  assertReportedTestsMatchSnapshot(
+    snapshotBytes,
+    moduleId,
+    path.basename(record.spec_path),
+    extracted.tests,
+  );
   if (JSON.stringify(extracted.tests) !== JSON.stringify(record.tests))
     fail("course Playwright run evidence results do not match its JSON report");
   if (JSON.stringify(extracted.attachments) !== JSON.stringify(record.attachments))
