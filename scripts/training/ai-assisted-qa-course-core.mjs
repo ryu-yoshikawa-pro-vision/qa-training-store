@@ -634,10 +634,7 @@ function validateWebQuizParity(files) {
 function validateBundledShopAssets(files) {
   const targets = new Map(files.map((file) => [file.target_path, file.bytes]));
   for (const file of files) {
-    if (
-      !file.target_path.startsWith("course/shop/") ||
-      !file.target_path.endsWith(".js")
-    )
+    if (!file.target_path.startsWith("course/shop/") || !file.target_path.endsWith(".js"))
       continue;
     const source = file.bytes.toString("utf8");
     for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g)) {
