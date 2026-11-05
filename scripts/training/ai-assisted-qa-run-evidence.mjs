@@ -134,6 +134,7 @@ function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot)
           attachments.push({
             path: relative.split(path.sep).join("/"),
             size: stat.size,
+            sha256: sha256(fs.readFileSync(filePath)),
             name: typeof attachment.name === "string" ? attachment.name : "",
             content_type: typeof attachment.contentType === "string" ? attachment.contentType : "",
           });
