@@ -1013,6 +1013,72 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("pins all Web lesson, exercise and quiz HTML revisions to learner Markdown and JSON", async () => {
+    const fixture = courseFixture();
+    const pages = [];
+    const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+    const webPrefix = "docs/curriculum/ai-assisted-qa/";
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      for (const [page, source] of [
+        [`modules/${moduleId}/index.html`, `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`],
+        [`modules/${moduleId}/exercise.html`, `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`],
+      ]) {
+        const revision = hash(fs.readFileSync(path.join(fixture.source, source)));
+        const html = `<meta name="course-source-revision" content="${revision}"><body data-course-revision="${revision}"></body>`;
+        writeFixtureFile(fixture.source, `dist/${webPrefix}${page}`, html);
+        pages.push({ page: `dist/${webPrefix}${page}`, revision, html });
+      }
+      const quiz = fs.readFileSync(
+        path.join(fixture.source, webPrefix, "quizzes", `${moduleId}.json`),
+      );
+      const revision = hash(quiz);
+      writeFixtureFile(fixture.source, `dist/${webPrefix}quizzes/${moduleId}.json`, quiz);
+      writeFixtureFile(
+        fixture.source,
+        `dist/${webPrefix}quizzes/${moduleId}.html`,
+        `<meta name="quiz-revision" content="${revision}"><body data-revision="${revision}"></body>`,
+      );
+    }
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    const firstPage = pages[0];
+    writeFixtureFile(
+      fixture.source,
+      firstPage.page,
+      firstPage.html.replaceAll(firstPage.revision, "0".repeat(64)),
+    );
+    await expect(syncCourse(options)).rejects.toThrow(/Markdown revision mismatch/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+    writeFixtureFile(fixture.source, firstPage.page, firstPage.html);
+
+    await syncCourse(options);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(45);
+    const snapshot = snapshotDirectory(fixture.target);
+    const repeated = await syncCourse(options);
+    expect(repeated.copied).toEqual([]);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const learnerLesson = distribution.files.find(
+      (file) => file.target_path === "course/modules/M00/README.md",
+    );
+    expect(learnerLesson.source_sha256).toBe(firstPage.revision);
+    learnerLesson.source_sha256 = "0".repeat(64);
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /Markdown revision mismatch/,
+    );
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
