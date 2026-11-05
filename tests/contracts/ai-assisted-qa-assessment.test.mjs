@@ -3470,7 +3470,18 @@ describe("AI-assisted QA formal assessment contracts", () => {
     const moduleRoot = path.join(workspaceRoot, "M06");
     const specPath = path.join(moduleRoot, "new-case.spec.ts");
     fs.mkdirSync(moduleRoot, { recursive: true });
-    fs.copyFileSync(path.join(sourceModule, "product-link.spec.ts"), specPath);
+    const m06Source = Buffer.from(
+      [
+        'import { expect, test } from "@playwright/test";',
+        'test("CASE-CART-004 remove item", async ({ page }) => {',
+        '  await expect(page.getByLabel("数量")).toHaveValue("1");',
+        "});",
+        'test("CASE-CART-005 retain changed quantity", async ({ page }) => {',
+        '  await expect(page.getByLabel("数量")).toHaveValue("2");',
+        "});",
+      ].join("\n"),
+    );
+    fs.writeFileSync(specPath, m06Source);
     const sourceRun = path.join(
       sourceModule,
       "evidence",
@@ -3485,6 +3496,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     for (const [label, runId, startedAt] of runs) {
       const targetRun = path.join(moduleRoot, "evidence", "runs", runId);
       fs.cpSync(sourceRun, targetRun, { recursive: true });
+      fs.writeFileSync(path.join(targetRun, "spec-snapshot.ts"), m06Source);
       const reportPath = path.join(targetRun, "playwright-result.json");
       const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
       report.config.rootDir = moduleRoot;
@@ -3505,6 +3517,8 @@ describe("AI-assisted QA formal assessment contracts", () => {
         run_id: runId,
         label,
         spec_path: "workspace/M06/new-case.spec.ts",
+        spec_sha256: sha256(m06Source),
+        source_snapshot_sha256: sha256(m06Source),
         source_snapshot_path: `workspace/M06/evidence/runs/${runId}/spec-snapshot.ts`,
         report_path: `workspace/M06/evidence/runs/${runId}/playwright-result.json`,
         report_sha256: sha256(reportBytes),
