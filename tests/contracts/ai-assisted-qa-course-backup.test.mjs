@@ -265,7 +265,7 @@ describe("Git-free Phase 1/2 learner backup", () => {
     }
   });
 
-  it("rejects a backup destination inside the real repository when the source root has a symlink ancestor", () => {
+  it("rejects an in-repo backup destination through a symlinked source ancestor", () => {
     const first = fixture();
     const alias = path.join(tempRoot, "root-alias-" + randomUUID());
     fs.symlinkSync(tempRoot, alias, "dir");
