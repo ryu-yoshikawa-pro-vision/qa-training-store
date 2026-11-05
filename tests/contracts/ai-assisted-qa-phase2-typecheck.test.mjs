@@ -28,6 +28,7 @@ afterEach(() => {
   }
 });
 
+/** 指定した学習用TypeScriptファイルを既定の型検査条件で実行する。 */
 function typecheck(file) {
   return spawnSync("pnpm", ["exec", "tsc", ...flags, file], {
     cwd: process.cwd(),
