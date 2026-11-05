@@ -24,9 +24,7 @@ const guardAndArchive = commandBlocks.find((block) =>
   block.includes("tar --create --gzip --file=-"),
 );
 
-const restoreDownloaded = commandBlocks.find((block) =>
-  block.includes("tar -xzf ./phase2.tgz"),
-);
+const restoreDownloaded = commandBlocks.find((block) => block.includes("tar -xzf ./phase2.tgz"));
 const temporaryDirectories = [];
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -164,9 +162,7 @@ describe("Phase 2 Git/PR不要の保全手順", () => {
         fs.readFileSync(path.join(fixture.root, file), "utf8"),
       );
     }
-    expect(
-      fs.statSync(path.join(local, "restore-check")).mode & 0o777,
-    ).toBe(0o700);
+    expect(fs.statSync(path.join(local, "restore-check")).mode & 0o777).toBe(0o700);
     expect(backupSection).toContain("更新後の`phase2-handoff.md`も同じ非公開保管先へ");
     expect(backupSection).toContain("**別ファイルとして再ダウンロード**");
   });
