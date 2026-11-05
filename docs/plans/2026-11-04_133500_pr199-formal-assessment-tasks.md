@@ -8,7 +8,7 @@
 
 PR #217では正式AI評価器のソース・ルーブリック/校正データ、決定論的検査・権限境界、GitHub API/Playwright証拠取得処理、負例テスト・既存GitHub Actions CIまでを実装・確認する。**認証付きOpenCode実モデルでの採点と重大誤PASS 0件の最終校正、本人Private Codespaces/Private PRの証拠確認は#199の最後**に行う。模擬モデルのPASSを実モデル校正PASSへ転用しない。
 
-確認済みは14/22件。`5b8f37686a7b89c8541d7d2ceb836d0d90072f9d`のWeb CI Run `41862840552`では`Vitest (contracts)`を含むジョブが成功。評価器の再開・排他・履歴の既存実装と該当テストを照合し、チェック対象の既存処理はその後変更していない。新規変更に対するCI結果は未確認であり、新しく追加したテストのPASSは主張しない。
+確認済みは16/22件。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`のCI Run `41972670377`は`Vitest (contracts)`85ファイル・1146件PASS、整形・Lint・Training runtime contracts・2ビルド・verify/validate成功。今回追加した完了2件はこの固定HEADの契約検証に基づく。以降の再開処理の修正は別HEADであり、CI未確認として完了に含めない。
 
 ## 変更範囲と受入の区別
 
@@ -29,12 +29,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [x] `@opencode/cli`の対象版・`opencode run`の非対話/JSONイベント・stderr/終了コード/タイムアウトを仕様・既存コードと照合し、イベントを模擬したパーサ/異常系契約テストを追加。学習環境での認証付き実CLI接続は#199へ渡す（OpenCode V2のCLI/Config仕様とNode実装を照合。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`では`ai-assisted-qa-assessment-process.test.mjs`の4件・既存イベント異常系を含む`Vitest (contracts)`が成功。本人認証付き実CLIは#199で実施）
 - [x] 無料モデルの選択・料金確認を起動前ガードとして実装/文書化し、認証欠落・429・上限/不明価格を`blocked`として拒否する負例テストを用意。本人の実契約/費用確認・モデル接続は#199へ渡す（公開Models.devカタログの全公表単価0・正確なモデルIDを検査し、CLI列挙に存在しないモデル・価格不明・非200/429・外部送信不能をNodeでblockedとする。固定HEAD `7402bc0ff149f66f020a568566da4695ce85003a` のCI Run `41963853602`で料金負例を含む契約テスト成功。本人契約と実認証は#199）
 - [x] 学習用セッションから分離した評価プロセス/権限設定を実装し、Shell/edit/Web/MCP/Skill/子Agent禁止の設定と模擬拒否を契約テストで検証。実モデル環境の権限拒否確認は#199へ渡す（`createIsolatedAssessmentRuntime`による一時HOME/CWD/XDG、メモリDBと全操作deny設定・Skill/MCP非流入、`ai-assisted-qa-assessment-isolation.test.mjs`のProcess/Tool負例を固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`の`Vitest (contracts)`で確認。CLI版/モデル列挙も同環境に統一した後のCIと実モデル権限拒否は未確認、#199に引継ぎ）
-- [ ] 本人提出・ログ中のPrompt Injectionを命令として実行せず、許可した資料/節だけをサイズ上限・Secret除外後に外部モデルへ渡すこと
+- [x] 本人提出・ログ中のPrompt Injectionを命令として実行せず、許可した資料/節だけをサイズ上限・Secret除外後に外部モデルへ渡すこと（システム指示と入力JSONの分離、公開出典とSkillの許可リスト、各証拠・Promptサイズ、UTF-8/Secret/Toolイベント拒否を`ai-assisted-qa-assessment-untrusted-input.test.mjs`、既存契約テストで検証。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`・CI Run `41972670377`で4件を含む契約85ファイル1146件PASS。実モデルの意味的なInjection耐性は#199最終受入）
 
 ## 校正・誤PASS拒否
 
 - [x] 正答・誤答・許容別解・部分達成・根拠不足・未実行の固定校正fixtureと判定契約を整備し、Node集計・モデル応答異常/欠落の負例をCIで検証する。**実モデルでの最終校正は#199**（M00〜M10の106固定Case、各5分類と11件のPrompt Injection負例を検査し、誤PASSをNode校正失敗へ分類。欠落/重複/不明ID・無根拠/未実行も拒否。固定HEAD `7402bc0ff149f66f020a568566da4695ce85003a` のCI Run `41963853602`で契約テスト成功。実モデル校正は#199）
-- [ ] 旧SHA/別Run、改ざん・偽Trace、重複/欠落ID、Prompt Injection、異常JSON、タイムアウトの負例をCIへ追加。模擬評価器の重大誤PASSを0にし、**実モデルの重大誤PASS 0件は#199最終実受入**で別に確認
+- [x] 旧SHA/別Run、改ざん・偽Trace、重複/欠落ID、Prompt Injection、異常JSON、タイムアウトの負例をCIへ追加。模擬評価器の重大誤PASSを0にし、**実モデルの重大誤PASS 0件は#199最終実受入**で別に確認（旧source SHA・別spec/Run・改変TraceのSHA・重複/欠落Case・11件のInjection偽PASS・JSONイベント異常・子プロセスtimeoutの負例を検証。固定HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`・CI Run `41972670377`で契約85ファイル1146件PASS。自己申告のRunを一括偽造する攻撃の外部出自保証は別項目として未完了、実モデル重大誤PASSは#199）
 - [x] 校正記録へモデルID/版・CLI版・Prompt Hash・rubric Hash・資料SHAを保存する契約を実装し、不一致時の再校正要求をテスト。実モデル校正結果の確定は#199へ渡す（モデル/CLI/Prompt/評価資料SHAの校正identity、正常再利用・不一致拒否を`ai-assisted-qa-assessment-calibration-identity.test.mjs`・既存校正cacheテストで確認。固定HEAD `02abbb7872615baaad6d6e4b03f01390acf76525`のCI Run `41961795221`で契約テスト成功。本人の実モデル校正は#199）
 - [x] 不一致/校正不能時は合格へ繰り上げず`blocked`/`ungradable`等の正しい状態にし、再試行条件を提示（`isPassingCalibration`・`finalizeAssessment`・`resumeAttempt`・`saveSummary`、失敗校正cacheの拒否/候補欠落/再開負例を固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI `41953473479`の契約テスト成功で確認）
 
@@ -52,6 +52,12 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - [ ] M07 before/afterの別Run・Page Object/fixture import・業務Assertion不変を検証するコード/fixtureを作り、Node側実行とAI意味評価の権限境界をテスト。本人の実Runは#199で受け入れる
 - [x] M10のPR HEAD/attempt/Check/Artifact/target SHAをGitHub APIで取得・照合する経路と、merge-ref/旧Run/偽データ拒否のAPI mock・非公開token保護テストを整備。本人Private repoの実API照合は#199へ渡す（既存`ai-assisted-qa-github-run-evidence.mjs`と専用API/Artifact mockを確認。固定HEAD `5499fcc871d345aef990a6d6a010df1c8e586e3d`、CI Run `41953473479` の契約テスト成功。Private API実行は未実施）
 - [x] 通常OpenCodeチューターの教材/指示/学習セッションから正式評価への情報・権限流入を禁止する契約/負例を整備し、本人との実対話/復習・再評価は#199に引き継ぐ（偽のチューターAGENTS.md/グローバル設定/セッション秘密を独立評価子プロセスのHOME/CWDから隔離し、学習用キーは引継がず選択`opencode/`キーだけ明示許可するモックを固定HEAD `2568dcbb2ccee6cbd670947abb502658f7134476`・CI Run `41968096517`で検証。実認証・Managed policy・学習者との実対話/再評価は#199で受入）
+
+## 2026-11-05 固定HEADでの完了確認と再開時の入力再検査
+
+- **項目9・11をチェック：** [CI Run 41972670377](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41972670377) / HEAD `d96dce17005a3a703f4604b9e192c91b2c9f0a84`で全体成功、`Vitest (contracts)`85ファイル・1146件PASS。4件の`untrusted-input`、3件の`m06-assertions`、11件のPrompt Injection誤PASS検知、偽Trace・改変Run・不正Case・JSON/CLI異常系も成功を確認。Nodeが本人テキストをコマンドとして実行しない契約および公開出典許可リストまでを完了とし、モデルが意味的に指示へ従う可能性は#199の実モデル校正で評価する。ローカルreceipt/report/snapshotの一括偽造への耐性は項目3として未完了。
+- **項目16の作業（未チェック）：** `resumeAttemptUnlocked`は従来、完了済み`result.json`を現在の証拠検査前に再公開していた。今回`assertReusablePreparedInputs`で版・scoring Asset・状態・必須ID・証拠Snapshotとfingerprintを再照合し、`assertReusableFinalizedAnswer`でchallenge・回答ファイル/receipt/保存結果のSHAを照合するよう変更した。完了済み試行の再開も`loadPhaseInputs`で現行Playwright Run、GitHub API（P3）、仕様・教材に再照会し、変化/欠落があれば元の履歴を改変せず新規試行を要求する。新規契約`ai-assisted-qa-assessment-resume-current.test.mjs`を追加。**これらの変更後HEADのCIは未確認**、項目16はチェックしない。
+- **復旧上の変更：** 完了済み結果の再公開時にも教材のリモート取得・P3 API/Run確認が必要になる。オフライン・API障害では古い結果を自動再公開しない。既存`history`/過去結果は削除しない。#199では本人の環境で再開・履歴・別ID試行を受け入れる。
 
 ## 2026-11-05 中間CIの実失敗と修正
 
