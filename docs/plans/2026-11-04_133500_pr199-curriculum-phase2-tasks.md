@@ -11,7 +11,7 @@
 - **PR #215で変更可能**：`docs/curriculum/ai-assisted-qa/modules/M05..M07/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M05.json`〜`M07.json`、学習専用Playwright資産、固有の契約テスト、タスクリスト・報告書。
 - **変更しない**：製品SUT・正式製品仕様・既存Seed/Reset・製品用テスト/workflow・`assessment/**`・共通`scripts/training/**`・配布manifest・知識グラフ・他PR所有ファイル。問題の証拠と修正案はそれぞれ#199/#217/#218へ渡す。
 - **進捗は次の33項目だけで集計**する。過去の25項目は技術対応と本人の実受入が混在していたため、今回の構成では分母を変更した。以前の`8/25（32%）`から数値だけを比較しない。
-- **Progress: 94% (31/33)**。未完了2件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
+- **Progress: 97% (32/33)**。未完了1件。チェック済みはPR #215の技術的な照合・教材/テストの修正・報告であり、本人の実Runと#199の最終実受入は含まない。各チェックの根拠と旧25項目からの変更経緯は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)と下記の作業履歴を参照。
 
 ## M05：TypeScript・Playwright基礎
 
@@ -41,9 +41,11 @@
   - BR-CART-001/AC-CART-001と参考3 Caseの拒否後数量維持を照合。通知が成功しても数量Assertionを削除した参考specは契約不適合、元のspecは適合となる変異負例を追加（実ブラウザbefore/afterは#199最終受入）。
 - [x] `M06-05`：終了コード、`outcome`、JSON report・ログからPASS/FAIL/BLOCKED/未実行を判定する教材と、旧Run・別spec・実行数の誤判定を拒否する契約テストを整合する。共有実行器の修正は#217へ渡す。
   - 4種の`course:run outcome`とreceipt未生成の未実行、Playwright test状態・Run ID/配布/spec/report SHAの照合を教材/提出欄に追加。既存評価テストの同一Run・旧source SHA・初回/repeat逆転拒否と照合。共有実行器の相対パス不具合は#217へ引継ぎ済み。
-- [ ] 公開参考specの固定3件と004/005を専用Config・実行可能な環境で技術的に検証し、Run/対象HEAD/初回・再実行の結果を記録。**本人の独立実装・初回/repeat達成の判定は行わない**。
-  - **未完了理由**：専用8082のShop、pnpm/Chromium、実行checkoutがなくRun未取得。固定3件（`cart-cases.spec.ts`）と004/005（`remove-item.spec.ts`/`quantity-update.spec.ts`）の初回・再実行の3コマンドと必要な証拠を[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ追記した。004参考test名にCase IDがない点は[#217](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)へ引継ぎ済み。
-  - **2026-11-05追加対応**：ユーザーが許可したPR #215専用CIジョブを`.github/workflows/ci.yml`に追加。`pr215-m06-reference`はPR番号215かつ当該branchのときだけ実行し、同じCIの`web-dist-automation`を8082で配信する。固定3件・004/005初回2件・再実行2件を`playwright.ai-assisted-qa.config.ts`のChromiumで独立Runとして実行し、終了コード・JSON/HTML report・HEAD・spec SHA・trace等を14日保存する。`tests/contracts/ai-assisted-qa-phase2-m06-reference-ci.mjs`は全7件の実行、対象spec・report件数・結果・対象HEADを検証する。**実Runの結果を確認するまでは未完了**。
+- [x] 公開参考specの固定3件と004/005を専用Config・実行可能な環境で技術的に検証し、Run/対象HEAD/初回・再実行の結果を記録。**本人の独立実装・初回/repeat達成の判定は行わない**。
+  - **以前の制約**：当初は専用8082のShop、pnpm/Chromium、実行checkoutがなくRun未取得。固定3件（`cart-cases.spec.ts`）と004/005（`remove-item.spec.ts`/`quantity-update.spec.ts`）の初回・再実行の3コマンドと必要な証拠を[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)へ追記した。004参考test名にCase IDがない点は[#217](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/217#issuecomment-6645631921)へ引継ぎ済み。
+  - **2026-11-05追加対応**：ユーザーが許可したPR #215専用CIジョブを`.github/workflows/ci.yml`に追加。`pr215-m06-reference`はPR番号215かつ当該branchのときだけ実行し、同じCIの`web-dist-automation`を8082で配信する。固定3件・004/005初回2件・再実行2件を`playwright.ai-assisted-qa.config.ts`のChromiumで独立Runとして実行し、終了コード・JSON/HTML report・HEAD・spec SHA・trace等を14日保存する。`tests/contracts/ai-assisted-qa-phase2-m06-reference-ci.mjs`は全7件の実行、対象spec・report件数・結果・対象HEADを検証する。**専用Runの完了証拠は次の記録を参照**。
+  - **2026-11-05実証完了**：[Web CI #42051038880](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42051038880)の`PR #215 M06 reference Chromium`が成功。PR source HEAD `803cf2cc62e3a9ce63cc554da1c66419cefba979`、CI merge checkout HEAD `072dc67392a25caf2fb9f0fe6d561dcaa7a9646e`。固定3件、004/005初回2件、再実行2件の3 Runで7件すべてPASS、各exit 0・skip/expected failure/retry/flakyなし。[成果物 #13426668109](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42051038880/artifacts/13426668109)の`summary.json`・Playwright JSON report・spec SHA・Web build SHAを照合済み。これは公開参考specの技術受入であり、本人の独立実装ではない。004の参照test名のCase ID不足は#217に引き継いだまま。
+
 
 ## M07：失敗解析・保守設計
 
