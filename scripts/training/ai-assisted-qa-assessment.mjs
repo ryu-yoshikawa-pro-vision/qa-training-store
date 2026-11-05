@@ -1435,18 +1435,23 @@ export function assertAvailableModelListing(modelId, stdout) {
 }
 
 async function verifyOpenCodeModelAvailable(modelId) {
-  const result = await runCaptured(
-    process.platform === "win32" ? "opencode.cmd" : "opencode",
-    ["models"],
-    {
-      cwd: ROOT,
-      env: buildOpenCodeEnvironment({
-        extra: { OPENCODE_DISABLE_PROJECT_CONFIG: "true" },
-      }),
-      timeoutMs: 15_000,
-      maxBytes: 256_000,
-    },
-  );
+  let result;
+  try {
+    result = await runCaptured(
+      process.platform === "win32" ? "opencode.cmd" : "opencode",
+      ["models"],
+      {
+        cwd: ROOT,
+        env: buildOpenCodeEnvironment({
+          extra: { OPENCODE_DISABLE_PROJECT_CONFIG: "true" },
+        }),
+        timeoutMs: 15_000,
+        maxBytes: 256_000,
+      },
+    );
+  } catch {
+    fail("BLOCKED: OpenCode model discovery is unavailable; check CLI and provider access");
+  }
   if (result.exitCode !== 0)
     fail("BLOCKED: OpenCode model discovery failed; check authentication and provider access");
   assertAvailableModelListing(modelId, result.stdout);
@@ -1916,8 +1921,24 @@ async function resumeAttemptUnlocked(request) {
       recorded_at: new Date().toISOString(),
     });
   }
-  const pricing = await verifyCurrentFreeModelPrice(request.modelId);
-  await verifyOpenCodeModelAvailable(request.modelId);
+  let pricing;
+  try {
+    pricing = await verifyCurrentFreeModelPrice(request.modelId);
+    await verifyOpenCodeModelAvailable(request.modelId);
+  } catch (error) {
+    console.log(
+      JSON.stringify(
+        {
+          status: "blocked",
+          assessment_id: request.resumeId,
+          reason: error instanceof Error ? error.message : String(error),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   console.log(
     `公開料金カタログの確認: ${pricing.model_id}（入力・出力・その他の公表単価は0）。本人の契約・上限も確認してください。`,
   );
