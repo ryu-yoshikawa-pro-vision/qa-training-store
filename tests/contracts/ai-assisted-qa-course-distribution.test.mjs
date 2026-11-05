@@ -483,6 +483,24 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
+  it("TEMP identifies exact formatting delta", async () => {
+    const prettier = await import("prettier");
+    const testPath = path.join(repositoryRoot, "tests/contracts/ai-assisted-qa-course-distribution.test.mjs");
+    const settings = await prettier.resolveConfig(testPath);
+    const expected = await prettier.format(fs.readFileSync(testPath, "utf8"), {
+      ...settings,
+      filepath: testPath,
+    });
+    const actual = fs.readFileSync(testPath, "utf8").split("\n");
+    const formatted = expected.split("\n");
+    for (let i = 0; i < Math.max(actual.length, formatted.length); i += 1) {
+      if (actual[i] === formatted[i]) continue;
+      console.log("FORMAT_DELTA_CURRENT_LINE", i + 1, JSON.stringify(actual.slice(Math.max(0, i - 3), i + 7)));
+      console.log("FORMAT_DELTA_EXPECTED_LINE", i + 1, JSON.stringify(formatted.slice(Math.max(0, i - 3), i + 7)));
+      break;
+    }
+  });
+
 
   it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
     const manifest = loadCourseManifest(repositoryRoot);
