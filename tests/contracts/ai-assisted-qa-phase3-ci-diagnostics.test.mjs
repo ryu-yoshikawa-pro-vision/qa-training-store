@@ -40,9 +40,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(steps[4].run).toContain("test -s course/shop/index.html");
     expect(steps[4].run).toContain("test -s .course/distribution-manifest.json");
     expect(steps[5].run).toBe("pnpm exec playwright install --with-deps chromium");
-    expect(steps[7].env.EXPECTED_HEAD_SHA).toBe(
-      "${{ github.event.pull_request.head.sha }}",
-    );
+    expect(steps[7].env.EXPECTED_HEAD_SHA).toBe("${{ github.event.pull_request.head.sha }}");
     expect(steps[8].run).toContain("target-sha.txt");
     expect(steps[9].env).toEqual({
       PLAYWRIGHT_TEST_ROOT: "workspace/M07",
@@ -111,9 +109,7 @@ describe("M09 Phase 3 workflow responsibilities", () => {
     expect(c).toContain("if-no-files-found: error");
     expect(c).toContain("failure");
 
-    const submission = read(
-      "training/ai-assisted-qa-course/exercises/M09/submission-template.md",
-    );
+    const submission = read("training/ai-assisted-qa-course/exercises/M09/submission-template.md");
     for (const condition of [
       "合成A Build",
       "合成B Test",
