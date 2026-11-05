@@ -10,6 +10,8 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 
 現在23/24件チェック済み。M08-01〜04は隔離Gitの技術検証と教材/固定サンプルのレビューであり、本人のGit実操作・AI実モデル受入・PR作成を意味しない。追加の契約テストが成功した固定HEADは`9d62ea272784`（Web CI Run `41958502627`）。その後に書式だけを正規化しており、PR HEADは変更のたびに再確認する。Web CI Run `41947629131`（HEAD `5d254ce9f2a4`）でStyle Quality・Code Quality・Vitest (contracts)・Training runtime contractsの成功を確認。既存#199のCI失敗原因は修正済みだが、このブランチの古いCI失敗は基点が古いことによるMarkdown lintであり、別の業務不具合と扱わない。エージェント側では最新#199との差分を照合し、修正後のCIを再確認する。
 
+**進捗の読み方**：以下の「2026-11-05」実施記録は、その時点での未チェック・CI待ちを含む作業履歴です。最新の完了判定は上の**23/24件**と各チェック欄、固定HEAD/CI根拠を優先してください。現在未チェックなのは、旧M10公開fallback workflowを含むモジュール引継ぎの最終受入1件だけです。
+
 ## 変更範囲
 
 14学習目標。編集：`docs/curriculum/ai-assisted-qa/modules/M08..M10/**`、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`・`states/Mxx/**`・`docs/curriculum/ai-assisted-qa/quizzes/M08.json`〜`M10.json`・`templates/phase3/**`・`scripts/training/ai-assisted-qa-github-run-evidence.mjs`・固有の契約テスト。配布manifest、course sync、正式採点エンジン、共通テスト/lockfileは別担当。
