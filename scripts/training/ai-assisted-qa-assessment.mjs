@@ -563,7 +563,11 @@ export function recordModelInvocation(input) {
   });
 }
 
-export function createIsolatedAssessmentRuntime({ source = process.env, platform = process.platform } = {}) {
+export function createIsolatedAssessmentRuntime({
+  source = process.env,
+  platform = process.platform,
+  providerId = null,
+} = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "qa-course-assessor-"));
   try {
     const config = path.join(root, "config");
@@ -590,7 +594,15 @@ export function createIsolatedAssessmentRuntime({ source = process.env, platform
     });
     delete env.HOMEDRIVE;
     delete env.HOMEPATH;
-    return { cwd: root, env, dispose: () => fs.rmSync(root, { recursive: true, force: true }) };
+    if (providerId === "opencode" && typeof source.OPENCODE_API_KEY === "string") {
+      const providerKey = source.OPENCODE_API_KEY.trim();
+      if (providerKey) env.OPENCODE_API_KEY = providerKey;
+    }
+    return {
+      cwd: root,
+      env,
+      dispose: () => fs.rmSync(root, { recursive: true, force: true }),
+    };
   } catch (error) {
     fs.rmSync(root, { recursive: true, force: true });
     throw error;
@@ -600,7 +612,9 @@ export function createIsolatedAssessmentRuntime({ source = process.env, platform
 async function runOpenCode({ modelId, version, systemPrompt, prompt, directory, fileName }) {
   const promptPath = path.join(directory, fileName);
   writeImmutableOpenCodePrompt(promptPath, prompt);
-  const runtime = createIsolatedAssessmentRuntime();
+  const runtime = createIsolatedAssessmentRuntime({
+    providerId: modelId.split("/")[0],
+  });
   try {
     const environment = {
       ...runtime.env,
@@ -1445,7 +1459,7 @@ const MAX_PRICE_CATALOG_BYTES = 20 * 1024 * 1024;
 
 export function assertFreeModelCatalogEntry(modelId, catalog) {
   const [providerId, modelName, extra] = String(modelId).split("/");
-  if (extra || !["opencode", "opencode-go"].includes(providerId) || !modelName)
+  if (extra || providerId !== "opencode" || !modelName)
     fail("BLOCKED: select an OpenCode free-tier provider/model; other providers may bill");
   const model = catalog?.[providerId]?.models?.[modelName];
   if (!model || model.status === "deprecated")
@@ -1494,7 +1508,7 @@ async function verifyOpenCodeModelAvailable(modelId) {
 }
 
 export async function verifyCurrentFreeModelPrice(modelId, { fetchImpl = fetch } = {}) {
-  if (!/^opencode(?:-go)?\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(modelId ?? ""))
+  if (!/^opencode\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(modelId ?? ""))
     fail("BLOCKED: select an OpenCode free-tier provider/model; other providers may bill");
   let response;
   try {
