@@ -873,6 +873,23 @@ describe("AI-assisted QA distribution contract", () => {
     expect(start).toContain("RISK-CART-001");
     expect(start).toContain("BR-CART-001");
     expect(start).toContain("AC-CART-001");
+    for (const skillScript of [
+      "skills/spec-analysis/scripts/authority_entities.py",
+      "skills/test-analysis/scripts/risk_matrix.py",
+      "skills/test-analysis/scripts/analysis_entities.py",
+      "skills/test-requirement-design/scripts/requirement_structure.py",
+      "skills/test-condition-design/scripts/condition_structure.py",
+      "skills/test-condition-design/scripts/runtime_contract.py",
+      "skills/test-case-design/scripts/case_structure.py",
+    ]) {
+      expect(manifest.external_skill_files).toContainEqual(
+        expect.objectContaining({
+          source_path: skillScript,
+          target_path: `.agents/${skillScript}`,
+          blob_sha: expect.stringMatching(/^[a-f0-9]{40}$/),
+        }),
+      );
+    }
 
     const withoutLoad = {
       ...manifest,
