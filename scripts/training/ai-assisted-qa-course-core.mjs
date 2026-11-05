@@ -221,6 +221,16 @@ export function validateCourseManifest(manifest) {
   if (manifest?.schema_version !== 1) fail("Unsupported course manifest schema_version");
   if (manifest.state_contract_revision !== STATE_CONTRACT_REVISION)
     fail("The state contract revision must match the implemented read-only checker");
+  if (manifest.source_sha !== "${SOURCE_SHA}")
+    fail("Course manifest source_sha must remain the exact runtime-bound placeholder");
+  const shopBuild = manifest.generated?.shop_build;
+  if (
+    shopBuild?.command !== "pnpm run build:web" ||
+    shopBuild.source !== "dist/**" ||
+    shopBuild.target !== "course/shop/**" ||
+    shopBuild.required !== true
+  )
+    fail("Course manifest must pin the required Shop build and its distribution paths");
   if (
     !Array.isArray(manifest.local_files) ||
     !Array.isArray(manifest.external_skill_files) ||
@@ -590,8 +600,6 @@ export async function syncCourse({
   validateCourseManifest(manifest);
   if (!allowUncommittedFixture) verifySourceCheckout(sourceRoot, sourceSha);
   else if (!SHA_PATTERN.test(sourceSha)) fail("fixture source SHA must still be a full commit SHA");
-  if (!manifest.source_sha.startsWith("${"))
-    fail("manifest source_sha must remain a runtime-bound placeholder");
   const targetRoot = path.resolve(target);
   if (
     !fs.existsSync(targetRoot) ||
@@ -652,7 +660,13 @@ export async function syncCourse({
   else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
     fail("Shop build is required by the distribution contract");
 
-  for (const file of files) verifyPublicFileContent(file.target_path, file.bytes);
+  const distributionTargets = new Set();
+  for (const file of files) {
+    if (distributionTargets.has(file.target_path))
+      fail(`duplicate distribution target across local, Skill, and Shop files: ${file.target_path}`);
+    distributionTargets.add(file.target_path);
+    verifyPublicFileContent(file.target_path, file.bytes);
+  }
 
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
