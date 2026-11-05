@@ -406,9 +406,17 @@ function makeAnswerTemplate(challenge) {
 }
 
 export function readChallengeAnswer(filePath, challenge) {
-  if (!fs.existsSync(filePath) || !fs.lstatSync(filePath).isFile())
-    fail(`challenge answer file is missing: ${filePath}`);
-  const text = fs.readFileSync(filePath, "utf8");
+  const stat = fs.lstatSync(filePath, { throwIfNoEntry: false });
+  if (!stat || !stat.isFile() || stat.isSymbolicLink())
+    fail(`challenge answer file is missing or unsafe: ${filePath}`);
+  if (stat.size === 0 || stat.size > MAX_EVIDENCE_FILE_BYTES)
+    fail("challenge answer size is outside the allowed bounds");
+  const bytes = fs.readFileSync(filePath);
+  if (bytes.length !== stat.size)
+    fail("challenge answer changed while it was being read");
+  const text = bytes.toString("utf8");
+  if (text.includes("\ufffd") || text.includes("\0"))
+    fail("challenge answer is not valid UTF-8 text");
   assertNoSecretText(text, "challenge answer");
   const headings = [...text.matchAll(/^## (M(?:0[0-9]|10)-[0-9]{2})[ \t]*\r?$/gm)];
   const expectedId = challenge.objective_ids[0];
