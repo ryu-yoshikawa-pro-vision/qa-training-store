@@ -969,6 +969,50 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("blocks missing HTML and CSS asset links before sync and after manifest tampering", async () => {
+    const fixture = courseFixture();
+    const image = "assets/logo.png";
+    writeFixtureFile(
+      fixture.source,
+      "dist/index.html",
+      '<link rel="stylesheet" href="styles/site.css"><img src="/assets/logo.png">',
+    );
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(
+      fixture.source,
+      "dist/styles/site.css",
+      'body { background-image: url("../assets/logo.png"); }',
+    );
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(fixture.source, `dist/${image}`, "fixture image");
+    await syncCourse(options);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(3);
+
+    fs.unlinkSync(path.join(fixture.target, `course/shop/${image}`));
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.files = distribution.files.filter(
+      (entry) => entry.target_path !== `course/shop/${image}`,
+    );
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /bundled Web asset is missing/,
+    );
+  });
+
   it("keeps nested generated Shop manifest paths in deterministic order", async () => {
     const fixture = courseFixture();
     for (const [name, content] of [
