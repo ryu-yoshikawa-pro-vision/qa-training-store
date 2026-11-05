@@ -716,13 +716,27 @@ function validateBundledShopAssets(files) {
     if (file.target_path.endsWith(".html")) {
       for (const match of source.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi))
         requireAsset(file, match[1]);
+      for (const match of source.matchAll(/\b(?:srcset|imagesrcset)\s*=\s*["']([^"']+)["']/gi)) {
+        for (const candidate of match[1].split(",")) {
+          const url = candidate.trim().split(/\s+/, 1)[0];
+          if (url) requireAsset(file, url);
+        }
+      }
     }
     if (file.target_path.endsWith(".css")) {
       for (const match of source.matchAll(/\burl\s*\(\s*["']?([^)"'\s]+)["']?\s*\)/gi))
         requireAsset(file, match[1]);
+      for (const match of source.matchAll(/@import\s+["']([^"']+)["']/gi))
+        requireAsset(file, match[1]);
     }
-    if (file.target_path.endsWith(".js")) {
+    if (file.target_path.endsWith(".js") || file.target_path.endsWith(".mjs")) {
       for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g))
+        requireAsset(file, match[1]);
+      for (const match of source.matchAll(
+        /\b(?:import|export)\s+(?:[^"'();\n]{1,160}\s+from\s+)?["']([^"']+)["']/g,
+      ))
+        requireAsset(file, match[1]);
+      for (const match of source.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g))
         requireAsset(file, match[1]);
     }
   }
