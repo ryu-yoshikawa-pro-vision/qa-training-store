@@ -400,11 +400,15 @@ CIの実行ログを開き、**「どのステップで最初に失敗したか�
 | 失敗した段階 | ログの兆候 | 正しい状況報告 | 次に調べるべき原因 | やってはいけない誤った対応 |
 | --- | --- | --- | --- | --- |
 | **依存関係の導入** | `pnpm install` でエラー、テスト未開始 | 依存ライブラリの導入失敗により、テストは未実行 | Node.jsやpnpmのバージョン、ネットワーク、`pnpm-lock.yaml` の不整合 | テストコードのアサーションを疑う、製品コードを書き換える |
+| **固定配布物の検証** | `verify-distribution`でShop/manifest欠落・SHA-256不一致 | 配布版が不正または不足、Browserとspecは未実行 | 承認済み配布元SHA、信頼済みbase commit、追跡済み`course/shop/**`・manifestと実ファイル | Runnerで`build:web`して回避する、成功したふりをする |
+| **ShopのServe** | Playwright step内で`webServer`起動失敗 | BrowserテストのAssertionに到達していない | 固定Shopの存在、`serve-web-dist.ts`、loopbackポート、Playwright起動ログ | 根拠なくテストのAssertionを変更する、Timeout延長だけで解決とする |
 | **ブラウザの準備** | `playwright install` で失敗、ブラウザ起動エラー | 実行環境の構築失敗、テストは未実行 | 必要なブラウザバイナリの不足、OS環境依存 | テストのタイムアウト時間を無暗に延ばす |
 | **テストの実行** | Playwrightの `expect` でエラー | 対象テストケースがFAIL、原因調査中 | 画面仕様、セレクタ（Locator）、データ初期化（Reset）、期待値の誤り | 仕様の根拠なしにアサーションを削って無理やり通す |
 | **成果物の保存** | テストはPASSしたが `upload-artifact` でエラー、または必要なファイルが欠落 | テストの成功と正式評価用の証拠保全を分けて報告 | 保存対象パス、生成タイミング、Artifact内の2ファイルの有無、権限 | Artifactが一部だけ保存されても完了扱いにする |
 | **ワークフロー未起動** | ActionsタブにRun自体が現れない | CI未実行 | トリガーイベントの設定ミス、ブランチ名やパスの不一致 | 存在しない成功画面を想像で報告する |
 | **SHAの不一致** | CheckはPASSだが、ArtifactのSHAが古い | 現在の最新コミットに対する検証証拠なし | 最新コミットに対する再実行の有無、チェックアウト設定 | 古いコミットの成功ログを最新の証拠として提出する |
+
+同じRunでInstallとArtifact uploadの両方がFAILでも、最初に失敗したのがInstallなら、Artifact不足は後続結果です。`if: always()`はUploadの試行条件であり、証拠の保存成功を保証しません。逆にtestがPASSしていても`if-no-files-found: error`による保存失敗があれば、提出証拠は未完です。CheckだけがPASSでもPR HEADや対象specの不一致は独立して拒否します。M09のA〜FとX/Y/Zは学習用の合成事例であり、実Runの事実として提出しません。
 
 ### 6.2 「ローカルでは通るのにCIで落ちる」ときの考え方
 
