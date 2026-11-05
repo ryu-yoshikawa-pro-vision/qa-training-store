@@ -600,6 +600,21 @@ function validatePublishedMarkdownLinks(files) {
   }
 }
 
+function validateWebQuizParity(files) {
+  const byTarget = new Map(files.map((file) => [file.target_path, file.bytes]));
+  const webPrefix = "course/shop/docs/curriculum/ai-assisted-qa/quizzes/";
+  const webQuizzes = files.filter((file) => file.target_path.startsWith(webPrefix));
+  if (webQuizzes.length === 0) return;
+  for (const moduleId of MODULE_IDS) {
+    const webPath = `${webPrefix}${moduleId}.json`;
+    const learnerPath = `course/quizzes/${moduleId}.json`;
+    const web = byTarget.get(webPath);
+    const learner = byTarget.get(learnerPath);
+    if (!web || !learner || !web.equals(learner))
+      fail(`Web and learner quiz JSON are missing or differ at pinned revision: ${moduleId}`);
+  }
+}
+
 function atomicWriteNewFile(root, relativePath, bytes) {
   const absolute = assertNoSymlinkPath(root, relativePath, false);
   fs.mkdirSync(path.dirname(absolute), { recursive: true });
@@ -752,6 +767,7 @@ export async function syncCourse({
     verifyPublicFileContent(file.target_path, file.bytes);
   }
   validatePublishedMarkdownLinks(files);
+  validateWebQuizParity(files);
 
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
@@ -1042,13 +1058,13 @@ export function verifySyncedCourseDistribution({ root }) {
     verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
-  validatePublishedMarkdownLinks(
-    [...filesByTarget.entries()].map(([targetPath, value]) => ({
-      target_path: targetPath,
-      role: value.entry.role,
-      bytes: value.bytes,
-    })),
-  );
+  const verifiedFiles = [...filesByTarget.entries()].map(([targetPath, value]) => ({
+    target_path: targetPath,
+    role: value.entry.role,
+    bytes: value.bytes,
+  }));
+  validatePublishedMarkdownLinks(verifiedFiles);
+  validateWebQuizParity(verifiedFiles);
 
   const m03PublicStart = filesByTarget.get(M03_PUBLIC_START_PATH);
   if (!m03PublicStart) fail("M03 public start input is missing from distribution");
