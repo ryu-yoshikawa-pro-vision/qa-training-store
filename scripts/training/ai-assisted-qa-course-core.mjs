@@ -579,6 +579,28 @@ function verifyPublicFileContent(targetPath, bytes) {
   }
 }
 
+function validatePublishedMarkdownLinks(files) {
+  const distributedPaths = new Set(files.map((file) => file.target_path));
+  for (const file of files) {
+    const target = file.target_path;
+    const isPublicGuide = file.role === "lesson" || file.role === "guide";
+    const isPublishedSpec =
+      target === "docs/spec/state-and-scenarios.md" ||
+      target.startsWith("docs/spec/features/");
+    if (!target.endsWith(".md") || (!isPublicGuide && !isPublishedSpec)) continue;
+    const content = file.bytes.toString("utf8");
+    for (const match of content.matchAll(/!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)/g)) {
+      const href = match[1];
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) continue;
+      const pathname = href.split(/[?#]/, 1)[0];
+      if (!pathname) continue;
+      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(target), pathname));
+      if (!distributedPaths.has(resolved))
+        fail(`public Markdown link is missing from distribution: ${target} -> ${href}`);
+    }
+  }
+}
+
 function atomicWriteNewFile(root, relativePath, bytes) {
   const absolute = assertNoSymlinkPath(root, relativePath, false);
   fs.mkdirSync(path.dirname(absolute), { recursive: true });
@@ -730,6 +752,7 @@ export async function syncCourse({
     distributionTargets.add(file.target_path);
     verifyPublicFileContent(file.target_path, file.bytes);
   }
+  validatePublishedMarkdownLinks(files);
 
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
