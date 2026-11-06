@@ -154,18 +154,21 @@ describe("Phase 3 quiz and understanding coverage", () => {
     const [lesson, exercise, submission] = files;
     const p05Row = submission.split("\n").find((line) => line.startsWith("| P05 |"));
     expect(p05Row).toBeDefined();
-    for (const scenario of [
-      "Install失敗",
-      "配布検証失敗",
-      "Shop Serve失敗",
-      "Browser導入失敗",
-      "Assertion期待不一致",
-      "Artifact保存失敗",
-      "旧SHAの成功Run",
-    ]) {
-      expect(lesson).toContain(scenario);
-      expect(exercise).toContain(scenario);
-      expect(p05Row).toContain(scenario);
+    const failureConditions = [
+      ["Install失敗", "依存関係の導入"],
+      ["配布検証失敗", "固定配布物の検証"],
+      ["Shop Serve失敗", "ShopのServe"],
+      ["Browser導入失敗", "ブラウザの準備"],
+      ["Assertion期待不一致", "テストの実行"],
+      ["Artifact保存失敗", "成果物の保存"],
+      ["旧SHAの成功Run", "SHAの不一致"],
+    ];
+    const failureTable = lesson.split("### 6.1 最初の失敗ステップから調べる原則")[1]?.split("### 6.2")[0];
+    expect(failureTable).toBeTruthy();
+    for (const [exerciseScenario, lessonStage] of failureConditions) {
+      expect(failureTable).toContain(`| **${lessonStage}** |`);
+      expect(exercise).toContain(exerciseScenario);
+      expect(p05Row).toContain(exerciseScenario);
     }
     expect(p05Row).toContain("初因");
     expect(p05Row).toContain("再実行判断");
