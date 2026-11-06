@@ -16,7 +16,6 @@ Scopeは独立したMachine Entityではなく、`condition_structure.py`が形�
 
 実行は `condition_structure(direct)`、選択技法runtime、`materialize_coverage(artifact)`、適切なmodeのCase生成、`verify_runtime_evidence`へ進みます。欠落した参照を補って成功扱いにしたり、終了コード0や`ready`だけで統合PASSにしたりしてはいけません。
 
-
 ## 固定Authority helperに渡す入力（未実行の準備例）
 
 以下は正式仕様`docs/spec/features/cart.md`の`BR-CART-001` / `AC-CART-001`から作る**入力候補**です。固定Skillで生成済みのEntity、実行ログ、本人の提出済み成果物ではありません。実際に読んだ仕様と`.course/distribution-manifest.json`の`source_sha`を照合してから、`workspace/M03/authority-input.json`へ保存します。出典が一致しなければ使用せずBLOCKEDにします。
