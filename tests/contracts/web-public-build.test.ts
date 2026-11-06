@@ -69,19 +69,16 @@ describe("public Web export dependencies", () => {
     bundle(root, expoAssets.map((name) => 'uri:"' + imageUri(name) + '"').join(";"));
     expect(repairExpoRouterWebAssets(root)).toBe(12);
     const hash = createHash("sha256").update(png).digest("hex").slice(0, 16);
-    const rewritten = fs.readFileSync(
-      path.join(root, "dist/_expo/static/js/web/entry.js"),
-      "utf8",
-    );
+    const rewritten = fs.readFileSync(path.join(root, "dist/_expo/static/js/web/entry.js"), "utf8");
     for (const image of expoAssets) {
       const published = "assets/expo-router/" + image + "." + hash + ".png";
       expect(rewritten).toContain('uri:"/' + published + '"');
       expect(fs.readFileSync(path.join(root, "dist", published))).toEqual(png);
     }
     expect(rewritten).not.toContain("/assets/node_modules/");
-    expect(
-      fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8"),
-    ).toContain("React Navigation Contributors");
+    expect(fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8")).toContain(
+      "React Navigation Contributors",
+    );
     expect(repairExpoRouterWebAssets(root)).toBe(0);
   });
 
@@ -113,13 +110,11 @@ describe("public Web export dependencies", () => {
       "03_instructor-reference",
       "04_learning-effort-reference",
     ]) {
-      expect(
-        isPublicLegacyCurriculumPage("docs/curriculum/test-automation/" + name + ".md"),
-      ).toBe(false);
+      expect(isPublicLegacyCurriculumPage("docs/curriculum/test-automation/" + name + ".md")).toBe(
+        false,
+      );
     }
-    expect(
-      isPublicLegacyCurriculumPage("docs/curriculum/test-automation/README.md"),
-    ).toBe(true);
+    expect(isPublicLegacyCurriculumPage("docs/curriculum/test-automation/README.md")).toBe(true);
     expect(
       isPublicLegacyCurriculumPage(
         "docs/curriculum/test-automation/part1/01_test-automation-foundations.md",
@@ -137,7 +132,9 @@ describe("public Web export dependencies", () => {
       const parsed = parseMarkdownFile(path.join(root, source), source);
       const published = withoutNonPublicLegacyLinks(root, parsed);
       const html = renderMarkdown(published);
-      expect(html).not.toMatch(/<a[^>]+href="[^"]*(?:00_learning-design|01_spreadsheet-test-design|02_competency-rubric|03_instructor-reference|04_learning-effort-reference)/);
+      expect(html).not.toMatch(
+        /<a[^>]+href="[^"]*(?:00_learning-design|01_spreadsheet-test-design|02_competency-rubric|03_instructor-reference|04_learning-effort-reference)/,
+      );
     }
   });
 
@@ -165,15 +162,3 @@ describe("public Web export dependencies", () => {
     expect(result.lines[3]).toContain("](");
   });
 });
-
-/* FORMAT-DIAGNOSTIC-START */
-describe("temporary formatter diagnostic", () => {
-  it("reports Prettier formatted source to the contract runner", async () => {
-    const source = fs.readFileSync(path.join(process.cwd(), "tests/contracts/web-public-build.test.ts"), "utf8");
-    const stripped = source.slice(0, source.indexOf("/* FORMAT-DIAGNOSTIC-START */")).trimEnd() + "\n";
-    const prettier = await import("prettier");
-    const formatted = await prettier.format(stripped, { parser: "typescript", printWidth: 100, semi: true, singleQuote: false, trailingComma: "all", endOfLine: "lf" });
-    console.log("FORMAT_SOURCE_BASE64=" + Buffer.from(formatted).toString("base64"));
-  });
-});
-/* FORMAT-DIAGNOSTIC-END */

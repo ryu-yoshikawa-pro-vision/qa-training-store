@@ -100,3 +100,12 @@
 - [ ] **#217/#218 個人データの実保全**：本人の提出Markdown/spec/Trace/Run・非公開評価履歴のGit/PR不要のエクスポート・復元・再ロード非破壊性を実確認。別モジュール/過去成果物の上書きやSecret送信を拒否
 - [ ] **#218 配布・Web版の実照合**：最終統合SHAの11モジュール・22状態・Shop・固定Skill/manifestを実配布・ロードし、Web教材と配布版のrevision、不一致時の停止・公開評価資料/個人データ除外を確認。公開Webの全クイズ・画面幅・キーボード/a11y実操作は既存のWeb/クイズ最終チェックと合わせて確認
 - [ ] **#218 権利・公開判断**：第三者Skill・素材の権利とNOTICEの一次資料を確認し、再配布許諾・費用/公開範囲の最終判断を実施。未確認の許諾や未実行の実受入は成功としない。Public Templateの実公開は#199マージ後に別途本人が行う
+
+## 2026-11-06 Web生成・配布受入の部分検証
+
+- 生成元修正は `scripts/docs/build-docs.ts` と `scripts/docs/repair-expo-router-web-assets.ts`、回帰テストは `tests/contracts/web-public-build.test.ts`。旧資料5ページの選別とリンク処理を生成前に修正し、Expo Router画像をライセンス確認の上で公開URIへ配置する。配布validatorや製品SUTは変更しない。
+- 修正前：[Web CI #42148338991](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42148338991)、HEAD `76344d6530876e6eddae4bc5b0eba21374d14036`、production Artifact `13470714401`（312ファイル）。画像参照先の欠落12 URI、内部 `.pnpm` URI12、旧教材HTML5ページ・HTMLリンク12件。
+- 修正後：[Web CI #42153712878](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153712878)、生成修正commit `1a858a73fd8ec0a17f8ae966750e257a5c29fc6e`、production Artifact `13474021574`（320ファイル）。画像12/12実在・内部パス0、旧教材HTML/リンクとも0。HTMLローカル参照3,626件・CSS `url/@import` 12件の欠落0、空ファイル0。M00〜M10の教材/演習/クイズ各11件は維持。
+- ただし#218の最終validator・manifestは別HEAD `17c0cf734727ad73e224e61752cf3d50423a5092` のまま。共有Web CIは#215が編集対象なので本件から変更していない。この作業環境には実リポジトリのclean checkout・`pnpm`・GitHub直接通信がなく、**同一修正後固定HEADでの実 `course:sync` → `verify-distribution` → 再同期は未実施**。#218の依存閉包・固定Skill・学習者の非破壊性・完成spec/個人情報の全除外はチェック不可。
+- 生成物の対象パターン監査では禁止ファイルパス/既知Secret正規表現の一致0件。ただし未知の個人データ・第三者素材の権利許諾までの保証ではない。#218統合後のclean固定commitから実配布を行うまで、冒頭の移管3項目と横断受入項目は未チェックを維持する。
+- 検査の詳細・環境制約・再実行方法：[公開Web・配布受入レポート](../reports/2026-11-06_pr199-web-distribution-audit.md)。最終HEADのCI・テスト結果は別途追記し、旧HEADの成功を流用しない。
