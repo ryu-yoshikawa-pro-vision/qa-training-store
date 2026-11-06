@@ -58,12 +58,8 @@ describe("Phase 1: all 22 objective-to-practice evidence contracts", () => {
         read(`training/ai-assisted-qa-course/assessment/scoring-tests/${module}.json`),
       );
       const quiz = JSON.parse(read(`docs/curriculum/ai-assisted-qa/quizzes/${module}.json`));
-      const start = JSON.parse(
-        read(`training/ai-assisted-qa-course/states/${module}/start.json`),
-      );
-      const end = JSON.parse(
-        read(`training/ai-assisted-qa-course/states/${module}/end.json`),
-      );
+      const start = JSON.parse(read(`training/ai-assisted-qa-course/states/${module}/start.json`));
+      const end = JSON.parse(read(`training/ai-assisted-qa-course/states/${module}/end.json`));
 
       expect(rubric.criteria).toHaveLength(Object.keys(mapping).length);
       for (const [objective, expectedPractice] of Object.entries(mapping)) {
@@ -83,12 +79,8 @@ describe("Phase 1: all 22 objective-to-practice evidence contracts", () => {
         expect(quizTargetsObjective).toBe(true);
 
         for (const task of expectedPractice) {
-          expect(exercise, `${objective}: missing practice ${task}`).toContain(
-            `**${task} `,
-          );
-          expect(submission, `${objective}: missing evidence row ${task}`).toContain(
-            `| ${task} |`,
-          );
+          expect(exercise, `${objective}: missing practice ${task}`).toContain(`**${task} `);
+          expect(submission, `${objective}: missing evidence row ${task}`).toContain(`| ${task} |`);
         }
       }
     }
