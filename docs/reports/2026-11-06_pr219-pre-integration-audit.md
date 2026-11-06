@@ -57,4 +57,10 @@
 4. Android実機/エミュレータでNavigation、停止・再開、Role/Session、Forbidden戻り、Maestro実Run、SQLite transaction/rollback、Cart/Checkout/Order/Payment/Shipment/Review前後を検証。端末/OS/アプリSHA、画像/動画/Logcat、Runを紐づけ。端末/SDK/権限不足はBLOCKEDと再開条件を記録。
 5. 全PR統合後の同一最終HEADの必須Web/Mobile CI・独立レビューで製品FAIL、TEST ERROR、未実行、証拠不足、修正先、残リスク、再実行結果を確認。#219自身のreview解決だけで最終受入完了としない。共有E2E strict locator flakyは#199へ移管。
 
-**制限**：今回はNode/pnpmのローカル実行環境とAndroid端末を使えない。変更後HEADに対応する新しいCIはpush後に確認。既存CIのdeploy-previewは通常push時に自動実行され得るが本PRで変更しない。
+**制限**：今回はNode/pnpmのローカル実行環境とAndroid端末を使えない。既存CIのdeploy-previewは通常push時に自動実行されるが本PRで変更していない。
+
+## 2026-11-06 監査修正後の品質ゲート
+
+- 修正commit `a2919bcf490a167513ae39168196049bd215f705` の[Web CI #42198402282](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42198402282)は`completed/success`（attempt 1、29ジョブ中27 success・2 skipped）。Style/Code Quality、Vitest Contracts、Integration、Component、required/cross-role Chromium、verify、validate成功。失敗job0。
+- #199 HEAD `157d88e` と#219修正HEADを再比較。#219変更ファイルは35件で、製品SUT、正式仕様、既存Seed/Reset、既存製品テスト、共有workflowに変更なし。#219のレビュー3スレッドは全件解決済み、新規未解決0件。
+- #219専用タスクリストの追加3件はこの根拠で完了。最新確認結果を記録する本ドキュメント更新commit自身のCIは別途Runで確認する。#199最終実受入は未完了。
