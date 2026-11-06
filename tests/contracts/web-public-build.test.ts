@@ -69,10 +69,7 @@ describe("public Web export dependencies", () => {
       fs.mkdirSync(path.dirname(exported), { recursive: true });
       fs.writeFileSync(exported, png);
     }
-    const density = imageUri("react-navigation/elements/clear-icon").replace(
-      "." + metroHash + ".png",
-      "@2x." + metroHash + ".png",
-    );
+    const density = imageUri("react-navigation/elements/clear-icon").replace(".png", "@2x.png");
     fs.writeFileSync(path.join(root, "dist", density.slice(1)), png);
     bundle(root, expoAssets.map((name) => 'uri:"' + imageUri(name) + '"').join(";"));
     expect(repairExpoRouterWebAssets(root)).toBe(12);
