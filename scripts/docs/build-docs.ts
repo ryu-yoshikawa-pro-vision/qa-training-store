@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildSpecSite } from "../spec/build-spec";
 import { buildAiAssistedQaSite } from "./build-ai-assisted-qa";
+import { repairExpoRouterWebAssets } from "./repair-expo-router-web-assets";
 import {
   MARKDOWN_CSS,
   escapeHtml,
@@ -18,6 +19,18 @@ const SPEC_ROOT = "docs/spec";
 const GITHUB_SOURCE_ROOT =
   "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main";
 const CURRICULUM_README = `${CURRICULUM_ROOT}/README.md`;
+const NON_PUBLIC_LEGACY_PAGES = new Set([
+  "00_learning-design.md",
+  "01_spreadsheet-test-design.md",
+  "02_competency-rubric.md",
+  "03_instructor-reference.md",
+  "04_learning-effort-reference.md",
+].map((name) => CURRICULUM_ROOT + "/" + name));
+
+export function isPublicLegacyCurriculumPage(relativePath: string): boolean {
+  return !NON_PUBLIC_LEGACY_PAGES.has(relativePath);
+}
+
 
 type CurriculumNavigationItem = {
   label: string;
@@ -46,7 +59,7 @@ function listCurriculumMarkdown(rootDir: string): string[] {
     }
   };
   visit(curriculumRoot);
-  return result.sort((a, b) => a.localeCompare(b));
+  return result.filter(isPublicLegacyCurriculumPage).sort((a, b) => a.localeCompare(b));
 }
 
 function outputPathFor(relativePath: string): string {
@@ -87,6 +100,7 @@ function resolveCurriculumLink(rootDir: string, fromRelativePath: string, target
   if (withoutHash === "") return hash === undefined ? "" : `#${hash}`;
 
   const resolved = resolveRepositoryPath(rootDir, fromRelativePath, withoutHash);
+  if (NON_PUBLIC_LEGACY_PAGES.has(resolved)) throw new Error("Non-public legacy curriculum link: " + target);
   let output: string;
   if (resolved === `${CURRICULUM_ROOT}/README.md`) {
     output = "/docs/curriculum/";
@@ -141,6 +155,31 @@ function extractCurriculumNavigation(
     throw new Error(`${CURRICULUM_README} ## 全体構成 must contain at least one numbered Markdown link`);
   }
   return groups;
+}
+
+// Preserve the existing lesson URLs without exposing withdrawn reference pages.
+export function withoutNonPublicLegacyLinks(rootDir: string, parsed: ParsedMarkdown): ParsedMarkdown {
+  let inFence = false;
+  return {
+    ...parsed,
+    lines: parsed.lines.map((line) => {
+      if (/^\s*\x60{3}/.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence) return line;
+      return line.replace(
+        /(?<!!)\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+        (match, label: string, target: string) => {
+          if (isExternalLink(target) || target.startsWith("#")) return match;
+          const filePart = target.split("#", 1)[0];
+          if (!filePart) return match;
+          const resolved = resolveRepositoryPath(rootDir, parsed.relativePath, filePart);
+          return NON_PUBLIC_LEGACY_PAGES.has(resolved) ? label + "（旧教材のため公開対象外）" : match;
+        },
+      );
+    }),
+  };
 }
 
 function isExternalImageTarget(target: string): boolean {
@@ -221,6 +260,7 @@ export type BuildDocsResult = {
 };
 
 export function buildDocs(rootDir = process.cwd()): BuildDocsResult {
+  repairExpoRouterWebAssets(rootDir);
   const docsOutput = path.join(rootDir, "dist", "docs");
   fs.rmSync(docsOutput, { recursive: true, force: true });
 
@@ -245,7 +285,7 @@ export function buildDocs(rootDir = process.cwd()): BuildDocsResult {
     const parsed = parseMarkdownFile(path.join(rootDir, ...relativePath.split("/")), relativePath);
     const outputAbsolute = path.join(docsOutput, "curriculum", outputPathFor(relativePath));
     fs.mkdirSync(path.dirname(outputAbsolute), { recursive: true });
-    fs.writeFileSync(outputAbsolute, pageHtml(rootDir, parsed, navigation), "utf8");
+    fs.writeFileSync(outputAbsolute, pageHtml(rootDir, withoutNonPublicLegacyLinks(rootDir, parsed), navigation), "utf8");
   }
   copyCurriculumAssets(rootDir, path.join(docsOutput, "curriculum"));
   const aiCourse = buildAiAssistedQaSite(rootDir, docsOutput);

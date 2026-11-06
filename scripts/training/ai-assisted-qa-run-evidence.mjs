@@ -8,7 +8,7 @@ import { assertNoSecretText, sha256 } from "./ai-assisted-qa-assessment-core.mjs
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODULE_SPECS = Object.freeze({
-  M05: new Set(["product-link.spec.ts"]),
+  M05: new Set(["product-link.spec.ts", "p05-cart-locator.spec.ts"]),
   M06: new Set(["cart-cases.spec.ts", "new-case.spec.ts"]),
   M07: new Set(["failure-assertion.spec.ts", "repaired-assertion.spec.ts", "maintenance.spec.ts"]),
 });
@@ -605,6 +605,34 @@ export function verifyM03SkillRuntimeEvidence({
         : "ungradable",
     checks,
     evidence,
+  };
+}
+
+// Only metadata from a validated course:run receipt/report reaches the tutor.
+// Never forward report bodies, attachment content, test titles, or raw Trace.
+export function verifiedTutorRunSummary({ root, moduleId, runId, sourceSha }) {
+  if (!MODULE_SPECS[moduleId] || !RUN_ID.test(runId ?? "") || !SOURCE_SHA.test(sourceSha ?? ""))
+    fail("tutor Run summary needs a module, UUID, and verified source SHA");
+  const workspaceRoot = path.join(path.resolve(root), "workspace");
+  const relative = "workspace/" + moduleId + "/evidence/runs/" + runId + "/run-evidence.json";
+  const verified = readRunRecord(workspaceRoot, moduleId, relative, sourceSha);
+  if (!verified || verified.record.spec_unchanged_during_run !== true)
+    fail("tutor Run is stale, modified, or unverified");
+  const { record, current_spec_sha256: currentSha } = verified;
+  const statusCount = (name) => record.tests.filter((test) => test.status === name).length;
+  return {
+    module_id: moduleId,
+    run_id: record.run_id,
+    spec: path.basename(record.spec_path),
+    label: record.label,
+    source_sha: record.source_sha,
+    spec_sha256: record.spec_sha256,
+    current_spec_matches_run: record.spec_sha256 === currentSha,
+    outcome: record.outcome,
+    tests_total: record.tests.length,
+    tests_passed: statusCount("passed"),
+    tests_failed: statusCount("failed"),
+    tests_skipped: statusCount("skipped"),
   };
 }
 

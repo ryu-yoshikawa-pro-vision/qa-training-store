@@ -69,6 +69,14 @@ console.log(label(cart.quantity));
 3. **P03 失敗の種類を見分ける（M05-04）**：P02の学習用コピーに、閉じ括弧不足（構文）、文字列をnumberに渡す（型）、定義していない変数を参照する（実行時）のいずれかを**別々に**作ります。型エラー用の独立したファイル`workspace/M05/p03-type-error.ts`を作り、`pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext workspace/M05/p03-type-error.ts`で**対象ファイルを明示して**検査します。ルートの`pnpm exec tsc --noEmit`だけでは`tsconfig.json`の`include`に`workspace/**`がなく、この練習ファイルを検査した証拠になりません。`tsx`実行だけでも型検査になりません。誤った型を渡した時の非0終了と診断、修正後の0終了を別々に保存し、構文・実行時エラーのファイルは混ぜません。**証拠**：各診断の実メッセージと修正前後。
 4. **P04 非同期の実際の順序（M05-01・04）**：`Promise.resolve("ready")`を返す関数を作り、戻り値そのものを記録した場合と`await`後の値を記録した場合を実行します。さらに待機を入れない場合でも処理順序をどう説明できるか、自分で予測します。**証拠**：実際の表示順・Promiseか値か・修正理由。
 5. **P05 新しいLocator候補を比較（M05-02・03）**：`default`のguest Cartは初期状態で空なので、公開商品`product-mug`と`product-low-stock`を実Shopの画面から各1点追加して2明細を用意します。Cartの数量selectと削除buttonについてrole/name・label・表示文字列の候補を比較し、**Cart全体では各2件となる曖昧さ**を実行で確認します。商品名リンクを含む明細へ範囲を絞り、数量selectと削除buttonがそれぞれ1件であること、対象数量が1であることをread-only Assertionで確認します。**削除は実行しません**。同じ商品名で複数SKUがある場合は商品名だけでは一意にならないため、SKU等の追加条件を検討します。既定のMugリンク修正とは別の操作対象を扱います。**証拠**：初期化・2商品の追加、全体と明細内のLocator件数、範囲指定の根拠、数量Assertion、削除未実行、実Run/SHA。
+   **P05の実Run証拠（正式評価で必須）**：学習者が`workspace/M05/p05-cart-locator.spec.ts`へP05専用のPlaywright specを作成し、2明細の準備、一意のLocator、数量Assertion、削除ボタンを押していないことを検証します。基礎演習の`product-link.spec.ts`は変更しません。
+
+   ```bash
+   pnpm course:run M05 p05-cart-locator.spec.ts --label main
+   ```
+
+   `course:run`が保存する異なるRun ID、`run-evidence.json`、spec snapshot、JSON report、`source_sha`、tests 1件以上のPASSを照合してください。Playwrightを直接実行した結果だけでは正式採点の証拠になりません。固定SHAが異なる、receiptやreportがない、0件・skip・別spec・重複した必須条件のRunは未達とします。
+
 6. **P06 AIからの弱い修正を棄却（M05-02〜05）**：架空AI案「商品詳細へのリンクが見つからないので`expect`を削除し、クリックだけ成功すればPASS」と、架空案「`waitForTimeout(5000)`を追加」を、既存のbefore/after Runと比較します。どちらが不適切で、どういう観測が必要か説明します。**証拠**：不採用理由、保つべきAssertion、実RunのSHA。
 
 **完了確認**：P01〜P04は実行した新規スクリプトの出力を残し、P05/P06は既存Locator修正の再掲ではなく別の要素・別の判断を記録します。練習用短コードの出力をPlaywrightの`course:run`と混同しません。
