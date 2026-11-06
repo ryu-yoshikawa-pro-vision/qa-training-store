@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import ts from "typescript";
 import {
   checkState,
   loadCourseManifest,
@@ -16,6 +17,32 @@ import {
 } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 import { isPublicCourseAsset } from "../../scripts/docs/build-ai-assisted-qa.ts";
 import { validateTemplateTarget } from "../../scripts/training/prepare-learner-template.mjs";
+
+/** Read real static, re-export, and literal dynamic module specifiers without matching strings/comments. */
+function runtimeModuleSpecifiers(filePath, source) {
+  const syntax = /\.(?:jsx|tsx)$/.test(filePath) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const root = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, syntax);
+  const specifiers = [];
+  const visit = (node) => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      specifiers.push(node.moduleSpecifier.text);
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      specifiers.push(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(root);
+  return specifiers;
+}
 
 const repositoryRoot = process.cwd();
 const fixtureRoot = fs.mkdtempSync(path.join(fs.realpathSync(tmpdir()), "ai-qa-course-contract-"));
@@ -1107,6 +1134,26 @@ describe("AI-assisted QA distribution contract", () => {
     expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(11);
   });
 
+  it("ignores source strings and comments while retaining real module imports", () => {
+    const source = [
+      'import { value } from "./static.mjs";',
+      'export { other } from "./reexport.mjs";',
+      'await import("./dynamic.mjs");',
+      'import "typescript";',
+      'if (name === "import") {',
+      '  // from "not-a-package"',
+      '  void "another-fake-package";',
+      "}",
+      'const fake = \'from "also-not-a-package"\';',
+    ].join("\n");
+    expect(runtimeModuleSpecifiers("fixture.mjs", source)).toEqual([
+      "./static.mjs",
+      "./reexport.mjs",
+      "./dynamic.mjs",
+      "typescript",
+    ]);
+  });
+
   it("resolves learner runtime imports after their manifest and module-load placements", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const runtime = manifest.local_files.filter(
@@ -1125,9 +1172,7 @@ describe("AI-assisted QA distribution contract", () => {
         .filter((load) => load.source_path === entry.target_path)
         .map((load) => load.target_path);
       if (placements.length === 0) placements.push(entry.target_path);
-      const importPattern = /\b(?:from\s+|import\s*(?:\(\s*)?)["']([^"']+)["']/g;
-      for (const match of source.matchAll(importPattern)) {
-        const specifier = match[1];
+      for (const specifier of runtimeModuleSpecifiers(entry.source_path, source)) {
         if (specifier.startsWith("node:")) continue;
         if (!specifier.startsWith(".")) {
           const parts = specifier.split("/");
