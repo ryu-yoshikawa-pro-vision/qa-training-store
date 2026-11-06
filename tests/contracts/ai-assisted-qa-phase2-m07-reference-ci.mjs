@@ -82,9 +82,7 @@ function prepareIntegratedAfterReference(headSha) {
     const committedBlob = execFileSync("git", ["rev-parse", `HEAD:${specPath}`], {
       encoding: "utf8",
     }).trim();
-    const workingBlob = execFileSync("git", ["hash-object", specPath], {
-      encoding: "utf8",
-    }).trim();
+    const workingBlob = execFileSync("git", ["hash-object", specPath], { encoding: "utf8" }).trim();
     if (committedBlob !== workingBlob) {
       throw new Error("M07 reference does not match checkout HEAD: " + specPath);
     }
@@ -153,9 +151,7 @@ function main() {
   fs.mkdirSync(outputRoot, { recursive: true, mode: 0o700 });
   const before = path.join(m07Root, "maintenance-before");
   const integrated = process.env.INTEGRATED_COURSE_MODE === "true";
-  const after = integrated
-    ? prepareIntegratedAfterReference(checkoutSha)
-    : prepareAfterReference();
+  const after = integrated ? prepareIntegratedAfterReference(checkoutSha) : prepareAfterReference();
   const cases = [
     {
       label: "before",
