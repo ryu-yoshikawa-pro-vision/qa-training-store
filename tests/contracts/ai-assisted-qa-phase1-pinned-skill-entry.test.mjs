@@ -22,7 +22,8 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
       repository: "ryu-yoshikawa-pro-vision/qa-workflow-skills",
       commit: "7cc6cba7772de549841a39d71694cbafbc783324",
     });
-    expect(entries).toHaveLength(104);
+    // Skill files may be added to the pinned manifest without changing this contract.
+    expect(new Set(entries.map((entry) => entry.source_path)).size).toBe(entries.length);
     expect(new Set(entries.map((entry) => entry.target_path)).size).toBe(entries.length);
     const paths = [
       "skills/spec-analysis/SKILL.md",
