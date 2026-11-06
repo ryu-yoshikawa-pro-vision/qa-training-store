@@ -98,10 +98,7 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     const testCase = JSON.parse(
       read("training/ai-assisted-qa-course/exercises/M03/case-runtime-evidence-template.json"),
     );
-    const evidenceTemplates = [
-      ["condition", condition],
-      ["case", testCase],
-    ];
+    const evidenceTemplates = [["condition", condition], ["case", testCase]];
     for (const [name, template] of evidenceTemplates) {
       expect(template.operation).toBe("verify_runtime_evidence");
       expect(template.partial_rerun).toBe(false);
