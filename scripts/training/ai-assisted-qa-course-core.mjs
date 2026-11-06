@@ -1096,7 +1096,14 @@ export function assessmentAssetsForPhase({ root, phaseId }) {
 
 async function readResponseLimited(response, maxBytes, label = "assessment") {
   const contentLength = Number(response.headers?.get?.("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > maxBytes)
+  const contentEncoding = response.headers?.get?.("content-encoding")?.toLowerCase();
+  // With an encoded response Content-Length measures transfer bytes, not decoded body bytes.
+  // The streamed body below still enforces the limit on decoded bytes.
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > maxBytes &&
+    (!contentEncoding || contentEncoding === "identity" || !response.body?.getReader)
+  )
     fail(`${label} response exceeds the allowed size`);
   if (response.body?.getReader) {
     const reader = response.body.getReader();
