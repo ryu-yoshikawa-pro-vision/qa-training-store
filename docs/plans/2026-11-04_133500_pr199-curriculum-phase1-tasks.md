@@ -2,17 +2,19 @@
 
 > 対象：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。この文書は作業ブランチ専用の未完了タスクリスト。開始時に`AGENTS.md`、[並行分担Plan](./2026-11-04_pr199-parallel-branches.md)、関連仕様・テスト、最新HEAD/CIを確認する。
 >
-> **完了判定**：各項目の受入条件と検証証拠（対象HEAD、ファイル/Case、コマンド・Run/ログ・結果）を記録してから`[x]`へ変更する。調査・テスト追加・CI通過だけでは自動的に分析/教材受入完了にしない。実行不能なら未チェックで理由と再開条件を残し、他の着手可能な項目へ進む。
+> **完了判定**：M00〜M04のチェック済み30件は教材・演習・固定Skill入力/CLI・提出/評価条件の静的照合と実行準備の完了を示す。本人による実操作、正式採点、固定Skill通しRunの成功を意味しない。未完了は本PRのマージ前作業4件のみとし、固定HEAD・コマンド・Run/ログ・結果で証明してからチェックする。実行できない場合は理由・再開条件を残す。
 >
 > **変更境界**：本ブランチの担当範囲だけを編集。製品SUT・正式仕様・既存Seed/Reset・既存製品テストは読み取り専用。共有ファイルや他ブランチの専有ファイルが必要なら、PRコメントに理由・影響・受入条件を記録し#199で調停する。#199へのマージは行わない。
 
-## エージェント担当と実受入の引継ぎ
+## 担当と現在の進捗（2026-11-06）
 
-このPRではM00〜M04の22目標について教材・クイズ・演習・提出欄・公開開始状態、固定Skillの入力/CLI契約を調査・修正し、追加したテストをGitHub Actionsで確認する。本人のCodespaces/Private Port・課金画面・認証付きOpenCode・固定Skillを学習環境で操作する**実受入は#199最後**に実施する。GitHub上の静的照合やCIで確認できる範囲は、このPRで完了させる。
+本PRはM00〜M04の22学習目標について、教材・クイズ・演習・提出欄・評価条件、固定Skillの入力/CLI契約を静的に確認・修正する。**教材・静的準備30/30件チェック済み、マージ前の品質ゲート4件未完了（合計30/34件）**。チェック済みは実行・本人修了のPASSではない。
 
-確認した現状は25/30チェック済み（HEAD `370ffef92f6b`）。25件の完了根拠は教材・契約の確認であり、本人のLevel 2や実モデル実行を意味しない。5件の未完は以下の**エージェントが行える準備・テスト**として再定義する。#199へは対象入力と固定SHA、実行手順、期待する成功/拒否、未実行理由を引き継ぐ。
+**実Codespaces/Private Port/費用/再ロード操作、認証付きOpenCode対話、配布先Python helper・固定SkillのM02→M03実Run、正式AI評価は[#199の最終実受入](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)へ移管済み。本PRのタスクリストには含めない。** #217の採点、#218の配布、知識グラフと横断統合も各所有PR/#199で判定する。
 
-## 対象・変更境界
+検証済みと未確認の範囲は[本PRの監査レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)を参照。最新確認済みHEAD `2b55c501184b7b27d6a863261cff99ab9563f428`の[Web CI](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41862809264)では、Vitest (contracts)・Training runtime contracts・必須Chromium E2Eは成功したが、Style QualityがPrettier不一致5ファイルで失敗し、verify/validateも失敗した。**Web CI全体成功とは扱わない。**
+
+\n## 対象・変更境界
 
 22学習目標。対象：`docs/curriculum/ai-assisted-qa/modules/M00..M04/**`（各モジュールディレクトリ）、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`、`states/Mxx/**`、該当クイズと新規の専用契約テスト。評価エンジン・`assessment/**`・共通manifest・知識グラフは直接変更しない。採点基準・知識グラフの調整が必要なら正式評価/統合先へ根拠を引き継ぐ。
 
@@ -23,9 +25,7 @@
 - [x] `M00-01`：開始ガイド→別ファイルを開く/変更/保存→実行場所と出力の確認を、初心者がGit知識なしで実施できる手順に整合
 - [x] `M00-02`：AgentとChat、OpenCodeのread/edit/command権限、固定Skillとhelper、無料モデル/Secretの扱いを具体的な許可・拒否判断へ結び付ける
 - [x] `M00-03`：本人が目的・参照・範囲・成果物・完了条件を持つAI依頼を作り、結果の誤りを本人が訂正する別条件課題を照合
-- [ ] `M00-04`：差分・未実行/失敗、Private Port、課金、再ロードによる上書き禁止について、教材の判断例・拒否条件・検証手順・公開可能な契約/負例テストを照合・修正する。実Port・本人料金画面の操作は#199最終実受入へ渡す
-  - [x] 既存`loadModule`の競合拒否とM00契約テスト、P05/P06・本人記録欄をソース確認。架空の危険提案と観測証拠を分離。
-  - [ ] 人間：実Codespacesで競合時の非0終了・前後ファイル不変、Private Port・支払者・利用枠・モデル条件を確認。
+- [x] `M00-04`：差分・未実行/失敗、Private Port・費用、再ロードによる上書き禁止の教材判断例・拒否条件・手順・既存`loadModule`と契約テストをソース照合し、P05/P06と提出欄を確認（実環境の操作は#199で判定）
 
 ## M01：QA・テスト基礎（4目標）
 
@@ -59,25 +59,30 @@
 
 ## 固定Skillの通し確認・横断受入
 
-- [ ] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のM02 `spec-analysis/test-analysis`について、Authority/Risk/Scopeと検証責務の入力例・固定commit・参照先・CLI入出力を検証し、専用の契約/負例テストとCI証拠を追加する。本人環境でのSkill実操作は#199へ渡す
-  - [x] Cart BR/AC、Riskの正本CSV、M02/M03 Scope分離・固定Authority helper入力形式と出典を照合し、M03の未実行入力候補を準備。
-  - [ ] 人間：固定Skillで仕様とリスクを実分析し、current Authority/Product Risk Entityと検証責務、実行時source revisionを採否付きで保存。
-- [ ] M03の`condition_structure(direct)`→技法runtime→`materialize_coverage(artifact)`→`case_structure`→`verify_runtime_evidence`の依存・入力/出力・`valid`・fingerprint/拒否条件を固定資料と専用契約テストで検証する。許可済みCIで再現可能なら実Runも記録し、本人学習環境での一連の実受入は#199へ渡す
-  - [x] M03のCase検証先を`test-case-design` helperへ訂正。終了コード0だけでは判定しない`valid/issues/missing/extra/current_structure_state`のJSON検査と契約テストを追加。
-  - [ ] 人間：同一実入力による技法・materialize・Caseの通しRun、current fingerprint、負例拒否、意味上の採否を記録。
-- [ ] 固定Skillの`SKILL.md/references/assets/scripts`とPython helperの配布依存・entrypoint・import・必要なruntimeを固定SHAと既存CI/契約テストで調査し、不足を#218へ引継ぐ。本人CodespacesのPython実行・操作確認は#199へ渡す
-  - [x] 固定commitの104配布元ファイルをGit Blob SHA/size/pathで全件照合。必要なSkill-local helperの配布定義と専用回帰契約を確認。
-  - [ ] 人間：配布後の学習環境で実ファイル・Python 3.11・helper結果を確認。
+- [x] 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のM02 `spec-analysis/test-analysis`について、Authority/Risk/Scope、出典・入力例・固定commit・CLI契約をソース照合し、専用契約テストを追加（実Run/CIの最終結果は別ゲートで判定）
+- [x] M03の`condition_structure(direct)`→技法runtime→`materialize_coverage(artifact)`→`case_structure`→`verify_runtime_evidence`の依存・入出力・`valid`・fingerprint/拒否条件を固定資料と契約テストで静的照合し、Case検証先・JSON判定手順を修正（実連続Runは#199で判定）
+- [x] 固定Skillの`SKILL.md/references/assets/scripts`とPython helperの配布元104ファイルを固定SHA/サイズ/パスで照合し、Skill-local入口・依存を契約テストで確認（配布後の実ファイルとPython実行は#199で判定）
 - [x] 22目標すべてについて教材→演習→提出→評価条件→復習先、`start/end`状態と対応を全量照合し、固有テスト・検証ログを残す。内容未受入の目標を一括完了にしない
 
 ## クイズ・理解事項・自習・引継ぎ（補完）
 
 - [x] `docs/curriculum/ai-assisted-qa/quizzes/M00.json`〜`M04.json`について、各設問の`objective_ids`・`knowledge_ids`、正答・誤答理由・解説・復習節、選択肢の妥当性を22目標と照合。単に問題があること、定義問題に正答したことを実技のLevel 2に換算しない
 - [x] `knowledge-graph.json`のM00〜M04に属する理解事項をIDごとに読み、意味・粒度/重複・前提・`can_do`・説明節・クイズ/実技の実際の観測点を確認。`draft_requires_content_review`を形式的に承認済みへ変更せず、レビュー証拠・不一致・必要なグラフ修正を#199に引継ぐ
-- [ ] 通常OpenCodeチューターの説明→段階ヒント→別条件→誤解別復習→再挑戦の教材・プロンプト・提出/復習経路を静的レビューし、可能な契約/負例テストを整備。独立M04採点との権限/セッション分離を確認して、認証付きモデルとの実対話は#199へ渡す
-  - [x] M00〜M04の別条件チューター練習を教材へ追加、M03/M04起動コマンドを修正、モデル引数・反復5段階と正式採点分離の契約テストを追加。
-  - [ ] 人間：固定OpenCode 2.0.22と許可されたモデルで本人の対話・段階ヒント・再挑戦、費用・権限・未達時の挙動を確認。
+- [x] 通常OpenCodeチューターの説明→段階ヒント→別条件→誤解別復習→再挑戦の教材・起動コマンド・提出/復習経路を静的照合し、モデル引数と正式評価との分離を専用契約テストへ追加（実モデル対話は#199で判定）
 - [x] M04終了の分析・Case・BR/AC・Risk/TR・初期データとM05開始入力のID/revisionを相互照合。Phase 1の提出MarkdownをGit/PRなしで保存・取り出す手順を教材で確認し、配布/エクスポートの実行不足は#218、評価不足は#217に引継ぐ
+
+## 本PRで残るマージ前作業（エージェント担当）
+
+- [ ] **フォーマット修正**：Web CI #41862809264のStyle Qualityが指摘した`tests/contracts/ai-assisted-qa-phase1-*.test.mjs`の5ファイルを整形し、`pnpm format:check:strict`をPASSさせる。対象外ファイルの無差別整形はしない。
+- [ ] **最新baseとの整合**：最新の#199を基準に本PRの差分・担当境界・依存を確認し、必要なbase追従を行う。配布manifestの104→105ファイル差分と#214由来の件数固定テストは#199統合側へ引き継ぎ、本PRで#218所有コードを変更しない。
+- [ ] **最終HEADの検証**：修正後の同じHEADでformatter/validator・`pnpm test:contracts`・関連E2Eを実際のCIで確認し、Style Quality/verify/validateを含め成功・失敗・スキップ・未実施を区別してRun IDと結果を記録する。
+- [ ] **独立レビューと引継ぎ**：本PRの25変更ファイル（現時点）を、M00〜M04教材・正式Cart仕様・固定Skill入口/検証拒否・提出/採点条件・契約テストの観点で独立レビューし、指摘の修正と再検証結果を記録する。#199/#217/#218へ未受入条件・最終HEADを引き継ぐ。**自動マージしない。**
+
+この4件は本PRで対応する作業のみ。#199で行う本人実操作や統合最終受入は本PRのチェック条件にしない。
+
+## 過去の作業・照合記録（当時の未完了記述は現行タスクではない）
+
+以下の2026-11-04時点の記録には、移管前の「5件未チェック」「実受入を待つ」といった表現が残る。これらは当時の実施状況の記録であり、**現在のチェック対象は上記30件と品質ゲート4件のみ**。実操作は#199へ移管済み。
 
 ## 2026-11-04 M00-01〜M00-04の再照合・実行制約
 
@@ -185,7 +190,7 @@ M04演習と提出テンプレートに、承認Caseの元ID、Risk/TR・Scope�
 
 上記の5項目それぞれについて、**実動作以外の準備は5/5件チェック済み**。元の受入5項目は人間の実動作証拠がまだないので未チェックのままとする。具体的な修正、固定Skill/仕様の照合、JavaScriptによる直接静的検査44+13件、未実行の条件は[検証レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)に記録。新規`tests/contracts/ai-assisted-qa-phase1-pinned-skill-entry.test.mjs`と既存の専用テストはCIによる実行結果を未取得。CI完了は待機しない。
 
-## #199最後に移した実受入（このPRのチェック対象外）
+## #199へ移管した最終実受入（本PRではチェックしない）
 
 - M00初回ロード、受講者本人のPrivate Port・費用・Secret・権限と実操作
 - 学習者のOpenCodeモデルへの認証付き対話、段階的なヒント/再挑戦とM04独立採点の区別
