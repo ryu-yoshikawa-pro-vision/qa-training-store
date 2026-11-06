@@ -31,9 +31,9 @@
 
 ## 個別PRの統合と重複管理
 
-- [ ] #213〜#219すべての最新HEAD/差分/チェック項目/未確認/BLOCKED/外部依存を確認。受入完了した範囲を#199へ統合し、各PRの未解決条件をこのリストで調停。**マージは個別の明示承認後のみ**。
+- [x] #213〜#219すべての最新HEAD/差分/チェック項目/未確認/BLOCKED/外部依存を確認。受入完了した範囲を#199へ統合し、各PRの未解決条件をこのリストで調停。**マージは個別の明示承認後のみ**。
 - [ ] `package.json`、lockfile、`scripts/training/ai-assisted-qa-course.mjs`、共有`tests/contracts/ai-assisted-qa-curriculum.test.ts`・`ai-assisted-qa-practical-exercises.test.mjs`、共通設計Planなどを複数PRから同時編集しない。所有PRから変更目的と検証条件を受けて一か所で調停。
-- [ ] 旧課程`docs/curriculum/test-automation/**`、既存Training / 既存製品workflowと新課程の物理的な分離を最終差分で確認。#210との製品修正の混入・重複も確認。
+- [x] 旧課程`docs/curriculum/test-automation/**`、既存Training / 既存製品workflowと新課程の物理的な分離を最終差分で確認。#210との製品修正の混入・重複も確認。
 
 ## 公開Webの教材閲覧・クイズ
 
@@ -65,10 +65,20 @@
 
 ## 最終CI・レビュー・完了
 
-- [ ] すべての作業PR統合後に`.github/workflows/native-ci.yml`の`pull_request`トリガーを本来の条件で復元し、既存の必須Mobile CIを再開。既存ジョブ/権限/コストに無断の仕様変更を加えない。
+- [x] すべての作業PR統合後に`.github/workflows/native-ci.yml`の`pull_request`トリガーを本来の条件で復元し、既存の必須Mobile CIを再開。既存ジョブ/権限/コストに無断の仕様変更を加えない。
 - [ ] 同じ**最終HEAD**でWebの必要なStyle/Type/Contracts/Unit/Integration/Component/required Chromium E2E/Build等と、Android/iOSの所定の必須Build・Static・Maestroなどを検証。成功・失敗・スキップ・未実行を分けて記録し、古いHEADを根拠にしない。
 - [ ] 各個別PRと統合差分の独立レビューを行い、指摘の根拠・対応・再検証、要件の未決、公開前の権利とデータ保護、成果物の再現性を確認する。
 - [ ] 残件・要承認・マージ後作業を区別して#199本文とPlanへ反映。全受入を満たすまで#199を完了・mainへマージしたと扱わない。
+
+## 2026-11-07 子PR統合・配布契約修復・CI再開の確認
+
+- **7PR統合と指摘の整理（完了）**：#213→#219→#218→#214→#217→#215→#216の全マージをGitHubで確認。すべて#199の履歴に含まれ、#199はOPEN、#210は独立・未マージ。#215のM07レビューは統合HEADのafter spec Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613` と専用Chromium before 2/2・after 3/3のPASSを照合して解決。旧子PRの未実施本人受入は完了扱いにしない。
+- **旧課程・SUTとの分離（完了）**：#199の差分419パス中、`docs/curriculum/test-automation/**`、`training/playwright/**`、`training/maestro/**`、製品SUT（`src/presentation/**`、`src/application/**`、`src/infrastructure/**`、`src/domain/**`、`src/seeds/**`、`app/**`、`docs/spec/**`）の変更は0。新課程は`training/ai-assisted-qa-course/**`中心の別ディレクトリを使用する。別PR #210の修正は未採用。
+- **配布と参考specの採用（静的確認）**：固定Skill manifestは105ファイル、取得元`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`を維持。M00/M05採点、M05専用P05 Run、M07参考spec、M10無効workflowを保持。配布全量同期、非公開素材・個人情報の実Artifact検査、本人環境の実Runは未完。
+- **配布契約テスト修復（完了）**：統合後の[Web CI #42226444489](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42226444489)で、実コード中の文字列`"import"`を正規表現が誤認し、`tests/contracts/ai-assisted-qa-course-distribution.test.mjs`が1件FAIL。TypeScript ASTで実際のimport/export元とリテラル動的importだけを抽出するよう修正し、文字列・コメントの負例を追加した。
+- **Web CI（コードHEADでPASS）**：`cd3491093199020f32a3eb0a39b038fd265bf808` の[Web CI #42252258802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42252258802)はcompleted/success。Style/Code Quality、Vitest contracts（121ファイル・1,365 PASS、1 expected fail、15 skipped）、M06 fixed 3/3・initial 2/2・repeat 2/2、M07 before 2/2・after 3/3、必須Chromium、verify/validate、Previewを確認。CI成果と本人実学習・製品受入を混同しない。
+- **Native CIトリガー（復元・起動確認）**：`.github/workflows/native-ci.yml`の`pull_request`を復元し、mainのBlob `4cfe49149152a2d05a031b92879c97591dc5bdb2` と一致。既存の`workflow_dispatch`・変更検知・全ジョブ・権限を維持。Mobile [CI #42252258966](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42252258966)のNative StaticはPASS、Android/iOS Buildはこの記録時点で進行中。最終成功・失敗・artifact・Maestroは未判定。**このPlanの変更によりHEADが進むため、最終HEADでの再検証は次の受入項目に残す。**
+- **残件の境界**：最終HEADでのWeb/Mobile一式の同時合格、全Shop配布・除外・Revision・非破壊性、82理解事項の人間レビュー、79要件/188操作/20状態に対応する正式Case採否・Web/Android/DB前後、OpenCode実モデルと本人Private Codespaces、第三者素材の権利、独立レビューは未完。これらを静的テストや自動CIの成功だけで完了にしない。
 
 ## Scenario Shopの最終実受入（#199の最後に実施）
 
