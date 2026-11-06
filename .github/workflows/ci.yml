@@ -452,12 +452,20 @@ jobs:
           retention-days: 14
 
   pr215-m06-reference:
-    name: "PR #215 M06 reference Chromium"
+    name: "M06 reference Chromium (#215 or #199)"
     if: >-
       github.event_name == 'pull_request' &&
-      github.event.pull_request.number == 215 &&
-      github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        (
+          github.event.pull_request.number == 215 &&
+          github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2'
+        ) ||
+        (
+          github.event.pull_request.number == 199 &&
+          github.event.pull_request.head.ref == 'docs/plan-ai-agent-qa-curriculum-redesign'
+        )
+      )
     needs: build-automation
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -529,12 +537,20 @@ jobs:
           retention-days: 14
 
   pr215-m07-reference:
-    name: "PR #215 M07 before and PR #217 after Chromium"
+    name: "M07 before/after Chromium (#215 reference or #199 integration)"
     if: >-
       github.event_name == 'pull_request' &&
-      github.event.pull_request.number == 215 &&
-      github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        (
+          github.event.pull_request.number == 215 &&
+          github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2'
+        ) ||
+        (
+          github.event.pull_request.number == 199 &&
+          github.event.pull_request.head.ref == 'docs/plan-ai-agent-qa-curriculum-redesign'
+        )
+      )
     needs: build-automation
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -548,6 +564,7 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      INTEGRATED_COURSE_MODE: ${{ github.event.pull_request.number == 199 && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -555,6 +572,7 @@ jobs:
 
       # Only this immutable reference source is read; the PR #217 branch is not modified.
       - name: Fetch pinned PR #217 reference spec
+        if: github.event.pull_request.number == 215
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: 44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e
@@ -784,6 +802,7 @@ jobs:
       - codex-hook-contract-windows
       - e2e-chromium
       - pr215-m06-reference
+      - pr215-m07-reference
       - training-runtime
       - ui-review
       - production-smoke
@@ -806,6 +825,7 @@ jobs:
           BUILD_PRODUCTION_RESULT: ${{ needs.build-production.result }}
           E2E_CHROMIUM_RESULT: ${{ needs.e2e-chromium.result }}
           PR215_M06_REFERENCE_RESULT: ${{ needs.pr215-m06-reference.result }}
+          PR215_M07_REFERENCE_RESULT: ${{ needs.pr215-m07-reference.result }}
           TRAINING_RUNTIME_RESULT: ${{ needs.training-runtime.result }}
           UI_REVIEW_RESULT: ${{ needs.ui-review.result }}
           PRODUCTION_SMOKE_RESULT: ${{ needs.production-smoke.result }}
@@ -831,10 +851,11 @@ jobs:
           require_success "build-automation" "$BUILD_AUTOMATION_RESULT"
           require_success "build-production" "$BUILD_PRODUCTION_RESULT"
           require_success "e2e-chromium" "$E2E_CHROMIUM_RESULT"
-          if [[ "$EVENT_NAME" == "pull_request" && "$PR_NUMBER" == "215" ]]; then
+          if [[ "$EVENT_NAME" == "pull_request" && ( "$PR_NUMBER" == "215" || "$PR_NUMBER" == "199" ) ]]; then
             require_success "pr215-m06-reference" "$PR215_M06_REFERENCE_RESULT"
-          elif [[ "$PR215_M06_REFERENCE_RESULT" != "skipped" ]]; then
-            echo "::error title=Unexpected M06 reference job::Result was ${PR215_M06_REFERENCE_RESULT}"
+            require_success "pr215-m07-reference" "$PR215_M07_REFERENCE_RESULT"
+          elif [[ "$PR215_M06_REFERENCE_RESULT" != "skipped" || "$PR215_M07_REFERENCE_RESULT" != "skipped" ]]; then
+            echo "::error title=Unexpected course reference job::M06=${PR215_M06_REFERENCE_RESULT}, M07=${PR215_M07_REFERENCE_RESULT}"
             exit 1
           fi
           require_success "training-runtime" "$TRAINING_RUNTIME_RESULT"
