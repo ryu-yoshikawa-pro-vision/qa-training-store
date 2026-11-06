@@ -569,3 +569,12 @@ test "$reference_run_failed" -eq 0
 - **参照元の固定**：PR #215 source HEAD `2a00b56b98f2eda3ef373629039381f4b579d546`、CI checkout merge SHA `f725a2629fa290e2eeaec798323d2d852ba36352`、PR #217 source HEAD `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`、PR #217 after spec Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613`。保守前spec SHA-256 `66846a3ec5fc666221790631ffdfac48abdaf7fb31059ec05be3342be18079d8`、保守後spec SHA-256 `bd04d3007c486e1825f55c694c81099e38fd8b7f17bf897d8dc47cd2fcede372`、Shop `dist/index.html` SHA-256 `8ba722e733bb843db6170d1639d74571fac64044d350237f0209457974e34891`。
 - **3件目の内容**：#217固定Blobは数量2のAssertion後に`page.goto("/products/product-mug")`でCart外へ移動し、`page.goto("/cart")`で戻り、数量2のAssertionを再実行する。単なる`page.reload()`ではない。fixtureで各test開始前に`resetScenario(page, "default")`を行い、`CartPage`を共有する実装を確認した。
 - **判定と残作業**：両ソースを分離した実Chromium検証は完了。ただし、#215で追跡される現`assessment/playwright/M07/maintenance-after/cart.spec.ts`は旧Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`のまま。**#217修正が#215の採用HEADに統合されたことも、そのHEADでbefore2/after3を実行したことも確認できていない**。そのため`M07-05`は未完了、レビューthreadも未解決、**Progress: 97% (32/33)**。CIの書式ゲート・全体結論は最終HEADで別途確認する。
+
+## 2026-11-06 #217現HEAD・参考spec採用の追加照合
+
+- 対象：#215 HEAD `3f469d9c6ae42b5396667041e5aeaca22bb7aef5`、#217現在のHEAD `d469fd732cfe5b170a17d122b666623e47277a87`。
+- #215追跡spec `training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts` Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`。3件目は `page.reload()` のみで要求未充足。
+- #217追跡spec（同一path）Blob `7a488032ae98efcbcf63fd867234fd7b44ee2613` は、元の2件（数量1／数量2）に加え3件目の `selectOption("2")` と変更直後の数量2 Assertionを維持し、`page.goto("/products/product-mug")` → `page.goto("/cart")` → 数量2再Assertionを実装。各test開始前に `resetScenario(page, "default")`、共通Page Object `CartPage` を使用する。固定CIで採用した#217 `44afe46f`のBlobと一致する。
+- #215の[Web CI #42131921458](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42131921458)はsuccess。M07はbefore2/after3が別Runで各test PASS、retry/skip/unexpectedなしだが、afterはCI内で固定Blobを**未追跡コピー**したもので、#215 tracked fileでも統合後HEADでもない。
+- #199の統合採用HEADへ#217修正版を採用し、保守前／保守後の独立Chromiumを同一統合採用HEADで再実行する。JSON/HTML report、rootDir、Run/spec SHA、退出コード、Reset/fixture/PO、数量1/2の業務Assertion、Trace条件を確認。該当時点まで `M07-05`は未チェック、関連レビューthreadは未解決（32/33）。
+- 本作業では `assessment/**`、共通workflow、製品SUTは変更しない。ローカルGitHub DNS接続不可のため追加のpnpm/ChromiumローカルRunは未実施。今回の文書更新に対する新Web CIはpush後に確認する。

@@ -184,3 +184,11 @@
 - M07：手順3の再実行で既存の`phase2-files.txt`が消失し、手順5で既存`phase2.tgz`が上書きされる問題に対して、Bashの`set -C`で既存ファイルを保護。専用契約テストに新規作成、既存一覧保持、アーカイブ/チェックサム非上書きを追加。
 - Phase間：M04→M05（2入力）、M05→M06（1入力）、M06→M07（2入力）、M07→M08（3入力）の参照関係を実際の状態JSONで照合し、専用契約テストを追加。公開fallbackや参照されない出力を、本人の修了証拠とは扱わない。
 - 親の受入項目は学習者実Run、実Codespacesでの保全、OpenCode協働等の条件が未達のため**未チェック**。内部完了チェックのみ追加。**Progress: 32% (8/25)**、未完了17件。詳細は[受入レポート](../reports/2026-11-04_pr215-phase2-acceptance.md)を参照。
+
+## 2026-11-06 #217最新HEADとの最終照合・#199再開条件
+
+- #215変更前HEAD：`3f469d9c6ae42b5396667041e5aeaca22bb7aef5`。Web CI [#42131921458](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42131921458)はsuccess。既存のM06固定3件・004/005初回2件と再実行2件、M07 before2/after3の分離CIを維持する。
+- #217の最新HEAD `d469fd732cfe5b170a17d122b666623e47277a87` にある `training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts` はBlob `7a488032ae98efcbcf63fd867234fd7b44ee2613`。固定checkout `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e` で検査した同一Blobであり、追加のCart外遷移→Cart再入場、数量1/2のAssertion、test単位の `resetScenario(page, "default")` とPage Objectを維持。
+- #215で追跡している同じパスは旧Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`。3件目は `page.reload()` のみ。#215では#217所有の `assessment/**` を編集しない。従って本ブランチ単独で `M07-05`を完了扱いにできない。
+- #199が#217の修正版Blobを採用した統合HEADで、保守前2件と保守後3件を別Chromium Runに分け、JSON report全test・exit 0・retry/skip/flakyなし・実行spec SHA・Shop SHA・checkout target SHA・Page Object/fixture依存を照合する。分離Run [#42131921458](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42131921458) は統合後Runの代替ではない。
+- **Progress: 97% (32/33)** を維持し、M07-05およびレビューthreadを未解決にする。本人の独立spec/Trace、認証モデル・正式評価、Private Codespacesは#199最終実受入に残す。
