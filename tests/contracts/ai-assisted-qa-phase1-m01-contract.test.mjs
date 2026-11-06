@@ -8,7 +8,9 @@ describe("M01の正式Cart仕様とテスト層", () => {
   const lesson = read("docs/curriculum/ai-assisted-qa/modules/M01/README.md");
   const exercise = read("training/ai-assisted-qa-course/exercises/M01/exercise.md");
   const submission = read("training/ai-assisted-qa-course/exercises/M01/submission-template.md");
-  const rubric = JSON.parse(read("training/ai-assisted-qa-course/assessment/scoring-tests/M01.json"));
+  const rubric = JSON.parse(
+    read("training/ai-assisted-qa-course/assessment/scoring-tests/M01.json"),
+  );
 
   it("数量selectの制約とUse Case契約を区別する", () => {
     expect(lesson).toContain("独立したバックエンドAPIサーバーがありません");
@@ -27,6 +29,7 @@ describe("M01の正式Cart仕様とテスト層", () => {
     expect(exercise).toContain("**4層それぞれ**");
     expect(exercise).toContain("検出できる欠陥と検出できない欠陥");
     expect(lesson).toContain("**観点D**：**Componentテスト**");
-    expect(rubric.criteria.find((c) => c.id === "M01-CR-04")?.pass_conditions.join(" ")).toContain("Component");
+    const criterion = rubric.criteria.find((c) => c.id === "M01-CR-04");
+    expect(criterion?.pass_conditions.join(" ")).toContain("Component");
   });
 });
