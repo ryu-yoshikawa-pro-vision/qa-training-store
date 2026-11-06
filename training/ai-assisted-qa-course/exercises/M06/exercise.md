@@ -17,6 +17,8 @@
    pnpm course:run M06 cart-cases.spec.ts --label main
    ```
 
+   **TODOの`throw new Error(...)`を削除しただけでは未完成です。** Playwrightが終了コード0を返しても、AssertionがなければCartの業務結果を検証できません。固定3件の`spec-snapshot.ts`に、Case IDごとの操作と次の業務Assertionが残っていることを確認してください。CASE-CART-001はMugの明細と数量1、CASE-CART-002は上限超過時の拒否と変更前数量1の保持、CASE-CART-003は`low-stock`のシャツMの上限3と拒否後数量3の保持です。対応する正式仕様は`BR-CART-001`/`AC-CART-001`です。単に実行数3件・PASSという表示のみを修了の証拠にはしません。
+
 5. 表示だけのAssertionが業務期待を証明するかレビューします。
 6. 別Case `CASE-CART-004`：defaultをResetし、ゲストとしてマグを1点追加し、カートの明細を削除します。削除前に対象商品と数量1を確認し、削除後は対象明細がなく、カートが空であることを確認します。Cart仕様の機能範囲と`empty`画面状態を読み、画面操作と期待結果を対応させます。`BR-CART-001`の数量0の規則と、画面の削除ボタンによる操作を同じ実行だと決めつけません。
 7. `new-case.spec.ts`のTODOを自分で実装し、P01の数量更新`CASE-CART-005`を削除`CASE-CART-004`とは**別のtest**として追加します。両方を実装した後、次のコマンドで単独実行と再実行を行います。出力先を分けることで前のRunの結果を上書きしません。Resetと各Runの結果・対象specを対応付けます。失敗時は最初のエラー、サーバー、Reset、LocatorとAssertionを順に確認し、期待を弱めず修正します。
@@ -26,7 +28,9 @@
    pnpm course:run M06 new-case.spec.ts --label repeat
    ```
 
-   `course:run`は毎回異なる`run_id`と出力先を使い、検証済み配布manifestの`source_sha`と実行したspecの`spec_sha256`をreceiptに記録します。再挑戦する場合も以前の結果を保全し、実行時の両SHA・結果を記録します。実行していない内容を補いません。
+   `course:run`は毎回異なる`run_id`と出力先を使い、検証済み配布manifestの`source_sha`と実行したspecの`spec_sha256`をreceiptに記録します。`run-evidence.json`の`module_id`・`spec_path`・`label`・`run_id`・`exit_code`・`outcome`・`spec_unchanged_during_run`・`tests`（各Caseのtest名と結果）を、同じRun directoryの`spec-snapshot.ts`と`playwright-result.json`へ照合してください。**`tests`の件数だけではCASE-CART-004/005の実行を保証しない**ため、両Caseのtest名、失敗/成功、spec snapshotにあるResetと業務Assertionを確認します。前のRunのreceiptや別specの結果を流用しません。終了コード非0で`outcome`が`blocked`なら、起動・Reset・配布状態を確認し、業務FAILと区別します。失敗や`ungradable`をPASSにしません。再挑戦する場合も以前の結果を保全し、実行時の両SHA・結果を記録します。実行していない内容を補いません。
+
+   **終了コード・outcome・未実行の区別**：`run-evidence.json`の`outcome`は`passed`・`failed`・`blocked`・`ungradable`のいずれかです。`failed`はTest/Locator/Assertionなどテスト実行失敗であり、製品不具合と即断しません。`blocked`はブラウザ未導入や接続不可などの環境障害、`ungradable`は対象testが得られないなど成功を判定できない状態です。**未実行**はreceiptの`outcome`ではなく、コマンド未実施や対象Case未実行を別途記録する区分です。receiptがない場合に架空のRun IDや`passed`を作りません。Playwright側の`status`と`course:run`の`outcome`は別に確認し、同じRunの`module_id`・`spec_path`・`source_sha`・`spec_sha256`・report SHA、test名・件数と照合します。出力されていても別spec/古いRun/004・005の片方だけなら成功にしません。
 
 ## 提出物
 
@@ -47,6 +51,8 @@
 2. **P02 数量更新と削除の違いを確かめる（M06-01・03）**：既存CASE-CART-004は削除ボタン、P01は数量selectによる更新です。`cart-page.tsx`では数量selectが1以上であることを読み、**Web UIから数量0へ変更できるというE2Eは作りません**。`BR-CART-001`の数量0削除規則を確認できる層・呼出経路と、UIで検証済みと言えない範囲を記録します。**証拠**：仕様/コード出典、2つの操作経路、どの層のどのCaseが不足するか。
 3. **P03 有効上限の見える範囲を調べる（M06-03）**：`default`のマグと`low-stock`のシャツMについて、商品詳細の購入上限表示・数量選択肢・カート側の数量選択肢を実画面で比較します。「選択肢がない」ことと「APIが拒否して数量を保持する」ことを別のAssertionに分け、必要なら**新しいtest**を追加します。**証拠**：2状態の観測、各Assertionの証明範囲。
 4. **P04 Reset/Contextの独立性を試す（M06-02・04）**：P01の数量2を確認した後、CASE-CART-004を続けて実行する場合と、逆順に実行する場合で、各testの開始時状態をどのように保証するか説明します。テスト順序・前のCart状態に依存するコードを見つけたら自分で修正します。**証拠**：Reset位置、独立している根拠、少なくとも1回の再実行結果。
+
+   `resetScenario(page, ...)`は現在のBrowser Contextへ指定Seedを適用して、再読み込み後の`getMetadata()`でscenarioを照合します。**新しいBrowser Contextを作成する処理ではありません。** Playwrightの通常の`page` fixtureによるtest単位のContext分離とは別に、各Case自身のResetが必要です。逆順実行やリトライの成功を記録するには、実際の別Run・対象spec・先頭のResetと数量を照合し、他CaseのCart状態や前回のreportを流用しません。
 5. **P05 M04の本人CaseをE2Eへ転用（M06-01・05）**：M04で承認したCaseがUI/Seedで実行可能なら、固定3件・削除・数量変更と**異なる条件**をもう1 testとして追加します。例えば在庫違い・別Roleなどのうち、仕様・Reset・観測が確認できたもののみ採用します。M04成果物がない、または実行不能なら公開fallbackを使い、**既知の数量1→2 Caseが代替の実技入力**である旨を明示します。未実行を実施済みにしません。**証拠**：元Case、採否、本人実装かfallbackか、実行可能性。
 6. **P06 増やしたtestを再実行して証拠を照合（M06-02・04・05）**：`pnpm course:run M06 new-case.spec.ts --label initial`と`--label repeat`を実行します。**CASE-CART-004とCASE-CART-005の2件以上**が両RunでPASSし、spec SHA・配布SHA・Run ID・report内の実行test数が一致することを確認します。追加Caseの失敗はAssertionを削って隠さず原因・修正・再実行を記録します。
 

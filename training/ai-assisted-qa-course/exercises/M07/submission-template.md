@@ -5,11 +5,22 @@
 | 修正前 | | | Test / Product / Environment / Flaky / 未確定 | |
 | 修正後（別Run） | | | | |
 
+## 原因の切分け（M07-01）
+
+A/B/Cを混ぜず、対象資料の種類と最初の事実を記録します。B/Cの合成ログを実Runとして提出しません。
+
+| 素材 | 実Run／合成／未実行 | 正式BR/AC・Role/State/Data・Reset条件 | 最初のエラー/ログ（観測した範囲） | Test/Product/Environment/Flakyの候補 | 否定/保留の証拠と次の確認 |
+| --- | --- | --- | --- | --- | --- |
+| A | 未確認 | 未記入 | 未記入 | 未確定 | 未記入 |
+| B | 合成 | 未記入 | 未記入 | 未確定 | 未記入 |
+| C | 合成 | 未記入 | 未記入 | 未確定 | 未記入 |
+
 - 失敗Assertionと期待結果:
 - Trace / Screenshot / logが示すこと・示さないこと:
 - AI提案と最小修正差分:
 - Retry/Timeoutを原因修正にしなかった理由:
-- 重複した操作と、Page Object・標準fixtureへ移した責務:
+- 重複した操作と、Page Object・標準fixtureへ移した責務（`maintenance.spec.ts`内に定義した箇所、別ファイルなら各依存ファイルのSHA・保全先）:
+- 3番目のtestでCart以外へ移動し、Cartへ戻って数量2を確認した**実操作**（同一ページの`reload()`だけでは不可）:
 - 保守演習の変更前後の別Run・対象spec・結果:
 - 抽象化を採用しない別例と、その根拠:
 - 未解決事項:

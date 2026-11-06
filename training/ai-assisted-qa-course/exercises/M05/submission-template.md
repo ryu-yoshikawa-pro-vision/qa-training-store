@@ -45,4 +45,49 @@
 | P05 | Cart数量/削除の一意なLocator・Assertion案 | 未記入 | 未記入 | 未確認 |
 | P06 | AIの弱いAssertion/固定待ち案の棄却 | 未記入 | 未記入 | 未確認 |
 
+### M05-03：Assertionの保証範囲
+
+| 観測した箇所 | 実行したspec/Run/Assertionと結果 | その結果から確認できること | 未確認事項（Cart/保存/注文） |
+| --- | --- | --- | --- |
+| 追加ボタンの表示・クリック | 未確認 | 未確認 | 未確認 |
+| 追加通知の表示 | 未確認 | 未確認 | 未確認 |
+| Cartの対象商品行と数量`1` | 未確認 | 未確認 | 未確認 |
+| 同じContextでの再読み込み後のCart | 未確認 | 未確認 | 未確認 |
+| IndexedDBの`carts`/`cart_items`直接確認（任意） | 未実施 | 未確認 | 未確認 |
+
+- 正式Cart BR/AC、開始Role/State/Data、対象商品/SKUとの照合:
+- クリック・通知だけでは業務結果を証明しない理由:
+- 画面表示と再読み込み後の状態、DBへの直接保存、注文作成を区別した判断:
+- P06の弱いAI修正・`waitForTimeout(5000)`を採用しなかった理由:
+
+### M05-04：実エラーと待機の切分け
+
+`P03`・`P04`・`P06`の本人実験を記録します。別のコードや実行で得たエラー・Runを同じ結果として扱いません。
+
+| 種類 | コマンド・対象ファイルまたはspec | 修正前の最初のエラー・終了コード・Run ID | 修正した箇所・修正後の結果 | 製品の業務結果について保証しないこと |
+| --- | --- | --- | --- | --- |
+| 構文（`node --check`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| 型（`tsc --noEmit`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| 実行時（`node`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| async/await（`node`） | 未記入 | 未確認 | 未確認 | 未確認 |
+| Locator・strict mode・Actionability（該当Run） | 未記入 | 未確認 | 未確認 | 未確認 |
+| Web-first Assertionと固定待機（該当Run） | 未記入 | 未確認 | 未確認 | 未確認 |
+
+- `click()`のActionability自動待機と`await expect(...)`のWeb-first assertion再試行の違い:
+- `count()`の一度の観測と`toHaveCount()`の再試行の違い:
+- `waitForTimeout(5000)`の提案を採らなかった根拠:
+- 教材の架空HTML／本人が実行したScenario Shopの証拠の区別:
+
+### P05の専用Configによる直接実行記録
+
+- 本人作成specのパスとSHA-256（`p05-cart-locator.spec.ts`）:
+- 実行コマンド、`PLAYWRIGHT_TEST_ROOT`、8082、`AI_QA_OUTPUT_ROOT`:
+- 終了コード、実行時刻、標準出力/エラー（`console.log`）:
+- 実行前に保存した`spec-snapshot.ts`と、実行直前・直後のspec SHA-256一致確認（不一致なら受入不可）:
+- 出力ディレクトリと`playwright-result.json`のtest名・件数・結果（0件・別spec・skip・想定FAIL・JSON不正はPASSとしない）:
+- 商品追加前のResetと2明細の観測、全体で2件・商品単位で1件のLocator判定:
+- 削除ボタンを押していないことと、数量の業務Assertion:
+- 直接実行（正式な`course:run` receiptではない）と、その制限:
+- 未実行・未確認事項:
+
 必要な証拠は関連する既存の必須提出物にも反映し、同じ内容を二重に作らないでください。学習用の架空データ・合成ログ・AI自己申告と、実行したspec/Runを区別してください。
