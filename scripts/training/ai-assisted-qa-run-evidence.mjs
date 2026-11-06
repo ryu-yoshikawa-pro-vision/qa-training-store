@@ -970,22 +970,7 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
       evidence: [],
     };
   const contract = scoring?.evaluation_policy?.execution_evidence;
-  const publishedRuns = contract?.required_runs;
-  const requiredRuns = Array.isArray(publishedRuns)
-    ? [
-        ...publishedRuns,
-        ...(moduleId === "M05"
-          ? [
-              {
-                spec: "p05-cart-locator.spec.ts",
-                label: "main",
-                minimum_tests: 1,
-                expected_outcome: "passed",
-              },
-            ]
-          : []),
-      ]
-    : null;
+  const requiredRuns = contract?.required_runs;
   if (
     contract?.schema_version !== 1 ||
     contract?.kind !== "playwright-run-record" ||

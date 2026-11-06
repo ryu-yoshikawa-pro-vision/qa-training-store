@@ -46,6 +46,28 @@ describe("formal assessor practical criteria", () => {
     });
   }
 
+  it("M00 P04 keeps real AI response and fictitious-answer correction as separate Level 2 conditions", () => {
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.resolve("training/ai-assisted-qa-course/assessment/scoring-tests/M00.json"),
+        "utf8",
+      ),
+    );
+    const criterion = scoring.criteria.find((item) => item.id === "M00-CR-03");
+    expect(criterion.required_evidence).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("AI回答の採否/訂正"),
+        expect.stringContaining("架空誤回答"),
+      ]),
+    );
+    expect(criterion.pass_conditions).toEqual(
+      expect.arrayContaining([expect.stringContaining("いずれか一方だけではLevel 2にしない")]),
+    );
+    expect(criterion.reject_if).toEqual(
+      expect.arrayContaining([expect.stringContaining("架空誤回答を実AIの出力として記録する")]),
+    );
+  });
+
   it("M07 reference retains quantity assertions after refactoring", () => {
     const before = fs.readFileSync(
       path.resolve(

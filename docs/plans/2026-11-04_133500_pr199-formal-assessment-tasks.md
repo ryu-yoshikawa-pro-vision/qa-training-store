@@ -258,3 +258,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **M00 P04の架空誤回答：** PR #217のbase `docs/plan-ai-agent-qa-curriculum-redesign` の演習には当該条件がない。一方、[#214](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/214) の教材ブランチ `work/pr199-curriculum-phase1`、`training/ai-assisted-qa-course/exercises/M00/exercise.md` Blob `36267f0dd54573b043e16be6405b16606f4ffcae` には、架空誤回答の独立訂正・2資料の出典・実AIの回答との区別と提出証拠が追加済み。#217では他ブランチ所有の教材を重複編集せず、#199への統合時に教材と採点基準が両方含まれることを検証する。統合前の本PR単体ではCodeRabbitの指摘は未解決。
 - **M05 P05必須Run：** #217の `verifyModuleRunEvidence` は `p05-cart-locator.spec.ts|main` を追加要求する。公開 `M05.json` へ同じRunを単純移管すると、共有 `scripts/training/validate-ai-assisted-qa.ts` が要求する2件固定の `required_runs` と衝突してビルド・検証が失敗する。共有Validatorは#217の所有範囲外。#199で両定義とValidatorの同期を取り、その後にM05専用のコード注入を廃止するまでは変更しない。
 - **今回のレビュー対応：** `ai-assisted-qa-run-evidence.mjs` のローカルexport、Assertionの動的値確認と広いmatcher、TypeScript解析重複を修正し、`ai-assisted-qa-assessment-m07-dependencies.test.mjs` と `ai-assisted-qa-assessment-practical-criteria.test.mjs` に負例を追加。修正後HEADのCI結果は別途確認し、モックPASSを本人の実受入としない。
+
+## 2026-11-06 PR #199公開採点契約との再照合（branch反映前）
+
+- M05: `required_runs`を公開3件（product-link before/failed/Trace、after/passed、p05-cart-locator main/passed）へ揃え、`verifyModuleRunEvidence`でのP05専用追加処理を削除する変更を準備した。#217独自のP05採点証拠条件は維持する。
+- M00: `M00-CR-03`のrequired_evidence/pass_conditions/reject_ifは#199現HEADと一致。架空誤回答を実AI回答として扱わないこと、片方だけでLevel 2にしないことの回帰契約を追加する。
+- M06/M07: 公開Run条件（M06 3件/M07 5件）を変更せず、M07参考実装のCart外遷移→再入場と数量2の再Assertionを確認した。
+- 対象SHA: #199 `157d88ef78d4e96fd8229a6a852b3f24c540a8e0`、#217 `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`。両HEADは分岐状態であり、統合HEADに対するCIは未実施。
+- push阻害: 現行Web CIはPR更新時にCloudflare Pages Previewへ自動デプロイする。Cloudflare Access設定は確認できず、既定で公開されるため、安全なpush条件未成立。共有workflowは変更しない。
+- 現環境はGitHubへのGit通信と依存環境を欠くため、`pnpm`コマンドおよび#199統合後のCIは未実行。変更commitはbranch未反映の状態で作成し、公開条件が確認されるまでPR #217の既存HEAD・残る未完了2件は据え置く。
+- 検証・阻害条件: [`docs/reports/2026-11-06_pr217-pr199-contract-integration.md`](../reports/2026-11-06_pr217-pr199-contract-integration.md)。

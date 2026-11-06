@@ -2575,6 +2575,15 @@ function candidate(overrides = {}) {
   };
 }
 
+function readPublishedM05Scoring() {
+  return JSON.parse(
+    fs.readFileSync(
+      path.resolve("training/ai-assisted-qa-course/assessment/scoring-tests/M05.json"),
+      "utf8",
+    ),
+  );
+}
+
 function writeM05RunEvidence(
   root,
   sourceSha = "a".repeat(40),
@@ -3248,33 +3257,32 @@ describe("AI-assisted QA formal assessment contracts", () => {
     });
   });
 
-  it("requires a separate M05 P05 locator receipt", () => {
-    const { workspaceRoot, p05ReportPath } = writeM05RunEvidence(
-      path.join(tempRoot, "m05-p05-locator-proof"),
-    );
-    const scoring = {
-      evaluation_policy: {
-        execution_evidence: {
-          schema_version: 1,
-          kind: "playwright-run-record",
-          required_runs: [
-            {
-              spec: "product-link.spec.ts",
-              label: "before",
-              minimum_tests: 1,
-              expected_outcome: "failed",
-              require_trace: true,
-            },
-            {
-              spec: "product-link.spec.ts",
-              label: "after",
-              minimum_tests: 1,
-              expected_outcome: "passed",
-            },
-          ],
-        },
+  it("verifies exactly the three published M05 Run requirements without injecting another Run", () => {
+    const scoring = readPublishedM05Scoring();
+    expect(scoring.evaluation_policy.execution_evidence.required_runs).toEqual([
+      {
+        spec: "product-link.spec.ts",
+        label: "before",
+        minimum_tests: 1,
+        expected_outcome: "failed",
+        require_trace: true,
       },
-    };
+      {
+        spec: "product-link.spec.ts",
+        label: "after",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+      {
+        spec: "p05-cart-locator.spec.ts",
+        label: "main",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+    ]);
+    const { workspaceRoot, p05ReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "m05-three-published-runs"),
+    );
     const verify = () =>
       verifyModuleRunEvidence({
         workspaceRoot,
@@ -3282,18 +3290,16 @@ describe("AI-assisted QA formal assessment contracts", () => {
         scoring,
         sourceSha: "a".repeat(40),
       });
-    expect(verify()).toMatchObject({
-      status: "passed",
-      checks: expect.arrayContaining([
-        expect.objectContaining({
-          id: "M05-RUN-p05-cart-locator.spec.ts-main",
-          status: "passed",
-          outcome: "passed",
-        }),
-      ]),
-    });
-    const p05RunRoot = path.dirname(p05ReportPath);
-    fs.unlinkSync(path.join(p05RunRoot, "run-evidence.json"));
+    const verified = verify();
+    expect(verified.status).toBe("passed");
+    expect(
+      verified.checks.filter((check) => check.id.startsWith("M05-RUN-")).map((check) => check.id),
+    ).toEqual([
+      "M05-RUN-product-link.spec.ts-before",
+      "M05-RUN-product-link.spec.ts-after",
+      "M05-RUN-p05-cart-locator.spec.ts-main",
+    ]);
+    fs.unlinkSync(path.join(path.dirname(p05ReportPath), "run-evidence.json"));
     expect(verify()).toMatchObject({
       status: "ungradable",
       checks: expect.arrayContaining([
@@ -3305,33 +3311,60 @@ describe("AI-assisted QA formal assessment contracts", () => {
     });
   });
 
+  it("rejects incomplete, duplicated, mislabeled, stale, and tampered public M05 Run evidence", () => {
+    const scoring = readPublishedM05Scoring();
+    const { workspaceRoot, beforeReportPath, reportPath, p05ReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "m05-public-negative-runs"),
+    );
+    const verify = (contract = scoring, sourceSha = "a".repeat(40)) =>
+      verifyModuleRunEvidence({ workspaceRoot, moduleId: "M05", scoring: contract, sourceSha });
+    expect(verify().status).toBe("passed");
+
+    const duplicate = structuredClone(scoring);
+    duplicate.evaluation_policy.execution_evidence.required_runs.push(
+      structuredClone(duplicate.evaluation_policy.execution_evidence.required_runs[2]),
+    );
+    expect(verify(duplicate)).toMatchObject({
+      status: "ungradable",
+      reasons: [expect.stringMatching(/duplicates a Playwright run label/)],
+    });
+
+    const wrongSpec = structuredClone(scoring);
+    wrongSpec.evaluation_policy.execution_evidence.required_runs[2].spec = "product-link.spec.ts";
+    expect(verify(wrongSpec).status).toBe("ungradable");
+    const wrongLabel = structuredClone(scoring);
+    wrongLabel.evaluation_policy.execution_evidence.required_runs[2].label = "repeat";
+    expect(verify(wrongLabel).status).toBe("ungradable");
+    expect(verify(scoring, "b".repeat(40)).status).toBe("ungradable");
+
+    const validReport = fs.readFileSync(p05ReportPath);
+    fs.appendFileSync(p05ReportPath, " ");
+    expect(verify().status).toBe("ungradable");
+    fs.writeFileSync(p05ReportPath, validReport);
+    expect(verify().status).toBe("passed");
+
+    fs.unlinkSync(path.join(path.dirname(beforeReportPath), "run-evidence.json"));
+    fs.unlinkSync(path.join(path.dirname(reportPath), "run-evidence.json"));
+    expect(verify()).toMatchObject({
+      status: "ungradable",
+      checks: expect.arrayContaining([
+        expect.objectContaining({
+          id: "M05-RUN-product-link.spec.ts-before",
+          status: "ungradable",
+        }),
+        expect.objectContaining({
+          id: "M05-RUN-product-link.spec.ts-after",
+          status: "ungradable",
+        }),
+      ]),
+    });
+  });
+
   it("requires same-run Playwright reports and source snapshots for Phase 2 evidence", () => {
     const { workspaceRoot, reportPath } = writeM05RunEvidence(
       path.join(tempRoot, "playwright-proof"),
     );
-    const scoring = {
-      evaluation_policy: {
-        execution_evidence: {
-          schema_version: 1,
-          kind: "playwright-run-record",
-          required_runs: [
-            {
-              spec: "product-link.spec.ts",
-              label: "before",
-              minimum_tests: 1,
-              expected_outcome: "failed",
-              require_trace: true,
-            },
-            {
-              spec: "product-link.spec.ts",
-              label: "after",
-              minimum_tests: 1,
-              expected_outcome: "passed",
-            },
-          ],
-        },
-      },
-    };
+    const scoring = readPublishedM05Scoring();
     const verified = verifyModuleRunEvidence({
       workspaceRoot,
       moduleId: "M05",
