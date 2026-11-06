@@ -126,9 +126,17 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     for (const module of ["M00", "M01", "M02", "M03", "M04"]) {
       const lesson = read(`docs/curriculum/ai-assisted-qa/modules/${module}/README.md`);
       expect(lesson, module).toContain(`pnpm course:tutor ${module} --model provider/model-id`);
-      expect(lesson, module).not.toContain(`pnpm course:tutor ${module} --model <プロバイダ/モデルID>`);
+      expect(lesson, module).not.toContain(
+        `pnpm course:tutor ${module} --model <プロバイダ/モデルID>`,
+      );
       const exercise = read(`training/ai-assisted-qa-course/exercises/${module}/exercise.md`);
-      for (const stage of ["**説明**", "**段階ヒント**", "**別条件練習**", "**誤解別の復習**", "**再挑戦**"]) {
+      for (const stage of [
+        "**説明**",
+        "**段階ヒント**",
+        "**別条件練習**",
+        "**誤解別の復習**",
+        "**再挑戦**",
+      ]) {
         expect(exercise, `${module}: missing tutor practice stage ${stage}`).toContain(stage);
       }
       expect(exercise).toContain("正式採点");
@@ -138,15 +146,4 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m04).not.toContain("AIチューター（`pnpm course:tutor M04`）");
     expect(m04).toContain("course:assess");
   });
-});
-
-it("temporary Prettier formatting diagnostic", async () => {
-  const prettier = await import("prettier");
-  const filename = "tests/contracts/ai-assisted-qa-phase1-pinned-skill-entry.test.mjs";
-  const options = (await prettier.resolveConfig(filename)) ?? {};
-  const formatted = await prettier.format(read(filename), { ...options, filepath: filename });
-  const encoded = Buffer.from(formatted).toString("base64");
-  for (let offset = 0; offset < encoded.length; offset += 2000) {
-    console.log(`FORMAT_B64_${offset / 2000}:${encoded.slice(offset, offset + 2000)}`);
-  }
 });
