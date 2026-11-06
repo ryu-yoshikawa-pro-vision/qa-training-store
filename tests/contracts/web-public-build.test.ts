@@ -165,3 +165,15 @@ describe("public Web export dependencies", () => {
     expect(result.lines[3]).toContain("](");
   });
 });
+
+/* FORMAT-DIAGNOSTIC-START */
+describe("temporary formatter diagnostic", () => {
+  it("reports Prettier formatted source to the contract runner", async () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "tests/contracts/web-public-build.test.ts"), "utf8");
+    const stripped = source.slice(0, source.indexOf("/* FORMAT-DIAGNOSTIC-START */")).trimEnd() + "\n";
+    const prettier = await import("prettier");
+    const formatted = await prettier.format(stripped, { parser: "typescript" });
+    console.log("FORMAT_SOURCE_BASE64=" + Buffer.from(formatted).toString("base64"));
+  });
+});
+/* FORMAT-DIAGNOSTIC-END */
