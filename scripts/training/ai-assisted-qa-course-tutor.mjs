@@ -104,8 +104,10 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
       "OpenCode側の実認証・履歴・保管条件は本人環境で確認するまで未受入です。",
   );
   try {
-    if ((await rl.question("開始する場合だけ START " + request.modelId + " と入力: ")) !==
-      "START " + request.modelId) {
+    if (
+      (await rl.question("開始する場合だけ START " + request.modelId + " と入力: ")) !==
+      "START " + request.modelId
+    ) {
       console.log("チューターを起動しませんでした。");
       return;
     }
@@ -122,7 +124,9 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
             runId,
             sourceSha: verifiedDistribution.source_sha,
           });
-          console.log("検証済みRunの件数・SHA・状態だけを選択しました。内容やTraceは送信しません。");
+          console.log(
+            "検証済みRunの件数・SHA・状態だけを選択しました。内容やTraceは送信しません。",
+          );
         } catch {
           pendingRunSummary = null;
           console.error("BLOCKED: Runの照合に失敗しました。");
@@ -131,7 +135,8 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
       }
       if (question.startsWith("/excerpt ")) {
         try {
-          const match = /^\/excerpt (workspace\/M(?:0[0-9]|10)\/[A-Za-z0-9_./-]+) (\d+)-(\d+)$/.exec(question);
+          const match =
+            /^\/excerpt (workspace\/M(?:0[0-9]|10)\/[A-Za-z0-9_./-]+) (\d+)-(\d+)$/.exec(question);
           if (!match) fail("excerpt usage is invalid");
           pendingExcerpt = readTutorWorkspaceExcerpt(
             ROOT,
@@ -167,10 +172,16 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
           ? (() => {
               const range = pendingExcerpt.range.split("-").map(Number);
               const current = readTutorWorkspaceExcerpt(
-                ROOT, request.moduleId, pendingExcerpt.path, range[0], range[1],
+                ROOT,
+                request.moduleId,
+                pendingExcerpt.path,
+                range[0],
+                range[1],
               );
-              if (current.source_sha256 !== pendingExcerpt.source_sha256 ||
-                  current.text !== pendingExcerpt.text)
+              if (
+                current.source_sha256 !== pendingExcerpt.source_sha256 ||
+                current.text !== pendingExcerpt.text
+              )
                 fail("selected learner file changed before sending");
               return current;
             })()
@@ -203,11 +214,21 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
         console.error("BLOCKED: 入力の安全検査に失敗しました。内容は外部AIへ渡しません。");
         continue;
       }
-      console.log("送信対象：公開教材3件、指定した公開仕様" +
-        (documents[3] ? "1件" : "0件") + "、今回の質問、過去の会話" +
-        history.length + "往復、指定抜粋" + (pendingExcerpt ? "1件" : "0件") + "、検証済Run要約" + (pendingRunSummary ? "1件" : "0件") + "。");
-      if ((await rl.question("送信する場合だけ SEND " + request.modelId + " と入力: ")) !==
-        "SEND " + request.modelId) {
+      console.log(
+        "送信対象：公開教材3件、指定した公開仕様" +
+          (documents[3] ? "1件" : "0件") +
+          "、今回の質問、過去の会話" +
+          history.length +
+          "往復、指定抜粋" +
+          (pendingExcerpt ? "1件" : "0件") +
+          "、検証済Run要約" +
+          (pendingRunSummary ? "1件" : "0件") +
+          "。",
+      );
+      if (
+        (await rl.question("送信する場合だけ SEND " + request.modelId + " と入力: ")) !==
+        "SEND " + request.modelId
+      ) {
         pendingExcerpt = null;
         pendingRunSummary = null;
         console.log("送信を取り消しました。");
@@ -229,8 +250,12 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
           timeout: 10000,
           shell: false,
         });
-        if (version.error || version.status !== 0 ||
-            version.stdout?.trim().split(/\r?\n/).at(-1)?.replace(/^v/, "") !== REQUIRED_OPEN_CODE_VERSION)
+        if (
+          version.error ||
+          version.status !== 0 ||
+          version.stdout?.trim().split(/\r?\n/).at(-1)?.replace(/^v/, "") !==
+            REQUIRED_OPEN_CODE_VERSION
+        )
           fail("OpenCode CLI 2.0.22 is required");
         const result = spawnSync(cli, buildTutorRunArgs({ modelId: request.modelId, promptPath }), {
           cwd: directory,
@@ -243,7 +268,11 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
         });
         if (result.error || result.status !== 0) fail("model command failed; no raw logs retained");
         const parsed = parseOpenCodeJsonEvents(result.stdout, result.status);
-        const answer = validateTutorText(parsed.response, "model response", MAX_TUTOR_QUESTION_BYTES);
+        const answer = validateTutorText(
+          parsed.response,
+          "model response",
+          MAX_TUTOR_QUESTION_BYTES,
+        );
         console.log(answer);
         history.push({ question, answer });
         if (history.length > 4) history.shift();
@@ -258,7 +287,9 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   runTutorCli().catch((error) => {
-    console.error("course:tutor stopped: " + (error instanceof Error ? error.message : String(error)));
+    console.error(
+      "course:tutor stopped: " + (error instanceof Error ? error.message : String(error)),
+    );
     process.exitCode = 1;
   });
 }

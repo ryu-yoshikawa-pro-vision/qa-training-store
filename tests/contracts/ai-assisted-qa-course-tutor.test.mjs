@@ -16,7 +16,10 @@ import {
   tutorPublicPaths,
   validateTutorText,
 } from "../../scripts/training/ai-assisted-qa-course-tutor-core.mjs";
-import { makeIsolatedEnvironment, runValidatedTutorTurn } from "../../scripts/training/ai-assisted-qa-course-tutor.mjs";
+import {
+  makeIsolatedEnvironment,
+  runValidatedTutorTurn,
+} from "../../scripts/training/ai-assisted-qa-course-tutor.mjs";
 
 const roots = [];
 const request = { moduleId: "M06", modelId: "opencode/free-model" };
@@ -107,15 +110,45 @@ describe("AI-assisted QA tutor external send boundary", () => {
     const lesson = path.join(root, documents[1].path);
     fs.rmSync(lesson);
     fs.symlinkSync(path.join(root, documents[0].path), lesson);
-    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(/symlink/);
+    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(
+      /symlink/,
+    );
     fs.rmSync(lesson);
-    fs.writeFileSync(lesson, Buffer.from([0x00, 0xff, 0x00]));
-    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(/binary/);
+    const binary = Buffer.from([0x00, 0xff, 0x00]);
+    fs.writeFileSync(lesson, binary);
+    publishedFiles.set(
+      documents[1].path,
+      createHash("sha256").update(binary).digest("hex"),
+    );
+    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(
+      /binary/,
+    );
     fs.writeFileSync(lesson, "A".repeat(65537));
-    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(/size/);
+    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(
+      /size/,
+    );
     fs.writeFileSync(lesson, "# Altered");
-    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles))
-      .toThrow(/changed since/);
+    expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(
+      /changed since/,
+    );
+  });
+
+  it("redacts synthetic contact examples and environment filenames from pinned lessons", () => {
+    const root = fixture();
+    const lessonPath = documents[1].path;
+    const original = "# 公開教材\ncustomer@example.invalid\n.env.localは読み取らない";
+    fs.writeFileSync(path.join(root, lessonPath), original);
+    const publishedFiles = new Map([
+      [lessonPath, createHash("sha256").update(original).digest("hex")],
+    ]);
+    const sanitized = readTutorPublicFile(root, "M06", lessonPath, publishedFiles);
+    expect(sanitized).not.toContain("customer@example.invalid");
+    expect(sanitized).not.toContain(".env.local");
+    expect(sanitized).toContain("省略");
+    fs.appendFileSync(path.join(root, lessonPath), "\n後から追加された内容");
+    expect(() => readTutorPublicFile(root, "M06", lessonPath, publishedFiles)).toThrow(
+      /changed since/,
+    );
   });
 
   it("copies only a selected learner excerpt, rejecting traversal, private history, and changes", () => {
@@ -128,12 +161,14 @@ describe("AI-assisted QA tutor external send boundary", () => {
     expect(excerpt.path).toBe(file);
     expect(excerpt.text).toContain("数量1");
     expect(excerpt.range).toBe("2-3");
-    expect(buildTutorTurnPrompt({
-      moduleId: "M06",
-      question: "この結果を説明して",
-      documents,
-      excerpt,
-    })).toContain("selected_learner_excerpt");
+    expect(
+      buildTutorTurnPrompt({
+        moduleId: "M06",
+        question: "この結果を説明して",
+        documents,
+        excerpt,
+      }),
+    ).toContain("selected_learner_excerpt");
     for (const rejected of [
       "workspace/M05/submission.md",
       "workspace/M06/evidence/runs/receipt.json",
@@ -185,7 +220,10 @@ describe("AI-assisted QA tutor external send boundary", () => {
     ]) {
       expect(() =>
         buildTutorTurnPrompt({
-          moduleId: "M06", question: "確認", documents, runSummary: invalid,
+          moduleId: "M06",
+          question: "確認",
+          documents,
+          runSummary: invalid,
         }),
       ).toThrow();
     }
@@ -193,7 +231,12 @@ describe("AI-assisted QA tutor external send boundary", () => {
 
   it("validates each question before invoking a runner or starting any model process", () => {
     const invoke = vi.fn(() => "model response");
-    const ok = runValidatedTutorTurn({ request, question: "この項目を説明して", documents, invoke });
+    const ok = runValidatedTutorTurn({
+      request,
+      question: "この項目を説明して",
+      documents,
+      invoke,
+    });
     expect(ok).toBe("model response");
     expect(invoke).toHaveBeenCalledTimes(1);
     for (const unsafe of [
@@ -239,9 +282,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
       buildTutorTurnPrompt({
         moduleId: "M06",
         question: "説明して",
-        documents: documents.map((d, i) =>
-          i === 0 ? { ...d, text: "test@example.invalid" } : d,
-        ),
+        documents: documents.map((d, i) => (i === 0 ? { ...d, text: "test@example.invalid" } : d)),
       }),
     ).toThrow();
     expect(() =>

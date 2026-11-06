@@ -504,7 +504,12 @@ function validateAssessmentPackage(
         minimum_tests: 1,
         expected_outcome: "passed",
       },
-      { spec: "p05-cart-locator.spec.ts", label: "main", minimum_tests: 1, expected_outcome: "passed" },
+      {
+        spec: "p05-cart-locator.spec.ts",
+        label: "main",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
     ],
     M06: [
       { spec: "cart-cases.spec.ts", label: "main", minimum_tests: 3, expected_outcome: "passed" },

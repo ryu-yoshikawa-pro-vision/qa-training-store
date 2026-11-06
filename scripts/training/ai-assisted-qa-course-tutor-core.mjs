@@ -88,7 +88,16 @@ export function readTutorPublicFile(root, moduleId, relativePath, publishedFiles
     } catch {
       fail("public source is not valid UTF-8");
     }
-    return validateTutorText(text, relativePath, MAX_TUTOR_FILE_BYTES);
+    // Hash verification precedes redaction, so public teaching examples cannot
+    // bypass the pinned distribution's integrity check.
+    assertNoSecretText(text, relativePath);
+    const redacted = text
+      .replace(
+        /(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b(?:\+81[- ]?|0)\d{1,4}[- ]?\d{1,4}[- ]?\d{3,4}\b|\b\d{3}[- ]\d{4}[- ]\d{4}\b)/gi,
+        "[公開教材中の連絡先を省略]",
+      )
+      .replace(/\.env(?:\.[a-z0-9_-]+)?/gi, "[非公開設定ファイル名を省略]");
+    return validateTutorText(redacted, relativePath, MAX_TUTOR_FILE_BYTES);
   } finally {
     fs.closeSync(fd);
   }
@@ -99,16 +108,30 @@ export const MAX_TUTOR_EXCERPT_BYTES = 8 * 1024;
 // Learner-owned content is never auto-discovered. A bounded line range must be
 // selected explicitly; scan the entire source before copying any part of it.
 export function readTutorWorkspaceExcerpt(root, moduleId, relativePath, firstLine, lastLine) {
-  if (!MODULE_ID_PATTERN.test(moduleId ?? "") ||
-      typeof relativePath !== "string" ||
-      !new RegExp("^workspace/" + moduleId + "/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.(?:md|txt|ts|json|csv)$").test(relativePath))
+  if (
+    !MODULE_ID_PATTERN.test(moduleId ?? "") ||
+    typeof relativePath !== "string" ||
+    !new RegExp(
+      "^workspace/" + moduleId + "/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.(?:md|txt|ts|json|csv)$",
+    ).test(relativePath)
+  )
     fail("learner excerpt is outside the selected module");
-  if (!Number.isSafeInteger(firstLine) || firstLine < 1 ||
-      !Number.isSafeInteger(lastLine) || lastLine < firstLine ||
-      lastLine - firstLine >= 40)
+  if (
+    !Number.isSafeInteger(firstLine) ||
+    firstLine < 1 ||
+    !Number.isSafeInteger(lastLine) ||
+    lastLine < firstLine ||
+    lastLine - firstLine >= 40
+  )
     fail("learner excerpt line range is invalid or too large");
   const parts = relativePath.split("/");
-  if (parts.some((part) => /^(?:evidence|runs?|reports?|traces?|logs?|history|assessment|assessments|secrets?|credentials?|private|artifacts?)$/i.test(part)))
+  if (
+    parts.some((part) =>
+      /^(?:evidence|runs?|reports?|traces?|logs?|history|assessment|assessments|secrets?|credentials?|private|artifacts?)$/i.test(
+        part,
+      ),
+    )
+  )
     fail("learner evidence, logs or private records may not be sent to the model");
   let location = path.resolve(root);
   for (const part of parts) {
@@ -151,7 +174,14 @@ export function readTutorWorkspaceExcerpt(root, moduleId, relativePath, firstLin
   }
 }
 
-export function buildTutorTurnPrompt({ moduleId, question, documents, history = [], excerpt = null, runSummary = null }) {
+export function buildTutorTurnPrompt({
+  moduleId,
+  question,
+  documents,
+  history = [],
+  excerpt = null,
+  runSummary = null,
+}) {
   if (!MODULE_ID_PATTERN.test(moduleId ?? "")) fail("invalid module");
   validateTutorText(question, "question", MAX_TUTOR_QUESTION_BYTES);
   if (!Array.isArray(documents) || documents.length < 3 || documents.length > 4)
@@ -170,34 +200,50 @@ export function buildTutorTurnPrompt({ moduleId, question, documents, history = 
   }
   let selectedExcerpt = null;
   if (excerpt !== null) {
-    if (typeof excerpt !== "object" ||
-        typeof excerpt.path !== "string" ||
-        !new RegExp("^workspace/" + moduleId + "/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.(?:md|txt|ts|json|csv)$").test(excerpt.path) ||
-        excerpt.path.split("/").some((part) =>
-          /^(?:evidence|runs?|reports?|traces?|logs?|history|assessment|assessments|secrets?|credentials?|private|artifacts?)$/i.test(part),
+    if (
+      typeof excerpt !== "object" ||
+      typeof excerpt.path !== "string" ||
+      !new RegExp(
+        "^workspace/" + moduleId + "/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.(?:md|txt|ts|json|csv)$",
+      ).test(excerpt.path) ||
+      excerpt.path
+        .split("/")
+        .some((part) =>
+          /^(?:evidence|runs?|reports?|traces?|logs?|history|assessment|assessments|secrets?|credentials?|private|artifacts?)$/i.test(
+            part,
+          ),
         ) ||
-        !/^\\d+-\\d+$/.test(excerpt.range ?? "") ||
-        !/^[a-f0-9]{64}$/.test(excerpt.source_sha256 ?? ""))
+      !/^\d+-\d+$/.test(excerpt.range ?? "") ||
+      !/^[a-f0-9]{64}$/.test(excerpt.source_sha256 ?? "")
+    )
       fail("learner excerpt metadata is invalid");
     validateTutorText(excerpt.text, "selected learner excerpt", MAX_TUTOR_EXCERPT_BYTES);
     selectedExcerpt = { path: excerpt.path, range: excerpt.range, text: excerpt.text };
   }
   let selectedRun = null;
   if (runSummary !== null) {
-    if (runSummary?.module_id !== moduleId ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(runSummary.run_id ?? "") ||
-        !/^[A-Za-z0-9_-]+\.spec\.ts$/.test(runSummary.spec ?? "") ||
-        !["main", "initial", "repeat", "before", "after"].includes(runSummary.label) ||
-        !["passed", "failed", "blocked", "ungradable"].includes(runSummary.outcome) ||
-        !/^[a-f0-9]{40}$/.test(runSummary.source_sha ?? "") ||
-        !/^[a-f0-9]{64}$/.test(runSummary.spec_sha256 ?? "") ||
-        typeof runSummary.current_spec_matches_run !== "boolean" ||
-        !Number.isInteger(runSummary.tests_total) || runSummary.tests_total < 1 ||
-        !Number.isInteger(runSummary.tests_passed) || runSummary.tests_passed < 0 ||
-        !Number.isInteger(runSummary.tests_failed) || runSummary.tests_failed < 0 ||
-        !Number.isInteger(runSummary.tests_skipped) || runSummary.tests_skipped < 0 ||
-        runSummary.tests_passed + runSummary.tests_failed + runSummary.tests_skipped >
-          runSummary.tests_total)
+    if (
+      runSummary?.module_id !== moduleId ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        runSummary.run_id ?? "",
+      ) ||
+      !/^[A-Za-z0-9_-]+\.spec\.ts$/.test(runSummary.spec ?? "") ||
+      !["main", "initial", "repeat", "before", "after"].includes(runSummary.label) ||
+      !["passed", "failed", "blocked", "ungradable"].includes(runSummary.outcome) ||
+      !/^[a-f0-9]{40}$/.test(runSummary.source_sha ?? "") ||
+      !/^[a-f0-9]{64}$/.test(runSummary.spec_sha256 ?? "") ||
+      typeof runSummary.current_spec_matches_run !== "boolean" ||
+      !Number.isInteger(runSummary.tests_total) ||
+      runSummary.tests_total < 1 ||
+      !Number.isInteger(runSummary.tests_passed) ||
+      runSummary.tests_passed < 0 ||
+      !Number.isInteger(runSummary.tests_failed) ||
+      runSummary.tests_failed < 0 ||
+      !Number.isInteger(runSummary.tests_skipped) ||
+      runSummary.tests_skipped < 0 ||
+      runSummary.tests_passed + runSummary.tests_failed + runSummary.tests_skipped >
+        runSummary.tests_total
+    )
       fail("verified Run summary metadata is invalid");
     selectedRun = {
       module_id: moduleId,

@@ -110,15 +110,15 @@
 - 生成物の対象パターン監査では禁止ファイルパス/既知Secret正規表現の一致0件。ただし未知の個人データ・第三者素材の権利許諾までの保証ではない。#218統合後のclean固定commitから実配布を行うまで、冒頭の移管3項目と横断受入項目は未チェックを維持する。
 - 検査の詳細・環境制約・再実行方法：[公開Web・配布受入レポート](../reports/2026-11-06_pr199-web-distribution-audit.md)。最終HEADのCI・テスト結果は別途追記し、旧HEADの成功を流用しない。
 
-## 2026-11-06 通常AI・M00/M05採点契約の未公開修正案
+## 2026-11-06 通常AI・M00/M05採点契約の修正と検証状況
 
-- **状態：未反映・未受入。** PR #199のpushが既存CIのCloudflare Pages Preview公開を自動起動する。公開先のアクセス制限を検証できないため、この変更はPRブランチにpushせず、検証用の親HEAD固定commitとして保管。現行PR HEADを修正後HEADとして扱わない。
+- **状態：修正commitを通常push済み・技術受入未完。** PR #199のHEAD `9a5f2edca6ea5c0c675b25daae5834f5674d3209`へ12ファイルを反映。続くCIでStyle/Code Quality不備とテスト2件の失敗を確認したため、補正と最終HEAD再検証が必要。既存CIのCloudflare Pages Preview公開条件はそのままで、アクセス制御は未検証。
 - 通常AI送信境界：`opencode mini`を直接対話できる起動経路から外し、各入力に`START`と`SEND`の本人確認、ファイル/質問/既存会話の検査を通す一回限りの`opencode run --standalone --pure`へ変更する案。公開配布manifestが持つ教材3件と、本人が指定した公開仕様最大1件だけ読取り、SHA-256・サイズ・禁止Path・Symlink・不正文字/PII/Secretを照合。workspaceや評価記録は自動読取しない。本人が`/excerpt`で選択した選択モジュールの学習者ファイル最大40行（8KiB）だけは、全ファイル検査と送信前再照合を通して送信可能。`/run UUID`で選択した既存Runはreceipt/report/SHA照合後の件数・結果・SHAのみ送信し、Trace/生reportは送らない。送信総量192KiB、質問8KiB、単独参照元64KiB。実OpenCode V2 2.0.22の権限・更新停止・履歴・認証・費用は未実行。
 - 通常会話と正式評価の分離：固定モデル/agent、deny-allの`permissions`、孤立した一時HOME/XDG・`:memory:` DBを設定し、通常の会話はCLI実行中のメモリ内の直近4問答だけ参照する案。正式評価の採点・記録に書込む処理は追加しない。OpenCode本体またはProviderの実履歴・保持・削除は未検証。
 - M00 P04：#214 HEAD `65640a02ac8429a812a9e88d5d952fc9fc94752e` の架空誤回答演習と#217 HEAD `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e` の`M00-CR-03`における別証拠・Pass/Reject条件を、#199統合先の二つの対象ファイルだけに取り込む案。実AIが正答しても架空誤回答を本人が訂正・根拠2資料を独立提示しない限りLevel 2にしない。
 - M05 P05：既存2本の`product-link.spec.ts` before/afterを維持し、本人作成`p05-cart-locator.spec.ts` main・1件以上PASSを`M05.json`・共有`validate-ai-assisted-qa.ts`・許可spec・P05手順で一致させる案。既存receipt/Run・SHA・report照合は維持し、M06/M07は変更しない。
 - #217にはM05専用`requiredRuns`追加注入が残っている。このブランチは未統合なので、**#217の元コードを変更・mergeしていない**。今後の承認済み統合時に注入を削除しないと重複する。評価器全体の統合・実校正・本人実Runは未完。
-- **テスト/CIは未実行**：この実行環境にリポジトリcheckout、pnpm/Vitest、固定OpenCode 2.0.22がなく、未pushのcommitからWeb CIは起動できない。JavaScript構文と採点JSONの構文だけを確認した。修正後HEADの型検査、`validate`、`build:web`、契約・負例テスト、実CLI認可・不許可、保存先/削除、正式評価の校正はすべて再実行が必要。
+- **初回CIは不合格**：[Web CI #42165721629](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42165721629)のStyle QualityはPrettier 7ファイル違反、Code Qualityは新規テストの`Buffer`未importで失敗。後続診断CI #42166091628の契約テストは1,109 PASS・2 FAIL（公開ファイルのSHA検査優先と抜粋range正規表現）、1 expected fail・15 skip。この不備を修正し、公開教材中の例示連絡先/`.env`表記を送信前省略する回帰テストを追加。最終HEADの全CIが成功するまでは未完了。固定OpenCode 2.0.22の実CLI認可・保存先/削除、正式校正は引き続き未検証。
 - [ ] **通常AIの送信・保存保護の受入**：モデルへ送られる最終payload・プロセス未起動の拒否動作・OpenCode V2の権限・ログ/セッション保存条件を実ランタイムで検証した上でチェック。
 - [ ] **通常チューターと正式評価の分離の受入**：外部プロセス・設定継承・非公開履歴/Phase stateの不変、再開/削除・本人認証環境を検証した上でチェック。
 - [ ] **M00 P04とM05 P05の最終統合受入**：#214/#217の対象契約整合、#215教材、固定SHAのreceipt/Run、M06/M07非回帰、最終HEADのCIを同一環境で検証した上で既存51目標・証拠受入のチェックに一括反映。独立した完了実績として二重計上しない。

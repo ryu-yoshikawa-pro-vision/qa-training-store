@@ -10,10 +10,16 @@ import {
 
 const root = process.cwd();
 const m00 = JSON.parse(
-  fs.readFileSync(path.join(root, "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json"), "utf8"),
+  fs.readFileSync(
+    path.join(root, "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json"),
+    "utf8",
+  ),
 );
 const m05 = JSON.parse(
-  fs.readFileSync(path.join(root, "training/ai-assisted-qa-course/assessment/scoring-tests/M05.json"), "utf8"),
+  fs.readFileSync(
+    path.join(root, "training/ai-assisted-qa-course/assessment/scoring-tests/M05.json"),
+    "utf8",
+  ),
 );
 const paths = [];
 const sha = "0123456789abcdef0123456789abcdef01234567";
@@ -43,9 +49,25 @@ describe("PR #199 M00 P04 and M05 P05 shared scoring contracts", () => {
   it("requires precisely two existing M05 runs plus the separate P05 main receipt", () => {
     const runs = m05.evaluation_policy.execution_evidence.required_runs;
     expect(runs).toEqual([
-      { spec: "product-link.spec.ts", label: "before", minimum_tests: 1, expected_outcome: "failed", require_trace: true },
-      { spec: "product-link.spec.ts", label: "after", minimum_tests: 1, expected_outcome: "passed" },
-      { spec: "p05-cart-locator.spec.ts", label: "main", minimum_tests: 1, expected_outcome: "passed" },
+      {
+        spec: "product-link.spec.ts",
+        label: "before",
+        minimum_tests: 1,
+        expected_outcome: "failed",
+        require_trace: true,
+      },
+      {
+        spec: "product-link.spec.ts",
+        label: "after",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+      {
+        spec: "p05-cart-locator.spec.ts",
+        label: "main",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
     ]);
     const sharedValidator = fs.readFileSync(
       path.join(root, "scripts/training/validate-ai-assisted-qa.ts"),
@@ -79,8 +101,9 @@ describe("PR #199 M00 P04 and M05 P05 shared scoring contracts", () => {
     const invalid = structuredClone(m05);
     invalid.evaluation_policy.execution_evidence.required_runs[2].spec = "other.spec.ts";
     expect(verifyModuleRunEvidence({ ...input, scoring: invalid }).status).toBe("ungradable");
-    expect(verifyModuleRunEvidence({ ...input, sourceSha: "old", scoring: m05 }).status)
-      .toBe("ungradable");
+    expect(verifyModuleRunEvidence({ ...input, sourceSha: "old", scoring: m05 }).status).toBe(
+      "ungradable",
+    );
   });
 
   it("rejects unverified Run summary requests without reading report or Trace", () => {
@@ -89,8 +112,18 @@ describe("PR #199 M00 P04 and M05 P05 shared scoring contracts", () => {
     for (const args of [
       { root: rootDir, moduleId: "M08", runId: "not-a-uuid", sourceSha: sha },
       { root: rootDir, moduleId: "M05", runId: "../private", sourceSha: sha },
-      { root: rootDir, moduleId: "M05", runId: "123e4567-e89b-42d3-a456-426614174001", sourceSha: "old" },
-      { root: rootDir, moduleId: "M05", runId: "123e4567-e89b-42d3-a456-426614174001", sourceSha: sha },
+      {
+        root: rootDir,
+        moduleId: "M05",
+        runId: "123e4567-e89b-42d3-a456-426614174001",
+        sourceSha: "old",
+      },
+      {
+        root: rootDir,
+        moduleId: "M05",
+        runId: "123e4567-e89b-42d3-a456-426614174001",
+        sourceSha: sha,
+      },
     ]) {
       expect(() => verifiedTutorRunSummary(args)).toThrow();
     }
@@ -98,16 +131,12 @@ describe("PR #199 M00 P04 and M05 P05 shared scoring contracts", () => {
 
   it("allows the P05 spec to reach the pinned-SHA gate without running Playwright", () => {
     expect(() =>
-      runAiAssistedQaSpecCli(
-        ["M05", "p05-cart-locator.spec.ts", "--label", "main"],
-        { sourceSha: "invalid" },
-      ),
+      runAiAssistedQaSpecCli(["M05", "p05-cart-locator.spec.ts", "--label", "main"], {
+        sourceSha: "invalid",
+      }),
     ).toThrow(/source SHA/);
     expect(() =>
-      runAiAssistedQaSpecCli(
-        ["M05", "other.spec.ts", "--label", "main"],
-        { sourceSha: sha },
-      ),
+      runAiAssistedQaSpecCli(["M05", "other.spec.ts", "--label", "main"], { sourceSha: sha }),
     ).toThrow(/Usage/);
   });
 });
