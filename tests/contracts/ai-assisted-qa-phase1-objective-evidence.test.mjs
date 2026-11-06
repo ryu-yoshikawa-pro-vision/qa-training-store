@@ -67,23 +67,20 @@ describe("Phase 1: all 22 objective-to-practice evidence contracts", () => {
 
       expect(rubric.criteria).toHaveLength(Object.keys(mapping).length);
       for (const [objective, expectedPractice] of Object.entries(mapping)) {
-        const criterion = rubric.criteria.find((entry) =>
-          entry.objective_ids.includes(objective),
-        );
+        const criterion = rubric.criteria.find((entry) => entry.objective_ids.includes(objective));
         expect(criterion, `${objective}: missing rubric criterion`).toBeDefined();
         const evidence = criterion.required_evidence.join(" ");
         const rubricPractice = criterion.required_evidence[0].match(/P0[1-6]/g) ?? [];
-        expect(rubricPractice, `${objective}: P requirements differ`).toEqual(
-          expectedPractice,
-        );
+        expect(rubricPractice, `${objective}: P requirements differ`).toEqual(expectedPractice);
         expect(evidence).toContain("本人");
         expect(criterion.pass_conditions.join(" ")).toMatch(/未実行|未記入/);
         expect(lesson).toContain(objective);
         expect(start.expected.objective_ids).toContain(objective);
         expect(end.expected.objective_ids).toContain(objective);
-        expect(quiz.questions.some((question) => question.objective_ids.includes(objective))).toBe(
-          true,
+        const quizTargetsObjective = quiz.questions.some((question) =>
+          question.objective_ids.includes(objective),
         );
+        expect(quizTargetsObjective).toBe(true);
 
         for (const task of expectedPractice) {
           expect(exercise, `${objective}: missing practice ${task}`).toContain(
