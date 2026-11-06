@@ -10,9 +10,9 @@ M07のテスト、M09から引き継いだ修正済みworkflow案（ない場合
 2. 対象specだけを動かすworkflow案を作り、permissions: contents: read、Secretなし、deployなしを確かめます。
 3. ローカルとCIで異なるNode、Browser、環境変数、並列性を記録します。
 4. Artifact内のtarget-sha.txtが現在のPR HEADと完全一致すること、CheckとArtifactが同じRunに属することを確認します。
-5. CI-only failureとspec failureをログで分け、再実行の理由と採否を報告します。
+5. Install・配布検証・Serve・Browser導入・spec Assertion・Artifact保存・対象SHA不一致を最初の失敗stepと後続の派生結果に分け、修正前に確認すべきログ・環境・実行対象を記録します。
 6. AI提案の変更と人が確認した範囲、未確認事項を記録します。
-7. 失敗時に何を確認するまで再実行しないか、費用・権限・trigger条件が変わった場合に何を停止または見直すかを記録します。不要になったworkflowのtriggerを止める手順も、本人のrepoで行える範囲に限定して説明します。
+7. 失敗時に何を確認するまで再実行しないか、費用・権限・trigger条件が変わった場合に何を停止または見直すかを記録します。M07本人成果物のTODO除去とローカルRun、M10 fallbackのload・Reset import、配布版の固定SHA、追跡済みShop/manifestも有効化前に点検します。不要になったworkflowのtriggerを止める手順も、本人のrepoで行える範囲に限定して説明します。
 
 ## 提出物
 
@@ -35,8 +35,8 @@ M10の基礎手順では**本人所有の非公開repoで1回の実CI**を通し
 2. **P02 実Runnerで再現できる条件を確認（M10-02）**：最初のCI RunのNode版、Browser導入、`PLAYWRIGHT_TEST_ROOT`、Shop Serve、標準Runner、権限を手元の実行条件と比較します。値が違う項目だけ「なぜ変えても妥当か/何が壊れ得るか」を説明し、必要のない依存追加・deployをしません。**証拠**：ローカルと実CIの条件差と採否。
 3. **P03 実Runの証拠を自分で辿る（M10-03）**：GitHub APIによる正式照合に加えて、本人がWeb画面でPR HEAD→Run→Check→Artifact→`target-sha.txt`→Playwright test数を追います。Runの成功・全testのPASS・SKIP・対象SHAを区別します。**証拠**：実在するIDと結果、API照合が否定した場合の理由。
 4. **P04 新しいcommitで旧Runが無効になる条件（M10-03）**：**架空の変更後HEAD B**（実HEAD Aとは異なる40桁SHA）を使って、旧Runのtarget SHA=Aのときに承認できない理由、必要な新Runと費用確認を述べます。実際の追加commit/CI実行は任意ではなく、本人の明示的な料金・権限確認が必要です。**証拠**：A/Bの対応表、実行した操作と仮定の区別。
-5. **P05 CI失敗時の調査順（M10-04）**：実Runのログ、または「Browser未導入」「Assertion期待不一致」「Artifactがない」という**明示した学習用シナリオ**で、最初に失敗したstep、test実行の有無、修正してよい範囲、再実行の要否を検討します。Timeout延長や再Runだけで原因修正としません。**証拠**：失敗ごとの仮説と不足証拠。
-6. **P06 安全な運用判断と最終報告（M10-04・05）**：もしチームから「毎push自動で回したい」という追加要望が来たら、現在の手動起動、利用枠、権限、対象spec、不要trigger停止の条件を比較します。AIに報告案を作らせても、本人が実Run/Case/費用の根拠を照合して採否します。**証拠**：採用/保留/停止の条件と、実際の確認済み範囲を明示した報告。
+5. **P05 CI失敗時の調査順（M10-04）**：実Runのログ、または「Install失敗」「配布検証失敗」「Shop Serve失敗」「Browser導入失敗」「Assertion期待不一致」「Artifact保存失敗」「旧SHAの成功Run」という**明示した学習用シナリオ**を比較します。最初の失敗step、test実行の有無、後続Artifactの実行/失敗/未確認、修正してよい範囲、再実行の要否を分けます。`if: always()`はArtifact保存の成功を保証せず、PlaywrightがFAILでも結果JSONの有無は別に調べます。Timeout延長や再Runだけで原因修正としません。**証拠**：7条件の初因・後続影響・不足証拠・再実行判断を別々に記録します。
+6. **P06 安全な運用判断と最終報告（M10-04・05）**：完成見本の現在の起動条件は`pull_request`です。もしチームから「毎pushでも回したい」または「手動起動だけにしたい」という要望が来たら、既存のPR起動と追加案について、料金、権限、対象spec、PR HEADとcheckout SHAの照合、不要trigger停止を比較します。手動案の`workflow_dispatch`では`github.event.pull_request.head.sha`を利用できないため、eventだけ置き換えて実行しません。AIに報告案を作らせても、本人が実Run/Case/費用の根拠を照合して採否します。**証拠**：採用/保留/停止の条件と、実際の確認済み範囲を明示した報告。M10-05では、AI提案の採否と未確認事項を本人が根拠付きで説明します。
 
 **完了条件**：P03の実Run証拠は必須ですが、P04/P05の架空事例から追加の有料Runを勝手に起動しません。旧SHAの成功、合成ログ、未実行の診断を修了証拠として扱わないでください。
 

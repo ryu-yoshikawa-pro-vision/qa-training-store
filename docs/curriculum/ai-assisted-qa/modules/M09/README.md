@@ -2,7 +2,7 @@
 
 ## この章でできるようになること
 
-前章のM08では、手元のパソコンで行った変更をGitの「コミット（commit）」として記録し、GitHub上で「プルリクエスト（Pull Request、略してPR）」を作成して他の開発者やレビュアーにコードを確認してもらう一連の流れを学びました。
+前章のM08では、変更したファイルを安全に選択してローカルのGitコミットに記録し、仕様・差分・テストの根拠を対応付けたPR説明文の草稿を作りました。M08の通常演習では、GitHubへのpushや実際のPR作成は必須ではありません。
 
 しかし、人間が画面上でプログラムの差分（変更前と変更後の違い）を目視で確認するだけでは、「その変更を加えたことで、既存の機能が壊れていないか」「自動テストが本当にすべて合格するか」を確実に保証することはできません。開発者の手元のパソコンでは正常に動いていたとしても、他のメンバーのパソコンや、実際にユーザーがアクセスする本番サーバーの環境ではエラーになるケースが頻繁に発生するためです。
 
@@ -392,7 +392,10 @@ CI環境（GitHub Actionsのrunner）でも全く同じことが行われます�
    - 事前配布済みの `course/shop/` と `.course/distribution-manifest.json` がCIのcheckout先にも存在し、配布物検証が成功した場合に限り、専用Playwright設定 `playwright.ai-assisted-qa.config.ts` の `webServer` がそのShopを配信できます。workflowに独立したServe stepを追加する必要はありません。
    - **現行の完成見本だけでは、この前提を満たすとは限りません。** `actions/checkout`は`course:sync`で生成したShopや配布manifestを自動復元しません。現行Configは両方がないと`pnpm run build:web`を経由するため、「事前ビルド済みShopだけを使用したCI」とは判定できません。片方だけある場合も配布物検証に失敗します。
    - 完成見本のworkflowは`course/shop/index.html`と`.course/distribution-manifest.json`の存在・`verify-distribution`による整合検証を先に要求し、`PLAYWRIGHT_USE_PREBUILT_DIST=true`で製品ソースのビルドへ暗黙に切り替わることを防ぎます。**これは配布ファイルをCI Runnerへ取得・配置する機能ではありません**。両ファイルがcheckout先に実在しない場合、検証段階で失敗します。
-   - M09ではworkflowを`.disabled`のまま保持し、M10で有効化する前に、本人Private repoのCIで配布物をどう取得・配置・検証するかを確認してください。出所・固定revision・配置先・検証結果が未確認なら`BLOCKED`とし、ビルドへ切り替わったRunを事前配布Shopの受入証拠にしません。
+   - **取得経路の候補**：管理者が承認済みの配布元commitを`main`のクリーンなcheckoutとして用意し、そのHEADで`node scripts/training/prepare-learner-template.mjs --target <空の出力先>`を実行します。このスクリプトは`main`と作業ツリーのクリーンさを確認して`git rev-parse HEAD`から完全SHAを取得し、内部で`course:sync --source-sha <そのSHA>`を呼び出します。`course:sync`が`pnpm run build:web`を**配布元で一度だけ**実行し、生成した`course/shop/**`とSHA-256を列挙した`.course/distribution-manifest.json`を学習用Templateの出力先へコピーします。これらを初期状態の本人Private repoの**追跡ファイル**として登録していれば、CI Runnerの`actions/checkout`が同じパスに取り出せます。CI側で`course:sync`や`build:web`を実行する設計ではありません。
+   - **有効化前の確認**：Private repoの信頼済みbase commitで`git ls-tree -r --name-only <承認済みbase SHA> -- course/shop .course/distribution-manifest.json`を確認し、index.html、manifestおよびmanifestに列挙されたすべてのShopファイルが追跡されていることを検証します。`git show <承認済みbase SHA>:.course/distribution-manifest.json`の`source_sha`を承認された配布元SHAと照合し、manifestのSHA-256とファイル実体の検証は`node scripts/training/ai-assisted-qa-course.mjs verify-distribution`で行います。さらにPR headで`git diff --name-only <承認済みbase SHA>...HEAD -- course/shop .course/distribution-manifest.json`に差分がないことを点検します。空行・取得不能・不一致・未追跡があれば停止します。
+   - **信頼境界**：`source_sha`はmanifestに書かれた値であり、文字列だけを見ても真正性を保証しません。検証の基準にする配布元SHA・base commitの承認者と、配布物の追跡・ハッシュ・Private repoの権限を別途確かめます。外部PRがこれらのファイルや検証スクリプト自体を書き換えられる場合、PR head上の自己検証だけでは安全性を保証できません。
+   - M09ではworkflowを`.disabled`のまま保持し、M10で有効化する前に上記取得経路を本人Private repoで確認してください。配布元SHA、固定baseとハッシュ、追跡範囲、権限のいずれかが未確認なら`BLOCKED`とし、Runnerでの実受入を行いません。
 2. **環境変数 `PLAYWRIGHT_TEST_ROOT` でテスト範囲を限定する**
    - 環境変数 `PLAYWRIGHT_TEST_ROOT` で探索対象のディレクトリを絞り、テスト実行コマンド末尾に `-- workspace/M07/repaired-assertion.spec.ts` のように**許可された1つのspec**を指定して実行範囲を限定します。ディレクトリだけでは複数の `.spec.ts` が実行される可能性があります。
    - 例えば、M07で作成した自分のテストコードを検証する場合は `workspace/M07` を指定します。手元にテストコードがない状態で模範解答のテストを動かす場合は、フォールバック用として用意されている公開サンプル `workspace/M10/public-sample` を指定します。
@@ -570,10 +573,9 @@ CIが赤色（FAIL / 失敗）になったとき、多くの初学者は画面�
 GitHub Actionsのrunnerは、クラウド上に用意された本物のサーバー計算資源を使って動いています。
 そのため、実行には当然ながらコスト（利用料金や無料枠の消費）が伴います。
 
-料金体系（毎月の無料枠分数や超過時の従量課金）は、**リポジトリの公開設定（PublicかPrivateか）、アカウントの契約プラン（Free、Team、Enterprise）、使用するrunnerのOS種別（Linux、Windows、macOS）**によって大きく異なります。
-特に、macOSのrunnerはLinuxのrunnerに比べて10倍近く高い課金レートが設定されていることが一般的です。
+料金体系とプランに含まれる利用枠は、**リポジトリの公開設定（PublicかPrivateか）、請求先アカウントのプラン、使用するrunnerの種類・OS、実行時間、成果物の保存量**などによって異なります。現在のGitHubの利用枠は料金相当額などで表示される場合もあるため、古い「毎月〇分まで」という記述や他人のアカウントの使用実績を、自分の上限に置き換えてはいけません。
 
-そのため、「教材にこう書いてあったから無料だ」「〇回実行したから必ず〇〇円だ」と勝手に決めつけてはいけません。**利用する時点のGitHub公式の料金ドキュメントおよび自身のアカウントの請求設定画面（Billing）**を確認して判断する必要があります。
+「教材にこう書いてあったから無料だ」「〇回実行したから必ず〇〇円だ」とは判断せず、[GitHub Actionsの課金と使用](https://docs.github.com/en/actions/concepts/billing-and-usage)、[プラン別に含まれる利用量](https://docs.github.com/en/billing/reference/product-usage-included)と、本人のBilling画面でプラン・利用済み量・残量・予算/停止設定を確認します。請求先・権限・予算上限が確定していない場合は、無効workflowを有効化せず`BLOCKED`と記録します。
 
 #### 実行トリガーの設計判断（自動 vs 手動）
 
@@ -616,7 +618,7 @@ permissions:
 | `pnpm install`・Chromium導入・ローカルShopのServe・限定spec実行 | Runner内の処理。実行する依存と外部Actionの出所・版を確認する | deploy用Secret、リポジトリ書込権限 |
 | `actions/upload-artifact@v4`で結果を保存 | 同じRunのArtifactサービスへ結果を送る。通常のArtifact uploadのために`contents: write`を付ける必要はない | `write-all`、公開先へのデプロイ |
 
-`permissions`は主に`GITHUB_TOKEN`の権限を制限するもので、Runner上のコマンドや外部通信をすべて禁止する仕組みではありません。`persist-credentials: false`も**すべてのSecret漏えいを防ぐ保証ではありません**。PR由来のコードや依存スクリプトを実行する前に、イベント（`pull_request` / `pull_request_target`等）、forkからの入力、Action/依存、Secretの受け渡し、ログ・Artifactの出力範囲を別々に確認します。**この学習用workflowはSecretを必要とせず、`pull_request_target`への変更やdeploy用権限の追加を認めません。** 別のCIや公開操作を同じJobへ混ぜず、必要性が生じたら有効化前に責務と権限を再設計します。
+`permissions`は主に`GITHUB_TOKEN`の権限を制限するもので、Runner上のコマンドや外部通信をすべて禁止する仕組みではありません。`persist-credentials: false`も**すべてのSecret漏えいを防ぐ保証ではありません**。PR由来のコードや依存スクリプトを実行する前に、イベント（`pull_request` / `pull_request_target`等）、forkからの入力、Action/依存、Secretの受け渡し、ログ・Artifactの出力範囲を別々に確認します。**この学習用workflowはSecretを必要とせず、`pull_request_target`への変更やdeploy用権限の追加を認めません。** フォークを含む外部PRのHEADをcheckoutして`pnpm install`やテストを動かすと、第三者が変更した依存スクリプトも実行され得ます。`pull_request`の権限制限・Secretの提供条件・フォーク承認ポリシーを事前に確認し、本人の学習用Private repoで許可した変更だけを対象にします。参考：[GitHub公式：pull_request_targetの安全な使用](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target)。別のCIや公開操作を同じJobへ混ぜず、必要性が生じたら有効化前に責務と権限を再設計します。
 
 #### やってはいけない危険な例
 
@@ -661,13 +663,13 @@ M09では、この練習用ファイルを完成見本と比較しながら修�
 
 ##### ステップ1：失敗段階の分類（M09-03）
 
-1. `failure-cases.md` の合成ログ **A（Build）・B（Test）・C（Artifact）** を読みます。
-2. 各ケースで最初に失敗したstepと段階（準備・ビルド・テスト・成果物保存）、根拠ログ行を記録します。
+1. `failure-cases.md`の合成ログ**A（Build）・B（Test）・C（Artifact）・D（Install）・E（配布検証）・F（Serve）**を読みます。Aは一般的なCIのBuild例であり、完成見本のRunnerは事前配布Shopを検証して使用します。
+2. 各ケースで最初に失敗したstepと段階（準備・ビルド・配布検証・Serve・テスト・成果物保存）、根拠ログ行を記録します。DのInstall失敗後のArtifact失敗や、FのServe失敗後のAssertion未実行を区別します。
 3. 後続stepを「実行済み」「skipped（未実行）」「記録不足で不明」に分けます。Test失敗後でも`if: always()`のArtifact uploadは実行され得ます。
 4. Cの`No files were found`は文言だけで失敗と断定できません。`if-no-files-found: error`とstepの失敗結果を照合し、`warn`なら警告止まりとなる違いを説明します。
-5. AIエージェントに次のように依頼し、自分の分類結果と比較・検証します。
+5. 先に本人が提出表の9条件を判断してから、AIエージェントに次のように依頼し、自分の分類結果と比較・検証します。
    - **依頼文例**：
-     > 「`workspace/M09/failure-cases.md` のログを分析してください。このログから確実に判断できる失敗ステップと、実行されていないため成否が判断できないステップを論理的に分けて説明してください。なお、このログは学習用の合成資料であり、実Runではありません。workflowの有効化は絶対に行わないでください。」
+     > 「`workspace/M09/failure-cases.md`の合成A〜Fを分析してください。最初は解答を示さず、最初の失敗stepを自分で探せるヒントを1つだけ出してください。私が分類を示した後、根拠行と実行済み・skipped・不明の区別をレビューしてください。合成ログを実Runとして扱わず、workflowの有効化・ファイル編集・CI再実行は行わないでください。」
 
 ##### ステップ2：セキュリティ権限の評価（M09-05）
 
@@ -676,11 +678,9 @@ M09では、この練習用ファイルを完成見本と比較しながら修�
 
 ##### ステップ3：実行トリガーとコストの比較（M09-04）
 
-1. 1日に平均5回プルリクエストが更新（コミットがプッシュ）される開発プロジェクトを想定します。計算を単純にするため、ここでは「各更新で対象ワークフローが1回だけ起動し、他イベント・手動再実行・重複起動・再試行はない」という前提条件を置きます（※この前提は実運用の最大起動回数を保証するものではありません）。
-2. 次の2つの運用案について、比較検討を行ってください。
-   - **案A**：コミットがpushされるたびに毎回自動実行する（`on: pull_request`）。
-   - **案B**：開発者が手動でボタンを押したときだけ実行する（`on: workflow_dispatch`）。
-3. 比較観点：**上記の前提条件の下での**想定起動回数、不具合検知の早さ、実行忘れのリスク、不要な実行の有無、費用と未検証期間のトレードオフ。
+1. **7日間**を比較期間とし、架空Aは「1日3回PRを更新」、架空Bは「週2回だけPRを更新」とします。各更新で`pull_request`の対象workflowが1回だけ起動し、重複・再試行・別イベントはないと仮定します。これは実運用の上限ではありません。
+2. A/Bそれぞれで、**PR更新ごとに自動実行する案**と**手動で起動する案**を比較します。手動案は`workflow_dispatch`を使う別設計で、現行`pull_request`完成見本のevent行だけを変更してもPR HEADを正しく取得できません。ここでは手動案を実装・有効化しません。
+3. 想定Run数、不具合検知の早さ、実行忘れ、未検証期間、Artifact保存と費用・Runner条件を提出表に記録します。回数が分かっても請求額は確定しません。本人のBilling・予算・権限を確認できない場合は`BLOCKED`です。
 
 #### 期待される結果と解答・解説
 
@@ -689,7 +689,11 @@ M09では、この練習用ファイルを完成見本と比較しながら修�
 - **A（Build）**：依存導入後のBuildがimport解決エラーで非0終了。Testはskippedなので合否は未確認です。製品不具合と断定しません。
 - **B（Test）**：数量Assertionが失敗。Artifact uploadは`if: always()`で後続実行されるため、「失敗後は全step未実行」とは限りません。期待値・Seed・画面を追加調査するまで原因は未確定です。
 - **C（Artifact）**：Testは成功という合成条件ですが、`if-no-files-found: error`を指定したUploadが対象ファイルなしで失敗。Test成功と証拠保存成功は別判定です。`warn`なら警告にとどまり得るため、設定とstep conclusionを確認します。
-- **別条件**：P03の架空X（Browser導入失敗）、Y（Test PASS・Upload失敗）、Z（checkout対象SHA不一致）はA/B/Cとは別課題です。Zはcheckout成功でも証拠不採用となる場合があり、失敗stepを創作しません。
+- **別条件**：P03の架空X（Browser導入失敗）、Y（Test PASS・Upload失敗）、Z（checkout対象SHA不一致）はA〜Fとは別課題です。Zはcheckout成功でも証拠不採用となる場合があり、失敗stepを創作しません。
+
+- **D（Install）**：`pnpm install --frozen-lockfile`が先に失敗し、配布検証とテストは未実行。後続のArtifact保存失敗は派生結果です。
+- **E（配布検証）**：checkoutしたShop/manifestの不足で配布検証が失敗。Browser・Assertionは未実行です。Runnerで`build:web`へ切り替えず、配布元・追跡済みファイル・SHA-256を調べます。
+- **F（Serve）**：配布検証とChromium導入は成功したが、Playwrightの`webServer`起動で失敗。Assertionは未実行です。Artifact uploadの結果は合成ログ上は不明であり、失敗とも成功とも補いません。
 
 ##### 権限評価の解答・解説
 
@@ -698,14 +702,12 @@ M09では、この練習用ファイルを完成見本と比較しながら修�
 
 ##### 実行トリガー比較の解答・解説
 
-| 比較項目 | 案A：毎回自動実行（`pull_request`） | 案B：手動実行（`workflow_dispatch`） |
-| --- | --- | --- |
-| **上記の前提下での起動回数** | 5回（各PR更新につき1回起動） | 手動実行した回数（0回〜数回） |
-| **不具合検知の早さ** | **最速**（push直後に自動で判定結果が出る） | **遅れる可能性がある**（実行を忘れるとマージ直前まで気づけない） |
-| **実行コスト・消費分数** | 実行回数に比例して増えやすい | 必要なときだけに絞れるため低く抑えやすい |
-| **品質管理上のリスク** | 設定ミスによる重複実行、誤ったPASS解釈、対象外テストの未確認リスク | 実行忘れ、変更が積み重なってからの大量エラー、未検証期間が長引くリスク |
+| 7日間の条件 | `pull_request`自動案 | 手動案（別設計） | 証拠・品質への影響 |
+| --- | --- | --- | --- |
+| A：1日3回更新 | 21回（3×7） | 実際に手動起動した回数。0回なら未検証 | 自動案は早期検知しやすいが、Run数・Artifact保存量が増える |
+| B：週2回更新 | 2回 | 実際に手動起動した回数。0回なら未検証 | 手動案は利用量を抑えられる場合があるが、検証漏れと未検証期間に注意 |
 
-※注意：実際の運用では、`push` イベントと `pull_request` イベントが重複して二重起動したり、開発者が手動で再試行（Re-run）を行ったりするため、上記の「5回」を超える起動もあり得ます。また、実際の請求額や消費分数は、組織の契約プラン、使用するrunnerのOS種別、1回の実行にかかる実時間によって変動します。回数だけで「無料」「〇〇円」と短絡的に断定してはいけません。
+実際には同一PRでの再実行や別workflowがあり、計算した回数は上限ではありません。費用は契約、runner OS、job実行時間、Artifact保存量、請求設定に依存します。本人Private repoの予算・権限が未確認なら、どちらの案も有効化せず`BLOCKED`と判断します。
 
 ## 9. 基礎を固めるための補足と練習問題
 

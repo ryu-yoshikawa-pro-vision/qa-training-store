@@ -100,6 +100,21 @@ M10では、クラウドCI上で検証するテストコード（specファイ�
 
 なお、本教材のCI環境では、事前に配布されているECサイトのモック画面（`course/shop/`）をサーバーで起動（Serve）し、指定された学習用specのみを実行します。受講者がWebサイト全体のフルビルド（`pnpm run build:web`）や、モバイルアプリ向けのNativeテストスイートを実行する必要はありません。
 
+### M10-01：対象specと依存ファイルを先に照合する
+
+M07本人成果物とM10公開fallbackは別の入力です。`workspace/M07/repaired-assertion.spec.ts`はM07ロード直後の教材では`throw new Error("TODO: ...")`が残る修正課題です。**ファイルが存在するだけでは完成・PASSと判断できません。** 本人の修正差分、before/afterの実Run、Reset実施結果がない場合は、M07本人成果物の受入を未確認と記録し、M10のCI対象に選びません。公開fallbackを使う場合も、M07修了の証拠へ振り替えません。
+
+| 入力経路 | specのロード先 | 相対importとReset正本 | 必要な設定 |
+| --- | --- | --- | --- |
+| M07本人成果物 | `workspace/M07/repaired-assertion.spec.ts` | `../../training/playwright/support/reset-scenario` → `training/playwright/support/reset-scenario.ts` | `PLAYWRIGHT_TEST_ROOT=workspace/M07` |
+| M10公開fallback | `workspace/M10/public-sample/handoff-smoke.spec.ts` | `../../../training/playwright/support/reset-scenario` → 同じReset正本 | `PLAYWRIGHT_TEST_ROOT=workspace/M10/public-sample` |
+
+公開fallbackの出所は、配布manifestで`workspace/M07/public-sample/handoff-smoke.spec.ts` → `course/modules/M10/inputs/public-sample-spec.ts` → `workspace/M10/public-sample/handoff-smoke.spec.ts`と追跡できます。`workspace/M10/public-sample`は`course:load M10`後のパスであり、未ロードのリポジトリにファイルが存在しないのは正常です。Reset helper、`playwright.ai-assisted-qa.config.ts`、`scripts/serve-web-dist.ts`、依存の`package.json`と`pnpm-lock.yaml`は同じ配布revisionの追跡済みファイルを再利用します。ローカルとCIの検査は同じ選択spec・Reset正本・事前配布Shopを対象にしてください。
+
+PRへ含める前に、`git status --short --untracked-files=all`と`git diff --cached --name-only`で既存stageを確認します。M07は配布された`workspace/.gitignore`の`/M07/`規則で除外されるため、本人の修正済みspecの全文と相対importを確認した後、**必要なその1ファイルだけ**を`git add -f -- workspace/M07/repaired-assertion.spec.ts`で追加できます。公開fallbackを選ぶ場合は`git add -- workspace/M10/public-sample/handoff-smoke.spec.ts`を使い、存在とignore規則を先に確認します。どちらも`git diff --cached --name-only`、`git diff --cached --check`、staged diffの目視点検が必須です。
+
+`workspace/M10/ci-run-evidence.json`、`workspace/M10/submission.md`、`.env*`、Trace/録画・ログ、他のModuleの作業物、`course/shop/**`や配布manifestの再生成差分を学習用specのPRへ混入させません。Shopとmanifestは承認済み初期Private repoの追跡ファイルとして別途出所・固定SHA・ハッシュを検証します。また、公開fallbackと一緒にロードされる`workspace/M10/public-sample/course-e2e.workflow.yml.disabled`は旧配布ガードが不足しているため、そのまま有効化しません。M09完成見本の検証契約と照合し、所有者が修正・受入を終えるまでは`BLOCKED`です。
+
 ### 段階練習：公開してよい差分を選び、AIに確認させる（M10-01）
 
 #### 目的
@@ -270,6 +285,28 @@ M09の公開完成見本は、M10の正式評価器と同じ契約に従う必�
 - 第1章で確認した「利用枠」「費用」「権限」がすべて安全であることを確認します。
 - いずれかの条件が確認できない場合は、**有効化を行わず作業をBLOCKED**としてください。
 
+#### 配布物・実行対象・後片付けの確認
+
+実行を許可する前に、次の条件をすべて確認します。
+
+1. **配布版**：本人Private repoの信頼済みbase commitに`course/shop/**`、`.course/distribution-manifest.json`、`package.json`、`pnpm-lock.yaml`、`scripts/training/ai-assisted-qa-course.mjs`、`playwright.ai-assisted-qa.config.ts`および必要なruntimeが追跡されていることを`git ls-tree -r --name-only <承認済みbase SHA> -- course/shop .course/distribution-manifest.json`等で確認します。manifestの`source_sha`は承認された配布元の完全SHAと照合し、`pnpm course:verify-distribution`ではなく、実在する`node scripts/training/ai-assisted-qa-course.mjs verify-distribution`でハッシュと配布範囲を検証します。配布元SHAをmanifest自身から無条件に信用せず、承認済み配布元記録と照合します。**本課程のworkflowで`pnpm run build:web`を代用実行しません。**
+2. **対象specと依存**：M07本人成果物を選ぶ場合、`workspace/M07/repaired-assertion.spec.ts`が学習用の`TODO`例外を残していないこと、同じ配布版の`training/playwright/support/reset-scenario.ts`とPlaywright設定・lockfileでローカルRunを完了したことを確認します。公開fallbackを使う場合、`pnpm course:load M10`で`workspace/M10/public-sample/handoff-smoke.spec.ts`をロードしたこと、相対importが同じReset helperへ解決することを確認します。対象に応じて`PLAYWRIGHT_TEST_ROOT`とworkflowの1件のspecパスを一致させます。**配布物に含まれる旧`inputs/M10/public-sample-workflow.yml.disabled`は配布検証・prebuilt固定を欠くため、修正・再検証が完了するまで有効化しません。**
+3. **権限・費用・対象PR**：信頼済みPrivate repo、権限を持つ本人、実行対象PR、`pull_request`イベント、forkからの未信頼コードの扱い、標準Runner、請求先・予算/利用枠・停止条件を確認します。`pull_request_target`への変更、deploy、`contents: write`、Secretの渡し込み、関係のないWeb/Mobile CIの起動を認めません。料金・権限・配布版の出所・対象specのいずれかが未確認なら`BLOCKED`です。
+4. **後片付けと記録**：対象PR head SHA、Run ID/attempt、Check、Artifact、`target-sha.txt`、実行されたspecを保存・照合します。完了後は不要になった専用workflowの自動起動を本人のPrivate repoで無効化し、残るRunとArtifactの保存・保持期限・課金状況を確認します。無効化やArtifact整理を先に行って必要な証拠を失わず、`git clean -fd`などで学習成果物を無断削除しません。
+
+#### 実行前の確認結果と停止条件
+
+| 対象 | 実行前に確認する操作・根拠 | 期待結果 | 停止条件 |
+| --- | --- | --- | --- |
+| Repoと配布元 | `git remote -v`、`git rev-parse HEAD`、信頼済みbaseと承認済み配布元SHA | 本人Private repoの正しいbranchで、配布元を第三者の記録から特定できる | 所有者・承認済みbase・配布元SHAが不明 |
+| 配布物の追跡 | `git ls-tree -r --name-only <承認済みbase SHA> -- course/shop .course/distribution-manifest.json`と`git diff --name-only <承認済みbase SHA>...HEAD -- course/shop .course/distribution-manifest.json` | index.htmlとmanifestを含む必要ファイルが追跡され、今回のPRで無断改変されていない | 欠落・未追跡・PR差分・配布元と異なるSHA。変更が正当なら承認後に再検証 |
+| 配布物の内容 | `node scripts/training/ai-assisted-qa-course.mjs verify-distribution`とmanifestの`source_sha`を承認済み記録に照合 | 全ファイルのSHA-256検証が成功、配布元の完全SHAが一致 | 検証失敗、配布元未確認、検証スクリプトの未承認変更 |
+| SpecとRuntime | `git diff --cached --name-only`、Config、lockfile、Reset import、学習用のローカルRun | 1つの対象specと必要な依存のみがあり、M07のTODOは修正済み、またはM10公開fallbackがロード済み | Secret/Trace・無関係なファイル、未修正TODO、依存欠落、対象外spec |
+| CI契約と料金 | `.disabled`を外す前にworkflow差分、本人のActions/Billing画面、Runner・trigger・fork制限を確認 | `pull_request`、`contents: read`、資格情報非保持、事前ビルド版、対象1 spec、Artifact 2ファイル、実行権限/予算を確認 | 旧fallbackのまま、`pull_request_target`、権限拡大、費用・許可不明 |
+| Runと終了処理 | 同じPR HEADのRun/attempt/Check/Artifactと`target-sha.txt`・JSONを照合し、不要なtriggerを本人が無効化 | 対象のspecと結果まで確認でき、必要な証拠を残し、意図しない次回実行を防止 | 旧HEAD、違うspec、Artifact不足、停止して必要な証拠が失われた |
+
+ここでのコマンドは本人の確認用です。本PR #216ではPrivate repoへ接続して実行したことを意味しません。読み取り専用の確認は済ませても、本人の課金・権限判断がない限りworkflowの有効化へ進みません。
+
 #### 操作手順
 
 1. **現在のブランチとリポジトリを確認する**：\
@@ -376,11 +413,15 @@ CIの実行ログを開き、**「どのステップで最初に失敗したか�
 | 失敗した段階 | ログの兆候 | 正しい状況報告 | 次に調べるべき原因 | やってはいけない誤った対応 |
 | --- | --- | --- | --- | --- |
 | **依存関係の導入** | `pnpm install` でエラー、テスト未開始 | 依存ライブラリの導入失敗により、テストは未実行 | Node.jsやpnpmのバージョン、ネットワーク、`pnpm-lock.yaml` の不整合 | テストコードのアサーションを疑う、製品コードを書き換える |
+| **固定配布物の検証** | `verify-distribution`でShop/manifest欠落・SHA-256不一致 | 配布版が不正または不足、Browserとspecは未実行 | 承認済み配布元SHA、信頼済みbase commit、追跡済み`course/shop/**`・manifestと実ファイル | Runnerで`build:web`して回避する、成功したふりをする |
+| **ShopのServe** | Playwright step内で`webServer`起動失敗 | BrowserテストのAssertionに到達していない | 固定Shopの存在、`serve-web-dist.ts`、loopbackポート、Playwright起動ログ | 根拠なくテストのAssertionを変更する、Timeout延長だけで解決とする |
 | **ブラウザの準備** | `playwright install` で失敗、ブラウザ起動エラー | 実行環境の構築失敗、テストは未実行 | 必要なブラウザバイナリの不足、OS環境依存 | テストのタイムアウト時間を無暗に延ばす |
 | **テストの実行** | Playwrightの `expect` でエラー | 対象テストケースがFAIL、原因調査中 | 画面仕様、セレクタ（Locator）、データ初期化（Reset）、期待値の誤り | 仕様の根拠なしにアサーションを削って無理やり通す |
 | **成果物の保存** | テストはPASSしたが `upload-artifact` でエラー、または必要なファイルが欠落 | テストの成功と正式評価用の証拠保全を分けて報告 | 保存対象パス、生成タイミング、Artifact内の2ファイルの有無、権限 | Artifactが一部だけ保存されても完了扱いにする |
 | **ワークフロー未起動** | ActionsタブにRun自体が現れない | CI未実行 | トリガーイベントの設定ミス、ブランチ名やパスの不一致 | 存在しない成功画面を想像で報告する |
 | **SHAの不一致** | CheckはPASSだが、ArtifactのSHAが古い | 現在の最新コミットに対する検証証拠なし | 最新コミットに対する再実行の有無、チェックアウト設定 | 古いコミットの成功ログを最新の証拠として提出する |
+
+同じRunでInstallとArtifact uploadの両方がFAILでも、最初に失敗したのがInstallなら、Artifact不足は後続結果です。`if: always()`はUploadの試行条件であり、証拠の保存成功を保証しません。逆にtestがPASSしていても`if-no-files-found: error`による保存失敗があれば、提出証拠は未完です。CheckだけがPASSでもPR HEADや対象specの不一致は独立して拒否します。M09のA〜FとX/Y/Zは学習用の合成事例であり、実Runの事実として提出しません。
 
 ### 6.2 「ローカルでは通るのにCIで落ちる」ときの考え方
 
@@ -488,6 +529,18 @@ AIエージェント（OpenCodeなど）と協働していると、AIが非常�
    受講者本人が「Checkは成功しているが、ArtifactのSHAが古いコミット（`c1d2e3f...`）のままであり、現在のhead（`e5f6a7b...`）に対する成功証拠ではない」と正しく看破し、AIの誤りを却下しなければなりません。
 5. **記録の保存**：\
    正式な証拠識別情報を `workspace/M10/ci-run-evidence.json` へ正しく記録します。
+
+### 通常のOpenCodeによる段階ヒントと正式評価の区別
+
+M09の合成ログA〜FやM10の実RunログをOpenCodeへ相談する場合、本人がまず「最初に失敗したstep」「その時点で実行されていないtest」「追加確認すべき根拠」を予測してから、必要な段階のヒントを求めます。Runのログを共有するときはSecret、Token、個人情報、Private repoの非公開内容を除外し、必要なstepの抜粋だけにします。
+
+1. **第1段階**：最初の失敗stepを探す観点を1つだけ聞き、AIに原因・修正案の結論を先に出させません。
+2. **第2段階**：本人が根拠行を示した後、同一Runのstep結論とskipped、`if: always()`、`target-sha.txt`を区別できているか確認します。情報不足なら「未確認」を維持します。
+3. **第3段階**：本人が調査案を選んだ後、権限・料金・再実行の要否と未検証範囲をレビューしてもらいます。AIからの提案であってもworkflowを自動有効化せず、不要な権限拡大や試験対象外の修正を拒否します。
+
+通常のOpenCodeとの相談、Skillの報告、合成ログの正答は**独立したM10正式評価の合格を意味しません**。正式評価の入口は`pnpm course:assess M10 --model provider/model-id`です。本人が選択したspecの実PR HEAD・Run/Check/Artifact/Playwright JSONに対する独立照合と、指定された全目標の評価が必要です。Tokenや非公開履歴をAIモデルへ送信せず、接続不可・証拠欠落・古いSHAをPASSに置き換えません。
+
+上の`#12`、短縮SHA、Run IDは学習用の架空値です。実証拠として提出する場合は、本人が観測した完全SHAと実在のIDだけを使ってください。
 
 ### 別条件で考える練習問題
 
