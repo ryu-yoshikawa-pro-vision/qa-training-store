@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
