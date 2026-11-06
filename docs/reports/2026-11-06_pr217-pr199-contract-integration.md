@@ -7,7 +7,7 @@
 - #214 `0486b613a4dc03ab9e97bee78669fd0777164980`
 - #215 `3f469d9c6ae42b5396667041e5aeaca22bb7aef5`
 
-## 変更内容（branch反映待ち）
+## 変更内容
 
 - 公開`M05.json`の`required_runs`を#199の3件と同じにした。#217固有のP05採点観点と他の公開契約は維持する。
 - `verifyModuleRunEvidence`のM05専用P05 Run注入を削除し、公開`required_runs`をそのまま検証する。spec/label重複拒否、SHA/Trace/receipt/report、M06 Case ID、M07 before/afterの既存検証を保持する。
@@ -17,11 +17,11 @@
 
 ## 検証状況
 
-- GitHub上の既存#217 CI: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42025835711 （旧HEAD、completed/success）
-- GitHub上の#199 CI: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42171848698 （#199現HEAD、completed/success）
-- 上記は今回の変更や統合後HEADを検証したものではない。今回追加したテストの実実行件数・PASSは0件（未実施）。
-- 本実行環境にはGitHub clone/checkout用のDNS通信と`pnpm`がなく、`package.json`の`test:contracts`・`verify`・`build:web`・`validate`・CIを新HEADで実行できていない。
-- #199最新HEADをbaseとした仮想統合・CI checkout SHA一致は未確認。branch pushの完了とは扱わない。
+- GitHub上の既存#217 CI: [Web CI #42025835711](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42025835711)（旧HEAD、completed/success）
+- GitHub上の#199 CI: [Web CI #42171848698](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42171848698)（#199確認時HEAD、completed/success）
+- 上記は今回の変更や統合後HEADを検証したものではない。追加契約テストの実行結果は最新Web CIの`Vitest (contracts)`完了ログで別途確認する。
+- 本作業環境ではGitHubへの直接Git通信のDNS解決ができず`pnpm`も未導入のため、ローカル`package.json`コマンドは未実行。GitHub Actionsの実結果は各RunのHEADと個別ジョブで確認する。
+- `work/pr199-formal-assessment`へ通常fast-forward反映済み（#217 HEAD `4f6b3e7a9232461f845b6ee46cdce2f7b29564fd`で一度確認）。[Web CI #42184640424](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42184640424)では`build-production`・Code Quality成功、Style Qualityは当レポートのMarkdown裸URL2件によって失敗。この修正後の新HEADでStyle/契約/`validate`等とcheckout SHAを改めて確認する。
 
 ## Cloudflare Previewと未完了条件
 

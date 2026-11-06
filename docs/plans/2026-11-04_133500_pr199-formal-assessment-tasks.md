@@ -259,12 +259,13 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - **M05 P05必須Run：** #217の `verifyModuleRunEvidence` は `p05-cart-locator.spec.ts|main` を追加要求する。公開 `M05.json` へ同じRunを単純移管すると、共有 `scripts/training/validate-ai-assisted-qa.ts` が要求する2件固定の `required_runs` と衝突してビルド・検証が失敗する。共有Validatorは#217の所有範囲外。#199で両定義とValidatorの同期を取り、その後にM05専用のコード注入を廃止するまでは変更しない。
 - **今回のレビュー対応：** `ai-assisted-qa-run-evidence.mjs` のローカルexport、Assertionの動的値確認と広いmatcher、TypeScript解析重複を修正し、`ai-assisted-qa-assessment-m07-dependencies.test.mjs` と `ai-assisted-qa-assessment-practical-criteria.test.mjs` に負例を追加。修正後HEADのCI結果は別途確認し、モックPASSを本人の実受入としない。
 
-## 2026-11-06 PR #199公開採点契約との再照合（branch反映前）
+## 2026-11-06 PR #199公開採点契約との再照合
 
-- M05: `required_runs`を公開3件（product-link before/failed/Trace、after/passed、p05-cart-locator main/passed）へ揃え、`verifyModuleRunEvidence`でのP05専用追加処理を削除する変更を準備した。#217独自のP05採点証拠条件は維持する。
+- M05: `required_runs`を公開3件（product-link before/failed/Trace、after/passed、p05-cart-locator main/passed）へ揃え、`verifyModuleRunEvidence`でのP05専用追加処理を削除した。#217独自のP05採点証拠条件は維持する。
 - M00: `M00-CR-03`のrequired_evidence/pass_conditions/reject_ifは#199現HEADと一致。架空誤回答を実AI回答として扱わないこと、片方だけでLevel 2にしないことの回帰契約を追加する。
 - M06/M07: 公開Run条件（M06 3件/M07 5件）を変更せず、M07参考実装のCart外遷移→再入場と数量2の再Assertionを確認した。
 - 対象SHA: #199 `157d88ef78d4e96fd8229a6a852b3f24c540a8e0`、#217 `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`。両HEADは分岐状態であり、統合HEADに対するCIは未実施。
 - 公開方針: 本リポジトリはpublic。ユーザーによる方針の明確化に従い、既存CIでのCloudflare Preview自動デプロイは許容する。Accessによる非公開保証は前提にしない。Secret・個人成績・正式評価内部資料の配布除外は引き続き必須。共有workflowは変更しない。
 - 現環境はGitHubへの直接Git通信とpnpmがないため、`pnpm`コマンドは未実行。#199統合後CIと最終HEAD照合はbranch更新により確認し、未成功の項目は未完了とする。元の未完了2件は#199移管済みでチェックしない。
-- 検証・阻害条件: [`docs/reports/2026-11-06_pr217-pr199-contract-integration.md`](../reports/2026-11-06_pr217-pr199-contract-integration.md)。
+- GitHub上の既存PRブランチへのforceなしfast-forward更新を確認。CI [Web CI #42184640424](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42184640424)でStyle QualityのMarkdown bare URLエラー2件を検出し、今回の補正commitに含めた。その他のCI最終結果は新HEADで再確認する。
+- 検証・残条件: [`docs/reports/2026-11-06_pr217-pr199-contract-integration.md`](../reports/2026-11-06_pr217-pr199-contract-integration.md)。
