@@ -92,8 +92,8 @@
 
 この節は#214〜#218から引き継ぐ。上記のScenario Shop実受入と同じく、**個別PRの技術準備・共有ファイルの調停・最終HEADのCIが整った後**に実施する。Public Template公開は従来どおり#199マージ後の本人作業。Private 2コアCodespacesも他のPR作業完了後に本人が実施し、許可・環境が未準備ならBLOCKEDとして後続条件を残す。実受講者の学習効果試行は本PRの対象外。
 
-- [ ] **#214 Phase 1の実動作**：本人がM00をロードしてファイル/差分/保存、Private Port、無料枠・Secret/Agent権限を確認。認証可能な通常OpenCodeで段階ヒント・別条件・復習・再挑戦を実行し、実本人判断とAI案の違いを記録
-- [ ] **#214/#218 固定Skillの実行**：学習環境に固定`qa-workflow-skills`とPython helperをロードし、M02 Authority/Risk/ScopeからM03条件/技法runtime/coverage/Case/evidence gateまで実行。終了コードだけでなく結果JSON・`valid=true`・source SHA・参照不備拒否を確認
+- [ ] **#214 Phase 1の実動作（#214から移管）**：本人の個人用Private 2-core CodespacesでM00をロードし、別ファイルの編集・保存・再読込と差分・実行場所を確認する。編集済み`submission.md`の再ロード競合時は非0終了となり、前後のファイル内容が不変であることを保存証拠で確認する。Ports 6080のPrivate表示、支払者・利用枠・無料モデルの費用条件、SecretとAgent read/edit/command権限の許可・拒否を実画面で確認する。認証可能な通常OpenCodeで説明→段階ヒント→別条件→誤解別復習→再挑戦を行い、AI応答と本人の独立した判断、費用・権限・拒否時の挙動を記録する。独立M04正式評価の実受入は別項目で判定し、教材やCIの静的検証を本人実操作のPASSに換算しない
+- [ ] **#214/#218 固定Skillの実行（#214から移管）**：固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`を実学習環境に配布し、manifestで定義されたSkill-local `SKILL.md/references/assets/scripts`の実ファイル・entrypoint/import・Python 3.11とhelper実返却値を確認する。M02の`spec-analysis/test-analysis`でAuthority/Risk/Scopeと出典・source revisionを本人が採否し、同一入力をM03の`condition_structure(direct)`→技法runtime→`materialize_coverage(artifact)`→`case_structure`→`verify_runtime_evidence`へ通す。実行コマンド・exit・request/response JSON・`valid=true`・current fingerprint/structure state・固定SHAを保存し、参照欠落・旧fingerprint・不正Entity・`valid=false`等の負例拒否も確認する。未実行のsample/placeholderや終了コード0だけをPASSにしない。#218の配布manifest最終ファイル数と#214由来契約テストの整合は#199統合時に確認する
 - [ ] **#215 Phase 2の実動作**：2コア学習環境で配布Shop/Seed/Reset/Playwrightを起動し、M05 TypeScript/Locator、M06独立spec・初回/再Run、M07 Trace/before-after/Page Object/fixtureを本人のCase・業務Assertion・Run証拠で判定
 - [ ] **#216 Phase 3の実動作**：本人Private repoの費用/権限/対象specを明示確認し、安全なworkflowを本人が有効化したときに限り実PR head・Run/attempt・Check/Artifact・target SHAをGitHub APIで照合。M08〜M10は任意で、Phase 1/2の修了を変更しない
 - [ ] **#217 OpenCode正式AI校正**：独立・最小権限の実モデルでM04/M07/M10を採点し、正答/誤答/別解/部分/旧Run/架空証拠/Prompt Injection/障害の校正結果と重大誤PASS 0件を確認。認証・無料モデル・料金・revisionが成立しなければBLOCKEDとし、モックCIだけで修了を出さない
