@@ -96,7 +96,7 @@ describe("Native CI workflow contracts", () => {
   it("runs on pull requests and retains the explicit manual full-run trigger", () => {
     expect(nativeWorkflow).toContain("on:\n  pull_request:\n  workflow_dispatch:");
     expect(nativeWorkflow).toContain(
-      'if: needs.detect.outputs.native_changed == \'true\' || github.event_name == \'workflow_dispatch\'',
+      "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
     );
   });
 
