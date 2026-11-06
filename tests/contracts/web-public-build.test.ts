@@ -172,7 +172,7 @@ describe("temporary formatter diagnostic", () => {
     const source = fs.readFileSync(path.join(process.cwd(), "tests/contracts/web-public-build.test.ts"), "utf8");
     const stripped = source.slice(0, source.indexOf("/* FORMAT-DIAGNOSTIC-START */")).trimEnd() + "\n";
     const prettier = await import("prettier");
-    const formatted = await prettier.format(stripped, { parser: "typescript" });
+    const formatted = await prettier.format(stripped, { parser: "typescript", printWidth: 100, semi: true, singleQuote: false, trailingComma: "all", endOfLine: "lf" });
     console.log("FORMAT_SOURCE_BASE64=" + Buffer.from(formatted).toString("base64"));
   });
 });
