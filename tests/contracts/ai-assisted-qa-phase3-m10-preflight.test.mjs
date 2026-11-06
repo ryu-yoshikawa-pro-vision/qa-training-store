@@ -144,7 +144,7 @@ describe("M10-01 spec and dependency closure", () => {
     const sample = read(
       "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
     );
-    expect(sample).toContain("permissions:\\n  contents: read");
+    expect(sample).toContain("permissions:\n  contents: read");
     expect(sample).toContain("test -s course/shop/index.html");
     expect(sample).toContain("test -s .course/distribution-manifest.json");
     expect(sample).toContain("node scripts/training/ai-assisted-qa-course.mjs verify-distribution");
