@@ -111,14 +111,16 @@
       "required_evidence": [
         "反復実践P05：本人の予測・分析・操作、結果・修正・出典を該当P欄または対応するCase/Runへ結び付けた提出箇所。仮想条件と実証拠は区別する",
         "「高価なE2Eをすべての条件へ適用しない理由を説明する」を示す提出物の箇所",
-        "知識の行動証拠: 必要なテスト層と実行費用を比較する"
+        "知識の行動証拠: 必要なテスト層と実行費用を比較する",
+        "P05のUnit・Integration・Component・Web E2Eの4層それぞれについて責務・入力前提・検出できる欠陥とできない欠陥・採否と費用を比較した本人の独立表"
       ],
       "pass_conditions": [
         "反復実践P05に対応する独立した判断と必要な実結果を確認できる。未記入・手本の転記・未実行の自己申告をLevel 2にせず、不足は復習先を返す",
         "計算規則と利用者導線など異なる対象を用い、観測したい範囲・状態準備・実行時間・保守負荷からテスト層を選ぶ",
         "学習目標「高価なE2Eをすべての条件へ適用しない理由を説明する」が具体例・判断・実行可能な成果物で満たされる",
         "対応する知識「Unit・Integration・Component・E2Eの役割」が正本と矛盾せず、出典・観測・判断が区別される",
-        "根拠・期待結果・提出物を追跡できる"
+        "根拠・期待結果・提出物を追跡できる",
+        "Unitの数量上限計算、IntegrationのCartUseCases.updateQuantityとDexie保存・再取得、Componentの数量selectと処理中無効、Web E2Eの利用者導線を4層別々に評価し、各層の検出可能/不可能な欠陥と費用を示す"
       ],
       "partial_credit": [
         "中心判断は正しいが出典または観測証拠が一部不足する",
@@ -127,7 +129,8 @@
       "reject_if": [
         "正式仕様と矛盾する期待結果を断定する",
         "観測していない処理やCIを成功と報告する",
-        "必須成果物・根拠・対象revisionが欠けるのに合格とする"
+        "必須成果物・根拠・対象revisionが欠けるのに合格とする",
+        "4層の採否・限界を区別しない一般論だけでLevel 2にする。数量selectで存在しない超過数量を実際に選択したと報告する"
       ]
     }
   ],
@@ -135,7 +138,7 @@
     {
       "id": "M01-CAL-01",
       "type": "correct",
-      "response": "対象・目的・根拠ある期待結果を示し、未知の探索と既知の回帰を分け、再実行価値と費用からテストレベルを選択する。",
+      "response": "対象・目的・根拠ある期待結果を示し、未知の探索と既知の回帰を分け、再実行価値と費用からテストレベルを選択する。 Cart上限計算はUnit、更新とDexie保存・再取得はIntegration、数量selectの候補と無効状態はComponent、利用者導線はWeb E2Eとし、4層それぞれの検出可能/不可能な欠陥と準備・実行費用、採否を比較する。",
       "evidence": [
         "reference-solutions/M01.md",
         "docs/curriculum/ai-assisted-qa/modules/M01/README.md",
@@ -172,7 +175,7 @@
     {
       "id": "M01-CAL-04",
       "type": "acceptable-alternative",
-      "response": "ピラミッド図を使わず、速度・費用・切り分けの比較をCart例で説明する。",
+      "response": "ピラミッド図を使わず、速度・費用・切り分けの比較をCart例で説明する。 Unit、Integration、Component、Web E2Eごとの責務・検出可能/不可能な欠陥・費用と前提を区別し、UI selectで選べない超過数量はUse Case入力で別に検証する。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M01/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",

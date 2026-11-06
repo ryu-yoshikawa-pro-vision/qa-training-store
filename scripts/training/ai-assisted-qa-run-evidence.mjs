@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 import { assertNoSecretText, sha256 } from "./ai-assisted-qa-assessment-core.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -13,6 +14,11 @@ const MODULE_SPECS = Object.freeze({
   M07: new Set(["failure-assertion.spec.ts", "repaired-assertion.spec.ts", "maintenance.spec.ts"]),
 });
 const LABELS = new Set(["main", "initial", "repeat", "before", "after"]);
+const M06_CASE_IDS = Object.freeze({
+  "cart-cases.spec.ts|main": ["CASE-CART-001", "CASE-CART-002", "CASE-CART-003"],
+  "new-case.spec.ts|initial": ["CASE-CART-004", "CASE-CART-005"],
+  "new-case.spec.ts|repeat": ["CASE-CART-004", "CASE-CART-005"],
+});
 const MAX_EVIDENCE_BYTES = 256 * 1024;
 const SOURCE_SHA = /^[a-f0-9]{40}$/;
 const RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -67,27 +73,54 @@ function assertSafeDirectory(root, target, { create = false } = {}) {
   return absoluteTarget;
 }
 
-function reportSpecs(suites, root, targetSpec, outputRoot) {
+function reportSpecs(report, moduleRoot, targetSpec, outputRoot, repositoryRoot) {
+  // JSON reporter stores spec.file relative to config.rootDir (the learner module).
+  // A report from another root must never satisfy the current learner's run.
+  const reportRoot = report?.config?.rootDir;
+  if (
+    typeof reportRoot !== "string" ||
+    !path.isAbsolute(reportRoot) ||
+    path.resolve(reportRoot) !== path.resolve(moduleRoot) ||
+    !Array.isArray(report.suites)
+  )
+    fail("Playwright JSON report rootDir does not match the learner module");
+
   const found = [];
   const attachments = [];
+  let failedTracePresent = false;
   const visit = (suite) => {
     for (const spec of suite.specs ?? []) {
-      const absoluteSpec = path.resolve(root, spec.file ?? "");
-      if (absoluteSpec !== targetSpec) continue;
+      if (
+        typeof spec.file !== "string" ||
+        !spec.file ||
+        path.isAbsolute(spec.file) ||
+        path.resolve(reportRoot, spec.file) !== targetSpec
+      )
+        fail("Playwright JSON report contains an unexpected or unsafe spec");
       for (const test of spec.tests ?? []) {
-        const results = Array.isArray(test.results) ? test.results : [];
-        const final = results.at(-1);
-        if (!final || typeof final.status !== "string") continue;
+        const results = test.results;
+        const final = Array.isArray(results) ? results.at(-1) : null;
+        if (
+          test.projectName !== "ai-assisted-qa-chromium" ||
+          test.expectedStatus !== "passed" ||
+          !Array.isArray(results) ||
+          results.length !== 1 ||
+          !["passed", "failed"].includes(final?.status) ||
+          test.status !== (final.status === "passed" ? "expected" : "unexpected")
+        )
+          fail(
+            "Playwright JSON report contains a skipped, expected-failure, or invalid test result",
+          );
         found.push({
           title: typeof spec.title === "string" ? spec.title : "",
           status: final.status,
-          expected_status: typeof test.expectedStatus === "string" ? test.expectedStatus : "passed",
+          expected_status: test.expectedStatus,
         });
         for (const attachment of final.attachments ?? []) {
           if (typeof attachment?.path !== "string") continue;
           const filePath = path.isAbsolute(attachment.path)
             ? path.resolve(attachment.path)
-            : path.resolve(root, attachment.path);
+            : path.resolve(repositoryRoot, attachment.path);
           const relative = path.relative(outputRoot, filePath);
           if (
             relative === ".." ||
@@ -108,29 +141,321 @@ function reportSpecs(suites, root, targetSpec, outputRoot) {
           attachments.push({
             path: relative.split(path.sep).join("/"),
             size: stat.size,
+            sha256: sha256(fs.readFileSync(filePath)),
             name: typeof attachment.name === "string" ? attachment.name : "",
             content_type: typeof attachment.contentType === "string" ? attachment.contentType : "",
           });
+          if (final.status === "failed" && attachment.name?.toLowerCase() === "trace")
+            failedTracePresent = true;
         }
       }
     }
     for (const child of suite.suites ?? []) visit(child);
   };
-  for (const suite of suites ?? []) visit(suite);
-  return { tests: found, attachments };
+  for (const suite of report.suites) visit(suite);
+  return { tests: found, attachments, failedTracePresent };
+}
+
+/** Parse a learner spec and fail consistently on invalid TypeScript syntax. */
+function parseSpecSource(bytes, specName, syntaxError) {
+  const source = ts.createSourceFile(
+    specName,
+    bytes.toString("utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (source.parseDiagnostics.length > 0) fail(syntaxError);
+  return source;
+}
+
+/** Visit named Playwright test declarations in the parsed source. */
+function visitTestCalls(source, callback) {
+  const scan = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "test" &&
+      node.arguments.length >= 2 &&
+      ts.isStringLiteral(node.arguments[0])
+    )
+      callback(node.arguments[0].text, node.arguments[1]);
+    ts.forEachChild(node, scan);
+  };
+  scan(source);
+}
+
+export function assertM07SourceDependencies(specBytes, moduleId, specName) {
+  if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
+  const source = parseSpecSource(
+    specBytes,
+    specName,
+    "M07 maintenance source contains invalid TypeScript syntax",
+  );
+  const permitted = new Set([
+    "@playwright/test",
+    "../../training/playwright/support/reset-scenario",
+  ]);
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      const target = node.moduleSpecifier;
+      if (target && (!ts.isStringLiteral(target) || !permitted.has(target.text)))
+        fail("M07 maintenance imports an untracked Page Object, fixture, or module");
+    }
+    if (
+      ts.isImportEqualsDeclaration(node) ||
+      ts.isImportTypeNode(node) ||
+      (ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === "require")))
+    )
+      fail("M07 maintenance uses a dynamic or untracked module import");
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+}
+
+const STATIC_GLOBALS = new Set([
+  "undefined",
+  "NaN",
+  "Infinity",
+  "Math",
+  "JSON",
+  "Number",
+  "String",
+  "Boolean",
+  "Object",
+  "Array",
+  "BigInt",
+  "Symbol",
+  "Date",
+  "RegExp",
+  "Promise",
+]);
+
+/** Check whether the assertion input depends on a runtime value rather than constants. */
+function containsRuntimeReference(expression, constants, seen = new Set()) {
+  if (ts.isIdentifier(expression)) {
+    if (STATIC_GLOBALS.has(expression.text)) return false;
+    if (!constants.has(expression.text)) return true;
+    if (seen.has(expression.text)) return false;
+    const next = new Set(seen);
+    next.add(expression.text);
+    return containsRuntimeReference(constants.get(expression.text), constants, next);
+  }
+  if (
+    ts.isLiteralExpression(expression) ||
+    [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(
+      expression.kind,
+    )
+  )
+    return false;
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isTypeAssertionExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isSatisfiesExpression(expression)
+  )
+    return containsRuntimeReference(expression.expression, constants, seen);
+  if (ts.isPropertyAccessExpression(expression))
+    return containsRuntimeReference(expression.expression, constants, seen);
+  if (ts.isObjectLiteralExpression(expression))
+    return expression.properties.some((property) =>
+      ts.isPropertyAssignment(property)
+        ? containsRuntimeReference(property.initializer, constants, seen)
+        : ts.isShorthandPropertyAssignment(property) &&
+          containsRuntimeReference(property.name, constants, seen),
+    );
+  let runtime = false;
+  ts.forEachChild(expression, (child) => {
+    if (containsRuntimeReference(child, constants, seen)) runtime = true;
+  });
+  return runtime;
+}
+
+/** Find a Playwright matcher on expect, expect.soft, or expect.poll with runtime input. */
+function hasPlaywrightAssertion(callback) {
+  const constants = new Map();
+  const collect = (node) => {
+    if (ts.isVariableDeclarationList(node) && node.flags & ts.NodeFlags.Const)
+      for (const declaration of node.declarations)
+        if (ts.isIdentifier(declaration.name) && declaration.initializer)
+          constants.set(declaration.name.text, declaration.initializer);
+    ts.forEachChild(node, collect);
+  };
+  collect(callback);
+  let matched = false;
+  const visit = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      /^to[A-Z]/.test(node.expression.name.text)
+    ) {
+      let receiver = node.expression.expression;
+      while (
+        ts.isPropertyAccessExpression(receiver) &&
+        ["not", "resolves", "rejects"].includes(receiver.name.text)
+      )
+        receiver = receiver.expression;
+      if (ts.isCallExpression(receiver)) {
+        const callee = receiver.expression;
+        const isExpect =
+          (ts.isIdentifier(callee) && callee.text === "expect") ||
+          (ts.isPropertyAccessExpression(callee) &&
+            ts.isIdentifier(callee.expression) &&
+            callee.expression.text === "expect" &&
+            ["soft", "poll"].includes(callee.name.text));
+        if (
+          isExpect &&
+          receiver.arguments.length >= 1 &&
+          containsRuntimeReference(receiver.arguments[0], constants)
+        )
+          matched = true;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(callback, visit);
+  return matched;
+}
+
+export function assertM07MaintenanceAssertions(specBytes, moduleId, specName, label) {
+  if (moduleId !== "M07" || specName !== "maintenance.spec.ts") return;
+  if (label !== "before" && label !== "after") return;
+  const source = parseSpecSource(
+    specBytes,
+    specName,
+    "M07 maintenance source contains invalid TypeScript syntax",
+  );
+  const titles = new Set();
+  let testCount = 0;
+  visitTestCalls(source, (title, callback) => {
+    if (!title.trim() || titles.has(title))
+      fail("M07 maintenance contains an empty or duplicate Playwright test title");
+    titles.add(title);
+    testCount += 1;
+    if (!hasPlaywrightAssertion(callback))
+      fail("M07 maintenance test lacks a Playwright business assertion: " + title);
+  });
+  if (testCount < (label === "before" ? 2 : 3))
+    fail("M07 maintenance before/after has fewer than the required independent tests");
+}
+
+export function assertM06CaseAssertions(specBytes, specName, label) {
+  const required = M06_CASE_IDS[specName + "|" + label];
+  if (!required) return;
+  const source = parseSpecSource(
+    specBytes,
+    specName,
+    "M06 learner spec contains invalid TypeScript syntax",
+  );
+  const found = new Set();
+  visitTestCalls(source, (title, callback) => {
+    const ids = required.filter((id) => title.includes(id));
+    if (ids.length === 1) {
+      const id = ids[0];
+      if (found.has(id)) fail("M06 spec duplicates a required CASE-CART test: " + id);
+      found.add(id);
+      if (!hasPlaywrightAssertion(callback))
+        fail("M06 required CASE-CART test lacks a Playwright business assertion: " + id);
+    }
+  });
+  if (found.size !== required.length)
+    fail("M06 spec is missing one or more required CASE-CART tests");
+}
+
+export function assertReportedTestsMatchSnapshot(snapshotBytes, moduleId, specName, tests) {
+  if (moduleId !== "M06" && moduleId !== "M07") return;
+  const source = parseSpecSource(
+    snapshotBytes,
+    specName,
+    "Playwright source snapshot contains invalid TypeScript syntax",
+  );
+  const declared = [];
+  visitTestCalls(source, (title) => declared.push(title));
+  const reported = Array.isArray(tests) ? tests.map((test) => test?.title) : [];
+  if (
+    declared.length === 0 ||
+    declared.length !== reported.length ||
+    new Set(declared).size !== declared.length ||
+    new Set(reported).size !== reported.length ||
+    declared.some((title) => !reported.includes(title))
+  )
+    fail("Playwright JSON report test titles do not match the saved source snapshot");
+}
+
+function m07QuantityAssertionsByTest(specBytes) {
+  const source = parseSpecSource(
+    specBytes,
+    "maintenance.spec.ts",
+    "M07 maintenance snapshot contains invalid TypeScript syntax",
+  );
+  const values = new Map();
+  visitTestCalls(source, (title, callback) => {
+    const titles = new Set();
+    const scan = (child) => {
+      if (
+        ts.isCallExpression(child) &&
+        ts.isPropertyAccessExpression(child.expression) &&
+        child.expression.name.text === "toHaveValue" &&
+        child.arguments.length === 1 &&
+        ts.isStringLiteral(child.arguments[0]) &&
+        ["1", "2"].includes(child.arguments[0].text)
+      ) {
+        const receiver = child.expression.expression;
+        if (
+          ts.isCallExpression(receiver) &&
+          ts.isIdentifier(receiver.expression) &&
+          receiver.expression.text === "expect"
+        )
+          titles.add(child.arguments[0].text);
+      }
+      ts.forEachChild(child, scan);
+    };
+    scan(callback);
+    values.set(title, titles);
+  });
+  return values;
+}
+
+export function assertM07OriginalQuantityAssertions(beforeBytes, afterBytes) {
+  const before = m07QuantityAssertionsByTest(beforeBytes);
+  const after = m07QuantityAssertionsByTest(afterBytes);
+  const hasOne = [...before.values()].some((values) => values.has("1"));
+  const hasTwo = [...before.values()].some((values) => values.has("2"));
+  const distinctOriginalTests = [...before.entries()].some(
+    ([first, values]) =>
+      values.has("1") &&
+      [...before.entries()].some(([second, other]) => second !== first && other.has("2")),
+  );
+  if (!hasOne || !hasTwo || !distinctOriginalTests)
+    fail("M07 before snapshot lacks independent quantity 1 and quantity 2 assertions");
+  for (const [title, values] of before) {
+    if (
+      values.size > 0 &&
+      (!after.has(title) || [...values].some((value) => !after.get(title).has(value)))
+    )
+      fail("M07 after snapshot changed an original quantity assertion: " + title);
+  }
+  if (![...after.entries()].some(([title, values]) => !before.has(title) && values.has("2")))
+    fail("M07 after snapshot lacks an independent new quantity 2 regression assertion");
 }
 
 function relativeWorkspacePath(filePath, root = ROOT) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
 
-function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
+function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn = spawnSync }) {
   if (!SOURCE_SHA.test(sourceSha ?? ""))
     fail("course:run requires the verified distribution source SHA");
   const workspaceRoot = path.join(root, "workspace");
   const moduleRoot = assertSafeDirectory(workspaceRoot, path.join(workspaceRoot, moduleId));
   const specPath = path.join(moduleRoot, specName);
   const specBytes = lstatRegularFile(specPath, "learner Playwright spec");
+  assertM07SourceDependencies(specBytes, moduleId, specName);
+  assertM07MaintenanceAssertions(specBytes, moduleId, specName, label);
+  if (moduleId === "M06") assertM06CaseAssertions(specBytes, specName, label);
   const runId = randomUUID();
   const runDirectory = assertSafeDirectory(
     workspaceRoot,
@@ -160,7 +485,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
     AI_QA_OUTPUT_ROOT: runDirectory,
   };
   const launcher = process.platform === "win32" ? "corepack.cmd" : "corepack";
-  const result = spawnSync(launcher, commandArgs, {
+  const result = spawn(launcher, commandArgs, {
     cwd: root,
     env: environment,
     encoding: "utf8",
@@ -180,7 +505,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
     const reportText = reportBytes.toString("utf8");
     assertNoSecretText(reportText, "Playwright JSON report");
     report = JSON.parse(reportText);
-    extracted = reportSpecs(report.suites, root, specPath, runDirectory);
+    extracted = reportSpecs(report, moduleRoot, specPath, runDirectory, root);
   }
   const exitCode = result.error ? 1 : (result.status ?? 1);
   const environmentFailure =
@@ -250,7 +575,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha }) {
 
 export function runAiAssistedQaSpecCli(
   argv = process.argv.slice(2),
-  { root = ROOT, sourceSha } = {},
+  { root = ROOT, sourceSha, spawn = spawnSync } = {},
 ) {
   const moduleId = argv[0];
   const specName = argv[1];
@@ -266,7 +591,7 @@ export function runAiAssistedQaSpecCli(
     fail(
       "Usage: pnpm course:run M05|M06|M07 <allowed-spec.spec.ts> --label main|initial|repeat|before|after",
     );
-  return executeSpec({ moduleId, specName, label, root, sourceSha });
+  return executeSpec({ moduleId, specName, label, root, sourceSha, spawn });
 }
 
 function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
@@ -320,6 +645,25 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   }
   const specBytes = lstatRegularFile(specPath, "learner Playwright spec");
   const snapshotBytes = lstatRegularFile(snapshotPath, "course Playwright source snapshot");
+  assertM07SourceDependencies(specBytes, moduleId, path.basename(record.spec_path));
+  assertM07SourceDependencies(snapshotBytes, moduleId, path.basename(record.spec_path));
+  assertM07MaintenanceAssertions(
+    specBytes,
+    moduleId,
+    path.basename(record.spec_path),
+    record.label,
+  );
+  assertM07MaintenanceAssertions(
+    snapshotBytes,
+    moduleId,
+    path.basename(record.spec_path),
+    record.label,
+  );
+  if (moduleId === "M06") {
+    const name = path.basename(record.spec_path);
+    assertM06CaseAssertions(specBytes, name, record.label);
+    assertM06CaseAssertions(snapshotBytes, name, record.label);
+  }
   if (sha256(snapshotBytes) !== record.spec_sha256)
     fail("course Playwright source snapshot hash is invalid");
   const reportBytes = lstatRegularFile(reportPath, "Playwright JSON report");
@@ -327,7 +671,13 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
   assertNoSecretText(reportText, "Playwright JSON report");
   const report = JSON.parse(reportText);
   const outputRoot = path.dirname(reportPath);
-  const extracted = reportSpecs(report.suites, root, specPath, outputRoot);
+  const extracted = reportSpecs(report, path.dirname(specPath), specPath, outputRoot, root);
+  assertReportedTestsMatchSnapshot(
+    snapshotBytes,
+    moduleId,
+    path.basename(record.spec_path),
+    extracted.tests,
+  );
   if (JSON.stringify(extracted.tests) !== JSON.stringify(record.tests))
     fail("course Playwright run evidence results do not match its JSON report");
   if (JSON.stringify(extracted.attachments) !== JSON.stringify(record.attachments))
@@ -360,7 +710,9 @@ function readRunRecord(workspaceRoot, moduleId, relativePath, sourceSha) {
     fail("course Playwright run evidence command or project is invalid");
   return {
     record,
+    failed_trace_present: extracted.failedTracePresent,
     current_spec_sha256: sha256(specBytes),
+    snapshot_bytes: snapshotBytes,
     paths: [
       relativeWorkspacePath(absolute, root),
       relativeWorkspacePath(reportPath, root),
@@ -374,7 +726,7 @@ function runPassed(record, minimumTests) {
     record.outcome === "passed" &&
     record.exit_code === 0 &&
     record.tests.length >= minimumTests &&
-    record.tests.every((test) => test.status === "passed")
+    record.tests.every((test) => test.status === "passed" && test.expected_status === "passed")
   );
 }
 
@@ -658,6 +1010,8 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         !LABELS.has(run?.label) ||
         !Number.isInteger(run?.minimum_tests) ||
         run.minimum_tests < 1 ||
+        (moduleId === "M06" &&
+          M06_CASE_IDS[run.spec + "|" + run.label]?.length !== run.minimum_tests) ||
         (run?.require_trace !== undefined && typeof run.require_trace !== "boolean") ||
         !["passed", "failed"].includes(run?.expected_outcome),
     )
@@ -738,20 +1092,46 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
         continue;
       }
       const record = verified.record;
+      const caseIds = record.tests.map((test) => {
+        const matched =
+          typeof test.title === "string" ? test.title.match(/\bCASE-CART-00[1-5]\b/g) : null;
+        return matched?.length === 1 ? matched[0] : null;
+      });
+      const requiredCaseIds =
+        moduleId === "M06" ? M06_CASE_IDS[requirement.spec + "|" + requirement.label] : null;
+      const casesComplete =
+        requiredCaseIds === null ||
+        (caseIds.length === requiredCaseIds.length &&
+          new Set(caseIds).size === requiredCaseIds.length &&
+          requiredCaseIds.every((id) => caseIds.includes(id)));
+      const archivedM07Before =
+        moduleId === "M07" &&
+        requirement.spec === "maintenance.spec.ts" &&
+        requirement.label === "before" &&
+        requiredRuns.some((run) => run.spec === requirement.spec && run.label === "after");
       const successful =
         requirement.expected_outcome === "passed"
           ? runPassed(record, requirement.minimum_tests) &&
-            verified.current_spec_sha256 === record.spec_sha256
+            (archivedM07Before || verified.current_spec_sha256 === record.spec_sha256)
           : record.outcome === "failed" &&
             record.exit_code !== 0 &&
             record.tests.length >= requirement.minimum_tests &&
             record.tests.some((test) => test.status === "failed");
       const tracePresent =
         requirement.require_trace !== true ||
-        record.attachments.some((attachment) => attachment.name.toLowerCase() === "trace");
+        (requirement.expected_outcome === "failed"
+          ? verified.failed_trace_present
+          : record.attachments.some((attachment) => attachment.name.toLowerCase() === "trace"));
       checks.push({
         id: moduleId + "-RUN-" + requirement.spec + "-" + requirement.label,
-        status: successful ? "passed" : record.outcome === "blocked" ? "blocked" : "ungradable",
+        status:
+          successful && casesComplete
+            ? "passed"
+            : record.outcome === "blocked"
+              ? "blocked"
+              : "ungradable",
+        required_case_ids: requiredCaseIds ?? [],
+        verified_case_ids: caseIds.filter(Boolean),
         run_id: record.run_id,
         spec_sha256: record.spec_sha256,
         outcome: record.outcome,
@@ -768,6 +1148,8 @@ export function verifyModuleRunEvidence({ workspaceRoot, moduleId, scoring, sour
       if (!before || !after) continue;
       const changed = before.record.spec_sha256 !== after.record.spec_sha256;
       const ordered = Date.parse(after.record.started_at) > Date.parse(before.record.finished_at);
+      if (moduleId === "M07" && requirement.spec === "maintenance.spec.ts")
+        assertM07OriginalQuantityAssertions(before.snapshot_bytes, after.snapshot_bytes);
       checks.push({
         id: moduleId + "-BEFORE-AFTER-" + requirement.spec,
         status: changed && ordered ? "passed" : "ungradable",

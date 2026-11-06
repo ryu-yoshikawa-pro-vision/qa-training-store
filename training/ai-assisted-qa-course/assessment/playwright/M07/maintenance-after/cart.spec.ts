@@ -34,6 +34,7 @@ test("数量2への変更はカートを開き直しても維持される", asyn
   await cart.addMug();
   await page.getByLabel("数量").selectOption("2");
   await expect(page.getByLabel("数量")).toHaveValue("2");
-  await page.reload();
+  await page.goto("/products/product-mug");
+  await page.goto("/cart");
   await expect(page.getByLabel("数量")).toHaveValue("2");
 });

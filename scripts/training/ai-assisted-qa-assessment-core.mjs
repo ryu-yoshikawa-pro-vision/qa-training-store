@@ -10,6 +10,49 @@ export const ASSESSMENT_PHASES = Object.freeze({
   P3: { terminal: "M10", modules: ["M08", "M09", "M10"] },
 });
 
+const EXPECTED_PHASE_OBJECTIVE_COUNTS = Object.freeze({ P1: 22, P2: 15, P3: 14 });
+
+export function validatePhaseObjectiveIds({ phaseId, scoringByModule, terminalState }) {
+  const phase = ASSESSMENT_PHASES[phaseId];
+  if (!phase || !(scoringByModule instanceof Map))
+    fail("Phase scoring objective contract is missing or invalid");
+  const required = terminalState?.phase_assessment;
+  const expectedCount = EXPECTED_PHASE_OBJECTIVE_COUNTS[phaseId];
+  if (
+    required?.phase_id !== phaseId ||
+    required?.terminal_module_id !== phase.terminal ||
+    !Array.isArray(required.required_objective_ids) ||
+    required.required_objective_ids.length !== expectedCount ||
+    new Set(required.required_objective_ids).size !== expectedCount
+  )
+    fail("terminal Phase state has an invalid required objective ID set");
+
+  const ids = [];
+  for (const moduleId of phase.modules) {
+    const scoring = scoringByModule.get(moduleId);
+    if (
+      scoring?.module_id !== moduleId ||
+      !Array.isArray(scoring.objective_ids) ||
+      scoring.objective_ids.length === 0 ||
+      scoring.objective_ids.some(
+        (id) =>
+          typeof id !== "string" ||
+          !id.startsWith(moduleId + "-") ||
+          !/^[0-9]{2}$/.test(id.slice(moduleId.length + 1)),
+      )
+    )
+      fail("pinned scoring objective IDs are invalid for " + moduleId);
+    ids.push(...scoring.objective_ids);
+  }
+  if (
+    ids.length !== expectedCount ||
+    new Set(ids).size !== expectedCount ||
+    ids.some((id) => !required.required_objective_ids.includes(id))
+  )
+    fail(phaseId + " pinned scoring objective IDs differ from the terminal state contract");
+  return ids;
+}
+
 export const ASSESSMENT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const MODEL_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._#-]*$/i;
@@ -119,7 +162,12 @@ export function buildAssessmentAgentConfig({ modelId, agentId, systemPrompt }) {
   return {
     $schema: "https://opencode.ai/config.json",
     model: modelId,
-    autoupdate: false,
+    update: "disable",
+    instructions: [],
+    plugins: [],
+    skills: [],
+    mcp: { servers: {} },
+    permissions: [{ action: "*", resource: "*", effect: "deny" }],
     agents: {
       [agentId]: {
         mode: "primary",
@@ -313,7 +361,10 @@ export function parseOpenCodeJsonEvents(stdout, exitCode = 0) {
     }
     if (!event || typeof event !== "object" || typeof event.type !== "string")
       fail(`OpenCode emitted an invalid event on line ${index + 1}`);
-    if (event.type === "error" || event.type === "tool_use" || event.type === "tool")
+    if (terminalStop) fail("OpenCode emitted events after the terminal step_finish");
+    if (event.type === "error")
+      fail("BLOCKED: OpenCode emitted a provider or CLI error event; evaluation stops");
+    if (event.type === "tool_use" || event.type === "tool")
       fail(`OpenCode emitted a tool/error event (${event.type}); evaluation stops`);
     if (
       event.part?.type === "tool" ||
@@ -327,8 +378,8 @@ export function parseOpenCodeJsonEvents(stdout, exitCode = 0) {
     }
     if (event.type === "step_finish") {
       const reason = event.reason ?? event.part?.reason;
-      if (reason === "tool-calls" || reason === "length" || reason === "error")
-        fail(`OpenCode did not finish a clean text response (${reason})`);
+      if (reason !== "stop" && reason !== "end_turn")
+        fail(`OpenCode did not finish a clean text response (${String(reason)})`);
       terminalStop = true;
     }
     const candidateSession = event.sessionID ?? event.sessionId;
@@ -505,6 +556,7 @@ export function isPassingCalibration(calibration) {
 export function finalizeAssessment({
   candidate,
   calibration,
+  requiredObjectiveIds,
   sourceSha,
   versions,
   inputSnapshot,
@@ -516,9 +568,13 @@ export function finalizeAssessment({
   const objectives = candidate.objectives.map((item) => ({ ...item }));
   const objectiveIds = objectives.map((item) => item.objective_id);
   const objectivesValid =
-    objectives.length > 0 &&
-    objectiveIds.every((id) => typeof id === "string" && id.trim().length > 0) &&
-    new Set(objectiveIds).size === objectives.length;
+    Array.isArray(requiredObjectiveIds) &&
+    requiredObjectiveIds.length > 0 &&
+    new Set(requiredObjectiveIds).size === requiredObjectiveIds.length &&
+    requiredObjectiveIds.every((id) => typeof id === "string" && id.trim().length > 0) &&
+    objectives.length === requiredObjectiveIds.length &&
+    objectiveIds.every((id) => typeof id === "string" && requiredObjectiveIds.includes(id)) &&
+    new Set(objectiveIds).size === requiredObjectiveIds.length;
   const checks = Array.isArray(deterministicChecks) ? deterministicChecks : [];
   const deterministicChecksValid =
     Array.isArray(deterministicChecks) &&

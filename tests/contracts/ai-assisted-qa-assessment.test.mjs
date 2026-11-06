@@ -22,6 +22,7 @@ import {
   parseStrictJsonResponse,
   sha256,
   validateCandidate,
+  validatePhaseObjectiveIds,
   validateSavedChallenge,
 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 import {
@@ -2259,6 +2260,7 @@ it("restores a completed result only with the matching candidate and passing cal
   const result = finalizeAssessment({
     candidate,
     calibration,
+    requiredObjectiveIds: ["M04-01"],
     sourceSha,
     versions: {
       attempt: 1,
@@ -2405,6 +2407,31 @@ it("reads only a nonempty learner answer after the explicit answer heading", () 
   expect(readChallengeAnswer(answerPath, challenge).answer).toBe("Revised answer");
 });
 
+it("rejects oversized, invalid UTF-8, symlink and credential-bearing challenge answers", () => {
+  const directory = path.join(tempRoot, "unsafe-live-answer");
+  fs.mkdirSync(directory, { recursive: true });
+  const target = path.join(directory, "answers.md");
+  const challenge = { objective_ids: ["M04-01"] };
+  const prefix = "# Answer\n\n## M04-01\n\n### Your answer\n\n";
+  const put = (text) => fs.writeFileSync(target, text);
+  put(prefix + "a".repeat(256 * 1024));
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/size is outside/);
+  put(prefix + "No credential, but malformed UTF-8");
+  fs.appendFileSync(target, Buffer.from([0xc3, 0x28]));
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/UTF-8/);
+  put(prefix + "Has a\0hidden delimiter");
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/UTF-8/);
+  put(prefix + `OPENAI_API_KEY=${"a".repeat(40)}`);
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/Secret/);
+  if (process.platform !== "win32") {
+    const link = path.join(directory, "answers-link.md");
+    fs.symlinkSync(target, link);
+    expect(() => readChallengeAnswer(link, challenge)).toThrow(/unsafe/);
+  }
+  fs.unlinkSync(target);
+  expect(() => readChallengeAnswer(target, challenge)).toThrow(/missing or unsafe/);
+});
+
 it("reuses only byte-identical OpenCode prompts after an interrupted assessment", () => {
   const directory = path.join(tempRoot, "interrupted-opencode");
   fs.mkdirSync(directory, { recursive: true });
@@ -2477,6 +2504,16 @@ it("keeps the selected Phase assessment node and its objective links in evaluato
   }
 });
 
+it("accepts the M05 P05 locator spec only through the approved course:run entrypoint", () => {
+  const root = path.join(tempRoot, "missing-m05-locator-source-sha");
+  const locatorArgs = ["M05", "p05-cart-locator.spec.ts", "--label", "main"];
+  expect(() => runAiAssistedQaSpecCli(locatorArgs, { root })).toThrow(
+    "course:run requires the verified distribution source SHA",
+  );
+  const otherArgs = ["M05", "other.spec.ts", "--label", "main"];
+  expect(() => runAiAssistedQaSpecCli(otherArgs, { root })).toThrow(/Usage: pnpm course:run/);
+});
+
 it("requires a verified distribution SHA before course:run can access learner files", () => {
   expect(() =>
     runAiAssistedQaSpecCli(["M05", "product-link.spec.ts", "--label", "main"], {
@@ -2538,6 +2575,15 @@ function candidate(overrides = {}) {
   };
 }
 
+function readPublishedM05Scoring() {
+  return JSON.parse(
+    fs.readFileSync(
+      path.resolve("training/ai-assisted-qa-course/assessment/scoring-tests/M05.json"),
+      "utf8",
+    ),
+  );
+}
+
 function writeM05RunEvidence(
   root,
   sourceSha = "a".repeat(40),
@@ -2545,19 +2591,31 @@ function writeM05RunEvidence(
 ) {
   const workspaceRoot = path.join(root, "workspace");
   const moduleRoot = path.join(workspaceRoot, "M05");
-  const specPath = path.join(moduleRoot, "product-link.spec.ts");
   const relative = (filePath) => path.relative(root, filePath).split(path.sep).join("/");
-  const command = [
-    "pnpm",
-    "exec",
-    "playwright",
-    "test",
-    "product-link.spec.ts",
-    "--config=playwright.ai-assisted-qa.config.ts",
-    "--project=ai-assisted-qa-chromium",
-    "--retries=0",
-  ].join(" ");
-  const run = ({ label, code, outcome, exitCode, time, runId, withTrace = false }) => {
+  function commandFor(specName) {
+    return [
+      "pnpm",
+      "exec",
+      "playwright",
+      "test",
+      specName,
+      "--config=playwright.ai-assisted-qa.config.ts",
+      "--project=ai-assisted-qa-chromium",
+      "--retries=0",
+    ].join(" ");
+  }
+  const run = ({
+    label,
+    code,
+    outcome,
+    exitCode,
+    time,
+    runId,
+    withTrace = false,
+    specName = "product-link.spec.ts",
+    specTitle = "product link",
+  }) => {
+    const specPath = path.join(moduleRoot, specName);
     const runRoot = path.join(moduleRoot, "evidence", "runs", runId);
     fs.mkdirSync(runRoot, { recursive: true });
     const spec = Buffer.from(code);
@@ -2578,15 +2636,18 @@ function writeM05RunEvidence(
       });
     }
     const report = {
+      config: { rootDir: moduleRoot },
       suites: [
         {
           specs: [
             {
-              file: specPath,
-              title: "product link",
+              file: specName,
+              title: specTitle,
               tests: [
                 {
+                  projectName: "ai-assisted-qa-chromium",
                   expectedStatus: "passed",
+                  status: outcome === "passed" ? "expected" : "unexpected",
                   results: [
                     {
                       status: outcome === "passed" ? "passed" : "failed",
@@ -2611,13 +2672,13 @@ function writeM05RunEvidence(
         run_id: runId,
         module_id: "M05",
         source_sha: sourceSha,
-        spec_path: "workspace/M05/product-link.spec.ts",
+        spec_path: `workspace/M05/${specName}`,
         spec_sha256: sha256(spec),
         source_snapshot_path: relative(snapshotPath),
         source_snapshot_sha256: sha256(spec),
         label,
         project: "ai-assisted-qa-chromium",
-        command,
+        command: commandFor(specName),
         started_at: time,
         finished_at: new Date(Date.parse(time) + 1000).toISOString(),
         exit_code: exitCode,
@@ -2626,7 +2687,7 @@ function writeM05RunEvidence(
         report_sha256: sha256(reportBytes),
         tests: [
           {
-            title: "product link",
+            title: specTitle,
             status: outcome === "passed" ? "passed" : "failed",
             expected_status: "passed",
           },
@@ -2636,6 +2697,7 @@ function writeM05RunEvidence(
               {
                 path: "test-results/trace.zip",
                 size: fs.statSync(tracePath).size,
+                sha256: sha256(fs.readFileSync(tracePath)),
                 name: "trace",
                 content_type: "application/zip",
               },
@@ -2650,6 +2712,7 @@ function writeM05RunEvidence(
   const before = run({
     label: "before",
     code: 'test("broken product link", async () => expect(true).toBe(false));\n',
+    specTitle: "broken product link",
     outcome: "failed",
     exitCode: 1,
     time: "2026-10-27T00:00:00.000Z",
@@ -2659,12 +2722,28 @@ function writeM05RunEvidence(
   const after = run({
     label: "after",
     code: 'test("fixed product link", async () => expect(true).toBe(true));\n',
+    specTitle: "fixed product link",
     outcome: "passed",
     exitCode: 0,
     time: "2026-10-27T00:00:02.000Z",
     runId: runIds[1],
   });
-  return { workspaceRoot, reportPath: after, beforeReportPath: before };
+  const p05ReportPath = run({
+    label: "main",
+    code: 'test("M05 P05 read-only cart locator", async () => expect(true).toBe(true));\n',
+    outcome: "passed",
+    exitCode: 0,
+    time: "2026-10-27T00:00:04.000Z",
+    runId: runIds[2] ?? runIds[1].slice(0, -3) + "002",
+    specName: "p05-cart-locator.spec.ts",
+    specTitle: "M05 P05 read-only cart locator",
+  });
+  return {
+    workspaceRoot,
+    reportPath: after,
+    beforeReportPath: before,
+    p05ReportPath,
+  };
 }
 
 describe("AI-assisted QA formal assessment contracts", () => {
@@ -2728,6 +2807,11 @@ describe("AI-assisted QA formal assessment contracts", () => {
       "Return only the exact JSON object required by your system prompt.",
     ]);
     expect(args).not.toContain("--dir");
+    const evaluatorSource = fs.readFileSync(
+      path.resolve("scripts/training/ai-assisted-qa-assessment.mjs"),
+      "utf8",
+    );
+    expect(evaluatorSource).toContain('OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"');
     expect(
       buildOpenCodeEnvironment({
         source: { PATH: "safe-path" },
@@ -2743,7 +2827,8 @@ describe("AI-assisted QA formal assessment contracts", () => {
       agentId: "qa-course-assessment",
       systemPrompt: "Read evidence only.",
     });
-    expect(config.autoupdate).toBe(false);
+    expect(config.update).toBe("disable");
+    expect(config).not.toHaveProperty("autoupdate");
     expect(config.agents["qa-course-assessment"].mode).toBe("primary");
     expect(config.agents["qa-course-assessment"].permissions).toEqual([
       { action: "*", resource: "*", effect: "deny" },
@@ -2860,6 +2945,55 @@ describe("AI-assisted QA formal assessment contracts", () => {
     }
   });
 
+  it("requires exactly the published Phase objective IDs without duplicates or unknown IDs", () => {
+    const phases = [
+      ["P1", "M04", ["M00", "M01", "M02", "M03", "M04"], 22],
+      ["P2", "M07", ["M05", "M06", "M07"], 15],
+      ["P3", "M10", ["M08", "M09", "M10"], 14],
+    ];
+    for (const [phaseId, terminal, modules, count] of phases) {
+      const terminalStateFile = path.resolve(
+        `training/ai-assisted-qa-course/states/${terminal}/end.json`,
+      );
+      const terminalState = JSON.parse(fs.readFileSync(terminalStateFile, "utf8"));
+      const scoringDirectory = path.resolve(
+        "training/ai-assisted-qa-course/assessment/scoring-tests",
+      );
+      const scoringByModule = new Map(
+        modules.map((moduleId) => [
+          moduleId,
+          JSON.parse(fs.readFileSync(path.join(scoringDirectory, `${moduleId}.json`), "utf8")),
+        ]),
+      );
+      const verify = (scoring = scoringByModule, state = terminalState) =>
+        validatePhaseObjectiveIds({ phaseId, scoringByModule: scoring, terminalState: state });
+      const expected = terminalState.phase_assessment.required_objective_ids;
+      expect(verify()).toEqual(expected);
+      expect(expected).toHaveLength(count);
+
+      const missing = new Map(scoringByModule);
+      missing.delete(modules[0]);
+      expect(() => verify(missing)).toThrow(/invalid/);
+
+      const duplicate = structuredClone(scoringByModule);
+      const first = duplicate.get(modules[0]);
+      first.objective_ids[1] = first.objective_ids[0];
+      expect(() => verify(duplicate)).toThrow(/differ/);
+
+      const unknown = structuredClone(scoringByModule);
+      unknown.get(modules[0]).objective_ids[0] = modules[0] + "-99";
+      expect(() => verify(unknown)).toThrow(/differ/);
+
+      const incompleteState = structuredClone(terminalState);
+      incompleteState.phase_assessment.required_objective_ids.pop();
+      expect(() => verify(scoringByModule, incompleteState)).toThrow(/invalid required/);
+
+      const foreignState = structuredClone(terminalState);
+      foreignState.phase_assessment.required_objective_ids[0] = "M99-01";
+      expect(() => verify(scoringByModule, foreignState)).toThrow(/differ/);
+    }
+  });
+
   it("accepts only terminal modules with one explicit model and safe read actions", () => {
     expect(parseAssessmentArgs(["M04", "--model", "opencode/gpt-free"])).toEqual({
       action: "run",
@@ -2886,6 +3020,9 @@ describe("AI-assisted QA formal assessment contracts", () => {
   it("rejects malformed, mixed-session, tool-using, and incomplete OpenCode output", () => {
     expect(() => parseOpenCodeJsonEvents("not-json", 0)).toThrow(/malformed JSON/);
     expect(() => parseOpenCodeJsonEvents('{"type":"tool_use"}\n', 0)).toThrow(/tool\/error event/);
+    expect(() => parseOpenCodeJsonEvents('{"type":"error","error":{"statusCode":429}}', 0)).toThrow(
+      /BLOCKED/,
+    );
     expect(() =>
       parseOpenCodeJsonEvents(
         '{"type":"text","part":{"type":"text","text":"{}"},"sessionID":"a"}\n{"type":"step_finish","reason":"stop","sessionID":"b"}',
@@ -2901,6 +3038,22 @@ describe("AI-assisted QA formal assessment contracts", () => {
         0,
       ).response,
     ).toBe("{}");
+    for (const incompleteReason of ["length", "tool-calls", "error", "unknown", null]) {
+      const events = [
+        JSON.stringify({ type: "text", part: { type: "text", text: "{}" } }),
+        JSON.stringify({ type: "step_finish", reason: incompleteReason }),
+      ].join("\n");
+      expect(() => parseOpenCodeJsonEvents(events, 0)).toThrow(/clean text response/);
+    }
+    const validEvents = [
+      JSON.stringify({ type: "text", part: { type: "text", text: "{}" } }),
+      JSON.stringify({ type: "step_finish", reason: "stop" }),
+    ].join("\n");
+    expect(() => parseOpenCodeJsonEvents(validEvents + "\n" + validEvents)).toThrow(
+      /after the terminal/,
+    );
+    expect(() => parseOpenCodeJsonEvents(validEvents, 429)).toThrow(/exited with code/);
+    expect(() => parseOpenCodeJsonEvents("", 0)).toThrow(/no JSON event stream/);
     expect(() => parseStrictJsonResponse("```json\n{}\n```")).toThrow(/single JSON document/);
   });
 
@@ -2988,6 +3141,7 @@ describe("AI-assisted QA formal assessment contracts", () => {
     const normalized = validateCandidate(candidate(), context);
     const args = {
       candidate: normalized,
+      requiredObjectiveIds: context.objectiveIds,
       calibration: { id: "cal-1", status: "passed", critical_false_passes: 0, mismatches: [] },
       sourceSha: "a".repeat(40),
       versions: {
@@ -3008,6 +3162,37 @@ describe("AI-assisted QA formal assessment contracts", () => {
       },
     };
     expect(finalizeAssessment(args).completed).toBe(true);
+    expect(finalizeAssessment({ ...args, requiredObjectiveIds: undefined })).toMatchObject({
+      status: "ungradable",
+      completed: false,
+    });
+    expect(
+      finalizeAssessment({ ...args, requiredObjectiveIds: [context.objectiveIds[0]] }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        requiredObjectiveIds: [context.objectiveIds[0], "M99-01"],
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    expect(
+      finalizeAssessment({
+        ...args,
+        requiredObjectiveIds: [context.objectiveIds[0], context.objectiveIds[0]],
+      }),
+    ).toMatchObject({ status: "ungradable", completed: false });
+    for (const [status, expectedStatus] of [
+      ["not_run", "incomplete"],
+      ["ungradable", "ungradable"],
+      ["blocked", "blocked"],
+    ]) {
+      const changed = structuredClone(normalized);
+      changed.objectives[0] = { ...changed.objectives[0], status, level: null };
+      expect(finalizeAssessment({ ...args, candidate: changed })).toMatchObject({
+        status: expectedStatus,
+        completed: false,
+      });
+    }
     expect(
       finalizeAssessment({
         ...args,
@@ -3072,33 +3257,114 @@ describe("AI-assisted QA formal assessment contracts", () => {
     });
   });
 
+  it("verifies exactly the three published M05 Run requirements without injecting another Run", () => {
+    const scoring = readPublishedM05Scoring();
+    expect(scoring.evaluation_policy.execution_evidence.required_runs).toEqual([
+      {
+        spec: "product-link.spec.ts",
+        label: "before",
+        minimum_tests: 1,
+        expected_outcome: "failed",
+        require_trace: true,
+      },
+      {
+        spec: "product-link.spec.ts",
+        label: "after",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+      {
+        spec: "p05-cart-locator.spec.ts",
+        label: "main",
+        minimum_tests: 1,
+        expected_outcome: "passed",
+      },
+    ]);
+    const { workspaceRoot, p05ReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "m05-three-published-runs"),
+    );
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    const verified = verify();
+    expect(verified.status).toBe("passed");
+    expect(
+      verified.checks.filter((check) => check.id.startsWith("M05-RUN-")).map((check) => check.id),
+    ).toEqual([
+      "M05-RUN-product-link.spec.ts-before",
+      "M05-RUN-product-link.spec.ts-after",
+      "M05-RUN-p05-cart-locator.spec.ts-main",
+    ]);
+    fs.unlinkSync(path.join(path.dirname(p05ReportPath), "run-evidence.json"));
+    expect(verify()).toMatchObject({
+      status: "ungradable",
+      checks: expect.arrayContaining([
+        expect.objectContaining({
+          id: "M05-RUN-p05-cart-locator.spec.ts-main",
+          status: "ungradable",
+        }),
+      ]),
+    });
+  });
+
+  it("rejects incomplete, duplicated, mislabeled, stale, and tampered public M05 Run evidence", () => {
+    const scoring = readPublishedM05Scoring();
+    const { workspaceRoot, beforeReportPath, reportPath, p05ReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "m05-public-negative-runs"),
+    );
+    const verify = (contract = scoring, sourceSha = "a".repeat(40)) =>
+      verifyModuleRunEvidence({ workspaceRoot, moduleId: "M05", scoring: contract, sourceSha });
+    expect(verify().status).toBe("passed");
+
+    const duplicate = structuredClone(scoring);
+    duplicate.evaluation_policy.execution_evidence.required_runs.push(
+      structuredClone(duplicate.evaluation_policy.execution_evidence.required_runs[2]),
+    );
+    expect(verify(duplicate)).toMatchObject({
+      status: "ungradable",
+      reasons: [expect.stringMatching(/duplicates a Playwright run label/)],
+    });
+
+    const wrongSpec = structuredClone(scoring);
+    wrongSpec.evaluation_policy.execution_evidence.required_runs[2].spec = "product-link.spec.ts";
+    expect(verify(wrongSpec).status).toBe("ungradable");
+    const wrongLabel = structuredClone(scoring);
+    wrongLabel.evaluation_policy.execution_evidence.required_runs[2].label = "repeat";
+    expect(verify(wrongLabel).status).toBe("ungradable");
+    expect(verify(scoring, "b".repeat(40)).status).toBe("ungradable");
+
+    const validReport = fs.readFileSync(p05ReportPath);
+    fs.appendFileSync(p05ReportPath, " ");
+    expect(verify().status).toBe("ungradable");
+    fs.writeFileSync(p05ReportPath, validReport);
+    expect(verify().status).toBe("passed");
+
+    fs.unlinkSync(path.join(path.dirname(beforeReportPath), "run-evidence.json"));
+    fs.unlinkSync(path.join(path.dirname(reportPath), "run-evidence.json"));
+    expect(verify()).toMatchObject({
+      status: "ungradable",
+      checks: expect.arrayContaining([
+        expect.objectContaining({
+          id: "M05-RUN-product-link.spec.ts-before",
+          status: "ungradable",
+        }),
+        expect.objectContaining({
+          id: "M05-RUN-product-link.spec.ts-after",
+          status: "ungradable",
+        }),
+      ]),
+    });
+  });
+
   it("requires same-run Playwright reports and source snapshots for Phase 2 evidence", () => {
     const { workspaceRoot, reportPath } = writeM05RunEvidence(
       path.join(tempRoot, "playwright-proof"),
     );
-    const scoring = {
-      evaluation_policy: {
-        execution_evidence: {
-          schema_version: 1,
-          kind: "playwright-run-record",
-          required_runs: [
-            {
-              spec: "product-link.spec.ts",
-              label: "before",
-              minimum_tests: 1,
-              expected_outcome: "failed",
-              require_trace: true,
-            },
-            {
-              spec: "product-link.spec.ts",
-              label: "after",
-              minimum_tests: 1,
-              expected_outcome: "passed",
-            },
-          ],
-        },
-      },
-    };
+    const scoring = readPublishedM05Scoring();
     const verified = verifyModuleRunEvidence({
       workspaceRoot,
       moduleId: "M05",
@@ -3123,13 +3389,193 @@ describe("AI-assisted QA formal assessment contracts", () => {
     ).toMatchObject({ status: "ungradable" });
   });
 
+  it("rejects a modified Playwright trace even when its length is unchanged", () => {
+    const { workspaceRoot, beforeReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "playwright-trace-hash"),
+    );
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify().status).toBe("passed");
+    const tracePath = path.join(path.dirname(beforeReportPath), "test-results", "trace.zip");
+    const original = fs.readFileSync(tracePath);
+    fs.writeFileSync(tracePath, Buffer.alloc(original.length, 0x41));
+    expect(verify().status).toBe("ungradable");
+  });
+
+  it("does not treat a passing test's trace as proof of a failed test's trace", () => {
+    const { workspaceRoot, beforeReportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "trace-attached-to-wrong-test"),
+    );
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "before",
+              minimum_tests: 1,
+              expected_outcome: "failed",
+              require_trace: true,
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    expect(verify().status).toBe("passed");
+    const receiptPath = path.join(path.dirname(beforeReportPath), "run-evidence.json");
+    const report = JSON.parse(fs.readFileSync(beforeReportPath, "utf8"));
+    const spec = report.suites[0].specs[0];
+    const originalTrace = spec.tests[0].results[0].attachments;
+    spec.tests[0].results[0].attachments = [];
+    report.suites[0].specs.push({
+      ...spec,
+      title: "unrelated passing test",
+      tests: [
+        {
+          projectName: "ai-assisted-qa-chromium",
+          expectedStatus: "passed",
+          status: "expected",
+          results: [{ status: "passed", attachments: originalTrace }],
+        },
+      ],
+    });
+    const reportBytes = Buffer.from(JSON.stringify(report));
+    fs.writeFileSync(beforeReportPath, reportBytes);
+    const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+    receipt.report_sha256 = sha256(reportBytes);
+    receipt.tests.push({
+      title: "unrelated passing test",
+      status: "passed",
+      expected_status: "passed",
+    });
+    fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+    expect(verify().status).toBe("ungradable");
+  });
+
+  it("rejects foreign roots, specs, skipped and expected-failure Playwright reports", () => {
+    const { workspaceRoot, reportPath } = writeM05RunEvidence(
+      path.join(tempRoot, "playwright-rootdir-proof"),
+    );
+    const moduleRoot = path.join(workspaceRoot, "M05");
+    const receiptPath = path.join(path.dirname(reportPath), "run-evidence.json");
+    const scoring = {
+      evaluation_policy: {
+        execution_evidence: {
+          schema_version: 1,
+          kind: "playwright-run-record",
+          required_runs: [
+            {
+              spec: "product-link.spec.ts",
+              label: "after",
+              minimum_tests: 1,
+              expected_outcome: "passed",
+            },
+          ],
+        },
+      },
+    };
+    const verify = () =>
+      verifyModuleRunEvidence({
+        workspaceRoot,
+        moduleId: "M05",
+        scoring,
+        sourceSha: "a".repeat(40),
+      });
+    const original = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+    const writeReport = (report) => {
+      const bytes = Buffer.from(JSON.stringify(report));
+      fs.writeFileSync(reportPath, bytes);
+      const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+      receipt.report_sha256 = sha256(bytes);
+      fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+    };
+    expect(original.config.rootDir).toBe(moduleRoot);
+    expect(original.suites[0].specs[0].file).toBe("product-link.spec.ts");
+    expect(verify().status).toBe("passed");
+
+    const nested = structuredClone(original);
+    nested.suites = [{ suites: [{ specs: nested.suites[0].specs }] }];
+    writeReport(nested);
+    expect(verify().status).toBe("passed");
+
+    const badRoot = structuredClone(original);
+    badRoot.config.rootDir = path.dirname(workspaceRoot);
+    writeReport(badRoot);
+    expect(verify().status).toBe("ungradable");
+
+    const foreignSpec = structuredClone(original);
+    foreignSpec.suites[0].specs.push({
+      ...foreignSpec.suites[0].specs[0],
+      file: "another.spec.ts",
+    });
+    writeReport(foreignSpec);
+    expect(verify().status).toBe("ungradable");
+
+    const skipped = structuredClone(original);
+    skipped.suites[0].specs[0].tests[0].status = "skipped";
+    writeReport(skipped);
+    expect(verify().status).toBe("ungradable");
+
+    const expectedFailure = structuredClone(original);
+    expectedFailure.suites[0].specs[0].tests[0].expectedStatus = "failed";
+    writeReport(expectedFailure);
+    expect(verify().status).toBe("ungradable");
+
+    const missingAttempt = structuredClone(original);
+    missingAttempt.suites[0].specs[0].tests[0].results = [];
+    writeReport(missingAttempt);
+    expect(verify().status).toBe("ungradable");
+  });
+
   it("rejects reversed initial/repeat receipts even when both runs pass", () => {
     const { workspaceRoot } = writeM05RunEvidence(path.join(tempRoot, "m06-replay-order"));
     const sourceModule = path.join(workspaceRoot, "M05");
     const moduleRoot = path.join(workspaceRoot, "M06");
     const specPath = path.join(moduleRoot, "new-case.spec.ts");
     fs.mkdirSync(moduleRoot, { recursive: true });
-    fs.copyFileSync(path.join(sourceModule, "product-link.spec.ts"), specPath);
+    const m06Source = Buffer.from(
+      [
+        'import { expect, test } from "@playwright/test";',
+        'test("CASE-CART-004 remove item", async ({ page }) => {',
+        '  await expect(page.getByLabel("数量")).toHaveValue("1");',
+        "});",
+        'test("CASE-CART-005 retain changed quantity", async ({ page }) => {',
+        '  await expect(page.getByLabel("数量")).toHaveValue("2");',
+        "});",
+      ].join("\n"),
+    );
+    fs.writeFileSync(specPath, m06Source);
     const sourceRun = path.join(
       sourceModule,
       "evidence",
@@ -3144,11 +3590,17 @@ describe("AI-assisted QA formal assessment contracts", () => {
     for (const [label, runId, startedAt] of runs) {
       const targetRun = path.join(moduleRoot, "evidence", "runs", runId);
       fs.cpSync(sourceRun, targetRun, { recursive: true });
+      fs.writeFileSync(path.join(targetRun, "spec-snapshot.ts"), m06Source);
       const reportPath = path.join(targetRun, "playwright-result.json");
       const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+      report.config.rootDir = moduleRoot;
       const originalSpec = report.suites[0].specs[0];
-      originalSpec.file = specPath;
-      report.suites[0].specs.push({ ...originalSpec, title: "second independent case" });
+      originalSpec.file = "new-case.spec.ts";
+      originalSpec.title = "CASE-CART-004 remove item";
+      report.suites[0].specs.push({
+        ...originalSpec,
+        title: "CASE-CART-005 retain changed quantity",
+      });
       const reportBytes = Buffer.from(JSON.stringify(report));
       fs.writeFileSync(reportPath, reportBytes);
 
@@ -3159,6 +3611,8 @@ describe("AI-assisted QA formal assessment contracts", () => {
         run_id: runId,
         label,
         spec_path: "workspace/M06/new-case.spec.ts",
+        spec_sha256: sha256(m06Source),
+        source_snapshot_sha256: sha256(m06Source),
         source_snapshot_path: `workspace/M06/evidence/runs/${runId}/spec-snapshot.ts`,
         report_path: `workspace/M06/evidence/runs/${runId}/playwright-result.json`,
         report_sha256: sha256(reportBytes),
@@ -3208,6 +3662,37 @@ describe("AI-assisted QA formal assessment contracts", () => {
     expect(verify().status).toBe("passed");
 
     const repeatPath = receiptPaths.get("repeat");
+    const repeatReportPath = path.join(path.dirname(repeatPath), "playwright-result.json");
+    const validReportBytes = fs.readFileSync(repeatReportPath);
+    const validReceiptBytes = fs.readFileSync(repeatPath);
+    const inventedReport = JSON.parse(validReportBytes.toString("utf8"));
+    inventedReport.suites[0].specs[0].title = "CASE-CART-004 invented passing test";
+    const inventedBytes = Buffer.from(JSON.stringify(inventedReport));
+    fs.writeFileSync(repeatReportPath, inventedBytes);
+    const inventedReceipt = JSON.parse(validReceiptBytes.toString("utf8"));
+    inventedReceipt.report_sha256 = sha256(inventedBytes);
+    inventedReceipt.tests[0].title = inventedReport.suites[0].specs[0].title;
+    fs.writeFileSync(repeatPath, JSON.stringify(inventedReceipt));
+    expect(verify()).toMatchObject({
+      status: "ungradable",
+      reasons: [expect.stringMatching(/report test titles do not match/)],
+    });
+    fs.writeFileSync(repeatReportPath, validReportBytes);
+    fs.writeFileSync(repeatPath, validReceiptBytes);
+
+    const duplicateReport = JSON.parse(validReportBytes.toString("utf8"));
+    duplicateReport.suites[0].specs[1].title = "CASE-CART-004 duplicated";
+    const forgedReportBytes = Buffer.from(JSON.stringify(duplicateReport));
+    fs.writeFileSync(repeatReportPath, forgedReportBytes);
+    const duplicateReceipt = JSON.parse(validReceiptBytes.toString("utf8"));
+    duplicateReceipt.report_sha256 = sha256(forgedReportBytes);
+    duplicateReceipt.tests[1].title = duplicateReport.suites[0].specs[1].title;
+    fs.writeFileSync(repeatPath, JSON.stringify(duplicateReceipt));
+    const duplicateResult = verify();
+    expect(duplicateResult.status).toBe("ungradable");
+    expect(duplicateResult.reasons.join(" ")).toMatch(/report test titles do not match/);
+    fs.writeFileSync(repeatReportPath, validReportBytes);
+    fs.writeFileSync(repeatPath, validReceiptBytes);
     const repeat = JSON.parse(fs.readFileSync(repeatPath, "utf8"));
     repeat.started_at = "2026-10-27T00:00:00.000Z";
     repeat.finished_at = "2026-10-27T00:00:01.000Z";
@@ -3467,6 +3952,31 @@ it("exports a finalized assessment once without copying unexpected files", () =>
   expect(fs.readdirSync(target).sort()).toEqual(["answers.md", "result.json"]);
   expect(fs.readFileSync(path.join(target, "answers.md"), "utf8")).toBe("private learner answer");
   expect(() => exportAssessment("P1", id, root)).toThrow(/already exists/);
+});
+
+it("exports Phase 2 without a Git or PR prerequisite and permits a new attempt", () => {
+  const root = path.join(tempRoot, "phase2-git-free-reassessment");
+  const assessmentId = "123e4567-e89b-42d3-a456-426614174024";
+  const newAssessmentId = "123e4567-e89b-42d3-a456-426614174025";
+  const attempt = path.join(root, ".course-assessments", "P2", "attempts", assessmentId);
+  fs.mkdirSync(attempt, { recursive: true });
+  fs.writeFileSync(path.join(attempt, "result.json"), '{"completed":false}');
+  fs.writeFileSync(path.join(attempt, "summary.md"), "# 復習対象\\n");
+  expect(parseAssessmentArgs(["M07", "--export", assessmentId])).toMatchObject({
+    action: "export",
+    phase: "P2",
+    assessmentId,
+  });
+  expect(() => parseAssessmentArgs(["M10", "--export", assessmentId])).toThrow(/Git-free/);
+  expect(() => exportAssessment("P3", assessmentId, root)).toThrow(/Phase 1 and Phase 2/);
+  expect(() => exportAssessment("P9", assessmentId, root)).toThrow(/Phase 1 and Phase 2/);
+  exportAssessment("P2", assessmentId, root);
+  const exported = path.join(root, "course-assessment-exports", assessmentId);
+  expect(fs.readdirSync(exported).sort()).toEqual(["result.json", "summary.md"]);
+  const nextAttempt = createAttemptDirectory(root, "P2", newAssessmentId);
+  expect(fs.statSync(nextAttempt).isDirectory()).toBe(true);
+  expect(fs.readFileSync(path.join(exported, "summary.md"), "utf8")).toBe("# 復習対象\\n");
+  expect(fs.readFileSync(path.join(attempt, "result.json"), "utf8")).toBe('{"completed":false}');
 });
 
 it("does not publish a partial export after a failed copy", () => {

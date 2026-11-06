@@ -146,7 +146,7 @@
     {
       "id": "M00-CAL-01",
       "type": "correct",
-      "response": "依頼で目的・参照資料・編集許可範囲・提出ファイル・完了条件を指定し、保存後の差分とコマンド結果で範囲内の作業を証明する。",
+      "response": "依頼で目的・参照資料・編集許可範囲・提出ファイル・完了条件を指定し、保存後の差分とコマンド結果で範囲内の作業を証明する。 P04では実AIの採否とは別に、架空の「タブ閉鎖でCodespace停止・Remote自動反映」を本人が否定し、course/start-here.mdとM00教本の該当見出し・根拠を示す。両者の証拠を混同せず無変更を前後のファイル照合で確かめる。",
       "evidence": [
         "reference-solutions/M00.md",
         "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
@@ -183,7 +183,7 @@
     {
       "id": "M00-CAL-04",
       "type": "acceptable-alternative",
-      "response": "VS Code Source Controlで変更差分を確認し、コマンドと結果をテキストで記録する。",
+      "response": "VS Code Source Controlで変更差分を確認し、コマンドと結果をテキストで記録する。 P04の架空誤回答への本人の独立訂正も指定2資料の該当節で示し、実AI回答の採否とは別証拠にする。",
       "evidence": ["docs/curriculum/ai-assisted-qa/modules/M00/README.md"],
       "expected_decision": "pass_with_reason",
       "rationale": "表現や実装は異なるが契約・観測・追跡性を満たす。",
