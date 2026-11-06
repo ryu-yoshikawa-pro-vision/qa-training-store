@@ -39,20 +39,14 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
       "skills/test-case-design/SKILL.md",
       "skills/test-case-design/scripts/case_structure.py",
     ];
-    const runtimeSkills = [
-      "spec-analysis",
-      "test-analysis",
-      "test-condition-design",
-      "test-case-design",
-    ];
-    for (const skill of runtimeSkills) {
-      paths.push(`skills/${skill}/scripts/runtime_contract.py`);
+    const sharedRuntimePath = "skills/spec-analysis/scripts/runtime_contract.py";
+    const sharedRuntimeSha = requirePinned(sharedRuntimePath).blob_sha;
+    for (const skill of ["test-analysis", "test-condition-design", "test-case-design"]) {
+      const runtimePath = `skills/${skill}/scripts/runtime_contract.py`;
+      paths.push(runtimePath);
+      expect(requirePinned(runtimePath).blob_sha).toBe(sharedRuntimeSha);
     }
     for (const sourcePath of paths) requirePinned(sourcePath);
-    const shared = runtimeSkills.map(
-      (skill) => requirePinned(`skills/${skill}/scripts/runtime_contract.py`).blob_sha,
-    );
-    expect(new Set(shared).size).toBe(1);
   });
 
   it("keeps the M02/M03 real specification, Risk and Scope distinct", () => {
@@ -98,8 +92,8 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     const testCase = JSON.parse(
       read("training/ai-assisted-qa-course/exercises/M03/case-runtime-evidence-template.json"),
     );
-    const evidenceTemplates = [["condition", condition], ["case", testCase]];
-    for (const [name, template] of evidenceTemplates) {
+    for (const name of ["condition", "case"]) {
+      const template = name === "condition" ? condition : testCase;
       expect(template.operation).toBe("verify_runtime_evidence");
       expect(template.partial_rerun).toBe(false);
       expect(template.previous_artifact_markdown).toBeNull();
