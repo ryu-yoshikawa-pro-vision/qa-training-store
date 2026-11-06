@@ -39,11 +39,17 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
       "skills/test-case-design/SKILL.md",
       "skills/test-case-design/scripts/case_structure.py",
     ];
-    for (const skill of ["spec-analysis", "test-analysis", "test-condition-design", "test-case-design"]) {
+    const runtimeSkills = [
+      "spec-analysis",
+      "test-analysis",
+      "test-condition-design",
+      "test-case-design",
+    ];
+    for (const skill of runtimeSkills) {
       paths.push(`skills/${skill}/scripts/runtime_contract.py`);
     }
     for (const sourcePath of paths) requirePinned(sourcePath);
-    const shared = ["spec-analysis", "test-analysis", "test-condition-design", "test-case-design"].map(
+    const shared = runtimeSkills.map(
       (skill) => requirePinned(`skills/${skill}/scripts/runtime_contract.py`).blob_sha,
     );
     expect(new Set(shared).size).toBe(1);
@@ -69,7 +75,8 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m03).toContain("独立したMachine Entityではありません");
     expect(m03).toContain("Riskの出典は");
     const requestBlock = m03.match(/```json\n([\s\S]*?)\n```/);
-    expect(requestBlock, "M03 should include the pinned Authority input, not a fake result").not.toBeNull();
+    const requestDescription = "M03 should include the pinned Authority input, not a fake result";
+    expect(requestBlock, requestDescription).not.toBeNull();
     const request = JSON.parse(requestBlock[1]);
     expect(Object.keys(request)).toEqual(["authorities"]);
     expect(request.authorities).toHaveLength(2);
@@ -91,7 +98,11 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     const testCase = JSON.parse(
       read("training/ai-assisted-qa-course/exercises/M03/case-runtime-evidence-template.json"),
     );
-    for (const [name, template] of [["condition", condition], ["case", testCase]]) {
+    const evidenceTemplates = [
+      ["condition", condition],
+      ["case", testCase],
+    ];
+    for (const [name, template] of evidenceTemplates) {
       expect(template.operation).toBe("verify_runtime_evidence");
       expect(template.partial_rerun).toBe(false);
       expect(template.previous_artifact_markdown).toBeNull();
@@ -108,7 +119,8 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
       const call = `python3 .agents/skills/${skill}/scripts/runtime_contract.py < workspace/M03/${artifact}-runtime-evidence.json`;
       expect(exercise).toContain(call);
       expect(lesson).toContain(call);
-      expect(exercise).toContain(`result_path = Path(f"workspace/M03/{phase}-verification-result.json")`);
+      const expectedResultPath = `result_path = Path(f"workspace/M03/{phase}-verification-result.json")`;
+      expect(exercise).toContain(expectedResultPath);
     }
     expect(exercise).not.toContain(
       "test-condition-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json",
