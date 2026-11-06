@@ -12,7 +12,10 @@ import type {
   StartOrderPreparationRequest,
 } from "@/application/contracts";
 import { ApplicationError, conflictError, validationError } from "@/application/errors";
-import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import {
+  assertActorStillAuthorized,
+  SessionIdentityResolver,
+} from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { InventoryHistory, Order, Shipment } from "@/domain/contracts";
@@ -99,15 +102,20 @@ export class AdminOperationsUseCases {
     ) {
       throw validationError("inventory.adjustment.invalid");
     }
-    await this.dependencies.transactionRunner.run("adjust-inventory", ({ inventory }) =>
-      inventory.updateQuantity({
-        ...request,
-        reasonText: request.reasonText.trim(),
-        historyId: this.dependencies.idGenerator.generate(),
-        actorUserId: actor.id,
-        orderId: null,
-        now,
-      }),
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    await this.dependencies.transactionRunner.run(
+      "adjust-inventory",
+      async ({ inventory, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return inventory.updateQuantity({
+          ...request,
+          reasonText: request.reasonText.trim(),
+          historyId: this.dependencies.idGenerator.generate(),
+          actorUserId: actor.id,
+          orderId: null,
+          now,
+        });
+      },
     );
     return this.getInventoryDetail(request.variantId);
   }
@@ -153,9 +161,11 @@ export class AdminOperationsUseCases {
 
   async startPreparation(request: StartOrderPreparationRequest): Promise<AdminOrderDetailDto> {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     await this.dependencies.transactionRunner.run(
       "start-order-preparation",
-      async ({ orders, shipments }) => {
+      async ({ orders, shipments, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         const order = await this.requireOrderVersion(
           orders,
           request.orderId,
@@ -184,6 +194,7 @@ export class AdminOperationsUseCases {
 
   async ship(request: ShipOrderRequest): Promise<AdminOrderDetailDto> {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     const carrierName = request.carrierName.trim();
     const trackingNumber = request.trackingNumber.trim();
     if (
@@ -194,45 +205,51 @@ export class AdminOperationsUseCases {
     ) {
       throw validationError("shipment.fields.required");
     }
-    await this.dependencies.transactionRunner.run("ship-order", async ({ orders, shipments }) => {
-      const order = await this.requireOrderVersion(
-        orders,
-        request.orderId,
-        request.orderActionVersion,
-      );
-      if (order.status !== "preparing") throw this.invalidTransition();
-      const shipment = await shipments.getByOrder(order.id);
-      if (shipment === null || shipment.status !== "pending") throw this.invalidTransition();
-      await shipments.update(
-        {
-          ...shipment,
-          status: "shipped",
-          carrierName,
-          trackingNumber,
-          shippedAt: now,
-          updatedAt: now,
-        },
-        shipment.version,
-      );
-      await orders.update({ ...order, status: "shipped", updatedAt: now }, order.version);
-      await orders.appendStatusHistory({
-        id: this.dependencies.idGenerator.generate(),
-        orderId: order.id,
-        fromStatus: "preparing",
-        toStatus: "shipped",
-        actorUserId: actor.id,
-        reasonCode: "SHIPPED",
-        createdAt: now,
-      });
-    });
+    await this.dependencies.transactionRunner.run(
+      "ship-order",
+      async ({ orders, shipments, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        const order = await this.requireOrderVersion(
+          orders,
+          request.orderId,
+          request.orderActionVersion,
+        );
+        if (order.status !== "preparing") throw this.invalidTransition();
+        const shipment = await shipments.getByOrder(order.id);
+        if (shipment === null || shipment.status !== "pending") throw this.invalidTransition();
+        await shipments.update(
+          {
+            ...shipment,
+            status: "shipped",
+            carrierName,
+            trackingNumber,
+            shippedAt: now,
+            updatedAt: now,
+          },
+          shipment.version,
+        );
+        await orders.update({ ...order, status: "shipped", updatedAt: now }, order.version);
+        await orders.appendStatusHistory({
+          id: this.dependencies.idGenerator.generate(),
+          orderId: order.id,
+          fromStatus: "preparing",
+          toStatus: "shipped",
+          actorUserId: actor.id,
+          reasonCode: "SHIPPED",
+          createdAt: now,
+        });
+      },
+    );
     return this.getOrder(request.orderId);
   }
 
   async completeDelivery(request: CompleteDeliveryRequest): Promise<AdminOrderDetailDto> {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     await this.dependencies.transactionRunner.run(
       "complete-delivery",
-      async ({ orders, shipments }) => {
+      async ({ orders, shipments, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         const order = await this.requireOrderVersion(
           orders,
           request.orderId,

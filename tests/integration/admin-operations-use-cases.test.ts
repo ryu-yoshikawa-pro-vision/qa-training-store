@@ -1,6 +1,7 @@
 import Dexie from "dexie";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import { AdminOperationsUseCases } from "@/application/use-cases/admin-operations-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
@@ -86,6 +87,32 @@ describe("admin inventory, order, and shipment integration", () => {
       reasonText: "撮影用在庫の戻し",
       createdAt: FIXED_TIME,
     });
+  });
+
+  it("separates out, low, and available inventory at 0/1/5/6 stock boundaries", async () => {
+    const variants = (await database.product_variants.toArray()).slice(0, 4);
+    expect(variants).toHaveLength(4);
+    const quantities = [0, 1, 5, 6];
+    for (const [index, variant] of variants.entries()) {
+      await database.product_variants.update(variant.id, {
+        stockQuantity: quantities[index]!,
+      });
+    }
+    const ids = new Set(variants.map((variant) => variant.id));
+    const inventoryIds = async (stockState: "out" | "low" | "available") => {
+      const result = await useCases.searchInventory({
+        stockState,
+        pageSize: 100,
+      });
+      return result.items
+        .filter((item) => ids.has(item.variantId))
+        .map((item) => item.variantId);
+    };
+    expect(await inventoryIds("out")).toEqual([variants[0]!.id]);
+    expect(new Set(await inventoryIds("low"))).toEqual(
+      new Set([variants[1]!.id, variants[2]!.id]),
+    );
+    expect(await inventoryIds("available")).toEqual([variants[3]!.id]);
   });
 
   it("rolls back invalid stock and stale-version adjustments", async () => {
@@ -227,5 +254,87 @@ describe("admin inventory, order, and shipment integration", () => {
     expect(delivered.timeline.map((item) => item.status)).toEqual(
       expect.arrayContaining(["preparing", "shipped", "delivered"]),
     );
+  });
+
+  it.each(["inventory", "preparation"] as const)(
+    "rejects %s changes after actor Session revocation, preserving target state",
+    async (kind) => {
+      const original = new DexieApplicationTransactionRunner(database);
+      const transactionRunner: ApplicationTransactionRunner = {
+        async run(scope, work) {
+          if (scope === "adjust-inventory" || scope === "start-order-preparation") {
+            await database.sessions.where("userId").equals("user-operator").delete();
+          }
+          return original.run(scope, work);
+        },
+      };
+      const restricted = new AdminOperationsUseCases({
+        ...createDexieApplicationRepositories(database),
+        transactionRunner,
+        currentSessionStore: new SessionStore("operator-session"),
+        clock: new TestClock(FIXED_TIME),
+        idGenerator: new Ids(),
+      });
+      const variant = (await database.product_variants.get("variant-basic-shirt-02"))!;
+      const order = (await database.orders.get("order-paid"))!;
+      const inventoryHistories = await database.inventory_histories.toArray();
+      const orderHistories = await database.order_status_histories.toArray();
+      const shipments = await database.shipments.toArray();
+      const action =
+        kind === "inventory"
+          ? restricted.adjustInventory({
+              variantId: variant.id,
+              changeQuantity: 1,
+              reasonCode: "CORRECTION",
+              reasonText: "不許可",
+              expectedVersion: variant.version,
+            })
+          : restricted.startPreparation({
+              orderId: order.id,
+              orderActionVersion: order.version,
+            });
+      await expect(action).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+      expect(await database.product_variants.get(variant.id)).toEqual(variant);
+      expect(await database.orders.get(order.id)).toEqual(order);
+      expect(await database.inventory_histories.toArray()).toEqual(inventoryHistories);
+      expect(await database.order_status_histories.toArray()).toEqual(orderHistories);
+      expect(await database.shipments.toArray()).toEqual(shipments);
+    },
+  );
+
+  it("rejects inventory adjustment after operator demotion with a surviving Session", async () => {
+    const original = new DexieApplicationTransactionRunner(database);
+    const transactionRunner: ApplicationTransactionRunner = {
+      async run(scope, work) {
+        if (scope === "adjust-inventory") {
+          const actor = (await database.users.get("user-operator"))!;
+          await database.users.put({
+            ...actor,
+            role: "customer",
+            membershipRank: "regular",
+            version: actor.version + 1,
+          });
+        }
+        return original.run(scope, work);
+      },
+    };
+    const restricted = new AdminOperationsUseCases({
+      ...createDexieApplicationRepositories(database),
+      transactionRunner,
+      currentSessionStore: new SessionStore("operator-session"),
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new Ids(),
+    });
+    const variant = (await database.product_variants.get("variant-basic-shirt-02"))!;
+    await expect(
+      restricted.adjustInventory({
+        variantId: variant.id,
+        changeQuantity: 1,
+        reasonCode: "CORRECTION",
+        reasonText: "不許可",
+        expectedVersion: variant.version,
+      }),
+    ).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
+    expect(await database.product_variants.get(variant.id)).toEqual(variant);
   });
 });

@@ -1,6 +1,7 @@
 import Dexie from "dexie";
 import type { CreateProductRequest } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import { AdminProductUseCases } from "@/application/use-cases/admin-product-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
@@ -573,4 +574,45 @@ describe("admin product aggregate application integration", () => {
       await database.product_variants.where("productId").equals("product-basic-shirt").toArray(),
     ).toEqual(before);
   });
+
+  it.each(["create-product-aggregate", "change-product-status"] as const)(
+    "rejects %s when the operator loses Session before writing",
+    async (scopeToRevoke) => {
+      const baseRunner = new DexieApplicationTransactionRunner(database);
+      const transactionRunner: ApplicationTransactionRunner = {
+        async run(scope, work) {
+          if (scope === scopeToRevoke) {
+            await database.sessions.where("userId").equals("user-operator").delete();
+          }
+          return baseRunner.run(scope, work);
+        },
+      };
+      const repositories = createDexieApplicationRepositories(database);
+      const restricted = new AdminProductUseCases({
+        ...repositories,
+        products: repositories.productRecords,
+        transactionRunner,
+        currentSessionStore: new SessionStore("operator-session"),
+        clock: new TestClock(FIXED_TIME),
+        idGenerator: new Ids(),
+      });
+      const product = (await database.products.get("product-basic-shirt"))!;
+      const beforeProducts = await database.products.count();
+      const beforeVariants = await database.product_variants.toArray();
+      const beforeHistories = await database.inventory_histories.toArray();
+      const attempt =
+        scopeToRevoke === "create-product-aggregate"
+          ? restricted.create(baseCreate)
+          : restricted.changeStatus({
+              productId: product.id,
+              targetStatus: "unpublished",
+              expectedVersion: product.version,
+            });
+      await expect(attempt).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+      expect(await database.products.count()).toBe(beforeProducts);
+      expect(await database.products.get(product.id)).toEqual(product);
+      expect(await database.product_variants.toArray()).toEqual(beforeVariants);
+      expect(await database.inventory_histories.toArray()).toEqual(beforeHistories);
+    },
+  );
 });

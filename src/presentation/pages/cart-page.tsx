@@ -16,6 +16,7 @@ const issueLabels: Record<CartLineIssueCode, string> = {
   INACTIVE: "選択したSKUは利用できません。カートから削除してください。",
   OUT_OF_STOCK: "在庫切れです。カートから削除してください。",
   INSUFFICIENT_STOCK: "在庫が不足しています。数量を減らしてください。",
+  QUANTITY_LIMIT_EXCEEDED: "現在の購入上限を超えています。数量を減らしてください。",
   PRICE_CHANGED: "カート追加後に価格が変更されました。",
 };
 
@@ -193,6 +194,11 @@ function CartContent() {
                         )
                       }
                     >
+                      {item.quantity > item.maximumQuantity && (
+                        <option value={item.quantity} disabled>
+                          {item.quantity}（上限超過）
+                        </option>
+                      )}
                       {Array.from(
                         { length: Math.max(1, item.maximumQuantity) },
                         (_, index) => index + 1,

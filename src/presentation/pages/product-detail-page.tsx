@@ -239,7 +239,7 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                 ? "残り" + stockQuantity + "点"
                 : "在庫 " + stockQuantity + "点"}
           </p>
-          {stockQuantity > purchaseLimit && (
+          {selectedVariant !== undefined && stockQuantity > 0 && (
             <p className="purchase-limit-message">1回の購入上限は{purchaseLimit}点です。</p>
           )}
           <div className="quantity-row">

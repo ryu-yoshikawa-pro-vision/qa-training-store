@@ -629,7 +629,7 @@ export class DexieInventoryRepository implements InventoryRepository {
         (query.stockState === "all" ||
           (query.stockState === "out" && item.stockQuantity === 0) ||
           (query.stockState === "low" && item.stockQuantity >= 1 && item.stockQuantity <= 5) ||
-          (query.stockState === "available" && item.stockQuantity >= 1)),
+          (query.stockState === "available" && item.stockQuantity >= 6)),
     );
     items.sort((left, right) => {
       let primary = 0;

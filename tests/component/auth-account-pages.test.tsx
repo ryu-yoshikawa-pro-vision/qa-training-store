@@ -316,6 +316,32 @@ describe("auth and account pages", () => {
     expect(auth.register).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["regular", "一般会員", "0%", "商品小計5,000円以上で送料無料"],
+    ["gold", "ゴールド会員", "5%", "商品小計5,000円以上で送料無料"],
+    ["platinum", "プラチナ会員", "10%", "いつでも送料無料"],
+  ] as const)(
+    "renders the %s member's benefits without exposing user ID",
+    async (membershipRank, rankLabel, discount, shippingBenefit) => {
+      account.getProfile.mockResolvedValueOnce({
+        id: "private-customer-id",
+        email: "regular@example.com",
+        displayName: "一般テスト会員",
+        phone: "09000000000",
+        role: "customer",
+        membershipRank,
+        accountStatus: "active",
+        actionVersion: 7,
+      });
+      render(<ProfilePage />);
+      expect(await screen.findByText(rankLabel)).toBeVisible();
+      expect(screen.getByText("利用中")).toBeVisible();
+      expect(screen.getByText(discount)).toBeVisible();
+      expect(screen.getByText(shippingBenefit)).toBeVisible();
+      expect(screen.queryByText("private-customer-id")).not.toBeInTheDocument();
+    },
+  );
+
   it("updates Profile with the hidden actionVersion", async () => {
     render(<ProfilePage />);
     expect(await screen.findByDisplayValue("一般テスト会員")).toBeVisible();
@@ -331,6 +357,16 @@ describe("auth and account pages", () => {
       }),
     );
     expect(await screen.findByText("プロフィールを更新しました。")).toBeVisible();
+  });
+
+  it("shows a registration form for an empty address list without checkout selection", async () => {
+    render(<AddressesPage />);
+    expect(await screen.findByRole("heading", { name: "登録済み配送先（0/5）" })).toBeVisible();
+    expect(screen.getByText("配送先が登録されていません")).toBeVisible();
+    expect(screen.getByText("登録フォームから最初の配送先を登録してください。")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "配送先を追加" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "登録する" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "この配送先を使用" })).not.toBeInTheDocument();
   });
 
   it("shows address count, create form, and deterministic default action", async () => {

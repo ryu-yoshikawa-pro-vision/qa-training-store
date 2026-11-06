@@ -293,6 +293,74 @@ describe("review, user, and test-control pages", () => {
     expect(await screen.findByText(/新規 → 公開中/)).toBeVisible();
   });
 
+  it("combines membership Rank, role and status filters and resets pagination", async () => {
+    adminUsers.search.mockResolvedValue({
+      items: [
+        {
+          userId: "user-customer-regular",
+          email: "regular@example.com",
+          displayName: "一般テスト会員",
+          role: "customer",
+          membershipRank: "regular",
+          accountStatus: "active",
+          createdAt: "2026-07-01T03:00:00.000Z",
+          updatedAt: "2026-07-01T03:00:00.000Z",
+          version: 1,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 45,
+    });
+    render(<AdminUsersPage />);
+    expect(await screen.findByRole("link", { name: /一般テスト会員/ })).toBeVisible();
+    await waitFor(() =>
+      expect(adminUsers.search).toHaveBeenLastCalledWith({
+        keyword: null,
+        roles: [],
+        membershipRanks: [],
+        accountStatuses: [],
+        page: 1,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await waitFor(() =>
+      expect(adminUsers.search).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })),
+    );
+
+    fireEvent.change(screen.getByLabelText("会員ランク"), { target: { value: "gold" } });
+    await waitFor(() =>
+      expect(adminUsers.search).toHaveBeenLastCalledWith({
+        keyword: null,
+        roles: [],
+        membershipRanks: ["gold"],
+        accountStatuses: [],
+        page: 1,
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("役割"), { target: { value: "customer" } });
+    fireEvent.change(screen.getByLabelText("状態"), { target: { value: "active" } });
+    await waitFor(() =>
+      expect(adminUsers.search).toHaveBeenLastCalledWith({
+        keyword: null,
+        roles: ["customer"],
+        membershipRanks: ["gold"],
+        accountStatuses: ["active"],
+        page: 1,
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("会員ランク"), { target: { value: "all" } });
+    await waitFor(() =>
+      expect(adminUsers.search).toHaveBeenLastCalledWith({
+        keyword: null,
+        roles: ["customer"],
+        membershipRanks: [],
+        accountStatuses: ["active"],
+        page: 1,
+      }),
+    );
+  });
+
   it("links the user list to detail and changes a customer rank with Version", async () => {
     adminUsers.getDetail.mockResolvedValueOnce({
       userId: "user-customer-regular",

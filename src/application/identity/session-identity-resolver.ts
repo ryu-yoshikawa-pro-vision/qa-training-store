@@ -17,6 +17,51 @@ export function toCurrentUserDto(user: User): CurrentUserDto {
   };
 }
 
+/** Recheck an actor's current access in the same transaction as a privileged write. */
+export async function assertActorStillAuthorized(
+  actor: User,
+  sessionId: string | null,
+  requiredRole: "admin" | "staff",
+  users: UserRepository,
+  sessions: SessionRepository,
+): Promise<void> {
+  const session = sessionId === null ? null : await sessions.get(sessionId);
+  if (session?.userId !== actor.id) {
+    throw new ApplicationError({
+      code: "AUTHENTICATION_REQUIRED",
+      messageKey: "auth.required",
+      retryable: false,
+    });
+  }
+  const current = await users.getById(actor.id);
+  if (current === null) {
+    throw new ApplicationError({
+      code: "AUTHENTICATION_REQUIRED",
+      messageKey: "auth.required",
+      retryable: false,
+    });
+  }
+  if (current.accountStatus !== "active") {
+    const suspended = current.accountStatus === "suspended";
+    throw new ApplicationError({
+      code: suspended ? "ACCOUNT_SUSPENDED" : "ACCOUNT_WITHDRAWN",
+      messageKey: suspended ? "auth.account.suspended" : "auth.account.withdrawn",
+      retryable: false,
+    });
+  }
+  const permitted =
+    requiredRole === "admin"
+      ? current.role === "admin"
+      : current.role === "admin" || current.role === "operator";
+  if (!permitted) {
+    throw new ApplicationError({
+      code: "PERMISSION_DENIED",
+      messageKey: requiredRole === "admin" ? "admin.adminOnly" : "admin.staffOnly",
+      retryable: false,
+    });
+  }
+}
+
 export class SessionIdentityResolver implements CurrentActorResolver {
   constructor(
     private readonly users: UserRepository,

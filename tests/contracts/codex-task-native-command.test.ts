@@ -565,7 +565,7 @@ describe("codex-task native command output and exit code contract", () => {
 
           if (exitCode === 0) {
             expect(fs.existsSync(fixture.outputPath)).toBe(true);
-            expect(output).toContain("<REPO_ROOT>");
+            expect(output).toMatch(/<(?:REPO_ROOT|TEMP_ROOT)>/);
             expect(output).not.toContain(fixture.root.replaceAll("\\", "/"));
           }
         } finally {

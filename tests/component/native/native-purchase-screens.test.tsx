@@ -13,6 +13,7 @@ import {
   NativeCheckoutPaymentScreen,
   NativeAddressesScreen,
   NativeLoginScreen,
+  NativeSignupScreen,
   NativeOrderDetailScreen,
   NativeProfileScreen,
   NativeReviewScreen,
@@ -182,6 +183,72 @@ describe("Native customer purchase screens", () => {
     await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
   }, 15_000);
 
+  it.each([
+    [
+      "AUTHENTICATION_FAILED",
+      "auth.credentials.invalid",
+      "メールアドレスまたはパスワードが正しくありません。",
+    ],
+    [
+      "ACCOUNT_SUSPENDED",
+      "auth.account.suspended",
+      "このアカウントは利用停止中です。管理者へ確認してください。",
+    ],
+    ["ACCOUNT_WITHDRAWN", "auth.account.withdrawn", "このアカウントは退会済みです。"],
+    [
+      "STORAGE_WRITE_FAILED",
+      "storage.write.failed",
+      "端末へログイン状態を保存できませんでした。設定を確認してください。",
+    ],
+  ] as const)(
+    "displays a readable login error for %s",
+    async (code, messageKey, expected) => {
+      const login = jest.fn().mockRejectedValue(
+        new ApplicationError({ code, messageKey, retryable: false }),
+      );
+      runtime({ auth: { login } });
+      const view = render(<NativeLoginScreen />);
+      await act(async () => {
+        fireEvent.press(view.getByTestId("native-login-submit"));
+      });
+      await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
+      expect(view.getByTestId("native-purchase-error").props.children).toBe(expected);
+      expect(mockRouterReplace).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not expose an internal messageKey on Native registration failure", async () => {
+    const register = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "EMAIL_ALREADY_EXISTS",
+        messageKey: "auth.email.exists",
+        retryable: false,
+      }),
+    );
+    runtime({ auth: { register } });
+    const view = render(<NativeSignupScreen />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId("native-signup-submit"));
+    });
+    await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(view.getByTestId("native-purchase-error").props.children).toBe(
+      "このメールアドレスはすでに登録されています。",
+    );
+  });
+
+  it("does not expose an unexpected authentication exception to Native users", async () => {
+    const login = jest.fn().mockRejectedValue(new Error("internal credential provider detail"));
+    runtime({ auth: { login } });
+    const view = render(<NativeLoginScreen />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId("native-login-submit"));
+    });
+    await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(view.getByTestId("native-purchase-error").props.children).toBe(
+      "予期しないエラーが発生しました。",
+    );
+  });
+
   it("surfaces an unexpected checkout lookup error after login", async () => {
     const login = jest.fn().mockResolvedValue({ user: { role: "customer" } });
     const getActive = jest.fn().mockRejectedValue(
@@ -200,6 +267,9 @@ describe("Native customer purchase screens", () => {
     });
 
     await waitFor(() => expect(screen.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(screen.getByTestId("native-purchase-error").props.children).toBe(
+      "端末からログイン状態を読み込めませんでした。設定を確認してください。",
+    );
     expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 
@@ -239,6 +309,36 @@ describe("Native customer purchase screens", () => {
           params: { returnTo },
         }),
       );
+    },
+  );
+
+  it.each([
+    ["regular", "一般会員", "0%", "商品小計5,000円以上で送料無料"],
+    ["gold", "ゴールド会員", "5%", "商品小計5,000円以上で送料無料"],
+    ["platinum", "プラチナ会員", "10%", "いつでも送料無料"],
+  ] as const)(
+    "shows account status, %s membership benefits, and no internal account ID",
+    async (membershipRank, rankLabel, discount, shippingBenefit) => {
+      const getProfile = jest.fn().mockResolvedValue({
+        id: "user-customer-regular",
+        email: "regular@example.com",
+        displayName: "一般テスト会員",
+        phone: "09000000000",
+        role: "customer",
+        membershipRank,
+        accountStatus: "active",
+        actionVersion: 1,
+      });
+      runtime({ account: { getProfile } });
+
+      const screen = await render(<NativeProfileScreen />);
+      await waitFor(() => expect(screen.getByTestId("native-profile-benefits")).toBeTruthy());
+      expect(screen.getByText("アカウント状態：利用中")).toBeTruthy();
+      expect(screen.getByText(`会員ランク：${rankLabel}`)).toBeTruthy();
+      expect(screen.getByText(`会員割引：${discount}`)).toBeTruthy();
+      expect(screen.getByText(`送料特典：${shippingBenefit}`)).toBeTruthy();
+      expect(screen.queryByText("user-customer-regular")).toBeNull();
+      expect(screen.queryByText("管理者")).toBeNull();
     },
   );
 
@@ -346,6 +446,41 @@ describe("Native customer purchase screens", () => {
     );
   });
 
+  it("restores the previously saved Native payment method on revisit", async () => {
+    const setPayment = jest.fn().mockResolvedValue({
+      ...checkoutSession,
+      paymentMethodCode: "TEST-DECLINED",
+      unlockedStep: "confirm",
+      version: 4,
+    });
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-DECLINED",
+          unlockedStep: "confirm",
+          version: 3,
+        }),
+        setPayment,
+      },
+    });
+    const screen = await render(<NativeCheckoutPaymentScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-payment-session-ready")).toBeTruthy(),
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-checkout-payment-next"));
+    });
+    await waitFor(() =>
+      expect(setPayment).toHaveBeenCalledWith({
+        checkoutSessionId: checkoutSession.id,
+        checkoutExpectedVersion: 3,
+        paymentMethodCode: "TEST-DECLINED",
+      }),
+    );
+    expect(mockRouterPush).toHaveBeenCalledWith("/checkout/confirm");
+  });
+
   it("selects a payment method and advances the checkout step", async () => {
     const setPayment = jest.fn().mockResolvedValue({
       ...checkoutSession,
@@ -396,6 +531,22 @@ describe("Native customer purchase screens", () => {
       expect(screen.getByTestId(expectedTestId)).toBeTruthy();
     },
   );
+
+  it("shows the public order number and opens the customer's order history", async () => {
+    mockUseLocalSearchParams.mockReturnValue({ orderId: nativePaidOrder.orderId });
+    const getMyOrder = jest.fn().mockResolvedValue(nativePaidOrder);
+    runtime({ checkout: { getMyOrder } });
+
+    const screen = await render(<NativeCheckoutCompleteScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-complete-screen")).toBeTruthy());
+    expect(screen.getByTestId("native-complete-order-id")).toHaveTextContent(
+      `注文番号：${nativePaidOrder.orderNumber}`,
+    );
+    expect(screen.queryByText(`注文ID：${nativePaidOrder.orderId}`)).toBeNull();
+    expect(getMyOrder).toHaveBeenCalledWith(nativePaidOrder.orderId);
+    await act(async () => fireEvent.press(screen.getByTestId("native-complete-orders")));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/orders");
+  });
 
   it("uses the result boundary when orderId is missing without looking up an order", async () => {
     mockUseLocalSearchParams.mockReturnValue({});
@@ -449,6 +600,23 @@ describe("Native customer purchase screens", () => {
     expect(retryPayment).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the Native payment step locked when the Cart version changed", async () => {
+    const getActive = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "CART_VERSION_CHANGED",
+        messageKey: "checkout.cart.changed",
+        retryable: false,
+      }),
+    );
+    const start = jest.fn();
+    runtime({ checkout: { getActive, start } });
+    const screen = await render(<NativeCheckoutPaymentScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(screen.queryByTestId("native-checkout-payment-session-ready")).toBeNull();
+    expect(start).not.toHaveBeenCalled();
+    expect(mockRouterPush).not.toHaveBeenCalledWith("/checkout/confirm");
+  });
+
   it("does not expose the Payment ready marker without a valid checkout session", async () => {
     runtime({
       checkout: {
@@ -476,20 +644,35 @@ describe("Native customer purchase screens", () => {
       checkoutSessionId: checkoutSession.id,
       checkoutActionVersion: checkoutSession.version,
       cartVersion: checkoutSession.cartVersion,
-      items: [],
-      address,
-      paymentMethodCode: "TEST-SUCCESS",
-      subtotalAmount: 0,
-      discountAmount: 0,
-      shippingAmount: 0,
-      totalAmount: 0,
-      membershipRank: "regular",
+      items: [
+        {
+          variantId: "variant-basic-shirt-02",
+          productName: "ベーシックTシャツ",
+          sku: "BASIC-02",
+          optionValue: "M",
+          quantity: 2,
+          unitEffectivePrice: 2000,
+          unitDiscountAmount: 100,
+          viewerUnitPrice: 1900,
+          lineSubtotalAmount: 4000,
+          lineDiscountAmount: 200,
+          lineTotalAmount: 3800,
+          image: { assetId: "asset-shirt-front", path: "/images/shirt.webp", altText: "Tシャツ" },
+        },
+      ],
+      address: { ...address, addressLine2: "青山ビル101" },
+      paymentMethodCode: "TEST-DECLINED",
+      subtotalAmount: 4000,
+      discountAmount: 200,
+      shippingAmount: 500,
+      totalAmount: 4300,
+      membershipRank: "gold",
     };
     runtime({
       checkout: {
         getActive: jest.fn().mockResolvedValue({
           ...checkoutSession,
-          paymentMethodCode: "TEST-SUCCESS",
+          paymentMethodCode: "TEST-DECLINED",
           unlockedStep: "confirm",
         }),
         getConfirmation: jest.fn().mockReturnValue(confirmationPromise),
@@ -502,6 +685,196 @@ describe("Native customer purchase screens", () => {
     expect(resolveConfirmation).toBeDefined();
     await act(async () => resolveConfirmation?.(confirmation));
     await waitFor(() => expect(screen.getByTestId("native-checkout-confirm-submit")).toBeTruthy());
+    expect(screen.getByText("配送先：Native Customer 様")).toBeTruthy();
+    expect(screen.getByText(/青山ビル101/)).toBeTruthy();
+    expect(screen.getByText("支払方法：失敗：DECLINED")).toBeTruthy();
+    expect(screen.getByText("ベーシックTシャツ")).toBeTruthy();
+    expect(screen.getByText(/M・2点/)).toBeTruthy();
+    expect(screen.getByText("商品小計：¥4,000")).toBeTruthy();
+    expect(screen.getByText("会員割引：-¥200")).toBeTruthy();
+    expect(screen.getByText("送料：¥500")).toBeTruthy();
+    expect(screen.getByText("合計 ¥4,300")).toBeTruthy();
+  });
+
+  it("shows a recovery action instead of an endless loading state when confirmation fails", async () => {
+    const getConfirmation = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "CART_VERSION_CHANGED",
+        messageKey: "checkout.cart.changed",
+        retryable: false,
+      }),
+    );
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-DECLINED",
+          unlockedStep: "confirm",
+        }),
+        getConfirmation,
+      },
+    });
+
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.getByText("注文内容を確認できません")).toBeTruthy());
+    expect(screen.queryByTestId("native-checkout-confirm-submit")).toBeNull();
+    expect(screen.getByText("配送先からやり直す")).toBeTruthy();
+    expect(screen.getByText("カートを確認する")).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByText("カートを確認する")));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/cart");
+    await act(async () => fireEvent.press(screen.getByText("配送先からやり直す")));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/checkout/address");
+    expect(getConfirmation).toHaveBeenCalledWith(checkoutSession.id);
+  });
+
+  it("keeps the order unconfirmed and offers the cart after a price change during submission", async () => {
+    const confirmation: CheckoutConfirmationDto = {
+      checkoutSessionId: checkoutSession.id,
+      checkoutActionVersion: 3,
+      cartVersion: checkoutSession.cartVersion,
+      items: [],
+      address,
+      paymentMethodCode: "TEST-SUCCESS",
+      subtotalAmount: 2000,
+      discountAmount: 0,
+      shippingAmount: 500,
+      totalAmount: 2500,
+      membershipRank: "regular",
+    };
+    const beginOrder = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "PRICE_CHANGED",
+        messageKey: "checkout.cart.invalid",
+        retryable: false,
+      }),
+    );
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-SUCCESS",
+          unlockedStep: "confirm",
+          version: 3,
+        }),
+        getConfirmation: jest.fn().mockResolvedValue(confirmation),
+        beginOrder,
+      },
+    });
+
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-confirm-submit")).toBeTruthy());
+    await act(async () => fireEvent.press(screen.getByTestId("native-checkout-confirm-submit")));
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-confirm-review-cart")).toBeTruthy(),
+    );
+    expect(beginOrder).toHaveBeenCalledTimes(1);
+    expect(mockRouterReplace).not.toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: "/checkout/processing" }),
+    );
+    await act(async () =>
+      fireEvent.press(screen.getByTestId("native-checkout-confirm-review-cart")),
+    );
+    expect(mockRouterReplace).toHaveBeenCalledWith("/cart");
+  });
+
+  it("does not load confirmation when the required checkout step is locked", async () => {
+    const getConfirmation = jest.fn();
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockRejectedValue(
+          new ApplicationError({
+            code: "CHECKOUT_STEP_INCOMPLETE",
+            messageKey: "checkout.confirm.locked",
+            retryable: false,
+          }),
+        ),
+        getConfirmation,
+      },
+    });
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.getByText("注文内容を確認できません")).toBeTruthy());
+    expect(getConfirmation).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("native-checkout-confirm-submit")).toBeNull();
+  });
+
+  it.each([
+    ["created", "native-checkout-session-started", "native-checkout-session-replaced"],
+    ["replaced", "native-checkout-session-replaced", "native-checkout-session-started"],
+  ] as const)(
+    "distinguishes %s checkout session recovery from the other notice",
+    async (result, expectedNotice, absentNotice) => {
+      const getActive = jest.fn().mockRejectedValue(
+        new ApplicationError({
+          code: "CHECKOUT_STEP_INCOMPLETE",
+          messageKey: "checkout.start.required",
+          retryable: false,
+        }),
+      );
+      const start = jest.fn().mockResolvedValue({
+        result,
+        session: { ...checkoutSession, addressSnapshot: null, unlockedStep: "address" },
+      });
+      runtime({
+        account: { listAddresses: jest.fn().mockResolvedValue([]) },
+        cart: { getCart: jest.fn().mockResolvedValue({ cartVersion: 1 }) },
+        checkout: { getActive, start },
+      });
+
+      const screen = await render(<NativeCheckoutAddressScreen />);
+      await waitFor(() => expect(screen.getByTestId(expectedNotice)).toBeTruthy());
+      expect(screen.queryByTestId(absentNotice)).toBeNull();
+      expect(start).toHaveBeenCalledWith({ cartVersion: 1 });
+      if (result === "replaced") {
+        expect(
+          screen.getByText("カートの更新により、購入手続きを最新の内容へ置き換えました。"),
+        ).toBeTruthy();
+      }
+    },
+  );
+
+  it("does not start a replacement checkout after an unexpected Native storage read error", async () => {
+    const getActive = jest.fn().mockRejectedValue(
+      new ApplicationError({
+        code: "STORAGE_READ_FAILED",
+        messageKey: "storage.read.failed",
+        retryable: true,
+      }),
+    );
+    const start = jest.fn();
+    const getCart = jest.fn();
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      cart: { getCart },
+      checkout: { getActive, start },
+    });
+
+    const screen = await render(<NativeCheckoutAddressScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(start).not.toHaveBeenCalled();
+    expect(getCart).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("native-checkout-address-session-ready")).toBeNull();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("restores the previously entered shipping snapshot on Native checkout resume", async () => {
+    const resumedAddress = { ...address, postalCode: "1500001", city: "渋谷区" };
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: resumedAddress,
+          unlockedStep: "payment",
+        }),
+      },
+    });
+
+    const screen = await render(<NativeCheckoutAddressScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-postal-code").props.value).toBe("1500001"),
+    );
+    expect(screen.getByTestId("native-checkout-city").props.value).toBe("渋谷区");
+    expect(screen.getByTestId("native-checkout-session-resumed")).toBeTruthy();
   });
 
   it("selects a saved delivery address before advancing checkout", async () => {
@@ -566,6 +939,43 @@ describe("Native customer purchase screens", () => {
       }),
     );
     expect(mockRouterPush).toHaveBeenCalledWith("/checkout/payment");
+  });
+
+  it("keeps Native checkout on the address step after invalid direct input", async () => {
+    const setAddress = jest.fn().mockRejectedValue(new Error("invalid shipping address"));
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: null,
+          unlockedStep: "address",
+        }),
+        setAddress,
+      },
+    });
+
+    const screen = await render(<NativeCheckoutAddressScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy(),
+    );
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId("native-checkout-postal-code"), "123");
+    });
+    expect(screen.getByTestId("native-checkout-postal-code").props.value).toBe("123");
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-checkout-address-next"));
+    });
+
+    await waitFor(() =>
+      expect(setAddress).toHaveBeenCalledWith(
+        expect.objectContaining({ address: expect.objectContaining({ postalCode: "123" }) }),
+      ),
+    );
+    expect(screen.getByTestId("native-purchase-error")).toHaveTextContent(
+      "invalid shipping address",
+    );
+    expect(mockRouterPush).not.toHaveBeenCalledWith("/checkout/payment");
   });
 
   it("renders order payment, shipment, address, price, and item snapshots", async () => {
