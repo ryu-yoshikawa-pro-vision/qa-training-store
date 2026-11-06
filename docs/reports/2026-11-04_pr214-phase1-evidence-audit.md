@@ -113,3 +113,13 @@ PR #214の変更前のbase `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`から、�
 - #214の`ca9d493fa0aee2464be65a9239bdb4a9e17e4cb7`に対する[Web CI #42153146071](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153146071)は**全体Success**。Style Quality（format・Markdownlint・仕様/教材検証）、Code Quality、Vitest (contracts)、Training runtime contracts、必須Chromium E2E、Cloudflare Preview、verify/validateを含む結果である。
 - タスクリスト更新後HEAD `e0b9b0e91b3efb415ae624b4172ce3287793ae00`の[Web CI #42153862213](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153862213)では、#199のbaseへ新たに追加された`tests/contracts/web-public-build.test.ts`のフォーマット違反でStyle Qualityが失敗。**#214の25変更ファイルではない**ため、本PR側で共通テストを編集しない。
 - #199の担当ブランチで、[commit `87b841cd7ad0670093062def4031f6d4fa36986e`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/87b841cd7ad0670093062def4031f6d4fa36986e)により当該テストのPrettier修正が反映された。#214と#199が並行更新中のため、過去の成功Runを移動後baseの成功と混同せず、再検証する。
+
+## 2026-11-06 PR #214レビュー6件への対応
+
+レビュー対応前のHEADは `0486b613a4dc03ab9e97bee78669fd0777164980`、Web CI [#42178963189](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42178963189) は成功。古いPrettier失敗は再発していないため再修正しない。現行タスクリストのチェック欄は34/34件。
+
+- M01架空報告は契約テストの返却Cart数量に限定し、画面・IndexedDB・Use Caseの実観測を未確認として区別。
+- M04の4層説明をWeb UI → Use Case → Dexie/IndexedDBと照合。独立Cart HTTP APIを仮定しない構造の正例を契約テストへ追加。照合対象ソースは `src/presentation/pages/cart-page.tsx`、`src/application/use-cases/cart-use-cases.ts`、`src/infrastructure/database/dexie/cart-checkout-repositories.ts`。
+- M03 Authority入力例は該当見出し配下のJSONのみを取得し、見出しの重複・JSON欠落・不正なAuthority ID、仕様出典を検出。先頭JSONブロックへの依存を撤去。
+- #214に追跡された `training/course-sync/manifest.json` は固定Skill **104**ファイル。#218のmanifestは**105**ファイル（`skills/test-requirement-design/scripts/runtime_v1_cutover.py`を追加）。本ブランチの固定契約104は維持し、#199の採用manifestが105となる統合時に期待値とsource/SHA/実在検査を同期する。件数の動的無条件PASS化はしない。
+- 本変更commitのCIはpush後に実行・確認する。ローカルGitHub接続はDNS解決不可のため、ローカルpnpm実行は未実施。既存Web CIの結果を変更後HEADへ流用しない。

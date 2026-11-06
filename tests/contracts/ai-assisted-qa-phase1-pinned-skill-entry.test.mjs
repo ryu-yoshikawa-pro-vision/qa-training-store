@@ -68,18 +68,31 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m03).toContain("購入上限5");
     expect(m03).toContain("独立したMachine Entityではありません");
     expect(m03).toContain("Riskの出典は");
-    const requestBlock = m03.match(/```json\n([\s\S]*?)\n```/);
-    const requestDescription = "M03 should include the pinned Authority input, not a fake result";
-    expect(requestBlock, requestDescription).not.toBeNull();
-    const request = JSON.parse(requestBlock[1]);
+    const authorityHeading = /^## 固定Authority helperに渡す入力（未実行の準備例）$/gm;
+    const headings = [...m03.matchAll(authorityHeading)];
+    expect(headings).toHaveLength(1);
+    const afterHeading = m03.slice(headings[0].index + headings[0][0].length);
+    const nextHeading = afterHeading.search(/^## /m);
+    const authoritySection = nextHeading === -1 ? afterHeading : afterHeading.slice(0, nextHeading);
+    const requestBlocks = [...authoritySection.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)];
+    expect(requestBlocks).toHaveLength(1);
+    const request = JSON.parse(requestBlocks[0][1]);
     expect(Object.keys(request)).toEqual(["authorities"]);
     expect(request.authorities).toHaveLength(2);
+    expect(request.authorities.map((row) => row.authority_id)).toEqual([
+      "AUTH-CART-BR001",
+      "AUTH-CART-AC001",
+    ]);
     expect(request.authorities.map((row) => row.active_content.spec_id)).toEqual([
       "BR-CART-001",
       "AC-CART-001",
     ]);
     expect(request.authorities.every((row) => row.scope === "SCOPE-101")).toBe(true);
     expect(request.authorities.every((row) => row.source_refs.length === 1)).toBe(true);
+    expect(request.authorities.map((row) => row.source_refs[0])).toEqual([
+      "docs/spec/features/cart.md#BR-CART-001",
+      "docs/spec/features/cart.md#AC-CART-001",
+    ]);
     expect(m03).toContain("未実行の準備例");
   });
 

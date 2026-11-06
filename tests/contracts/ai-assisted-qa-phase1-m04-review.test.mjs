@@ -10,7 +10,20 @@ describe("M04四層のレビュー・引継ぎ契約", () => {
     expect(exercise).toContain("4層それぞれの検証可能性");
     expect(template).toContain("Unit/Integration/Component/Web E2Eの4層別");
     expect(lesson).toContain("Use CaseからDexie/IndexedDBへの保存と再取得");
-    expect(lesson).not.toContain("カート更新APIに対して");
+    const cartUi = read("src/presentation/pages/cart-page.tsx");
+    const cartUseCases = read("src/application/use-cases/cart-use-cases.ts");
+    const cartRepository = read("src/infrastructure/database/dexie/cart-checkout-repositories.ts");
+    const fourLayers = lesson.split("## 4. テスト層を選ぶ")[1]?.split("## 5. 自動化対象")[0];
+    expect(fourLayers).toBeTruthy();
+    for (const layer of ["Unit", "Integration", "Component", "Web E2E"]) {
+      expect(fourLayers).toContain(layer);
+    }
+    expect(fourLayers).toContain("独立したカート更新HTTP APIを仮定しない");
+    expect(fourLayers).toContain("Cart Use CaseからDexie/IndexedDBへの保存・再取得");
+    expect(cartUi).toContain("cartUseCases.updateQuantity({");
+    expect(cartUseCases).toContain("carts.setQuantityAndTouchCart({");
+    expect(cartRepository).toContain("this.db.cart_items.put(updatedItem)");
+    expect(cartUi).toContain("<select");
   });
   it("M06引継ぎに本人の新Caseと出典を要求", () => {
     expect(exercise).toContain("既存の固定3件と削除Case以外");

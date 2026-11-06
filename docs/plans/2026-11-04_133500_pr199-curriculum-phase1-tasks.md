@@ -2,19 +2,19 @@
 
 > 対象：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。この文書は作業ブランチ専用の未完了タスクリスト。開始時に`AGENTS.md`、[並行分担Plan](./2026-11-04_pr199-parallel-branches.md)、関連仕様・テスト、最新HEAD/CIを確認する。
 >
-> **完了判定**：M00〜M04のチェック済み30件は教材・演習・固定Skill入力/CLI・提出/評価条件の静的照合と実行準備の完了を示す。本人による実操作、正式採点、固定Skill通しRunの成功を意味しない。未完了は本PRのマージ前作業4件のみとし、固定HEAD・コマンド・Run/ログ・結果で証明してからチェックする。実行できない場合は理由・再開条件を残す。
+> **完了判定**：本PRの専用タスクは34/34件チェック済み（教材・静的準備30件、担当品質ゲート4件）。これは本人による実操作、正式採点、固定Skill通しRun、#199統合受入の成功を意味しない。レビュー指摘・CIの追加確認結果はチェック数と分けて記録する。
 >
 > **変更境界**：本ブランチの担当範囲だけを編集。製品SUT・正式仕様・既存Seed/Reset・既存製品テストは読み取り専用。共有ファイルや他ブランチの専有ファイルが必要なら、PRコメントに理由・影響・受入条件を記録し#199で調停する。#199へのマージは行わない。
 
 ## 担当と現在の進捗（2026-11-06）
 
-本PRはM00〜M04の22学習目標について、教材・クイズ・演習・提出欄・評価条件、固定Skillの入力/CLI契約を静的に確認・修正する。**教材・静的準備30/30件チェック済み、マージ前の品質ゲート4件未完了（合計30/34件）**。チェック済みは実行・本人修了のPASSではない。
+本PRはM00〜M04の22学習目標について、教材・クイズ・演習・提出欄・評価条件、固定Skillの入力/CLI契約を静的に確認・修正する。**教材・静的準備30/30件、担当品質ゲート4/4件（合計34/34件）チェック済み**。チェック済みは実行・本人修了のPASSではない。
 
 **実Codespaces/Private Port/費用/再ロード操作、認証付きOpenCode対話、配布先Python helper・固定SkillのM02→M03実Run、正式AI評価は[#199の最終実受入](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)へ移管済み。本PRのタスクリストには含めない。** #217の採点、#218の配布、知識グラフと横断統合も各所有PR/#199で判定する。
 
-検証済みと未確認の範囲は[本PRの監査レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)を参照。最新確認済みHEAD `2b55c501184b7b27d6a863261cff99ab9563f428`の[Web CI](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41862809264)では、Vitest (contracts)・Training runtime contracts・必須Chromium E2Eは成功したが、Style QualityがPrettier不一致5ファイルで失敗し、verify/validateも失敗した。**Web CI全体成功とは扱わない。**
+検証済みと未確認の範囲は[本PRの監査レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)を参照。レビュー対応前HEAD `0486b613a4dc03ab9e97bee78669fd0777164980`の[Web CI #42178963189](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42178963189)は**completed/success**。過去HEAD `2b55c501184b7b27d6a863261cff99ab9563f428`のStyle Quality失敗は履歴であり、現行の失敗とは扱わない。本レビュー対応commitのWeb CIはpush後に別途検証し、成功が確認されるまでは未確認とする。
 
-\n## 対象・変更境界
+## 対象・変更境界
 
 22学習目標。対象：`docs/curriculum/ai-assisted-qa/modules/M00..M04/**`（各モジュールディレクトリ）、対応する`training/ai-assisted-qa-course/exercises/Mxx/**`、`states/Mxx/**`、該当クイズと新規の専用契約テスト。評価エンジン・`assessment/**`・共通manifest・知識グラフは直接変更しない。採点基準・知識グラフの調整が必要なら正式評価/統合先へ根拠を引き継ぐ。
 
@@ -82,7 +82,7 @@
 
 ## 過去の作業・照合記録（当時の未完了記述は現行タスクではない）
 
-以下の2026-11-04時点の記録には、移管前の「5件未チェック」「実受入を待つ」といった表現が残る。これらは当時の実施状況の記録であり、**現在のチェック対象は上記30件と品質ゲート4件のみ**。実操作は#199へ移管済み。
+以下の2026-11-04時点の記録には、移管前の「5件未チェック」「実受入を待つ」といった表現が残る。これらは当時の実施状況の記録であり、**現在のチェック対象は上記30件と品質ゲート4件の計34件（すべてチェック済み）**。実操作は#199へ移管済み。
 
 ## 2026-11-04 M00-01〜M00-04の再照合・実行制約
 
