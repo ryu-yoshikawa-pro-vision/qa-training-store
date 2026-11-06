@@ -98,7 +98,7 @@ M05教本の「Web-first assertion・Actionの自動待機と失敗の区別」�
 
 ### P05の新規specを専用Configで実行する
 
-P05で本人が作成する`workspace/M05/p05-cart-locator.spec.ts`は、初期配布の`product-link.spec.ts`とは別の練習ファイルです。現行の`course:run`が受け付けるM05のspecは`product-link.spec.ts`のみであり、P05の新規spec名を`course:run`へ渡すと拒否されます。**拒否をPlaywright実行成功に読み替えないでください。**
+P05で本人が作成する`workspace/M05/p05-cart-locator.spec.ts`は、初期配布の`product-link.spec.ts`とは別の練習ファイルです。本PR #215の追跡版`course:run`が受け付けるM05のspecは`product-link.spec.ts`のみであり、P05の新規spec名は拒否されます。一方、#199の最新base側ではP05も許可対象（`p05-cart-locator.spec.ts`）に追加されています。**統合採用HEADで実際に利用できる入口を確認してください。拒否をPlaywright成功と扱わず、直接実行のJSON/終了コードを`course:run`のreceiptとして読み替えないでください。P05の受入は使用した実行経路ごとの証拠で判定します。**
 
 P05では本人のspecが存在することを確認し、以下のとおり**新課程専用Config**でそのspecだけを直接実行します。まず`pnpm course:load M05`で教材をロードし、実Shopの画面で実際のRole/Name/Labelと削除ボタン数を確認してから自分でテストを書きます。完成見本を丸写しにして学習達成としません。
 

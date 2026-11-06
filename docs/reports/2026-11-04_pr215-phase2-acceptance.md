@@ -578,3 +578,9 @@ test "$reference_run_failed" -eq 0
 - #215の[Web CI #42131921458](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42131921458)はsuccess。M07はbefore2/after3が別Runで各test PASS、retry/skip/unexpectedなしだが、afterはCI内で固定Blobを**未追跡コピー**したもので、#215 tracked fileでも統合後HEADでもない。
 - #199の統合採用HEADへ#217修正版を採用し、保守前／保守後の独立Chromiumを同一統合採用HEADで再実行する。JSON/HTML report、rootDir、Run/spec SHA、退出コード、Reset/fixture/PO、数量1/2の業務Assertion、Trace条件を確認。該当時点まで `M07-05`は未チェック、関連レビューthreadは未解決（32/33）。
 - 本作業では `assessment/**`、共通workflow、製品SUTは変更しない。ローカルGitHub DNS接続不可のため追加のpnpm/ChromiumローカルRunは未実施。今回の文書更新に対する新Web CIはpush後に確認する。
+
+## 2026-11-06 #215専用契約テストと#199 baseのM05入口差
+
+- #215本体では `scripts/training/ai-assisted-qa-run-evidence.mjs` の許可M05 specは `product-link.spec.ts` のみ。#199の最新base `157d88ef78d4e96fd8229a6a852b3f24c540a8e0` では `p05-cart-locator.spec.ts` も許可される。現実のbaseマージ版で旧許可集合だけを期待する `tests/contracts/ai-assisted-qa-phase2-m05-config-evidence.test.mjs` が失敗した（Web CI #42190263570：1 failed、他1181 passed、1 expected failed、15 skipped）。
+- 本PRの所有するM05演習に両版の違いを明記し、固有契約テストは許可集合を既知の2つに限定。追加の任意specを無条件に許すことなく、直接Playwrightと正式`course:run` receiptの証拠分離を維持する。共有Run・assessment・配布・製品SUTは編集しない。
+- 修正後のWeb CIで再検証し、M07-05の旧after Blob・#217修正採用未了には影響しない。本人の実行入口と証拠の最終照合は#199が担当。

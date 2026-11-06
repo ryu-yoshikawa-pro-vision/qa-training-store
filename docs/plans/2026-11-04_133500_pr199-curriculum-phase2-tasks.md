@@ -192,3 +192,9 @@
 - #215で追跡している同じパスは旧Blob `32ae928733c440daaf7a9cc294c68a03e6b9a604`。3件目は `page.reload()` のみ。#215では#217所有の `assessment/**` を編集しない。従って本ブランチ単独で `M07-05`を完了扱いにできない。
 - #199が#217の修正版Blobを採用した統合HEADで、保守前2件と保守後3件を別Chromium Runに分け、JSON report全test・exit 0・retry/skip/flakyなし・実行spec SHA・Shop SHA・checkout target SHA・Page Object/fixture依存を照合する。分離Run [#42131921458](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42131921458) は統合後Runの代替ではない。
 - **Progress: 97% (32/33)** を維持し、M07-05およびレビューthreadを未解決にする。本人の独立spec/Trace、認証モデル・正式評価、Private Codespacesは#199最終実受入に残す。
+
+### 2026-11-06 #215専用Vitest契約と#199 baseとの差の修復
+
+本PR HEAD `f4131959d867ed02cd92f9c3bdb2869bc3306a17` のWeb CI [#42190263570](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42190263570) は `Vitest (contracts)` のみ1件失敗（`tests/contracts/ai-assisted-qa-phase2-m05-config-evidence.test.mjs`）。PR #215の追跡元 `scripts/training/ai-assisted-qa-run-evidence.mjs` はM05の `product-link.spec.ts` だけを許可する一方、base #199 `157d88ef78d4e96fd8229a6a852b3f24c540a8e0` が `p05-cart-locator.spec.ts` も許可する。テストを実行したPRマージ版では新しい許可集合となり、旧集合だけの文字列固定が失敗した。共有Run実装は所有範囲外で変更しない。
+
+M05演習の拒否断言を版境界に即して修正。固有テストは既知の2集合だけを厳密に許可し、直接Playwright実行と`course:run` receiptの区別、JSON・spec SHA・終了コードの条件を維持。任意集合や無条件成功を許さず、#199統合後は本人が実際に用いた経路を根拠で確認する。修復後HEADのCIは新Runで再検証。**M07-05未チェックを維持し32/33。**

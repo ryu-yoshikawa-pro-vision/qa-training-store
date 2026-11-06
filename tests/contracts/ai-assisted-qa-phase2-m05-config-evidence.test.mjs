@@ -53,7 +53,14 @@ describe("M05-05：専用Config、ポート、証拠の入口を照合する", (
 
   it("P05の直接実行と正式course:run receiptは異なる対象specと証拠を持つ", () => {
     expect(packageJson.scripts["course:run"]).toContain("ai-assisted-qa-course.mjs run");
-    expect(runEvidence).toContain('M05: new Set(["product-link.spec.ts"])');
+    // #215 branch and #199 base have different explicitly approved M05 entrypoint lists.
+    // Do not accept an arbitrary list or infer that a direct Playwright run has a course receipt.
+    const m05Entrypoints = runEvidence.match(/M05: new Set\\(\\[([^\\]]+)\\]\\)/)?.[1];
+    expect([
+      '"product-link.spec.ts"',
+      '"product-link.spec.ts", "p05-cart-locator.spec.ts"',
+    ]).toContain(m05Entrypoints);
+    expect(exercise).toContain("ベース側ではP05も許可対象");
     expect(runEvidence).toContain('"spec-snapshot.ts"');
     expect(runEvidence).toContain('"run-evidence.json"');
     expect(runEvidence).toContain("spec_sha256:");
@@ -61,7 +68,7 @@ describe("M05-05：専用Config、ポート、証拠の入口を照合する", (
     expect(runEvidence).toContain("spec_unchanged_during_run:");
     expect(runEvidence).toContain("PLAYWRIGHT_TEST_ROOT: moduleRoot");
     expect(runEvidence).toContain("AI_QA_OUTPUT_ROOT: runDirectory");
-    expect(exercise).toContain("P05の新規spec名を`course:run`へ渡すと拒否されます");
+    expect(exercise).toContain("P05の受入は使用した実行経路ごとの証拠で判定します");
     expect(exercise).toContain("PLAYWRIGHT_TEST_ROOT=workspace/M05");
     expect(exercise).toContain('AI_QA_OUTPUT_ROOT="$p05_output"');
     expect(exercise).toContain("直接実行");
