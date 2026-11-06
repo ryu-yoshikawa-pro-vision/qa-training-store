@@ -5,7 +5,7 @@ import path from "node:path";
 // Metro can embed pnpm's internal package location in Expo Router image URIs.
 const ASSET_URI = /\/assets\/node_modules\/\.pnpm\/expo-router@[^/"'\s]+\/node_modules\/expo-router\/assets\/((?:[a-z0-9_-]+\/)*[a-z0-9_-]+)\.[a-f0-9]{32}\.png/g;
 const PNG_HEADER = Buffer.from("89504e470d0a1a0a", "hex");
-const EXPORTED_ROUTER_PNG = /^\.pnpm\/expo-router@[^/]+\/node_modules\/expo-router\/assets\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+(?:@[0-9.]+x)?\.[a-f0-9]{32}\.png$/;
+const EXPORTED_ROUTER_PNG = /^\.pnpm\/expo-router@[^/]+\/node_modules\/expo-router\/assets\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.[a-f0-9]{32}(?:@[0-9.]+x)?\.png$/;
 const NOTICE = [
   "Expo Router: https://github.com/expo/expo/tree/main/packages/expo-router",
   "React Navigation: https://github.com/react-navigation/react-navigation",
