@@ -61,6 +61,39 @@ export function validateM07Report(file, root, expectedNames) {
   return specs.length;
 }
 
+/** Require a business-level re-entry assertion, not an in-place page reload. */
+export function validateIntegratedAfterSource(content) {
+  const thirdTest = content.split('test("数量2への変更はカートを開き直しても維持される"')[1];
+  if (
+    !thirdTest ||
+    !thirdTest.includes('page.goto("/products/product-mug")') ||
+    !thirdTest.includes('page.goto("/cart")') ||
+    thirdTest.includes("page.reload()")
+  ) {
+    throw new Error("Integrated M07 after spec does not navigate away and return to Cart");
+  }
+}
+
+/** Read the tracked after reference from the same checkout HEAD as the before run. */
+function prepareIntegratedAfterReference(headSha) {
+  const source = path.join(m07Root, "maintenance-after", "cart.spec.ts");
+  const beforeSource = path.join(m07Root, "maintenance-before", "cart.spec.ts");
+  for (const specPath of [beforeSource, source]) {
+    const committedBlob = execFileSync("git", ["rev-parse", `HEAD:${specPath}`], {
+      encoding: "utf8",
+    }).trim();
+    const workingBlob = execFileSync("git", ["hash-object", specPath], {
+      encoding: "utf8",
+    }).trim();
+    if (committedBlob !== workingBlob) {
+      throw new Error("M07 reference does not match checkout HEAD: " + specPath);
+    }
+  }
+  validateIntegratedAfterSource(fs.readFileSync(source, "utf8"));
+  const blob = execFileSync("git", ["hash-object", source], { encoding: "utf8" }).trim();
+  return { directory: path.dirname(source), source, blob, revision: headSha };
+}
+
 /** Verify the immutable PR #217 source and stage only its after spec for a separate run. */
 function prepareAfterReference() {
   const revision = execFileSync("git", ["-C", referenceCheckout, "rev-parse", "HEAD"], {
@@ -119,7 +152,10 @@ function main() {
 
   fs.mkdirSync(outputRoot, { recursive: true, mode: 0o700 });
   const before = path.join(m07Root, "maintenance-before");
-  const after = prepareAfterReference();
+  const integrated = process.env.INTEGRATED_COURSE_MODE === "true";
+  const after = integrated
+    ? prepareIntegratedAfterReference(checkoutSha)
+    : prepareAfterReference();
   const cases = [
     {
       label: "before",
@@ -127,7 +163,7 @@ function main() {
       expectedNames: ["追加したマグは数量1", "数量を2へ変更できる"],
     },
     {
-      label: "after-pr217",
+      label: integrated ? "after-integrated" : "after-pr217",
       root: after.directory,
       expectedNames: [
         "追加したマグは数量1",
@@ -137,17 +173,17 @@ function main() {
     },
   ];
   const summary = {
-    pr215_source_head_sha: prHeadSha,
-    pr215_checkout_merge_sha: checkoutSha,
-    pr217_reference_head_sha: after.revision,
-    pr217_reference_blob_sha: after.blob,
-    pr217_integrated_into_pr215: false,
+    pull_request_source_head_sha: prHeadSha,
+    checkout_merge_head_sha: checkoutSha,
+    after_source_mode: integrated ? "integrated-head" : "pinned-pr217",
+    after_source_head_sha: after.revision,
+    after_source_blob_sha: after.blob,
     base_url: process.env.PLAYWRIGHT_BASE_URL,
     project,
     config: configFile,
     shop_index_sha256: sha256("dist/index.html"),
     before_source_sha256: sha256(path.join(before, "cart.spec.ts")),
-    after_pr217_source_sha256: sha256(after.source),
+    after_source_sha256: sha256(after.source),
     runs: [],
   };
 
@@ -215,9 +251,13 @@ function main() {
     fs.appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
       [
-        "### PR #215 M07 before / pinned PR #217 after",
+        integrated
+          ? "### PR #199 M07 before / integrated HEAD after"
+          : "### PR #215 M07 before / pinned PR #217 after",
         "",
-        "This is separate-source verification, **not** integration of PR #217.",
+        integrated
+          ? "Both reference specs come from the same checkout HEAD."
+          : "This is separate-source verification, **not** integration of PR #217.",
         "",
         "| Run | Tests | Result |",
         "| --- | --- | --- |",
