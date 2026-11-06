@@ -140,6 +140,23 @@ describe("M10-01 spec and dependency closure", () => {
     expect(() => validateCourseWorkflow(sample, workflowPath, learner)).toThrow();
   });
 
+  it("keeps the disabled M10 fallback on verified pinned Shop bytes", () => {
+    const sample = read(
+      "training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled",
+    );
+    expect(sample).toContain("permissions:\\n  contents: read");
+    expect(sample).toContain("test -s course/shop/index.html");
+    expect(sample).toContain("test -s .course/distribution-manifest.json");
+    expect(sample).toContain("node scripts/training/ai-assisted-qa-course.mjs verify-distribution");
+    expect(sample).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
+    expect(sample).toContain("PLAYWRIGHT_TEST_ROOT: workspace/M10/public-sample");
+    expect(sample).not.toContain("pnpm run build:web");
+    expect(sample).not.toContain("pull_request_target:");
+    expect(sample.indexOf("verify-distribution")).toBeLessThan(
+      sample.indexOf("pnpm exec playwright install --with-deps chromium"),
+    );
+  });
+
   it("requires reviewed paths and explicit activation without leaking learner files", () => {
     const ignore = read("training/ai-assisted-qa-course/templates/workspace.gitignore");
     const learnerIgnore = read("training/ai-assisted-qa-course/templates/learner-repo.gitignore");
