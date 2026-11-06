@@ -163,7 +163,9 @@ describe("Phase 3 quiz and understanding coverage", () => {
       ["Artifact保存失敗", "成果物の保存"],
       ["旧SHAの成功Run", "SHAの不一致"],
     ];
-    const failureTable = lesson.split("### 6.1 最初の失敗ステップから調べる原則")[1]?.split("### 6.2")[0];
+    const failureTable = lesson
+      .split("### 6.1 最初の失敗ステップから調べる原則")[1]
+      ?.split("### 6.2")[0];
     expect(failureTable).toBeTruthy();
     for (const [exerciseScenario, lessonStage] of failureConditions) {
       expect(failureTable).toContain(`| **${lessonStage}** |`);
