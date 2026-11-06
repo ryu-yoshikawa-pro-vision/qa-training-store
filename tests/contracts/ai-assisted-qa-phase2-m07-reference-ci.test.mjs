@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { validateIntegratedAfterSource, validateM07Report } from "./ai-assisted-qa-phase2-m07-reference-ci.mjs";
+import {
+  validateIntegratedAfterSource,
+  validateM07Report,
+} from "./ai-assisted-qa-phase2-m07-reference-ci.mjs";
 
 const beforeRoot = "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-before";
 const beforeNames = ["追加したマグは数量1", "数量を2へ変更できる"];
