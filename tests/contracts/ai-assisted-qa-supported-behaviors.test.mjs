@@ -63,7 +63,14 @@ describe("サポート機能の仕様と実装の追跡", () => {
       requires_review: reviewCount,
       classified_rate: 100,
       basic_analysis_rate: analyzedRate,
-      complete: false,
+      unreviewed_requirements: data.requirements.filter(
+        (entry) => entry.analysis_status !== "analyzed",
+      ).length,
+      complete:
+        analyzedCount === operations.length &&
+        blockedCount === 0 &&
+        statePendingCount === 0 &&
+        data.requirements.every((entry) => entry.analysis_status === "analyzed"),
     });
     expect(operations).toHaveLength(188);
     expect(states).toHaveLength(20);
@@ -81,6 +88,71 @@ describe("サポート機能の仕様と実装の追跡", () => {
       "UC-ADMIN-BULK-REVIEW-VISIBILITY",
     ]) {
       expect(data.behaviors.some((entry) => entry.id === id)).toBe(true);
+    }
+  });
+
+  it("requires reviewed source expectations and evidence for all 79 requirements", () => {
+    const result = validateCoverage({ root });
+    expect(result.unreviewed_requirements).toBe(0);
+    expect(data.requirements).toHaveLength(79);
+    const directlyLinked = new Set(data.behaviors.flatMap((item) => item.requirement_refs ?? []));
+    const crossCutting = data.requirements.filter((item) => !directlyLinked.has(item.id));
+    expect(crossCutting).toHaveLength(29);
+    for (const item of data.requirements) {
+      expect(item.analysis_status).toBe("analyzed");
+      expect(item.requirement_analysis.representative_behaviors.length).toBeGreaterThan(0);
+      if (!directlyLinked.has(item.id)) {
+        expect(item.requirement_analysis.assignment).toContain("直接参照なし");
+        expect(item.requirement_analysis.cross_cutting_contract).toMatch(/^(tests|e2e)\//);
+      }
+    }
+  });
+
+  it("rejects incorrect requirement expectations or fabricated traceability", () => {
+    for (const edit of [
+      (item) => {
+        item.expected = "formal business rule";
+      },
+      (item) => {
+        item.requirement_analysis.source.heading_line += 1;
+      },
+      (item) => {
+        item.requirement_analysis.source.expectation_line += 1;
+      },
+      (item) => {
+        item.requirement_analysis.representative_behaviors = ["NOT-AN-EXISTING-BEHAVIOR"];
+      },
+      (item) => {
+        item.requirement_analysis.implementation_refs[0].line += 1;
+      },
+    ]) {
+      const changed = mutated((next) => {
+        edit(next.requirements.find((item) => item.id === "AC-STOREFRONT-001"));
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /requirement analysis lacks verified evidence/,
+      );
+    }
+    const crossCutting = mutated((next) => {
+      const item = next.requirements.find((entry) => entry.id === "ROLE-01");
+      item.requirement_analysis.cross_cutting_contract = "tests/contracts/not-found.ts";
+    });
+    expect(() => validateCoverage({ root, data: crossCutting })).toThrow(
+      /requirement analysis lacks verified evidence/,
+    );
+  });
+
+  it("rejects analyzed requirements whose representative behaviors still need review", () => {
+    for (const requirementId of ["AC-STOREFRONT-001", "ROLE-01"]) {
+      const changed = mutated((next) => {
+        const requirement = next.requirements.find((item) => item.id === requirementId);
+        const representativeId = requirement.requirement_analysis.representative_behaviors[0];
+        const representative = next.behaviors.find((item) => item.id === representativeId);
+        representative.analysis_status = "review_required";
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /requirement analysis lacks verified evidence:/,
+      );
     }
   });
 
@@ -586,7 +658,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     const unresolved = data.behaviors.find(
       (item) => item.id === "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
     );
-    expect(unresolved?.analysis_status).toBe("review_required");
+    expect(unresolved?.analysis_status).toBe("analyzed");
     expect(unresolved?.basic_analysis_review).toContain("action=null");
   });
 
@@ -668,7 +740,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(state?.test_condition).toContain("50");
     expect(
       data.behaviors.find((item) => item.id === "SCREEN-ADMIN-PRODUCTS-A01-02")?.analysis_status,
-    ).toBe("review_required");
+    ).toBe("analyzed");
   });
 
   it("audits pagination and the staff-only mobile warning without SUT changes", () => {
@@ -880,9 +952,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
       expect(entry?.test_condition).toContain("Native");
     }
     for (const id of ["SCREEN-STOREFRONT-PRODUCT-LIST-S-empty"]) {
-      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe(
-        "review_required",
-      );
+      expect(data.behaviors.find((item) => item.id === id)?.analysis_status).toBe("analyzed");
     }
   });
 
@@ -1039,5 +1109,187 @@ describe("サポート機能の仕様と実装の追跡", () => {
       item.role = "platform_rolesを参照";
     });
     expect(() => validateCoverage({ root, data: role })).toThrow(/missing platform-specific role/);
+  });
+  it("checks each behavior's Use Case evidence against the current public method registry", () => {
+    const method = data.use_case_methods.find((item) => item.id === "AdminUserUseCases.search");
+    const behavior = data.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
+    expect(method).toBeDefined();
+    expect(behavior?.use_case_evidence?.[0]).toMatchObject({
+      id: method.id,
+      path: method.source_path,
+      line: method.source_line,
+      signature: method.signature,
+    });
+    const wrongReference = (update) => {
+      const changed = mutated((next) => {
+        const entry = next.behaviors.find((item) => item.id === "SCREEN-ADMIN-USERS-A01-02");
+        update(entry);
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(/Use Case evidence/);
+    };
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].id = "NotAUseCase.method";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].id = "AdminUserUseCases.changeRole";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].path = "src/application/use-cases/account-use-cases.ts";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].line += 1;
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence[0].signature = "async wrongMethod() {";
+    });
+    wrongReference((entry) => {
+      entry.use_case_evidence.push(structuredClone(entry.use_case_evidence[0]));
+    });
+    wrongReference((entry) => {
+      entry.related_use_cases = [];
+    });
+  });
+  it("documents UI-only and test-control entries without inventing Use Case calls", () => {
+    const targets = data.behaviors.filter(
+      (entry) => entry.analysis_status === "analyzed" && !entry.related_use_cases?.length,
+    );
+    expect(targets).toHaveLength(25);
+    for (const entry of targets) {
+      expect(entry.use_case_relation_review?.length).toBeGreaterThanOrEqual(40);
+      expect(entry.use_case_evidence ?? []).toHaveLength(0);
+    }
+    const changed = mutated((next) => {
+      const entry = next.behaviors.find((item) => item.id === "SCREEN-SUPPORTING-GUIDE-A02-01");
+      delete entry.use_case_relation_review;
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /missing Use Case relation review/,
+    );
+  });
+
+  it("rejects generic risk and Case-selection placeholders after the 196-entry audit", () => {
+    const audited = data.behaviors.filter((entry) => entry.analysis_status === "analyzed");
+    for (const entry of audited) {
+      expect(entry.risk).not.toBe("不正操作、競合、データの不整合または所有権逸脱");
+      expect(entry.case_policy).not.toBe("許可条件と拒否・競合・状態境界の代表Caseを選定");
+    }
+    const changed = mutated((next) => {
+      next.behaviors.find((entry) => entry.id === "UC-ACCOUNT-UPDATE-PROFILE").risk =
+        "不正操作、競合、データの不整合または所有権逸脱";
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(
+      /analysis lacks verified evidence/,
+    );
+  });
+
+  it("tracks all 76 public Use Case methods and validates 297 evidence references", () => {
+    expect(data.use_case_methods).toHaveLength(76);
+    const methods = new Map(data.use_case_methods.map((method) => [method.id, method]));
+    let evidenceCount = 0;
+    for (const behavior of data.behaviors) {
+      for (const evidence of behavior.use_case_evidence ?? []) {
+        evidenceCount += 1;
+        const method = methods.get(evidence.id);
+        expect(evidence).toEqual({
+          id: method.id,
+          path: method.source_path,
+          line: method.source_line,
+          signature: method.signature,
+        });
+      }
+      for (const relation of behavior.related_use_cases ?? []) {
+        expect(methods.has(relation)).toBe(true);
+      }
+    }
+    expect(evidenceCount).toBe(297);
+    for (const id of [
+      "SCREEN-STOREFRONT-PRODUCT-DETAIL-S-out-of-stock",
+      "SCREEN-ORDERS-DETAIL-A01-03",
+      "SCREEN-ORDERS-DETAIL-A02-02",
+      "SCREEN-ORDERS-DETAIL-S-reviewable",
+      "SCREEN-REVIEWS-EDITOR-A02-01",
+      "SCREEN-ADMIN-ORDERS-A02-01",
+    ]) {
+      expect(
+        data.behaviors.find((entry) => entry.id === id)?.indirect_use_case_review,
+      ).toBeTruthy();
+    }
+    const changed = mutated((next) => {
+      const item = next.behaviors.find((entry) => entry.id === "SCREEN-ADMIN-USERS-A01-02");
+      item.related_use_cases.push("UnknownUseCase.list");
+    });
+    expect(() => validateCoverage({ root, data: changed })).toThrow(/unknown related Use Case/);
+  });
+
+  it("tracks 79 requirements to unaccepted case conditions", () => {
+    expect(data.requirements).toHaveLength(79);
+    for (const requirement of data.requirements) {
+      const audit = requirement.requirement_analysis;
+      const trace = audit.sut_case_trace;
+      expect(trace.source_pr).toBe(219);
+      expect(trace.source_blob_sha).toMatch(/^[a-f0-9]{40}$/);
+      expect(trace.acceptance_status).toBe("未受入");
+      expect(trace.row_keys.map((row) => row.behavior_id).sort()).toEqual(
+        [...audit.representative_behaviors].sort(),
+      );
+      for (const row of trace.row_keys) {
+        expect(row.condition_refs.length).toBeGreaterThan(0);
+        for (const condition of row.condition_refs) {
+          if (condition !== null) expect(condition).toMatch(/^C[0-9]+$/);
+        }
+      }
+    }
+    for (const change of [
+      (trace) => {
+        trace.row_keys[0].behavior_id = "NONEXISTENT-BEHAVIOR";
+      },
+      (trace) => {
+        trace.row_keys[0].condition_refs = [];
+      },
+      (trace) => {
+        trace.source_blob_sha = "not-a-commit";
+      },
+      (trace) => {
+        trace.acceptance_status = "PASS";
+      },
+    ]) {
+      const changed = mutated((next) => {
+        change(next.requirements[0].requirement_analysis.sut_case_trace);
+      });
+      expect(() => validateCoverage({ root, data: changed })).toThrow(
+        /requirement analysis lacks verified evidence/,
+      );
+    }
+  });
+
+  it("traces 29 cross-cutting requirements to existing tests without claiming runtime acceptance", () => {
+    const linked = new Set(data.behaviors.flatMap((entry) => entry.requirement_refs ?? []));
+    const crossCutting = data.requirements.filter((entry) => !linked.has(entry.id));
+    expect(crossCutting).toHaveLength(29);
+    for (const requirement of crossCutting) {
+      const review = requirement.requirement_analysis.case_reuse_review;
+      expect(review).toMatchObject({
+        source_pr: 219,
+        existing_test_path: requirement.requirement_analysis.cross_cutting_contract,
+        formal_case_id_status: "未確定",
+        acceptance_status: "未受入",
+        target_platform: requirement.platform,
+        target_role: requirement.role,
+      });
+      expect(review.source_blob_sha).toMatch(/^[0-9a-f]{40}$/);
+      expect(review.target_state_seed.length).toBeGreaterThan(0);
+      expect(review.missing_conditions.length).toBeGreaterThan(0);
+      const source = fs.readFileSync(path.join(root, review.existing_test_path), "utf8");
+      for (const title of review.existing_test_titles) {
+        expect(source).toContain(title);
+      }
+      for (const key of review.candidate_web_evidence_keys) {
+        expect(key).toMatch(/^PR219-WEB-\d{3}$/);
+      }
+      expect(new Set(review.candidate_web_evidence_keys).size).toBe(
+        review.candidate_web_evidence_keys.length,
+      );
+      expect(requirement.requirement_analysis.sut_case_trace.acceptance_status).toBe("未受入");
+    }
   });
 });

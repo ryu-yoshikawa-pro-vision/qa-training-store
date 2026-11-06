@@ -226,6 +226,8 @@ function completeAnalysis(behavior) {
           "基本seedと関連する商品・アカウント",
           "正式BR/ACの入力条件",
           "正式契約の対象データ・Role/State/Platform",
+          "不正操作、競合、データの不整合または所有権逸脱",
+          "許可条件と拒否・競合・状態境界の代表Caseを選定",
         ].includes(behavior[field]),
     ) &&
     Array.isArray(behavior.requirement_refs) &&
@@ -234,6 +236,114 @@ function completeAnalysis(behavior) {
     behavior.reviewed_against?.includes("specification") &&
     behavior.reviewed_against?.includes("seed")
   );
+}
+
+function completeRequirement(item, root, behaviorById, directlyLinkedRequirements) {
+  if (item.analysis_status !== "analyzed") return false;
+  const required = [
+    "expected",
+    "risk",
+    "test_condition",
+    "test_responsibility",
+    "case_policy",
+    "case_selection_reason",
+    "analysis_progress",
+  ];
+  if (required.some((field) => typeof item[field] !== "string" || !item[field].trim())) {
+    return false;
+  }
+  if (
+    !["specification", "implementation", "seed"].every((source) =>
+      item.reviewed_against?.includes(source),
+    )
+  ) {
+    return false;
+  }
+  const audit = item.requirement_analysis;
+  if (audit?.source?.path !== item.source_path) {
+    return false;
+  }
+  const lines = readLines(root, item.source_path);
+  let expected;
+  if (item.kind === "rule") {
+    if (audit.source.heading_line !== item.source_line) return false;
+    const paragraphs = [];
+    let expectationLine = null;
+    for (let index = item.source_line; index < lines.length; index += 1) {
+      const line = lines[index].trim();
+      if (/^#{2,6} /.test(line)) break;
+      if (!line || /^関連(?:ビジネスルール|業務ルール|BR):/.test(line)) continue;
+      if (expectationLine === null) expectationLine = index + 1;
+      paragraphs.push(line);
+    }
+    if (audit.source.expectation_line !== expectationLine) return false;
+    expected = paragraphs.join(" ");
+  } else {
+    if (audit.source.line !== item.source_line) return false;
+    expected = lines[item.source_line - 1]?.trim();
+  }
+  if (!expected || item.expected !== expected) return false;
+  const ids = audit.representative_behaviors;
+  if (!Array.isArray(ids) || ids.length === 0 || new Set(ids).size !== ids.length) {
+    return false;
+  }
+  if (
+    !Array.isArray(audit.implementation_refs) ||
+    audit.implementation_refs.length !== ids.length
+  ) {
+    return false;
+  }
+  for (const id of ids) {
+    const behavior = behaviorById.get(id);
+    const evidence = audit.implementation_refs.find((ref) => ref.behavior_id === id);
+    if (
+      !behavior ||
+      !completeAnalysis(behavior) ||
+      !evidence ||
+      evidence.path !== behavior.implementation_evidence?.path ||
+      evidence.line !== behavior.implementation_evidence?.line
+    ) {
+      return false;
+    }
+  }
+  if (!directlyLinkedRequirements.has(item.id)) {
+    const contract = audit.cross_cutting_contract;
+    if (
+      typeof contract !== "string" ||
+      !(contract.startsWith("tests/") || contract.startsWith("e2e/")) ||
+      contract.split("/").includes("..") ||
+      !fs.existsSync(path.join(root, contract)) ||
+      !audit.assignment?.includes("直接参照なし")
+    ) {
+      return false;
+    }
+  }
+  const trace = audit.sut_case_trace;
+  if (
+    trace?.source_pr !== 219 ||
+    trace.source_path !== "docs/reports/2026-11-04_pr219-case-traceability.csv" ||
+    !/^[a-f0-9]{40}$/.test(trace.source_blob_sha ?? "") ||
+    trace.acceptance_status !== "未受入" ||
+    !Array.isArray(trace.row_keys) ||
+    trace.row_keys.length !== ids.length
+  ) {
+    return false;
+  }
+  const tracedBehaviors = new Set();
+  for (const row of trace.row_keys) {
+    if (
+      !ids.includes(row.behavior_id) ||
+      tracedBehaviors.has(row.behavior_id) ||
+      !Array.isArray(row.condition_refs) ||
+      row.condition_refs.length === 0 ||
+      new Set(row.condition_refs).size !== row.condition_refs.length ||
+      !row.condition_refs.every((condition) => condition === null || /^C[0-9]+$/.test(condition))
+    ) {
+      return false;
+    }
+    tracedBehaviors.add(row.behavior_id);
+  }
+  return /未実施|未受入/.test(audit.dynamic_acceptance ?? "");
 }
 
 export function validateCoverage({ root = ROOT, data } = {}) {
@@ -276,6 +386,26 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     behaviorIds.add(item.id);
     checkSource(item, root, allowedPaths);
     verifyAuditSource(item, root);
+    if (item.use_case_evidence !== undefined) {
+      assert(Array.isArray(item.use_case_evidence), `invalid Use Case evidence: ${item.id}`);
+      const seenUseCases = new Set();
+      for (const evidence of item.use_case_evidence) {
+        const method = methods.get(evidence?.id);
+        assert(
+          method !== undefined &&
+            evidence.path === method.source_path &&
+            evidence.line === method.source_line &&
+            evidence.signature === method.signature,
+          `Use Case evidence changed: ${item.id} -> ${evidence?.id}`,
+        );
+        assert(
+          item.related_use_cases?.includes(evidence.id),
+          `Use Case evidence missing relation: ${item.id} -> ${evidence.id}`,
+        );
+        assert(!seenUseCases.has(evidence.id), `duplicate Use Case evidence: ${item.id}`);
+        seenUseCases.add(evidence.id);
+      }
+    }
     assert(
       ["review_required", "analyzed", "blocked"].includes(item.analysis_status),
       `invalid analysis state: ${item.id}`,
@@ -295,6 +425,9 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     }
     for (const ref of item.requirement_refs ?? []) {
       assert(requirementIds.has(ref), `unknown requirement reference: ${item.id} -> ${ref}`);
+    }
+    for (const id of item.related_use_cases ?? []) {
+      assert(methods.has(id), `unknown related Use Case: ${item.id} -> ${id}`);
     }
     if (item.role === "platform_rolesを参照") {
       assert(
@@ -324,6 +457,13 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     semanticKeys.add(fingerprint);
     if (item.analysis_status === "analyzed") {
       assert(completeAnalysis(item), `analysis lacks verified evidence: ${item.id}`);
+      if (!item.related_use_cases?.length) {
+        assert(
+          typeof item.use_case_relation_review === "string" &&
+            item.use_case_relation_review.trim().length >= 40,
+          `missing Use Case relation review: ${item.id}`,
+        );
+      }
     }
   }
   equalSets(actionSources, new Set(spec.actions.keys()), "screen actions");
@@ -363,6 +503,20 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     );
     assert(behaviorIds.has(item.behavior_id), `Use Case has no behavior: ${item.id}`);
   }
+  const directlyLinkedRequirements = new Set(
+    document.behaviors.flatMap((item) => item.requirement_refs ?? []),
+  );
+  for (const item of document.requirements) {
+    if (item.analysis_status === "analyzed") {
+      assert(
+        completeRequirement(item, root, behaviorById, directlyLinkedRequirements),
+        `requirement analysis lacks verified evidence: ${item.id}`,
+      );
+    }
+  }
+  const unreviewedRequirements = document.requirements.filter(
+    (item) => !completeRequirement(item, root, behaviorById, directlyLinkedRequirements),
+  ).length;
   const operations = document.behaviors.filter((item) => item.kind !== "state");
   const analyzed = operations.filter(completeAnalysis).length;
   const blocked = operations.filter((item) => item.analysis_status === "blocked").length;
@@ -375,6 +529,7 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     screen_action_segments: [...actionGroups.values()].reduce((a, b) => a + b, 0),
     non_default_states: stateSources.size,
     unreviewed_state_conditions: unreviewedStates,
+    unreviewed_requirements: unreviewedRequirements,
     br_ac: spec.rules.size,
     use_case_methods: methods.size,
     supported_total: operations.length,
@@ -385,7 +540,11 @@ export function validateCoverage({ root = ROOT, data } = {}) {
     classified_rate: 100,
     basic_analysis_rate:
       operations.length === 0 ? 0 : Math.round((analyzed / operations.length) * 10000) / 100,
-    complete: analyzed === operations.length && blocked === 0 && unreviewedStates === 0,
+    complete:
+      analyzed === operations.length &&
+      blocked === 0 &&
+      unreviewedStates === 0 &&
+      unreviewedRequirements === 0,
   };
 }
 
