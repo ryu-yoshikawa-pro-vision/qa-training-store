@@ -104,9 +104,14 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       } else {
         expect(basis).toMatch(/(実測ではない|実測値は未取得)/);
       }
-      if (item.case_id.startsWith("KNOWN DEFECT REPRO:")) {
-        const classification = `${item.case_result} ${item.note}`;
-        expect(classification).toMatch(/(製品FAIL|製品不具合|不具合の期待失敗)/);
+      // A successful defect reproduction remains a product failure.
+      if (
+        item.case_id.startsWith("KNOWN DEFECT REPRO:") ||
+        ["PR219-WEB-017", "PR219-WEB-018", "PR219-WEB-019", "PR219-WEB-024"].includes(
+          item.evidence_case_key,
+        )
+      ) {
+        expect(item.case_result, item.evidence_case_key).toMatch(/^製品FAIL/);
       }
     }
   });
