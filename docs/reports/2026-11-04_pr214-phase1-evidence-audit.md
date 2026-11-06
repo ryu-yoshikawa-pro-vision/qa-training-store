@@ -83,3 +83,27 @@ M00の`loadModule`は異なる既存学習者ファイルを検出すると`exis
 **OpenCode V2仕様調査**：`mini --model ... --prompt ...`は正式なCLIコマンド。V2権限規則では`*`が`/`を含むため、入れ子ファイルを`*`だけを理由に読めないとは断定しない。V2の更新設定はglobalの`update: "disable"`であり、共有`tutor-core.mjs`の`autoupdate: false`だけで更新停止を保証できない。この確認をPR #199へ訂正して引継ぎ済み（issuecomment-6629143533）。共通runtime/manifest/評価エンジンは変更していない。
 
 **残る人間の実動作確認**：M00の個人Codespacesの支払者・Private Port・学習者ファイルの前後比較、固定SkillのM02→M03全runtime実行・Python 3.11の実在・fingerprint、OpenCode本人による段階ヒントと再挑戦。元の5件の受入項目にはこれらが含まれるため、関連する静的準備を完了しても項目全体のチェックは付けない。CIは完了待ちしていない。
+
+## 2026-11-06 #214の品質修正・差分レビュー
+
+### 対象と結果
+
+PR #214の25変更ファイルについて、教材M00〜M04（README 5件）、M04クイズ、演習と提出・M03開始入力、追加専用契約テスト8件、タスクリスト・本レポートの変更差分を確認した。関連する正式`docs/spec/features/cart.md`の`BR-CART-001/003`・`AC-CART-001`、Web数量`select`、Use CaseとDexie保存、固定Skillの`verify_runtime_evidence`仕様、M04→M05のstate契約と照合した。
+
+確認した範囲では、**本PR側に追加修正が必要な新たな仕様・安全性の不整合は確認していない**。確認済みの残課題は次の担当境界で維持する。
+
+- **#199へ統合時調整**：#214の`training/course-sync/manifest.json`は固定Skill104ファイルを検査するが、#218の最新配布manifestは`test-requirement-design/scripts/runtime_v1_cutover.py`を追加した105ファイル。#214の`ai-assisted-qa-phase1-pinned-skill-entry.test.mjs`の件数断定を、最終配布manifestに合わせて#199側で調停する。#218所有manifestは本PRから編集しない。
+- **#217/#199側の採点条件**：M00の架空誤回答と実AI応答の独立訂正、M01/M04の四層選定、M03のCart数量状態遷移について、採点器のLevel 2基準との意味上の突合を継続する。教材の静的契約PASSを正式採点成功へ換算しない。
+- **#199の実受入**：本人Private Codespaces、料金・ポート・Agent権限、固定SkillとPython 3.11 helperの学習環境での実行、M02→M03通しRun、認証付きOpenCode対話・正式評価は[統合タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)で未完了として管理する。
+
+### フォーマット・Markdown修正
+
+[Web CI #41862809264](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41862809264)のStyle Qualityで失敗した契約テスト5ファイルを修正した。最終1ファイルはCI上のPrettier 3.8.1の生成結果を取得してそのまま反映し、一時診断テストは削除した。加えてM00〜M04の演習5ファイルとM03開始入力で、Markdownlintの`MD012`に抵触する連続空行6件を修正した。品質ゲートを緩和していない。
+
+### 最新baseと差分確認
+
+#214変更前のbase `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`から、確認時点の#199 HEAD `76344d6530876e6eddae4bc5b0eba21374d14036`への追加3コミットの変更対象は、#199所有の`docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md`のみ。#214の25変更ファイルと重複しないため、本PRではそのファイルを直接編集せず、最新baseを基準に差分と依存を確認した。#199へのPRマージやbranch削除は実施していない。
+
+### CIとレビューの判定境界
+
+[Web CI #42151829759](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42151829759)では契約テストが成功したが、フォーマット診断を含む途中HEADのため最終受入ではない。**CI全体の成功は最終HEADのRunで別途判定する**。本レビューはGitHub上の差分と関連ファイルを照合した作業であり、CodeRabbitの外部レビューを起動した結果ではない。CodeRabbitは非defaultのbaseに対する自動レビューをスキップしている。別実行者による追加レビューや#199統合差分のレビューは#199の最終受入と区別する。
