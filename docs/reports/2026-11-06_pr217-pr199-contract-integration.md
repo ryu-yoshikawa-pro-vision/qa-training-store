@@ -25,8 +25,8 @@
 
 ## Cloudflare Previewと未完了条件
 
-- 現行`.github/workflows/ci.yml`の`deploy-preview`は同一repoのPRで`verify`と`build-automation`成功時に`wrangler pages deploy dist --project-name=ec-test-automation-store`を実行する。
+- 現行`.github/workflows/ci.yml`の`deploy-preview`は同一repoのPRで`verify`と`build-automation`成功時に`wrangler pages deploy dist --project-name=ec-test-automation-store`を実行する。既存の公開CI動作であり、今回の方針確認により許容する。
 - #217の旧Web CIにはCloudflare Previewのデプロイ成功ログがあり、プレビューURLも発行されている。Cloudflare PagesのPreview URLは既定で公開。Accessポリシーの設定を確認できず、現HEADの変更をpushすると無断公開の危険がある。
-- Accessポリシーの管理者確認と匿名アクセス拒否を確認するまでは通常pushを行わず、共有workflowも改変しない。
+- リポジトリはGitHub上でpublicと確認。ユーザーの今回の方針明確化により、既存Web CIのCloudflare Pages Preview自動デプロイを通常のPR検証経路として許容する。Cloudflare Accessによる匿名アクセス拒否は必須条件としない。個人成績・Secret・正式評価内部資料を配布しないことは従来どおり必要であり、共有workflowは改変しない。
 - #217の未完了2件（独立Runの実行出自保証、および本人M04/M07/M10・実モデル校正の最終受入）は#199に移管済みで、チェックしない。
-- push可能となったら既存PRブランチへのfast-forward更新、#199統合状態での契約テスト・Style/Code Quality・`validate`・production build・Web CI・checkout SHA照合が必要。
+- #217の既存PRブランチへの通常fast-forward更新後、#199統合状態での契約テスト・Style/Code Quality・`validate`・production build・Web CI・checkout SHA照合が必要。

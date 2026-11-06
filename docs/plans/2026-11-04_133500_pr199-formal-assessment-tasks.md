@@ -2,7 +2,7 @@
 
 > 対象：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。開始時に`AGENTS.md`、[分担Plan](./2026-11-04_pr199-parallel-branches.md)、本リストと対象HEAD/CI/既存コード・テストを確認する。項目ごとに確認したコマンド・結果・SHA/Run・証拠パスと未確認事項を記録し、証拠が成立した項目だけ`[x]`とする。
 >
-> 自分の所有ファイル以外（製品SUT、正式仕様、Seed/Reset、既存製品テストを含む）は直接変更しない。必要な変更はPR上で#199または#210へ引継ぎ。課金・外部公開・PRマージ・force push・branch削除は実施しない。
+> 自分の所有ファイル以外（製品SUT、正式仕様、Seed/Reset、既存製品テストを含む）は直接変更しない。必要な変更はPR上で#199または#210へ引継ぎ。課金・新規Public Template公開・手動の外部公開・PRマージ・force push・branch削除は実施しない。公開リポジトリの既存Web CIがPR更新に伴って実施するCloudflare Pages Previewの自動デプロイは通常の検証経路として許容する。ただしSecret・個人成績・採点用非公開資料を公開成果物へ含めない。
 
 ## エージェント担当と実モデル校正の境界
 
@@ -265,6 +265,6 @@ M04＝Phase 1（22 ID）、M07＝Phase 2（15 ID）、M10＝Phase 3（14 ID）�
 - M00: `M00-CR-03`のrequired_evidence/pass_conditions/reject_ifは#199現HEADと一致。架空誤回答を実AI回答として扱わないこと、片方だけでLevel 2にしないことの回帰契約を追加する。
 - M06/M07: 公開Run条件（M06 3件/M07 5件）を変更せず、M07参考実装のCart外遷移→再入場と数量2の再Assertionを確認した。
 - 対象SHA: #199 `157d88ef78d4e96fd8229a6a852b3f24c540a8e0`、#217 `44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e`。両HEADは分岐状態であり、統合HEADに対するCIは未実施。
-- push阻害: 現行Web CIはPR更新時にCloudflare Pages Previewへ自動デプロイする。Cloudflare Access設定は確認できず、既定で公開されるため、安全なpush条件未成立。共有workflowは変更しない。
-- 現環境はGitHubへのGit通信と依存環境を欠くため、`pnpm`コマンドおよび#199統合後のCIは未実行。変更commitはbranch未反映の状態で作成し、公開条件が確認されるまでPR #217の既存HEAD・残る未完了2件は据え置く。
+- 公開方針: 本リポジトリはpublic。ユーザーによる方針の明確化に従い、既存CIでのCloudflare Preview自動デプロイは許容する。Accessによる非公開保証は前提にしない。Secret・個人成績・正式評価内部資料の配布除外は引き続き必須。共有workflowは変更しない。
+- 現環境はGitHubへの直接Git通信とpnpmがないため、`pnpm`コマンドは未実行。#199統合後CIと最終HEAD照合はbranch更新により確認し、未成功の項目は未完了とする。元の未完了2件は#199移管済みでチェックしない。
 - 検証・阻害条件: [`docs/reports/2026-11-06_pr217-pr199-contract-integration.md`](../reports/2026-11-06_pr217-pr199-contract-integration.md)。
