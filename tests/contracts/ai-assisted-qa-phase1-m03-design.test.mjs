@@ -3,11 +3,14 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
+
 describe("M03の4技法・Use Case境界・追跡証拠", () => {
   const lesson = read("docs/curriculum/ai-assisted-qa/modules/M03/README.md");
   const exercise = read("training/ai-assisted-qa-course/exercises/M03/exercise.md");
   const submission = read("training/ai-assisted-qa-course/exercises/M03/submission-template.md");
-  const rubric = JSON.parse(read("training/ai-assisted-qa-course/assessment/scoring-tests/M03.json"));
+  const rubric = JSON.parse(
+    read("training/ai-assisted-qa-course/assessment/scoring-tests/M03.json"),
+  );
 
   it("Webのselectを数値自由入力と混同しない", () => {
     expect(lesson).toContain("上限外の値や0を画面から直接選べません");
