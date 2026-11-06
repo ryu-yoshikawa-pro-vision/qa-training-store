@@ -97,9 +97,9 @@ describe("M07保守前後の専用Chromium結果の検証", () => {
     const missingDeparture = valid.replace('page.goto("/products/product-mug")', "page.reload()");
     const missingReturn = valid.replace('page.goto("/cart")', "page.reload()");
     const missingThirdTest = 'test("数量を2へ変更できる", async () => {});';
-    expect(() => validateIntegratedAfterSource(missingDeparture)).toThrow("does not navigate away");
-    expect(() => validateIntegratedAfterSource(missingReturn)).toThrow("does not navigate away");
-    expect(() => validateIntegratedAfterSource(missingThirdTest)).toThrow("does not navigate away");
+    for (const invalid of [missingDeparture, missingReturn, missingThirdTest]) {
+      expect(() => validateIntegratedAfterSource(invalid)).toThrow("does not navigate away");
+    }
   });
 
   it("report不在を成功としない", () => {
