@@ -15,3 +15,46 @@
 Scopeは独立したMachine Entityではなく、`condition_structure.py`が形式を検査する`SCOPE-...`参照です。この公開サンプルでは`SCOPE-101`を「default時の同一SKU合計数量。対象variantの在庫20・購入上限5に対するBR-CART-001の上限判定と、AC-CART-001の超過拒否・変更前数量維持」と定義します。提出記録にはこの参照の意味、仕様ファイル、実際に読んだrepository SHAを残します。`TARGET-CART-001`はリスク台帳の対象IDでありScope参照ではありません。
 
 実行は `condition_structure(direct)`、選択技法runtime、`materialize_coverage(artifact)`、適切なmodeのCase生成、`verify_runtime_evidence`へ進みます。欠落した参照を補って成功扱いにしたり、終了コード0や`ready`だけで統合PASSにしたりしてはいけません。
+
+## 固定Authority helperに渡す入力（未実行の準備例）
+
+以下は正式仕様`docs/spec/features/cart.md`の`BR-CART-001` / `AC-CART-001`から作る**入力候補**です。固定Skillで生成済みのEntity、実行ログ、本人の提出済み成果物ではありません。実際に読んだ仕様と`.course/distribution-manifest.json`の`source_sha`を照合してから、`workspace/M03/authority-input.json`へ保存します。出典が一致しなければ使用せずBLOCKEDにします。
+
+```json
+{
+  "authorities": [
+    {
+      "authority_id": "AUTH-CART-BR001",
+      "authority_type": "business_rule",
+      "active_content": {
+        "spec_id": "BR-CART-001",
+        "rule": "同一SKU合計数量の上限は在庫・購入上限・99の最小値。超過操作は自動補正せず全体を拒否し、変更前数量を維持する。数量0は明細を削除する。"
+      },
+      "scope": "SCOPE-101",
+      "source_refs": ["docs/spec/features/cart.md#BR-CART-001"],
+      "relations": [],
+      "related_authority_refs": []
+    },
+    {
+      "authority_id": "AUTH-CART-AC001",
+      "authority_type": "acceptance_criterion",
+      "active_content": {
+        "spec_id": "AC-CART-001",
+        "criterion": "在庫・購入上限・99の境界を超えた指定は拒否され、現在数量が維持されること。"
+      },
+      "scope": "SCOPE-101",
+      "source_refs": ["docs/spec/features/cart.md#AC-CART-001"],
+      "relations": [],
+      "related_authority_refs": ["AUTH-CART-BR001"]
+    }
+  ]
+}
+```
+
+`authority_entities.py`の入力はこの`authorities`形式であり、出力Entityの`content_fingerprint`はhelperが計算します。fingerprintを本人やAIが手入力してはいけません。Python 3.11と固定Skillの実体を確認し、次のコマンドを本人が実行した場合に限りその結果を提出します。
+
+```bash
+python3 .agents/skills/spec-analysis/scripts/authority_entities.py < workspace/M03/authority-input.json > workspace/M03/authority-output.json
+```
+
+このhelperは`spec-analysis`による仕様の意味分析や、`test-analysis`の`risk_matrix`・`analysis_entities`実行を代行しません。両者のRisk参照は`RISK-CART-001`、数値入力はImpact 4、Likelihood 2、採用済みschemeは`risk-scheme-v1`です。リスクマトリクスの結果と生成したProduct Risk Entityを照合してから、`SCOPE-101`の意味・出典・source SHAとともにM03へ渡してください。実行できない場合は、出力Entityを推測で作成せず未実行と記録します。

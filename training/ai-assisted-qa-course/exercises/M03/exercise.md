@@ -25,9 +25,33 @@ M02提出物またはこのモジュールの別ID公開サンプル、Cart仕�
    保存したrequestを次の固定Skill helperへ直接渡して確認します。JSONの`valid=true`、issues/missing/extra/incomplete pairsが空であることも確認します。
 
    ```bash
-   python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/condition-runtime-evidence.json
-   python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json
+   python3 .agents/skills/test-condition-design/scripts/runtime_contract.py < workspace/M03/condition-runtime-evidence.json > workspace/M03/condition-verification-result.json
+   python3 .agents/skills/test-case-design/scripts/runtime_contract.py < workspace/M03/case-runtime-evidence.json > workspace/M03/case-verification-result.json
+
+   python3 - <<'PY'
+   import json
+   from pathlib import Path
+
+   for phase in ("condition", "case"):
+       result_path = Path(f"workspace/M03/{phase}-verification-result.json")
+       result = json.loads(result_path.read_text(encoding="utf-8"))
+       empty_fields = (
+           "issues", "missing", "extra", "incomplete_pairs", "duplicates",
+           "missing_entities", "extra_entities", "duplicate_entities",
+       )
+       structure = result.get("current_structure_state")
+       if (
+           result.get("valid") is not True
+           or any(result.get(field) for field in empty_fields)
+           or not isinstance(structure, dict)
+           or not structure.get("runtime_results")
+       ):
+           raise SystemExit(f"BLOCKED: {phase}のruntime証拠を受け入れられません: {result_path}")
+       print(f"{phase}: valid=true、未解決・不足なし（意味上の採否は別）")
+   PY
    ```
+
+   **注意**：固定helperは不正入力や`valid=false`でも終了コード0を返す場合があります。上記のJSON検査がBLOCKEDなら成功扱いにせず、`issues`・欠落・fingerprint/currentnessを確認してください。`current_structure_state`とMachine Runtime Resultの内容も照合し、モデル依存の評価と仕様意味上の採否は別に記録します。
 
    `course:assess M04`は配布元の固定revisionから同じhelperをPython 3.11で再実行し、request内のartifactが現在の提出物と一致することを検証します。JSON内のvalid=trueという自己申告だけでは通りません。モデル/技法runtimeの生成を実行していない場合は、決定論的helperの成功と分けて報告します。
 
@@ -55,3 +79,15 @@ M02提出物またはこのモジュールの別ID公開サンプル、Cart仕�
 6. **P06 固定Skillの機械検証と人の意味評価（M03-05）**：既存の`condition-runtime-evidence.json`と`case-runtime-evidence.json`を改変せず、検証した2件の`valid/issues/missing/extra`を記録します。**別の一時的なコピー**で誤った参照IDを入れた場合、helperがどう拒否するか確認します。次にhelperでvalidなCaseでも仕様に反する期待を含められる可能性を説明します。**証拠**：本番2件の結果、一時的な負例の結果、仕様レビューの採否。
 
 **完了確認**：P01〜P04で作った条件・期待・Caseを`condition-design.md`/`cases.md`の独立実践欄へ保存します。すべてをruntimeへ無理に投入する必要はありません。前の4技法worksheetと同一内容なら新しい実践の達成としません。
+
+## AIチューターで反復する補助練習（実動作・正式評価は別）
+
+チューターが使える場合のみ、本人が`pnpm course:tutor M03 --model provider/model-id`で**指定済みモデルと費用を確認し、起動同意後**に実施します。利用できない場合は未実行と記録し、AI回答を創作しません。チューターは読取り専用であり、コマンド実行・ファイル編集・正式採点・提出代行を許可しません。
+
+1. **説明**：同値分割・境界値・デシジョンテーブル・状態遷移の違いを説明してもらい、教材の参照見出しを本人が開いて照合する。
+2. **段階ヒント**：在庫4・購入上限2・現在数量1の許容境界を考えるヒントを1段階だけ頼む。完成答案を先に求めず、自分で次の判断をする。
+3. **別条件練習**：在庫6・購入上限4・現在数量2から数量5を要求する別条件の境界Caseを設計する。AIの答えを参照する前に本人の予測と仕様根拠を記録する。
+4. **誤解別の復習**：「Webの数量selectから存在しない値0や上限超過値を直接指定できる」という誤解を実装境界と照合する。チューターに該当見出しを示してもらい、本人が原文で正誤を確認する。
+5. **再挑戦**：別の条件でTR→TCN→CI→Case→BR/ACを本人が再度たどり、未決/未実行を残す。前と異なる条件で本人の答えを作り、採否・不足・復習箇所を残す。
+
+対話全文やSecretを提出ファイルへ転記せず、**本人の予測・修正理由・参照節・未確認**だけを必要に応じて記録します。チューターが適切に説明した事実は本人の達成を意味せず、実技・`course:assess`の独立正式AI採点へ合格として流用しません。

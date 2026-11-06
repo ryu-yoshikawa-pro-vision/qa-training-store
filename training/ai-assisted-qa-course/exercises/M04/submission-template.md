@@ -8,7 +8,10 @@
 - Automate / Later / Do not automateと根拠:
 - 仕様の未決事項と確認先:
 - 質問本文・保留する期待結果・影響するCase・次の確認先:
-- Phase 2へ渡す承認済みCase:
+- Phase 2へ渡す承認済みCase（Case ID、対象TR/Risk、BR/AC、Scopeと仕様revision）:
+- CaseごとのRole/State/Data/Seed、Reset・必要な事前状態、期待結果・不変条件・観測:
+- M03の元Case参照・本人の修正/承認の根拠（未承認は区別）:
+- M05へ渡すファイル（`workspace/M04/review.md`、`workspace/M04/submission.md`）の実保存確認:
 - 未確認事項:
 
 ## 反復実践 P01〜P06 の記録
@@ -21,7 +24,7 @@
 | P01 | 検索facetの架空誤期待と反例 | 未記入 | 未記入 | 未確認 |
 | P02 | 承認文言の架空期待と保留した質問 | 未記入 | 未記入 | 未確認 |
 | P03 | 在庫0/非公開のCase統合判断 | 未記入 | 未記入 | 未確認 |
-| P04 | 計算/保存/UIの層・保守責務 | 未記入 | 未記入 | 未確認 |
+| P04 | Unit/Integration/Component/Web E2Eの4層別の計算・保存・数量select・導線、検出可能/不可能・費用・採否 | 未記入 | 未記入 | 未確認 |
 | P05 | データ準備可否による自動化採否の再判定 | 未記入 | 未記入 | 未確認 |
 | P06 | M03本人Caseの実行可能なM06引継ぎ | 未記入 | 未記入 | 未確認 |
 
