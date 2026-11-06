@@ -75,8 +75,8 @@
 
 - [x] **フォーマット修正**：Style Qualityで検出された専用契約テスト5ファイルを整形。[Web CI #42152886222](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42152886222)の`Format check`はPASS。Markdownlint別エラーMD018と追加空行も修正し、最終CI成功は次の未完了項目で判定する。
 - [x] **最新baseとの整合**：#199 HEAD `76344d6530876e6eddae4bc5b0eba21374d14036`までの追加3コミットは#199統合Plan 1ファイルのみで、本PR差分25ファイルとの重複なし。baseは取り込まずに最新差分・依存をレビューした。配布manifestの104→105ファイル差分と件数固定テストの更新は#199統合側へ引き継ぎ、#218所有ファイルは変更していない。
-- [ ] **最終HEADの検証**：修正後の同じHEADでformatter/validator・`pnpm test:contracts`・関連E2Eを実際のCIで確認し、Style Quality/verify/validateを含め成功・失敗・スキップ・未実施を区別してRun IDと結果を記録する。
-- [x] **差分レビューと引継ぎ**：本PRの25変更ファイルを関連Cart仕様・数量`select`・固定Skill入出力/拒否・提出/採点・M04→M05契約と再照合。追加の本PR固有の修正指摘なし（既知の採点条件・配布件数不整合は#199/#217/#218で継続）。[監査レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)に結果を記録。CodeRabbit外部レビュー未実施、#199統合最終レビューは別判定。**自動マージしない。**
+- [x] **最終HEADの検証**：HEAD `ca9d493fa0aee2464be65a9239bdb4a9e17e4cb7`の[Web CI #42153146071](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153146071)が全体Success。Style Quality（Prettier/Markdownlint/文章品質・Skill/仕様・教材検証）、Code Quality、Vitest (contracts)、Training runtime contracts、必須Chromium E2E、Cloudflare Preview Smoke、verify/validateが成功。本人実操作・モデルの受入は#199へ移管済みで本CIのPASSには含めない。
+- [x] **独立レビューと引継ぎ**：本PRの25変更ファイルを関連Cart仕様・数量`select`・固定Skill入出力/拒否・提出/採点・M04→M05契約と再照合。追加の本PR固有の修正指摘なし（既知の採点条件・配布件数不整合は#199/#217/#218で継続）。[監査レポート](../reports/2026-11-04_pr214-phase1-evidence-audit.md)に結果を記録。CodeRabbit外部レビュー未実施、#199統合最終レビューは別判定。**自動マージしない。**
 
 この4件は本PRで対応する作業のみ。#199で行う本人実操作や統合最終受入は本PRのチェック条件にしない。
 
