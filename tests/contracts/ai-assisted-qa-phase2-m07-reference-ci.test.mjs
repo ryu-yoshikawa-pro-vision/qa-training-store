@@ -87,17 +87,20 @@ describe("M07保守前後の専用Chromium結果の検証", () => {
   });
 
   it("統合HEADのafterは別商品ページへの移動とCart再入場を必須とする", () => {
-    const marker = 'test("数量2への変更はカートを開き直しても維持される", async () => {';
-    const valid =
-      marker +
-      '\nawait page.goto("/products/product-mug");' +
-      '\nawait page.goto("/cart");' +
-      '\n});';
-    expect(() => validateIntegratedAfterSource(valid)).not.toThrow();
-    const missingDeparture = valid.replace('page.goto("/products/product-mug")', "page.reload()");
-    const missingReturn = valid.replace('page.goto("/cart")', "page.reload()");
-    const missingThirdTest = 'test("数量を2へ変更できる", async () => {});';
-    for (const invalid of [missingDeparture, missingReturn, missingThirdTest]) {
+    const sample = [
+      'test("数量2への変更はカートを開き直しても維持される", async () => {',
+      'await page.goto("/products/product-mug");',
+      'await page.goto("/cart");',
+      "});",
+    ].join("\n");
+    expect(() => validateIntegratedAfterSource(sample)).not.toThrow();
+
+    const invalidSamples = [
+      sample.replace('page.goto("/products/product-mug")', "page.reload()"),
+      sample.replace('page.goto("/cart")', "page.reload()"),
+      'test("数量を2へ変更できる", async () => {});',
+    ];
+    for (const invalid of invalidSamples) {
       expect(() => validateIntegratedAfterSource(invalid)).toThrow("does not navigate away");
     }
   });
