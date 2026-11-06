@@ -10,7 +10,10 @@ const reviewPath = "workspace/M08/review-candidate.md";
 const earlierPath = "workspace/M08/first-change.md";
 
 function git(cwd, ...args) {
-  return execFileSync("git", args, { cwd, encoding: "utf8" }).trimEnd();
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+  );
+  return execFileSync("git", args, { cwd, encoding: "utf8", env }).trimEnd();
 }
 
 function commit(cwd, message) {
@@ -107,6 +110,18 @@ describe("M08-04 review evidence, false positives, omissions and abstraction", (
     expect(exercise).toContain("将来に備えて共通Factory");
     expect(exercise).toContain("変更負荷が実証された場合");
     expect(exercise).toContain("staged diffには公開禁止の");
+    const p05 = exercise.split("5. **P05")[1]?.split("6. **P06")[0];
+    expect(p05).toBeTruthy();
+    for (const requirement of [
+      "Run未実行でもCI成功と書く",
+      "staged diffには公開禁止の",
+      "private-note.md",
+      "AIの報告だけでcommitを許可しない",
+      "実`diff`",
+      "本人のRun（未実行なら未実行）",
+    ]) {
+      expect(p05).toContain(requirement);
+    }
     expect(submission).toContain("Dの見落としと停止条件");
     expect(module).toContain("指摘された「数」");
     expect(module).toContain("仕様書（BR/AC）");
@@ -122,6 +137,24 @@ describe("M08-04 review evidence, false positives, omissions and abstraction", (
     );
     expect(prAnswer.label).toContain("仕様IDとdiff");
     expect(reviewAnswer.label).toContain("現在の重複");
+  });
+
+  it("rejects a real staged forbidden path even if AI reports no problem", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "m08-private-stage-"));
+    try {
+      fs.mkdirSync(path.join(dir, "workspace/M08"), { recursive: true });
+      git(dir, "init", "-q", "--initial-branch=main");
+      fs.writeFileSync(path.join(dir, reviewPath), "candidate\\n");
+      fs.writeFileSync(path.join(dir, "workspace/M08/private-note.md"), "harmless marker\\n");
+      git(dir, "add", "--", reviewPath, "workspace/M08/private-note.md");
+      const stagedPaths = git(dir, "diff", "--cached", "--name-only").split("\\n");
+      expect(stagedPaths).toContain("workspace/M08/private-note.md");
+      const canCommit = stagedPaths.every((file) => file === reviewPath);
+      expect(canCommit).toBe(false);
+      expect(git(dir, "diff", "--cached", "--name-only")).toContain("private-note.md");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("rejects unexecuted CI, missed staged paths and speculative abstractions", () => {

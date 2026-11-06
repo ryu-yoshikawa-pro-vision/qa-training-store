@@ -145,6 +145,32 @@ describe("Phase 3 quiz and understanding coverage", () => {
     expect(visited.size).toBe(19);
   });
 
+  it("requires the same seven M10 failure conditions in the exercise, lesson table and P05 submission", () => {
+    const files = [
+      "docs/curriculum/ai-assisted-qa/modules/M10/README.md",
+      "training/ai-assisted-qa-course/exercises/M10/exercise.md",
+      "training/ai-assisted-qa-course/exercises/M10/submission-template.md",
+    ].map((relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8"));
+    const [lesson, exercise, submission] = files;
+    const p05Row = submission.split("\\n").find((line) => line.startsWith("| P05 |"));
+    expect(p05Row).toBeDefined();
+    for (const scenario of [
+      "Install失敗",
+      "配布検証失敗",
+      "Shop Serve失敗",
+      "Browser導入失敗",
+      "Assertion期待不一致",
+      "Artifact保存失敗",
+      "旧SHAの成功Run",
+    ]) {
+      expect(lesson).toContain(scenario);
+      expect(exercise).toContain(scenario);
+      expect(p05Row).toContain(scenario);
+    }
+    expect(p05Row).toContain("初因");
+    expect(p05Row).toContain("再実行判断");
+  });
+
   it("traces Phase 3 goals through lessons, practice and assessment references", () => {
     for (const module of modules) {
       const lesson = fs.readFileSync(

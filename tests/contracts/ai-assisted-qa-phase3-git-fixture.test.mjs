@@ -9,7 +9,10 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const safeFile = "workspace/M08/review-candidate.md";
 
 function git(cwd, ...args) {
-  return execFileSync("git", args, { cwd, encoding: "utf8" }).trimEnd();
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+  );
+  return execFileSync("git", args, { cwd, encoding: "utf8", env }).trimEnd();
 }
 
 function fixture() {
@@ -70,6 +73,34 @@ describe("M08 isolated Git contract", () => {
       );
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates temporary Git operations even when the caller sets Git repository variables", () => {
+    const keys = ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_CEILING_DIRECTORIES"];
+    const original = new Map(keys.map((key) => [key, process.env[key]]));
+    const poison = fs.mkdtempSync(path.join(os.tmpdir(), "phase3-git-env-"));
+    let dir;
+    try {
+      process.env.GIT_DIR = path.join(poison, "wrong.git");
+      process.env.GIT_WORK_TREE = path.join(poison, "wrong-worktree");
+      process.env.GIT_INDEX_FILE = path.join(poison, "wrong-index");
+      process.env.GIT_CEILING_DIRECTORIES = poison;
+      dir = fixture();
+      fs.writeFileSync(path.join(dir, safeFile), "isolated\\n");
+      git(dir, "add", "--", safeFile);
+      expect(git(dir, "diff", "--cached", "--name-only")).toBe(safeFile);
+      expect(git(dir, "rev-parse", "--show-toplevel")).toBe(dir);
+      expect(fs.existsSync(path.join(poison, "wrong-index"))).toBe(false);
+      expect(fs.existsSync(path.join(poison, "wrong.git"))).toBe(false);
+    } finally {
+      for (const key of keys) {
+        const value = original.get(key);
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      if (dir) fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(poison, { recursive: true, force: true });
     }
   });
 

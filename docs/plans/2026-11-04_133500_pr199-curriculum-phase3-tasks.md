@@ -130,3 +130,11 @@ GitHub接続エージェントはM08〜M10の教材・クイズ・演習・Git/C
 - 認証付きOpenCodeによるCI失敗のヒント・復習、M10正式AI評価とPhase 3任意受講の確認
 
 エージェントは固定SHA・必要なspec/Runner配布経路・実行手順・安全条件・成功/拒否の期待値を#199へ引継ぐ。
+
+## 2026-11-06 レビュー4件対応・#199への未完了引継ぎ
+
+対応前HEAD `20787bed8083752d208f7a32aadfd0e691527449` の[Web CI #41959787427](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41959787427)は成功。Git fixtureとM08 PR fixtureのGit子プロセスから `GIT_*` を除外し、親の通常環境を維持する。悪意のある `GIT_DIR`、`GIT_WORK_TREE`、`GIT_INDEX_FILE`の負例で一時リポジトリだけを使用することを再検証する。M08 P05の実stageに禁止ファイルがある負例を教材の停止条件へ結び付け、M09→M10 fallback IDは全inputと比較し、2件目衝突を検出する。M10 P05提出欄とM10-04の7条件を一致させる。
+
+**最後の1件は未チェック（23/24）を維持**：`training/ai-assisted-qa-course/inputs/M10/public-sample-workflow.yml.disabled`（本PR以外の所有範囲、Blob `ea1e8fa0e4ac2f6ae06742fef7e54ea5ea88f7dc`）には、`test -s course/shop/index.html`、`test -s .course/distribution-manifest.json`、`node scripts/training/ai-assisted-qa-course.mjs verify-distribution`、Playwright用 `PLAYWRIGHT_USE_PREBUILT_DIST: "true"` が欠落。#199が所有者と競合を調停し、完成見本 `training/ai-assisted-qa-course/templates/phase3/course-e2e.workflow.yml.disabled` の安全条件に揃える。無効workflowは有効化しない。
+
+統合後は、M07→M08の本人成果物（spec・Config・Reset・Run・spec SHA・依存）か公開fallbackをどの根拠で選んだか、M09→M10のShop・manifest・source SHA・GitHub checkout target SHA・workflow・配布ガードを追跡する。公開fallbackを選ぶ場合も固定SHAと配布ファイル実在・SHA-256を検証した**統合採用HEAD**で、`tests/contracts/ai-assisted-qa-phase3-handoff.test.mjs`、`ai-assisted-qa-phase3-m10-preflight.test.mjs`、`ai-assisted-qa-phase3-ci-diagnostics.test.mjs`、`ai-assisted-qa-phase3-distribution-handoff.test.mjs`と必要なChromiumを再実行する。Phase 3未受講でPhase 1/2修了を取り消さない。本人Private repo・実GitHub CI・課金/権限・正式採点は#199最終実受入へ残す。今回の変更HEADのCIはpush後に確認する。

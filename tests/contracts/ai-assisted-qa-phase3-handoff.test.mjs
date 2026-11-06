@@ -17,6 +17,10 @@ function state(module, boundary) {
   );
 }
 
+function fallbackCollidesWithInput(current) {
+  return current.inputs.some((input) => input.artifact_id === current.public_fallback.artifact_id);
+}
+
 function existsInDistribution(source, target) {
   return manifest.local_files.some(
     (entry) => entry.source_path === source && entry.target_path === target,
@@ -47,7 +51,7 @@ describe("M07 to M10 Phase 3 handoff", () => {
       }
       const fallback = current.public_fallback;
       expect(fallback.public).toBe(true);
-      expect(fallback.artifact_id).not.toBe(current.inputs[0].artifact_id);
+      expect(fallbackCollidesWithInput(current)).toBe(false);
       const source = path.posix.join("training/ai-assisted-qa-course", fallback.path);
       const target = path.posix.join(
         "course/modules",
@@ -59,6 +63,17 @@ describe("M07 to M10 Phase 3 handoff", () => {
       expect(current.expected.previous_artifact_policy).toContain("public sample");
     });
   }
+
+  it("rejects a fallback ID colliding with a later M10 input", () => {
+    const current = state("M10", "start");
+    expect(current.inputs.length).toBeGreaterThan(1);
+    expect(fallbackCollidesWithInput(current)).toBe(false);
+    const collision = {
+      ...current,
+      public_fallback: { ...current.public_fallback, artifact_id: current.inputs[1].artifact_id },
+    };
+    expect(fallbackCollidesWithInput(collision)).toBe(true);
+  });
 
   it("keeps Phase 3 optional and independent of Phase 1/2 completion", () => {
     const m07 = state("M07", "end");
