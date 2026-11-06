@@ -179,9 +179,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
         `workspace/${moduleId}/notes/submission.md\\nother`,
         `workspace/${moduleId}extra/notes/submission.md`,
       ]) {
-        expect(() => readTutorWorkspaceExcerpt(root, moduleId, rejected, 1, 2)).toThrow(
-          /BLOCKED/,
-        );
+        expect(() => readTutorWorkspaceExcerpt(root, moduleId, rejected, 1, 2)).toThrow(/BLOCKED/);
         expect(() =>
           buildTutorTurnPrompt({
             moduleId,
