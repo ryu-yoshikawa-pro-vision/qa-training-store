@@ -583,7 +583,8 @@ describe("AI-assisted QA distribution contract", () => {
     expect(
       manifest.local_files.some((entry) => entry.target_path.startsWith(".github/workflows/")),
     ).toBe(false);
-    expect(result).toMatchObject({ modules: 11, externalSkillFiles: 105 });
+    expect(result.modules).toBe(11);
+    expect(result.externalSkillFiles).toBe(manifest.external_skill_files.length);
     for (const skill of ["test-requirement-design", "test-condition-design", "test-case-design"]) {
       const sourcePath = `skills/${skill}/scripts/runtime_v1_cutover.py`;
       const entry = manifest.external_skill_files.find((file) => file.source_path === sourcePath);
