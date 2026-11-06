@@ -148,6 +148,52 @@ describe("AI-assisted QA tutor external send boundary", () => {
     );
   });
 
+  it("rejects cross-module and malformed paths at both learner excerpt validation gates", () => {
+    for (const moduleId of ["M00", "M06", "M10"]) {
+      const root = fixture();
+      const file = `workspace/${moduleId}/notes/submission.md`;
+      const absolute = path.join(root, file);
+      fs.mkdirSync(path.dirname(absolute), { recursive: true });
+      fs.writeFileSync(absolute, "# 提出内容\n観測：正常");
+      const excerpt = readTutorWorkspaceExcerpt(root, moduleId, file, 1, 2);
+      const moduleDocs = tutorPublicPaths(moduleId).map((p) => ({
+        path: p,
+        text: "# 公開教材\n安全な学習",
+      }));
+      expect(
+        buildTutorTurnPrompt({
+          moduleId,
+          question: "観測を説明して",
+          documents: moduleDocs,
+          excerpt,
+        }),
+      ).toContain(file);
+
+      const otherModule = moduleId === "M00" ? "M01" : "M00";
+      for (const rejected of [
+        `workspace/${otherModule}/notes/submission.md`,
+        `workspace/${moduleId}/notes/../submission.md`,
+        `workspace/${moduleId}/private/submission.md`,
+        `workspace/${moduleId}/notes/.env`,
+        `workspace/${moduleId}/notes/a|b.md`,
+        `workspace/${moduleId}/notes/submission.md\\nother`,
+        `workspace/${moduleId}extra/notes/submission.md`,
+      ]) {
+        expect(() => readTutorWorkspaceExcerpt(root, moduleId, rejected, 1, 2)).toThrow(
+          /BLOCKED/,
+        );
+        expect(() =>
+          buildTutorTurnPrompt({
+            moduleId,
+            question: "確認",
+            documents: moduleDocs,
+            excerpt: { ...excerpt, path: rejected },
+          }),
+        ).toThrow(/BLOCKED/);
+      }
+    }
+  });
+
   it("copies only a selected learner excerpt, rejecting traversal, private history, and changes", () => {
     const root = fixture();
     const file = "workspace/M06/submission.md";

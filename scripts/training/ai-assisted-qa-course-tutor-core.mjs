@@ -10,6 +10,19 @@ import {
 } from "./ai-assisted-qa-assessment-core.mjs";
 
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
+const WORKSPACE_FILE_PATTERN =
+  /^workspace\/(M(?:0[0-9]|10))\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:md|txt|ts|json|csv)$/;
+
+function isTutorWorkspacePath(moduleId, relativePath) {
+  if (
+    typeof moduleId !== "string" ||
+    !MODULE_ID_PATTERN.test(moduleId) ||
+    typeof relativePath !== "string"
+  )
+    return false;
+  const match = WORKSPACE_FILE_PATTERN.exec(relativePath);
+  return match !== null && match[1] === moduleId;
+}
 const BLOCKED_PERSONAL_DATA =
   /(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b(?:\+81[- ]?|0)\d{1,4}[- ]?\d{1,4}[- ]?\d{3,4}\b|\b\d{3}[- ]\d{4}[- ]\d{4}\b)/i;
 const FORBIDDEN_INPUT = /(?:\.env(?:\.[a-z0-9_-]+)?|-----BEGIN [A-Z ]*PRIVATE KEY-----)/i;
@@ -108,13 +121,7 @@ export const MAX_TUTOR_EXCERPT_BYTES = 8 * 1024;
 // Learner-owned content is never auto-discovered. A bounded line range must be
 // selected explicitly; scan the entire source before copying any part of it.
 export function readTutorWorkspaceExcerpt(root, moduleId, relativePath, firstLine, lastLine) {
-  if (
-    !MODULE_ID_PATTERN.test(moduleId ?? "") ||
-    typeof relativePath !== "string" ||
-    !new RegExp(
-      "^workspace/" + moduleId + "/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.(?:md|txt|ts|json|csv)$",
-    ).test(relativePath)
-  )
+  if (!isTutorWorkspacePath(moduleId, relativePath))
     fail("learner excerpt is outside the selected module");
   if (
     !Number.isSafeInteger(firstLine) ||
@@ -203,9 +210,7 @@ export function buildTutorTurnPrompt({
     if (
       typeof excerpt !== "object" ||
       typeof excerpt.path !== "string" ||
-      !new RegExp(
-        "^workspace/" + moduleId + "/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.(?:md|txt|ts|json|csv)$",
-      ).test(excerpt.path) ||
+      !isTutorWorkspacePath(moduleId, excerpt.path) ||
       excerpt.path
         .split("/")
         .some((part) =>
