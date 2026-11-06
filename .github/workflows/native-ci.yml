@@ -1,8 +1,7 @@
 name: Mobile App CI
 
 on:
-  # PR #199: temporarily stop automatic pull_request runs; restore before merging.
-  # Keep workflow_dispatch available for an explicit full Mobile CI run.
+  pull_request:
   workflow_dispatch:
     inputs:
       capture_spec_visuals:
