@@ -15,9 +15,10 @@ import {
   verifySyncedCourseDistribution,
 } from "../../scripts/training/ai-assisted-qa-course-core.mjs";
 import { isPublicCourseAsset } from "../../scripts/docs/build-ai-assisted-qa.ts";
+import { validateTemplateTarget } from "../../scripts/training/prepare-learner-template.mjs";
 
 const repositoryRoot = process.cwd();
-const fixtureRoot = fs.mkdtempSync(path.join(tmpdir(), "ai-qa-course-contract-"));
+const fixtureRoot = fs.mkdtempSync(path.join(fs.realpathSync(tmpdir()), "ai-qa-course-contract-"));
 
 function writeFixtureFile(root, relativePath, content) {
   const destination = path.join(root, ...relativePath.split("/"));
@@ -112,7 +113,13 @@ function courseFixture() {
         `course/quizzes/${moduleId}.json`,
         JSON.stringify({ schema_version: 1, module_id: moduleId, questions: [] }),
       ],
-      [inputSource, `course/modules/${moduleId}/inputs/start.md`, `${moduleId} public input\n`],
+      [
+        inputSource,
+        `course/modules/${moduleId}/inputs/start.md`,
+        moduleId === "M03"
+          ? "M03 public input: SCOPE-101 RISK-CART-001 Authority Entity BR-CART-001 AC-CART-001\\n"
+          : `${moduleId} public input\\n`,
+      ],
       [exerciseSource, `course/exercises/${moduleId}/exercise.md`, `${moduleId} exercise\n`],
       [
         templateSource,
@@ -254,7 +261,9 @@ function courseFixture() {
             ? "lesson"
             : sourcePath === inputSource
               ? "input"
-              : "fixture",
+              : sourcePath === exerciseSource
+                ? "exercise"
+                : "fixture",
       });
       distributionBytes.set(targetPath, Buffer.from(content));
     }
@@ -287,8 +296,8 @@ function courseFixture() {
       loadFiles.push({
         module_id: moduleId,
         source_path: targetPath,
-        target_path: targetPath,
-        kind: "course-material",
+        target_path: "workspace/M03/public-sample/risk-input.csv",
+        kind: "exercise-file",
       });
     }
     loadFiles.push({
@@ -443,7 +452,7 @@ function courseFixture() {
     assessment_asset_allowlist: assessmentAssetAllowlist,
     generated: {
       shop_build: {
-        command: "fixture",
+        command: "pnpm run build:web",
         source: "dist/**",
         target: "course/shop/**",
         required: true,
@@ -482,6 +491,61 @@ function courseFixture() {
 afterAll(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }), 30_000);
 
 describe("AI-assisted QA distribution contract", () => {
+  it("rejects changed Shop build paths, commands, required flag, or source placeholders", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    for (const [field, value] of [
+      ["command", "pnpm run build"],
+      ["source", "dist/public/**"],
+      ["target", "course/modules/**"],
+      ["required", false],
+    ]) {
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          generated: { shop_build: { ...manifest.generated.shop_build, [field]: value } },
+        }),
+      ).toThrow(/pin the required Shop build/);
+    }
+    for (const value of ["${SOURCE_SHA_FAKE}", "a".repeat(40)]) {
+      expect(() => validateCourseManifest({ ...manifest, source_sha: value })).toThrow(
+        /exact runtime-bound placeholder/,
+      );
+    }
+  });
+
+  it("rejects local files colliding with generated Shop outputs before any sync writes", async () => {
+    const fixture = courseFixture();
+    const modified = {
+      ...fixture.manifest,
+      local_files: [
+        ...fixture.manifest.local_files,
+        {
+          source_path: "docs/spec/features/cart.md",
+          target_path: "course/shop/index.html",
+          module_id: null,
+          role: "reference",
+        },
+      ],
+    };
+    writeFixtureFile(
+      fixture.source,
+      "training/course-sync/manifest.json",
+      JSON.stringify(modified),
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "a".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/duplicate distribution target across local, Skill, and Shop files/);
+    expect(snapshotDirectory(fixture.target)).toEqual([]);
+  });
+
   it("keeps the Plan-pinned external Skill allowlist complete and excludes evals", () => {
     const manifest = loadCourseManifest(repositoryRoot);
     const result = validateCourseManifest(manifest);
@@ -519,7 +583,18 @@ describe("AI-assisted QA distribution contract", () => {
     expect(
       manifest.local_files.some((entry) => entry.target_path.startsWith(".github/workflows/")),
     ).toBe(false);
-    expect(result).toMatchObject({ modules: 11, externalSkillFiles: 104 });
+    expect(result.modules).toBe(11);
+    expect(result.externalSkillFiles).toBe(manifest.external_skill_files.length);
+    for (const skill of ["test-requirement-design", "test-condition-design", "test-case-design"]) {
+      const sourcePath = `skills/${skill}/scripts/runtime_v1_cutover.py`;
+      const entry = manifest.external_skill_files.find((file) => file.source_path === sourcePath);
+      expect(entry, `missing pinned cutover helper for ${skill}`).toMatchObject({
+        skill,
+        target_path: `.agents/${sourcePath}`,
+        blob_sha: expect.stringMatching(/^[a-f0-9]{40}$/),
+        size: expect.any(Number),
+      });
+    }
     expect(
       manifest.local_files
         .filter((entry) => entry.target_path.startsWith("workspace/"))
@@ -537,6 +612,1048 @@ describe("AI-assisted QA distribution contract", () => {
         ],
       }),
     ).toThrow(/prohibited/);
+  });
+
+  it("keeps pinned external Skill sources and targets inside their matching packages", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const original = manifest.external_skill_files[0];
+    for (const mutation of [
+      { source_path: "docs/internal/runtime.py" },
+      { target_path: "course/modules/M03/hidden-runtime.py" },
+      { skill: "qa-workflow" },
+      { source_path: "skills/adversarial-review/evals/answer-key.py" },
+    ]) {
+      expect(() =>
+        validateCourseManifest({
+          ...manifest,
+          external_skill_files: [
+            { ...original, ...mutation },
+            ...manifest.external_skill_files.slice(1),
+          ],
+        }),
+      ).toThrow(/(pinned package|prohibited)/);
+    }
+  });
+
+  it("remaps learner Markdown links to included Shop figures, screenshots, and specs", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      [
+        "# M00",
+        "![Figure](../../assets/figures/M00/01-screen-map.svg)",
+        "[Exercise](../../../../../training/ai-assisted-qa-course/exercises/M00/exercise.md)",
+        "[Cart](../../../../spec/features/cart.md)",
+      ].join("\n"),
+    );
+    writeFixtureFile(
+      fixture.source,
+      "docs/spec/features/cart.md",
+      [
+        "# Cart",
+        "![Screen](../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp)",
+        "[Screen catalog](../screen-catalog.md)",
+      ].join("\n"),
+    );
+    for (const [assetPath, content] of [
+      ["docs/curriculum/ai-assisted-qa/assets/figures/M00/01-screen-map.svg", "<svg/>"],
+      ["docs/spec/assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp", "image"],
+      ["docs/spec/screen-catalog.html", "<html>Catalog</html>"],
+    ]) {
+      writeFixtureFile(fixture.source, `dist/${assetPath}`, content);
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "f".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const moduleReadme = fs.readFileSync(
+      path.join(fixture.target, "course/modules/M00/README.md"),
+      "utf8",
+    );
+    expect(moduleReadme).toContain("../../shop/docs/curriculum/ai-assisted-qa/assets/figures/");
+    expect(moduleReadme).toContain("../../exercises/M00/exercise.md");
+    const specReadme = fs.readFileSync(
+      path.join(fixture.target, "docs/spec/features/cart.md"),
+      "utf8",
+    );
+    expect(specReadme).toContain("course/shop/docs/spec/assets/screens/");
+    expect(specReadme).toContain("course/shop/docs/spec/screen-catalog.html");
+    expectMarkdownLinksResolve(fixture.target, "course/modules/M00/README.md");
+    expectMarkdownLinksResolve(fixture.target, "docs/spec/features/cart.md");
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(4);
+  });
+
+  it("rejects a missing learner figure before writing any distributed files", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      "# M00\\n![Figure](../../assets/figures/M00/missing.svg)\\n",
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "f".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/public Markdown link is missing from distribution/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("refuses a missing referenced Shop image before changing learner workspace", async () => {
+    const fixture = courseFixture();
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      "# M00\\n![Image](../../assets/figures/M00/course-figure.svg)\\n",
+    );
+    const assetPath = "docs/curriculum/ai-assisted-qa/assets/figures/M00/course-figure.svg";
+    writeFixtureFile(fixture.source, `dist/${assetPath}`, "<svg/>");
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "f".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    fs.rmSync(path.join(fixture.target, `course/shop/${assetPath}`));
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /distributed input is missing/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("rejects forged learner links even when distribution hashes are rewritten", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "f".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const relativePath = "course/modules/M00/README.md";
+    const filePath = path.join(fixture.target, relativePath);
+    const changed = fs.readFileSync(filePath, "utf8") + "\\n[Missing](../../broken-secret.txt)\\n";
+    fs.writeFileSync(filePath, changed);
+    const distributionPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(distributionPath, "utf8"));
+    const entry = distribution.files.find((file) => file.target_path === relativePath);
+    entry.sha256 = createHash("sha256").update(changed).digest("hex");
+    entry.bytes = Buffer.byteLength(changed, "utf8");
+    fs.writeFileSync(distributionPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /public Markdown link is missing from distribution/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /public Markdown link is missing from distribution/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("prepares and verifies a complete Template from a clean main Git fixture", () => {
+    const fixture = courseFixture();
+    const cliSource = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs");
+    const cliTarget = path.join(fixture.source, "scripts/training/ai-assisted-qa-course.mjs");
+    fs.copyFileSync(cliSource, cliTarget);
+    fs.copyFileSync(
+      path.join(repositoryRoot, "scripts/training/prepare-learner-template.mjs"),
+      path.join(fixture.source, "scripts/training/prepare-learner-template.mjs"),
+    );
+    writeFixtureFile(fixture.source, ".gitignore", "dist/\n");
+    writeFixtureFile(
+      fixture.source,
+      "package.json",
+      JSON.stringify({
+        private: true,
+        scripts: { "build:web": "node scripts/build-course-fixture.mjs" },
+      }),
+    );
+    writeFixtureFile(
+      fixture.source,
+      "scripts/build-course-fixture.mjs",
+      [
+        'import fs from "node:fs";',
+        'fs.mkdirSync("dist", { recursive: true });',
+        'fs.writeFileSync("dist/index.html", "<!doctype html><title>Built fixture</title>");',
+        'fs.writeFileSync("dist/generated.txt", "generated by pinned build\\n");',
+      ].join("\n"),
+    );
+    const manifest = fixture.manifest;
+    for (const entry of manifest.external_skill_files) {
+      writeFixtureFile(
+        fixture.source,
+        `mock-skills/${entry.source_path}`,
+        `fixture skill ${entry.skill}\n`,
+      );
+    }
+    const preload = writeFixtureFile(
+      fixture.source,
+      "scripts/mock-pinned-skill-fetch.mjs",
+      [
+        'import fs from "node:fs";',
+        'import path from "node:path";',
+        'const prefix = "https://raw.githubusercontent.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/7cc6cba7772de549841a39d71694cbafbc783324/";',
+        "globalThis.fetch = async (url) => {",
+        '  if (!url.startsWith(prefix)) throw new Error("unapproved fixture fetch");',
+        '  const data = fs.readFileSync(path.join(process.env.COURSE_FIXTURE_ROOT, "mock-skills", url.slice(prefix.length)));',
+        '  return { status: 200, redirected: false, url, headers: { get: (name) => name === "content-length" ? String(data.length) : "text/plain" }, arrayBuffer: async () => data };',
+        "};",
+      ].join("\n"),
+    );
+    const git = (...args) =>
+      execFileSync("git", args, { cwd: fixture.source, encoding: "utf8" }).trim();
+    git("init", "-b", "main");
+    git("config", "user.name", "Course fixture");
+    git("config", "user.email", "course-fixture@example.invalid");
+    git("add", "-A");
+    git("commit", "-m", "Pin public Template source");
+    const sourceSha = git("rev-parse", "HEAD");
+    expect(git("status", "--porcelain")).toBe("");
+    const script = path.join(fixture.source, "scripts/training/prepare-learner-template.mjs");
+    const command = spawnSync(process.execPath, [script, "--target", fixture.target], {
+      cwd: fixture.source,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        COURSE_FIXTURE_ROOT: fixture.source,
+        NODE_OPTIONS: `--import=${new URL(`file://${preload}`).href}`,
+      },
+    });
+    expect(command.status, command.stderr || command.stdout).toBe(0);
+    expect(command.stdout).toContain('"status": "ready-to-copy"');
+    const verified = verifySyncedCourseDistribution({ root: fixture.target });
+    expect(verified.source_sha).toBe(sourceSha);
+    expect(verified.state_files_verified).toBe(22);
+    expect(verified.shop_files_verified).toBe(2);
+    expect(fs.readFileSync(path.join(fixture.target, "course/shop/index.html"), "utf8")).toContain(
+      "Built fixture",
+    );
+    const snapshot = snapshotDirectory(fixture.target);
+    const repeated = spawnSync(process.execPath, [script, "--target", fixture.target], {
+      cwd: fixture.source,
+      encoding: "utf8",
+    });
+    expect(repeated.status).not.toBe(0);
+    expect(repeated.stderr).toMatch(/destination is not empty/i);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+    expect(git("status", "--porcelain")).toBe("");
+  });
+
+  it("pins all 11 built Web quizzes to the learner JSON bytes", async () => {
+    const fixture = courseFixture();
+    for (let index = 0; index <= 10; index += 1) {
+      const id = `M${String(index).padStart(2, "0")}`;
+      const quizPath = `docs/curriculum/ai-assisted-qa/quizzes/${id}.json`;
+      fs.copyFileSync(
+        path.join(fixture.source, quizPath),
+        writeFixtureFile(fixture.source, `dist/${quizPath}`, ""),
+      );
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const verified = verifySyncedCourseDistribution({ root: fixture.target });
+    expect(verified.shop_files_verified).toBe(12);
+    const quizPath = "course/shop/docs/curriculum/ai-assisted-qa/quizzes/M03.json";
+    const destination = path.join(fixture.target, quizPath);
+    fs.appendFileSync(destination, " ");
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const entry = distribution.files.find((file) => file.target_path === quizPath);
+    const bytes = fs.readFileSync(destination);
+    entry.sha256 = createHash("sha256").update(bytes).digest("hex");
+    entry.bytes = bytes.length;
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /Web and learner quiz JSON are missing or differ/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M03" })).toThrow(
+      /Web and learner quiz JSON are missing or differ/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("rejects partial built Web quizzes before writing a Template", async () => {
+    const fixture = courseFixture();
+    const quizPath = "docs/curriculum/ai-assisted-qa/quizzes/M00.json";
+    fs.copyFileSync(
+      path.join(fixture.source, quizPath),
+      writeFixtureFile(fixture.source, `dist/${quizPath}`, ""),
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/Web and learner quiz JSON are missing or differ/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("rejects a partial Web curriculum HTML even when all quiz JSON matches", async () => {
+    const fixture = courseFixture();
+    const webPrefix = "docs/curriculum/ai-assisted-qa/quizzes/";
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      const quiz = fs.readFileSync(path.join(fixture.source, webPrefix, `${moduleId}.json`));
+      writeFixtureFile(fixture.source, `dist/${webPrefix}${moduleId}.json`, quiz);
+    }
+    writeFixtureFile(
+      fixture.source,
+      "dist/docs/curriculum/ai-assisted-qa/quizzes/M00.html",
+      "<html><body>Partial quiz page</body></html>",
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/Web\/Template Markdown revision mismatch \(BLOCKED\): index.html/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("rejects a symlinked Web build root before copying any files", async () => {
+    const fixture = courseFixture();
+    const originalDist = path.join(fixture.source, "dist");
+    const relocatedDist = path.join(fixture.source, "outside-dist");
+    fs.renameSync(originalDist, relocatedDist);
+    fs.symlinkSync(relocatedDist, originalDist, "dir");
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/symlink path is prohibited/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("blocks missing bundled Web runtime assets before writing and after manifest forgery", async () => {
+    const fixture = courseFixture();
+    const scriptPath = "dist/_expo/static/js/web/entry.js";
+    const assetPath = "assets/icons/back.png";
+    writeFixtureFile(fixture.source, scriptPath, 'const icon = {uri:"/assets/icons/back.png"};');
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web runtime asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(fixture.source, `dist/${assetPath}`, "");
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web runtime asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(fixture.source, `dist/${assetPath}`, "fixture image");
+    await syncCourse(options);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(3);
+
+    const targetAsset = `course/shop/${assetPath}`;
+    fs.unlinkSync(path.join(fixture.target, targetAsset));
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.files = distribution.files.filter((entry) => entry.target_path !== targetAsset);
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /bundled Web runtime asset is missing/,
+    );
+  });
+
+  it("blocks missing HTML and CSS asset links before sync and after manifest tampering", async () => {
+    const fixture = courseFixture();
+    const image = "assets/logo.png";
+    writeFixtureFile(
+      fixture.source,
+      "dist/index.html",
+      '<link rel="stylesheet" href="styles/site.css"><img src="/assets/logo.png">',
+    );
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(
+      fixture.source,
+      "dist/styles/site.css",
+      'body { background-image: url("../assets/logo.png"); }',
+    );
+    await expect(syncCourse(options)).rejects.toThrow(/bundled Web asset is missing/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+
+    writeFixtureFile(fixture.source, `dist/${image}`, "fixture image");
+    await syncCourse(options);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(3);
+
+    fs.unlinkSync(path.join(fixture.target, `course/shop/${image}`));
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.files = distribution.files.filter(
+      (entry) => entry.target_path !== `course/shop/${image}`,
+    );
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /bundled Web asset is missing/,
+    );
+  });
+
+  it("verifies HTML srcset, CSS imports and JavaScript module asset dependencies", async () => {
+    const cases = [
+      {
+        file: "dist/index.html",
+        source: '<img srcset="/assets/one.webp 1x, /assets/two.webp 2x">',
+      },
+      {
+        file: "dist/preview.html",
+        source: '<link imagesrcset="/assets/preview.png 1x">',
+      },
+      {
+        file: "dist/styles/main.css",
+        source: '@import "./theme.css";',
+      },
+      {
+        file: "dist/scripts/entry.mjs",
+        source: 'import { value } from "./chunk.mjs";',
+      },
+      {
+        file: "dist/scripts/lazy.mjs",
+        source: 'const load = () => import("./lazy-chunk.mjs");',
+      },
+    ];
+    for (const { file, source } of cases) {
+      const fixture = courseFixture();
+      writeFixtureFile(fixture.source, file, source);
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "e".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/bundled Web asset is missing/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+
+    const fixture = courseFixture();
+    for (const { file, source } of cases) writeFixtureFile(fixture.source, file, source);
+    for (const asset of [
+      "assets/one.webp",
+      "assets/two.webp",
+      "assets/preview.png",
+      "styles/theme.css",
+      "scripts/chunk.mjs",
+      "scripts/lazy-chunk.mjs",
+    ]) {
+      writeFixtureFile(fixture.source, `dist/${asset}`, "fixture asset");
+    }
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(11);
+  });
+
+  it("resolves learner runtime imports after their manifest and module-load placements", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const runtime = manifest.local_files.filter(
+      (entry) => entry.role === "runtime" && /\.(?:mjs|tsx?|jsx?)$/.test(entry.target_path),
+    );
+    const targets = new Set([
+      ...manifest.local_files.map((entry) => entry.target_path),
+      ...manifest.load_files.map((entry) => entry.target_path),
+    ]);
+    const pkg = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"));
+    const packages = { ...pkg.dependencies, ...pkg.devDependencies };
+    let localImports = 0;
+    for (const entry of runtime) {
+      const source = fs.readFileSync(path.join(repositoryRoot, entry.source_path), "utf8");
+      const placements = manifest.load_files
+        .filter((load) => load.source_path === entry.target_path)
+        .map((load) => load.target_path);
+      if (placements.length === 0) placements.push(entry.target_path);
+      const importPattern = /\b(?:from\s+|import\s*(?:\(\s*)?)["']([^"']+)["']/g;
+      for (const match of source.matchAll(importPattern)) {
+        const specifier = match[1];
+        if (specifier.startsWith("node:")) continue;
+        if (!specifier.startsWith(".")) {
+          const parts = specifier.split("/");
+          const packageName = specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+          expect(packages[packageName], `${entry.target_path} -> ${specifier}`).toBeDefined();
+          continue;
+        }
+        localImports += 1;
+        for (const placement of placements) {
+          const resolved = path.posix.normalize(
+            path.posix.join(path.posix.dirname(placement), specifier),
+          );
+          const extensions = ["", ".ts", ".tsx", ".js", ".mjs"];
+          const resolves = extensions.some((extension) => targets.has(resolved + extension));
+          expect(resolves, `${placement} -> ${specifier}`).toBe(true);
+        }
+      }
+    }
+    expect(runtime.length).toBeGreaterThan(10);
+    expect(localImports).toBeGreaterThan(10);
+    expect(
+      manifest.load_files.some(
+        (entry) =>
+          entry.source_path === "course/exercises/M07/failure-assertion.spec.ts" &&
+          entry.target_path === "workspace/M07/failure-assertion.spec.ts",
+      ),
+    ).toBe(true);
+  });
+
+  it("pins all Web lesson, exercise and quiz HTML revisions to learner Markdown and JSON", async () => {
+    const fixture = courseFixture();
+    const pages = [];
+    const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+    const webPrefix = "docs/curriculum/ai-assisted-qa/";
+    const startRevision = hash(
+      fs.readFileSync(path.join(fixture.source, webPrefix, "start-here.md")),
+    );
+    writeFixtureFile(
+      fixture.source,
+      `dist/${webPrefix}index.html`,
+      `<meta name="course-source-revision" content="${startRevision}"><body data-course-revision="${startRevision}"></body>`,
+    );
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      for (const [page, source] of [
+        [
+          `modules/${moduleId}/index.html`,
+          `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
+        ],
+        [
+          `modules/${moduleId}/exercise.html`,
+          `training/ai-assisted-qa-course/exercises/${moduleId}/exercise.md`,
+        ],
+      ]) {
+        const revision = hash(fs.readFileSync(path.join(fixture.source, source)));
+        const html = `<meta name="course-source-revision" content="${revision}"><body data-course-revision="${revision}"></body>`;
+        writeFixtureFile(fixture.source, `dist/${webPrefix}${page}`, html);
+        pages.push({ page: `dist/${webPrefix}${page}`, revision, html });
+      }
+      const quiz = fs.readFileSync(
+        path.join(fixture.source, webPrefix, "quizzes", `${moduleId}.json`),
+      );
+      const revision = hash(quiz);
+      writeFixtureFile(fixture.source, `dist/${webPrefix}quizzes/${moduleId}.json`, quiz);
+      writeFixtureFile(
+        fixture.source,
+        `dist/${webPrefix}quizzes/${moduleId}.html`,
+        `<meta name="quiz-revision" content="${revision}"><body data-revision="${revision}"></body>`,
+      );
+    }
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "e".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    const firstPage = pages[0];
+    writeFixtureFile(
+      fixture.source,
+      firstPage.page,
+      firstPage.html.replaceAll(firstPage.revision, "0".repeat(64)),
+    );
+    await expect(syncCourse(options)).rejects.toThrow(/Markdown revision mismatch/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+    writeFixtureFile(fixture.source, firstPage.page, firstPage.html);
+    const quizHtmlPath = `dist/${webPrefix}quizzes/M00.html`;
+    const originalQuizHtml = fs.readFileSync(path.join(fixture.source, quizHtmlPath), "utf8");
+    writeFixtureFile(
+      fixture.source,
+      quizHtmlPath,
+      originalQuizHtml.replace(/\b[a-f0-9]{64}\b/g, "0".repeat(64)),
+    );
+    await expect(syncCourse(options)).rejects.toThrow(/quiz revision mismatch/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+    writeFixtureFile(fixture.source, quizHtmlPath, originalQuizHtml);
+
+    await syncCourse(options);
+    expect(verifySyncedCourseDistribution({ root: fixture.target }).shop_files_verified).toBe(46);
+    const snapshot = snapshotDirectory(fixture.target);
+    const repeated = await syncCourse(options);
+    expect(repeated.copied).toEqual([]);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const learnerLesson = distribution.files.find(
+      (file) => file.target_path === "course/modules/M00/README.md",
+    );
+    expect(learnerLesson.source_sha256).toBe(firstPage.revision);
+    learnerLesson.source_sha256 = "0".repeat(64);
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /Markdown revision mismatch/,
+    );
+  });
+
+  it("rejects generated Web assets under node_modules even when JS refers to them", async () => {
+    const fixture = courseFixture();
+    const image = "assets/node_modules/.pnpm/expo-router/icon.png";
+    writeFixtureFile(fixture.source, `dist/${image}`, "bundled image bytes");
+    writeFixtureFile(
+      fixture.source,
+      "dist/_expo/static/js/web/entry.js",
+      `const icon = {uri:"/${image}"};`,
+    );
+    await expect(
+      syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "e".repeat(40),
+        fetchImpl: fixture.fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      }),
+    ).rejects.toThrow(/generated target_path is prohibited/);
+    expect(fs.readdirSync(fixture.target)).toEqual([]);
+  });
+
+  it("keeps nested generated Shop manifest paths in deterministic order", async () => {
+    const fixture = courseFixture();
+    for (const [name, content] of [
+      ["z.js", "console.log(1);"],
+      ["m/data.json", "{}"],
+      ["a.css", "body {}"],
+    ]) {
+      writeFixtureFile(fixture.source, `dist/${name}`, content);
+    }
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "c".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    };
+    await syncCourse(options);
+    const distribution = JSON.parse(
+      fs.readFileSync(path.join(fixture.target, ".course/distribution-manifest.json"), "utf8"),
+    );
+    expect(
+      distribution.files
+        .filter((file) => file.origin === "generated-shop")
+        .map((file) => file.target_path),
+    ).toEqual([
+      "course/shop/a.css",
+      "course/shop/index.html",
+      "course/shop/m/data.json",
+      "course/shop/z.js",
+    ]);
+    const original = snapshotDirectory(fixture.target);
+    const repeated = await syncCourse(options);
+    expect(repeated.copied).toEqual([]);
+    expect(snapshotDirectory(fixture.target)).toEqual(original);
+  });
+
+  it("re-syncs a pinned Git commit and rejects dirty or divergent sources", async () => {
+    const fixture = courseFixture();
+    const git = (...args) =>
+      execFileSync("git", args, { cwd: fixture.source, encoding: "utf8" }).trim();
+    git("init", "-b", "main");
+    git("config", "user.name", "Course fixture");
+    git("config", "user.email", "course-fixture@example.invalid");
+    git("add", "-A");
+    git("commit", "-m", "Pin learner distribution fixture");
+    const sourceSha = git("rev-parse", "HEAD");
+    const options = {
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha,
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+    };
+    const first = await syncCourse(options);
+    const verified = verifySyncedCourseDistribution({ root: fixture.target });
+    expect(first.copied.length).toBeGreaterThan(0);
+    expect(verified.source_sha).toBe(sourceSha);
+    expect(verified.state_files_verified).toBe(22);
+    const snapshot = snapshotDirectory(fixture.target);
+    const repeated = await syncCourse(options);
+    expect(repeated.copied).toEqual([]);
+    expect(repeated.unchanged).toBe(repeated.fileCount);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+
+    writeFixtureFile(fixture.source, "uncommitted-source.txt", "uncommitted\\n");
+    await expect(syncCourse(options)).rejects.toThrow(/clean source worktree/);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+    fs.rmSync(path.join(fixture.source, "uncommitted-source.txt"));
+
+    git("checkout", "-b", "other-branch");
+    writeFixtureFile(
+      fixture.source,
+      "docs/curriculum/ai-assisted-qa/modules/M00/README.md",
+      "# Changed only on another branch\\n",
+    );
+    git("add", "-A");
+    git("commit", "-m", "Diverge from pinned source");
+    expect(git("rev-parse", "HEAD")).not.toBe(sourceSha);
+    await expect(syncCourse(options)).rejects.toThrow(/source SHA does not equal checked-out HEAD/);
+    expect(snapshotDirectory(fixture.target)).toEqual(snapshot);
+  });
+
+  it("keeps runtime and module-loaded relative imports inside the declared distribution", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const sourceByTarget = new Map(
+      manifest.local_files.map((file) => [file.target_path, file.source_path]),
+    );
+    const available = new Set([
+      ...manifest.local_files.map((file) => file.target_path),
+      ...manifest.load_files.map((file) => file.target_path),
+    ]);
+    const isCode = /\.(?:mjs|cjs|js|ts|tsx)$/;
+    const executableFiles = [
+      ...manifest.local_files
+        .filter((file) => isCode.test(file.target_path) && !file.target_path.startsWith("course/"))
+        .map((file) => ({ sourcePath: file.source_path, targetPath: file.target_path })),
+      ...manifest.load_files
+        .filter((file) => isCode.test(file.target_path))
+        .map((file) => ({
+          sourcePath: sourceByTarget.get(file.source_path),
+          targetPath: file.target_path,
+        })),
+    ];
+    for (const { sourcePath, targetPath } of executableFiles) {
+      expect(sourcePath, `missing import source for ${targetPath}`).toBeTruthy();
+      const content = fs.readFileSync(path.join(repositoryRoot, sourcePath), "utf8");
+      const importPattern = /\b(?:from\s*|import\s*\(|require\s*\()\s*["'`]([^"'`]+)["'`]/g;
+      for (const match of content.matchAll(importPattern)) {
+        const specifier = match[1];
+        if (!specifier.startsWith(".")) continue;
+        const resolved = path.posix.normalize(
+          path.posix.join(path.posix.dirname(targetPath), specifier),
+        );
+        expect(
+          [
+            resolved,
+            `${resolved}.ts`,
+            `${resolved}.tsx`,
+            `${resolved}.js`,
+            `${resolved}.mjs`,
+            `${resolved}.json`,
+            `${resolved}/index.ts`,
+          ].some((candidate) => available.has(candidate)),
+          `${targetPath} imports missing packaged file ${specifier}`,
+        ).toBe(true);
+      }
+    }
+    expect(executableFiles.length).toBeGreaterThan(20);
+  });
+
+  it("rejects unsafe Template target ancestors without creating directories", () => {
+    const root = fs.mkdtempSync(path.join(fixtureRoot, "template-target-"));
+    const source = path.join(root, "source");
+    fs.mkdirSync(source);
+    const sibling = path.join(root, "learner");
+    expect(validateTemplateTarget(sibling, source)).toBe(sibling);
+    expect(fs.existsSync(sibling)).toBe(false);
+    for (const target of [source, root, path.join(source, "nested")]) {
+      expect(() => validateTemplateTarget(target, source)).toThrow(/outside the source checkout/);
+    }
+    const linked = path.join(root, "linked");
+    fs.symlinkSync(root, linked, "dir");
+    expect(() => validateTemplateTarget(path.join(linked, "learner"), source)).toThrow(
+      /symlink ancestors/,
+    );
+    const aliasedSource = path.join(linked, "source");
+    expect(() => validateTemplateTarget(path.join(source, "nested"), aliasedSource)).toThrow(
+      /outside the source checkout/,
+    );
+    expect(fs.existsSync(sibling)).toBe(false);
+  });
+
+  it("rejects dangling symlink files and ancestors before learner sync writes", async () => {
+    for (const kind of ["leaf", "ancestor"]) {
+      const fixture = courseFixture();
+      const shopDirectory = path.join(fixture.target, "course/shop");
+      fs.mkdirSync(path.dirname(shopDirectory), { recursive: true });
+      const linkedPath = kind === "leaf" ? path.join(shopDirectory, "index.html") : shopDirectory;
+      if (kind === "leaf") fs.mkdirSync(shopDirectory);
+      fs.symlinkSync("not-created", linkedPath, kind === "leaf" ? "file" : "dir");
+      const before = snapshotDirectory(fixture.target);
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "d".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/symlink path is prohibited|existing destination content differs/);
+      expect(fs.lstatSync(linkedPath).isSymbolicLink()).toBe(true);
+      expect(snapshotDirectory(fixture.target)).toEqual(before);
+    }
+  });
+
+  it("rejects an intact-hash pinned source replaced by an external symlink", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "a".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const sourcePath = path.join(fixture.target, "course/modules/M00/README.md");
+    const outsidePath = path.join(fixture.source, "external-copy.md");
+    fs.writeFileSync(outsidePath, fs.readFileSync(sourcePath));
+    fs.rmSync(sourcePath);
+    fs.symlinkSync(outsidePath, sourcePath, "file");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M00" })).toThrow(
+      /symlink path is prohibited/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M00"))).toBe(false);
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("rejects dangling learner-file symlinks before loading any module file", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "d".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = path.join(fixture.target, "workspace/M05/submission.md");
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.symlinkSync("missing-submission.md", targetPath, "file");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
+      /existing learner files differ; nothing was overwritten/,
+    );
+    expect(fs.lstatSync(targetPath).isSymbolicLink()).toBe(true);
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M05/product-link.spec.ts"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(path.join(fixture.target, ".course-load"))).toBe(false);
+  });
+
+  it("rejects unknown, multiple, and traversal module IDs in the public load CLI", () => {
+    const root = fs.mkdtempSync(path.join(fixtureRoot, "load-cli-"));
+    const cli = path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs");
+    for (const [args, errorPattern] of [
+      [["load"], /one module only/],
+      [["load", "M11"], /exactly one module ID/],
+      [["load", "M00", "M01"], /one module only/],
+      [["load", "../M00"], /exactly one module ID/],
+      [["load", "M00/../M01"], /exactly one module ID/],
+      [["load", "M00 M01"], /exactly one module ID/],
+    ]) {
+      const result = spawnSync(process.execPath, [cli, ...args], {
+        cwd: root,
+        encoding: "utf8",
+      });
+      expect(result.status, `load ${args.join(" ")} must fail`).not.toBe(0);
+      expect(result.stderr).toMatch(errorPattern);
+      expect(fs.readdirSync(root)).toEqual([]);
+    }
+  });
+
+  it("requires M03 public Risk input and source-backed Authority and Scope instructions", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const riskPath = "course/modules/M03/inputs/public-risk-input.csv";
+    expect(
+      manifest.local_files.some(
+        (file) =>
+          file.module_id === "M03" && file.role === "input" && file.target_path === riskPath,
+      ),
+    ).toBe(true);
+    expect(
+      manifest.load_files.some(
+        (file) =>
+          file.module_id === "M03" &&
+          file.source_path === riskPath &&
+          file.target_path === "workspace/M03/public-sample/risk-input.csv",
+      ),
+    ).toBe(true);
+    const start = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/inputs/M03/start.md"),
+      "utf8",
+    );
+    expect(start).toContain("SCOPE-101");
+    expect(start).toContain("Authority Entity");
+    expect(start).toContain("RISK-CART-001");
+    expect(start).toContain("BR-CART-001");
+    expect(start).toContain("AC-CART-001");
+    for (const skillScript of [
+      "skills/spec-analysis/scripts/authority_entities.py",
+      "skills/test-analysis/scripts/risk_matrix.py",
+      "skills/test-analysis/scripts/analysis_entities.py",
+      "skills/test-requirement-design/scripts/requirement_structure.py",
+      "skills/test-condition-design/scripts/condition_structure.py",
+      "skills/test-condition-design/scripts/runtime_contract.py",
+      "skills/test-case-design/scripts/case_structure.py",
+    ]) {
+      expect(manifest.external_skill_files).toContainEqual(
+        expect.objectContaining({
+          source_path: skillScript,
+          target_path: `.agents/${skillScript}`,
+          blob_sha: expect.stringMatching(/^[a-f0-9]{40}$/),
+        }),
+      );
+    }
+
+    const withoutLoad = {
+      ...manifest,
+      load_files: manifest.load_files.filter((file) => file.source_path !== riskPath),
+    };
+    expect(() => validateCourseManifest(withoutLoad)).toThrow(/M03 public Risk input/);
+
+    const wrongDestination = {
+      ...manifest,
+      load_files: manifest.load_files.map((file) =>
+        file.source_path === riskPath
+          ? { ...file, target_path: "workspace/M03/public-sample/wrong.csv" }
+          : file,
+      ),
+    };
+    expect(() => validateCourseManifest(wrongDestination)).toThrow(/M03 public Risk input/);
+  });
+
+  it("blocks missing M03 Authority, Risk, or Scope references before syncing files", async () => {
+    for (const reference of ["Authority Entity", "RISK-CART-001", "SCOPE-101"]) {
+      const fixture = courseFixture();
+      const sourcePath = "training/ai-assisted-qa-course/inputs/M03/start.md";
+      const start = fs.readFileSync(path.join(fixture.source, sourcePath), "utf8");
+      writeFixtureFile(fixture.source, sourcePath, start.replace(reference, ""));
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "8".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(`M03 public start input is missing source-backed reference: ${reference}`);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
+  it("blocks M03 loading when its source-backed references are forged after sync", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "8".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const targetPath = "course/modules/M03/inputs/start.md";
+    const filePath = path.join(fixture.target, targetPath);
+    const altered = fs.readFileSync(filePath, "utf8").replace("SCOPE-101", "");
+    fs.writeFileSync(filePath, altered);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const entry = distribution.files.find((file) => file.target_path === targetPath);
+    entry.sha256 = createHash("sha256").update(altered).digest("hex");
+    entry.bytes = Buffer.byteLength(altered, "utf8");
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /M03 public start input is missing source-backed reference: SCOPE-101/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M03" })).toThrow(
+      /M03 public start input is missing source-backed reference: SCOPE-101/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M03"))).toBe(false);
+  });
+
+  it("rejects a forged distribution that omits the M03 public Risk load", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "c".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.load_files = distribution.load_files.filter(
+      (entry) => entry.source_path !== "course/modules/M03/inputs/public-risk-input.csv",
+    );
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /M03 public Risk input/,
+    );
+    expect(() => loadModule({ root: fixture.target, moduleId: "M03" })).toThrow(
+      /M03 public Risk input/,
+    );
+    expect(fs.existsSync(path.join(fixture.target, "workspace/M03"))).toBe(false);
   });
 
   it("rejects invalid module load bindings before writing files", async () => {
@@ -1821,6 +2938,64 @@ describe("AI-assisted QA distribution contract", () => {
     }
   });
 
+  it("rejects all five legacy curriculum pages before publishing a learner Shop", async () => {
+    for (const page of [
+      "00_learning-design",
+      "01_spreadsheet-test-design",
+      "02_competency-rubric",
+      "03_instructor-reference",
+      "04_learning-effort-reference",
+    ]) {
+      const fixture = courseFixture();
+      writeFixtureFile(
+        fixture.source,
+        `dist/docs/curriculum/${page}.html`,
+        "<html>Legacy materials</html>",
+      );
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "a".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/legacy curriculum page must not be distributed/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
+  it("rejects a forged manifest that introduces an instructor-only Shop page", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "a".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+    const relativePath = "course/shop/docs/curriculum/03_instructor-reference.html";
+    const bytes = Buffer.from("<html>Instructor only</html>");
+    writeFixtureFile(fixture.target, relativePath, bytes);
+    const manifestPath = path.join(fixture.target, ".course/distribution-manifest.json");
+    const distribution = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    distribution.files.push({
+      origin: "generated-shop",
+      source_path: "dist/docs/curriculum/03_instructor-reference.html",
+      target_path: relativePath,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      bytes: bytes.length,
+    });
+    fs.writeFileSync(manifestPath, JSON.stringify(distribution));
+    expect(() => verifySyncedCourseDistribution({ root: fixture.target })).toThrow(
+      /legacy curriculum page must not be distributed/,
+    );
+  });
+
   it("rejects credentials in generated Shop files even when they are build outputs", async () => {
     const fixture = courseFixture();
     writeFixtureFile(fixture.source, "dist/index.html", `<body>ghp_${"b".repeat(36)}</body>`);
@@ -2582,6 +3757,80 @@ describe("AI-assisted QA distribution contract", () => {
     expect(retry.copied).toContain("course/modules/M01/README.md");
     expect(retry.unchanged).toBeGreaterThan(0);
     expect(fs.readFileSync(failingDestination, "utf8")).toContain("# M01");
+  });
+
+  it("preserves private work across reloads and interrupted module loads", async () => {
+    const fixture = courseFixture();
+    await syncCourse({
+      root: fixture.source,
+      target: fixture.target,
+      sourceSha: "6".repeat(40),
+      fetchImpl: fixture.fetchImpl,
+      buildShop: false,
+      shopBuildRoot: fixture.source,
+      allowUncommittedFixture: true,
+    });
+
+    const protectedFiles = new Map([
+      ["workspace/M04/previous.md", Buffer.from("previous phase answer\\n")],
+      ["workspace/M05/notes.md", Buffer.from("learner notes\\n")],
+      ["workspace/M06/private-notes.md", Buffer.from("other module answer\\n")],
+      [
+        "workspace/.course-assessments/P1/attempts/old/result.json",
+        Buffer.from('{"private":true}\\n'),
+      ],
+      ["workspace/course-assessment-exports/previous.zip", Buffer.from([0, 1, 2, 255])],
+      ["output/training/ai-assisted-qa/test-results/trace.zip", Buffer.from([5, 4, 3, 2])],
+    ]);
+    for (const [relativePath, bytes] of protectedFiles) {
+      writeFixtureFile(fixture.target, relativePath, bytes);
+    }
+
+    const first = loadModule({
+      root: fixture.target,
+      moduleId: "M05",
+      now: new Date("2026-10-22T05:00:00.000Z"),
+    });
+    const firstReceipt = fs.readFileSync(path.join(fixture.target, first.receipt));
+    const second = loadModule({
+      root: fixture.target,
+      moduleId: "M05",
+      now: new Date("2026-10-22T05:01:00.000Z"),
+    });
+    expect(second.copied).toEqual([]);
+    expect(fs.readFileSync(path.join(fixture.target, first.receipt))).toEqual(firstReceipt);
+
+    const failedTarget = path.join(fixture.target, "workspace/M06/submission.md");
+    const originalCopy = fs.copyFileSync.bind(fs);
+    const copySpy = vi
+      .spyOn(fs, "copyFileSync")
+      .mockImplementation((source, destination, ...args) => {
+        if (destination === failedTarget) throw new Error("injected M06 interruption");
+        return originalCopy(source, destination, ...args);
+      });
+    try {
+      expect(() => loadModule({ root: fixture.target, moduleId: "M06" })).toThrow(
+        /injected M06 interruption/,
+      );
+    } finally {
+      copySpy.mockRestore();
+    }
+    expect(fs.existsSync(failedTarget)).toBe(false);
+    const newReceipts = fs
+      .readdirSync(path.join(fixture.target, ".course-load"))
+      .filter((name) => name.startsWith("M06-"));
+    expect(newReceipts).toEqual([]);
+
+    const submission = path.join(fixture.target, "workspace/M05/submission.md");
+    fs.appendFileSync(submission, "learner modification\\n");
+    expect(() => loadModule({ root: fixture.target, moduleId: "M05" })).toThrow(
+      /existing learner files differ; nothing was overwritten/,
+    );
+    expect(fs.readFileSync(submission, "utf8")).toContain("learner modification");
+    for (const [relativePath, bytes] of protectedFiles) {
+      expect(fs.readFileSync(path.join(fixture.target, relativePath))).toEqual(bytes);
+    }
+    expect(fs.readFileSync(path.join(fixture.target, first.receipt))).toEqual(firstReceipt);
   });
 
   it("resumes an interrupted module load without overwriting learner edits", async () => {

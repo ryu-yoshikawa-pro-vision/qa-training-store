@@ -10,7 +10,7 @@ export const DISTRIBUTION_MANIFEST_PATH = ".course/distribution-manifest.json";
 const STATE_CONTRACT_REVISION = "ai-assisted-qa-course-v3";
 const EXTERNAL_SKILL_REPOSITORY = "ryu-yoshikawa-pro-vision/qa-workflow-skills";
 const EXTERNAL_SKILL_COMMIT = "7cc6cba7772de549841a39d71694cbafbc783324";
-const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide"]);
+const REMAPPED_MARKDOWN_ROLES = new Set(["lesson", "guide", "reference"]);
 const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).padStart(2, "0")}`);
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
@@ -131,6 +131,40 @@ function validateModuleLoadCoverage(loadFiles, distributionFiles) {
   }
 }
 
+const M03_PUBLIC_START_PATH = "course/modules/M03/inputs/start.md";
+const M03_PUBLIC_START_REFS = [
+  "SCOPE-101",
+  "RISK-CART-001",
+  "Authority Entity",
+  "BR-CART-001",
+  "AC-CART-001",
+];
+
+function validateM03PublicStartBytes(bytes) {
+  const content = bytes.toString("utf8");
+  for (const reference of M03_PUBLIC_START_REFS) {
+    if (!content.includes(reference))
+      fail(`M03 public start input is missing source-backed reference: ${reference}`);
+  }
+}
+
+function validateM03RiskInput(loadFiles, distributionFiles) {
+  const sourcePath = "course/modules/M03/inputs/public-risk-input.csv";
+  if (
+    !distributionFiles.some(
+      (entry) =>
+        entry.module_id === "M03" && entry.role === "input" && entry.target_path === sourcePath,
+    ) ||
+    !loadFiles.some(
+      (entry) =>
+        entry.module_id === "M03" &&
+        entry.source_path === sourcePath &&
+        entry.target_path === "workspace/M03/public-sample/risk-input.csv",
+    )
+  )
+    fail("M03 public Risk input must be distributed and loaded with its module");
+}
+
 function validateLoadFileBindings(loadFiles, distributionTargets) {
   const loadTargets = new Set();
   for (const entry of loadFiles) {
@@ -189,6 +223,15 @@ function assertNotWorkflowPath(value, description) {
   return value;
 }
 
+function lstatIfExists(absolute) {
+  try {
+    return fs.lstatSync(absolute);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 function assertNoSymlinkPath(root, relativePath, includeLeaf = true) {
   const normalized = normalizeRelativePath(relativePath);
   const parts = normalized.split("/");
@@ -196,9 +239,8 @@ function assertNoSymlinkPath(root, relativePath, includeLeaf = true) {
   let current = path.resolve(root);
   for (const part of parts.slice(0, limit)) {
     current = path.join(current, part);
-    if (!fs.existsSync(current)) continue;
-    const stat = fs.lstatSync(current);
-    if (stat.isSymbolicLink()) fail(`symlink path is prohibited: ${relativePath}`);
+    if (lstatIfExists(current)?.isSymbolicLink())
+      fail(`symlink path is prohibited: ${relativePath}`);
   }
   const absolute = path.resolve(root, ...parts);
   const rel = path.relative(path.resolve(root), absolute);
@@ -221,6 +263,16 @@ export function validateCourseManifest(manifest) {
   if (manifest?.schema_version !== 1) fail("Unsupported course manifest schema_version");
   if (manifest.state_contract_revision !== STATE_CONTRACT_REVISION)
     fail("The state contract revision must match the implemented read-only checker");
+  if (manifest.source_sha !== "${SOURCE_SHA}")
+    fail("Course manifest source_sha must remain the exact runtime-bound placeholder");
+  const shopBuild = manifest.generated?.shop_build;
+  if (
+    shopBuild?.command !== "pnpm run build:web" ||
+    shopBuild.source !== "dist/**" ||
+    shopBuild.target !== "course/shop/**" ||
+    shopBuild.required !== true
+  )
+    fail("Course manifest must pin the required Shop build and its distribution paths");
   if (
     !Array.isArray(manifest.local_files) ||
     !Array.isArray(manifest.external_skill_files) ||
@@ -257,20 +309,22 @@ export function validateCourseManifest(manifest) {
       !MODULE_ID_PATTERN.test(entry.module_id)
     )
       fail(`invalid module_id in distribution manifest: ${entry.module_id}`);
-    if (entry.source_path.startsWith("skills/") && /(?:^|\/)evals(?:\/|$)/.test(source))
-      fail(`Skill eval files must never be distributed: ${source}`);
-    if (
-      manifest.external_skill_files.includes(entry) &&
-      !/^[a-f0-9]{40}$/.test(entry.blob_sha ?? "")
-    )
-      fail(`external Skill entry has no Git blob SHA: ${source}`);
-    if (
-      manifest.external_skill_files.includes(entry) &&
-      (!Number.isSafeInteger(entry.size) ||
+    if (manifest.external_skill_files.includes(entry)) {
+      if (
+        !/^skills\/[a-z0-9-]+\/(?:SKILL\.md|(?:assets|references|scripts)\/.+)$/.test(source) ||
+        !source.startsWith(`skills/${entry.skill}/`) ||
+        target !== `.agents/${source}`
+      )
+        fail(`external Skill path must stay inside its own pinned package: ${source}`);
+      if (!/^[a-f0-9]{40}$/.test(entry.blob_sha ?? ""))
+        fail(`external Skill entry has no Git blob SHA: ${source}`);
+      if (
+        !Number.isSafeInteger(entry.size) ||
         entry.size <= 0 ||
-        entry.size > MAX_EXTERNAL_SKILL_FILE_BYTES)
-    )
-      fail(`external Skill entry has an invalid size: ${source}`);
+        entry.size > MAX_EXTERNAL_SKILL_FILE_BYTES
+      )
+        fail(`external Skill entry has an invalid size: ${source}`);
+    }
   }
   const skillModules = new Set(manifest.external_skill_files.map((entry) => entry.skill));
   const requiredSkills = [
@@ -304,6 +358,7 @@ export function validateCourseManifest(manifest) {
     );
   }
   validateLoadFileBindings(manifest.load_files, destinations);
+  validateM03RiskInput(manifest.load_files, manifest.local_files);
   for (const asset of manifest.assessment_asset_allowlist) {
     if (asset.asset_type === "rubric") continue;
     if (
@@ -432,7 +487,7 @@ function bindStateSourceSha(bytes, sourcePath, sourceSha) {
   return Buffer.from(`${JSON.stringify(state, null, 2)}\n`, "utf8");
 }
 
-function remapMarkdownLinks(bytes, entry, manifest) {
+function remapMarkdownLinks(bytes, entry, manifest, generatedTargets) {
   if (!REMAPPED_MARKDOWN_ROLES.has(entry.role)) return bytes;
   const targetBySource = new Map(
     manifest.local_files.map((file) => [path.posix.normalize(file.source_path), file.target_path]),
@@ -446,9 +501,13 @@ function remapMarkdownLinks(bytes, entry, manifest) {
       const match = href.match(/^([^?#]*)([?#].*)?$/);
       const sourceHref = match?.[1];
       if (!sourceHref) return whole;
-      const sourceTarget = targetBySource.get(
-        path.posix.normalize(path.posix.join(sourceDirectory, sourceHref)),
-      );
+      const sourcePath = path.posix.normalize(path.posix.join(sourceDirectory, sourceHref));
+      const sourceTarget =
+        targetBySource.get(sourcePath) ??
+        generatedTargets.get(sourcePath) ??
+        (sourcePath.endsWith(".md")
+          ? generatedTargets.get(sourcePath.slice(0, -3) + ".html")
+          : undefined);
       if (!sourceTarget) return whole;
       const targetHref =
         path.posix.relative(targetDirectory, sourceTarget) || path.posix.basename(sourceTarget);
@@ -461,10 +520,12 @@ function expandBuildOutput(root, manifest) {
   const config = manifest.generated?.shop_build;
   if (!config) fail("manifest has no generated Scenario Shop build contract");
   const targetPrefix = config.target.replace(/\/?\*\*\/?$/, "").replace(/\/$/, "");
-  const sourceRoot = assertNoSymlinkPath(root, "dist", false);
+  const sourceRoot = assertNoSymlinkPath(root, "dist", true);
   const files = [];
   const walk = (directory, relativeDirectory = "") => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
       const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
       const absolutePath = path.join(directory, entry.name);
       const stat = fs.lstatSync(absolutePath);
@@ -509,12 +570,202 @@ const PUBLIC_CONTENT_PATTERNS = [
 const PUBLIC_TEXT_FILE =
   /(?:\.(?:css|csv|gitignore|html|js|json|jsx|log|md|mjs|py|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
 
+const LEGACY_CURRICULUM_PAGES = new Set([
+  "00_learning-design",
+  "01_spreadsheet-test-design",
+  "02_competency-rubric",
+  "03_instructor-reference",
+  "04_learning-effort-reference",
+]);
+
 function verifyPublicFileContent(targetPath, bytes) {
+  if (targetPath.startsWith("course/shop/docs/curriculum/")) {
+    const name = path.posix.basename(targetPath).replace(/\.(?:html|md)$/i, "");
+    if (LEGACY_CURRICULUM_PAGES.has(name))
+      fail(`legacy curriculum page must not be distributed: ${targetPath}`);
+  }
   if (!PUBLIC_TEXT_FILE.test(targetPath)) return;
   const content = bytes.toString("utf8");
   for (const [description, pattern] of PUBLIC_CONTENT_PATTERNS) {
     if (pattern.test(content))
       fail(`public course content contains a potential ${description}: ${targetPath}`);
+  }
+}
+
+function validatePublishedMarkdownLinks(files, verifyTarget) {
+  const distributedPaths = new Set(files.map((file) => file.target_path));
+  for (const file of files) {
+    const target = file.target_path;
+    const isPublicGuide = file.role === "lesson" || file.role === "guide";
+    const isPublishedSpec =
+      target === "docs/spec/state-and-scenarios.md" || target.startsWith("docs/spec/features/");
+    if (!target.endsWith(".md") || (!isPublicGuide && !isPublishedSpec)) continue;
+    if (file.bytes === undefined) continue;
+    const content = file.bytes.toString("utf8");
+    for (const match of content.matchAll(/!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)/g)) {
+      const href = match[1];
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) continue;
+      const pathname = href.split(/[?#]/, 1)[0];
+      if (!pathname) continue;
+      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(target), pathname));
+      if (!distributedPaths.has(resolved))
+        fail(`public Markdown link is missing from distribution: ${target} -> ${href}`);
+      if (verifyTarget) verifyTarget(resolved);
+    }
+  }
+}
+
+function validateWebQuizParity(files) {
+  const byTarget = new Map(files.map((file) => [file.target_path, file.bytes]));
+  const webPrefix = "course/shop/docs/curriculum/ai-assisted-qa/quizzes/";
+  const webQuizzes = files.filter((file) => file.target_path.startsWith(webPrefix));
+  if (webQuizzes.length === 0) return;
+  for (const moduleId of MODULE_IDS) {
+    const webPath = `${webPrefix}${moduleId}.json`;
+    const learnerPath = `course/quizzes/${moduleId}.json`;
+    const web = byTarget.get(webPath);
+    const learner = byTarget.get(learnerPath);
+    if (!web || !learner || !web.equals(learner))
+      fail(`Web and learner quiz JSON are missing or differ at pinned revision: ${moduleId}`);
+  }
+}
+
+// Web HTML records the SHA-256 of its source Markdown, before learner link remapping.
+function validateWebCourseRevisions(files) {
+  const targets = new Map(files.map((file) => [file.target_path, file]));
+  const webRoot = "course/shop/docs/curriculum/ai-assisted-qa/";
+  // Incomplete generated HTML must not bypass revision checks by omitting module indexes.
+  const hasWebHtml = files.some(
+    (file) => file.target_path.startsWith(webRoot) && file.target_path.endsWith(".html"),
+  );
+  if (!hasWebHtml) return;
+  const start = targets.get("course/start-here.md");
+  const startHtml = targets.get(`${webRoot}index.html`)?.bytes.toString("utf8") ?? "";
+  const startExpected = start?.source_sha256;
+  if (
+    !startExpected ||
+    startHtml.match(/<meta name="course-source-revision" content="([a-f0-9]{64})"/i)?.[1] !==
+      startExpected ||
+    startHtml.match(/\bdata-course-revision="([a-f0-9]{64})"/i)?.[1] !== startExpected
+  )
+    fail("Web/Template Markdown revision mismatch (BLOCKED): index.html -> course/start-here.md");
+  for (const moduleId of MODULE_IDS) {
+    for (const [page, learner] of [
+      [`modules/${moduleId}/index.html`, `course/modules/${moduleId}/README.md`],
+      [`modules/${moduleId}/exercise.html`, `course/exercises/${moduleId}/exercise.md`],
+    ]) {
+      const web = targets.get(webRoot + page);
+      const source = targets.get(learner);
+      const expected = source?.source_sha256;
+      const html = web?.bytes.toString("utf8") ?? "";
+      const revision = html.match(
+        /<meta name="course-source-revision" content="([a-f0-9]{64})"/i,
+      )?.[1];
+      const body = html.match(/\bdata-course-revision="([a-f0-9]{64})"/i)?.[1];
+      if (
+        !web ||
+        !/^[a-f0-9]{64}$/.test(expected ?? "") ||
+        revision !== expected ||
+        body !== expected
+      )
+        fail(`Web/Template Markdown revision mismatch (BLOCKED): ${page} -> ${learner}`);
+    }
+    const quizPath = `course/quizzes/${moduleId}.json`;
+    const quizHtml = targets.get(`${webRoot}quizzes/${moduleId}.html`);
+    const expectedQuiz = targets.get(quizPath)?.bytes;
+    const html = quizHtml?.bytes.toString("utf8") ?? "";
+    const revision = html.match(/<meta name="quiz-revision" content="([a-f0-9]{64})"/i)?.[1];
+    const body = html.match(/\bdata-revision="([a-f0-9]{64})"/i)?.[1];
+    const expected = expectedQuiz ? sha256(expectedQuiz) : null;
+    if (!quizHtml || !expected || revision !== expected || body !== expected)
+      fail(`Web/Template quiz revision mismatch (BLOCKED): ${moduleId}`);
+  }
+}
+
+const SHOP_STATIC_ASSET_EXTENSION =
+  /\.(?:css|js|mjs|json|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|html?|webmanifest)$/i;
+
+// Check both static HTML/CSS links and Metro image references embedded only in JS.
+function validateBundledShopAssets(files) {
+  const prefix = "course/shop/";
+  const targets = new Map(files.map((file) => [file.target_path, file.bytes]));
+  const requireAsset = (file, href) => {
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\?)/i.test(href)) return;
+    const pathname = href.split(/[?#]/, 1)[0];
+    if (!pathname || !SHOP_STATIC_ASSET_EXTENSION.test(pathname)) return;
+    let decoded;
+    try {
+      decoded = decodeURIComponent(pathname);
+    } catch {
+      fail(`invalid Web asset URL: ${file.target_path} -> ${href}`);
+    }
+    const required = decoded.startsWith("/")
+      ? path.posix.normalize(prefix + decoded.slice(1))
+      : path.posix.normalize(path.posix.join(path.posix.dirname(file.target_path), decoded));
+    const present = targets.get(required);
+    if (!required.startsWith(prefix) || !present?.length) {
+      const kind = file.target_path.endsWith(".js")
+        ? "bundled Web runtime asset"
+        : "bundled Web asset";
+      fail(`${kind} is missing from distribution: ${file.target_path} -> ${required}`);
+    }
+  };
+  for (const file of files) {
+    if (!file.target_path.startsWith(prefix)) continue;
+    const source = file.bytes.toString("utf8");
+    if (file.target_path.endsWith(".html")) {
+      for (const match of source.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi))
+        requireAsset(file, match[1]);
+      for (const match of source.matchAll(/\b(?:srcset|imagesrcset)\s*=\s*["']([^"']+)["']/gi)) {
+        for (const candidate of match[1].split(",")) {
+          const url = candidate.trim().split(/\s+/, 1)[0];
+          if (url) requireAsset(file, url);
+        }
+      }
+    }
+    if (file.target_path.endsWith(".css")) {
+      for (const match of source.matchAll(/\burl\s*\(\s*["']?([^)"'\s]+)["']?\s*\)/gi))
+        requireAsset(file, match[1]);
+      for (const match of source.matchAll(/@import\s+["']([^"']+)["']/gi))
+        requireAsset(file, match[1]);
+    }
+    if (file.target_path.endsWith(".js") || file.target_path.endsWith(".mjs")) {
+      for (const match of source.matchAll(/\buri:\s*["'](\/assets\/[^"'\s]+)["']/g))
+        requireAsset(file, match[1]);
+      for (const match of source.matchAll(
+        /\b(?:import|export)\s+(?:[^"'();\n]{1,160}\s+from\s+)?["']([^"']+)["']/g,
+      ))
+        requireAsset(file, match[1]);
+      for (const match of source.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g))
+        requireAsset(file, match[1]);
+    }
+  }
+}
+
+function validateModulePublishedMaterials(root, distribution, moduleId) {
+  const lessonPath = `course/modules/${moduleId}/README.md`;
+  const lesson = verifiedCourseSource(root, distribution, lessonPath);
+  const paths = distribution.files.map((file) => ({
+    target_path: file.target_path,
+    role: "dependency",
+  }));
+  paths.push({ target_path: lessonPath, role: "lesson", bytes: lesson });
+  validatePublishedMarkdownLinks(paths, (relativePath) =>
+    verifiedCourseSource(root, distribution, relativePath),
+  );
+
+  const webPrefix = "course/shop/docs/curriculum/ai-assisted-qa/quizzes/";
+  if (distribution.files.some((file) => file.target_path.startsWith(webPrefix))) {
+    const quizzes = [];
+    for (const id of MODULE_IDS) {
+      for (const relativePath of [`course/quizzes/${id}.json`, `${webPrefix}${id}.json`]) {
+        quizzes.push({
+          target_path: relativePath,
+          bytes: verifiedCourseSource(root, distribution, relativePath),
+        });
+      }
+    }
+    validateWebQuizParity(quizzes);
   }
 }
 
@@ -556,11 +807,11 @@ function preflightWrites(targetRoot, files) {
   const writes = [];
   for (const file of files) {
     const absolute = assertNoSymlinkPath(targetRoot, file.target_path, false);
-    if (!fs.existsSync(absolute)) {
+    const stat = lstatIfExists(absolute);
+    if (!stat) {
       writes.push(file);
       continue;
     }
-    const stat = fs.lstatSync(absolute);
     if (stat.isSymbolicLink() || !stat.isFile()) {
       conflicts.push(file.target_path);
       continue;
@@ -590,8 +841,6 @@ export async function syncCourse({
   validateCourseManifest(manifest);
   if (!allowUncommittedFixture) verifySourceCheckout(sourceRoot, sourceSha);
   else if (!SHA_PATTERN.test(sourceSha)) fail("fixture source SHA must still be a full commit SHA");
-  if (!manifest.source_sha.startsWith("${"))
-    fail("manifest source_sha must remain a runtime-bound placeholder");
   const targetRoot = path.resolve(target);
   if (
     !fs.existsSync(targetRoot) ||
@@ -616,18 +865,31 @@ export async function syncCourse({
       stdio: "inherit",
     });
 
+  const buildRoot = shopBuildRoot ? path.resolve(shopBuildRoot) : sourceRoot;
+  let generatedFiles = [];
+  if (buildShop || fs.existsSync(path.join(buildRoot, "dist")))
+    generatedFiles = expandBuildOutput(buildRoot, manifest);
+  else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
+    fail("Shop build is required by the distribution contract");
+  const generatedTargets = new Map(
+    generatedFiles.map((file) => [file.source_path.slice("dist/".length), file.target_path]),
+  );
+
   const files = [];
   for (const entry of manifest.local_files) {
     const raw = allowUncommittedFixture
       ? fs.readFileSync(assertNoSymlinkPath(sourceRoot, entry.source_path))
       : readCommittedFile(sourceRoot, sourceSha, entry.source_path);
     const boundBytes = bindStateSourceSha(raw, entry.source_path, sourceSha);
-    const bytes = remapMarkdownLinks(boundBytes, entry, manifest);
+    const bytes = remapMarkdownLinks(boundBytes, entry, manifest, generatedTargets);
     files.push({
       source_path: entry.source_path,
       target_path: entry.target_path,
       bytes,
       origin: "local",
+      ...(entry.role === "lesson" || entry.role === "exercise" || entry.role === "guide"
+        ? { source_sha256: sha256(raw) }
+        : {}),
       module_id: entry.module_id,
       role: entry.role,
     });
@@ -646,13 +908,25 @@ export async function syncCourse({
     readPinnedAssessmentSource(sourceRoot, sourceSha, entry, allowUncommittedFixture),
   );
   validateAssessmentAssetSet(assessmentAssets, sourceSha);
-  const buildRoot = shopBuildRoot ? path.resolve(shopBuildRoot) : sourceRoot;
-  if (buildShop || fs.existsSync(path.join(buildRoot, "dist")))
-    files.push(...expandBuildOutput(buildRoot, manifest));
-  else if (manifest.generated?.shop_build?.required && !allowUncommittedFixture)
-    fail("Shop build is required by the distribution contract");
+  files.push(...generatedFiles);
 
-  for (const file of files) verifyPublicFileContent(file.target_path, file.bytes);
+  const m03PublicStart = files.find((file) => file.target_path === M03_PUBLIC_START_PATH);
+  if (!m03PublicStart) fail("M03 public start input is missing from distribution");
+  validateM03PublicStartBytes(m03PublicStart.bytes);
+
+  const distributionTargets = new Set();
+  for (const file of files) {
+    if (distributionTargets.has(file.target_path))
+      fail(
+        `duplicate distribution target across local, Skill, and Shop files: ${file.target_path}`,
+      );
+    distributionTargets.add(file.target_path);
+    verifyPublicFileContent(file.target_path, file.bytes);
+  }
+  validatePublishedMarkdownLinks(files);
+  validateWebQuizParity(files);
+  validateWebCourseRevisions(files);
+  validateBundledShopAssets(files);
 
   const filesForDistribution = files.map((file) => ({
     source_path: file.source_path,
@@ -662,6 +936,7 @@ export async function syncCourse({
     origin: file.origin,
     ...(file.module_id ? { module_id: file.module_id } : {}),
     ...(file.role ? { role: file.role } : {}),
+    ...(file.source_sha256 ? { source_sha256: file.source_sha256 } : {}),
     ...(file.blob_sha ? { blob_sha: file.blob_sha } : {}),
   }));
   const distribution = {
@@ -793,6 +1068,7 @@ function readDistribution(root) {
     new Set(distribution.files.map((file) => file.target_path)),
   );
   validateModuleLoadCoverage(distribution.load_files, distribution.files);
+  validateM03RiskInput(distribution.load_files, distribution.files);
   for (const asset of distribution.assessment_assets) {
     if (
       Object.hasOwn(asset, "content") ||
@@ -896,8 +1172,8 @@ export async function fetchPinnedAssessmentAsset({ asset, sourceSha, fetchImpl =
 function verifiedCourseSource(root, distribution, sourcePath) {
   const entry = distribution.files.find((file) => file.target_path === sourcePath);
   if (!entry) fail(`file is not included in the pinned course distribution: ${sourcePath}`);
-  const absolute = resolveWithin(root, sourcePath);
-  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile())
+  const absolute = assertNoSymlinkPath(root, sourcePath, true);
+  if (!fs.existsSync(absolute) || !fs.lstatSync(absolute).isFile())
     fail(`distributed input is missing: ${sourcePath}`);
   const bytes = fs.readFileSync(absolute);
   if (sha256(bytes) !== entry.sha256) fail(`distributed input changed after sync: ${sourcePath}`);
@@ -942,6 +1218,20 @@ export function verifySyncedCourseDistribution({ root }) {
     verifyPublicFileContent(targetPath, bytes);
     filesByTarget.set(targetPath, { entry, bytes });
   }
+  const verifiedFiles = [...filesByTarget.entries()].map(([targetPath, value]) => ({
+    target_path: targetPath,
+    role: value.entry.role,
+    source_sha256: value.entry.source_sha256,
+    bytes: value.bytes,
+  }));
+  validatePublishedMarkdownLinks(verifiedFiles);
+  validateWebQuizParity(verifiedFiles);
+  validateWebCourseRevisions(verifiedFiles);
+  validateBundledShopAssets(verifiedFiles);
+
+  const m03PublicStart = filesByTarget.get(M03_PUBLIC_START_PATH);
+  if (!m03PublicStart) fail("M03 public start input is missing from distribution");
+  validateM03PublicStartBytes(m03PublicStart.bytes);
 
   const pinnedStates = new Map();
   for (const moduleId of MODULE_IDS) {
@@ -1462,6 +1752,10 @@ export function loadModule({ root, moduleId, now = new Date() }) {
     `course/states/${moduleId}/start.json`,
   );
   const startState = JSON.parse(startBytes.toString("utf8"));
+  if (moduleId === "M03")
+    validateM03PublicStartBytes(
+      verifiedCourseSource(targetRoot, distribution, M03_PUBLIC_START_PATH),
+    );
   if (
     startState.module_id !== moduleId ||
     startState.state !== "start" ||
@@ -1473,6 +1767,7 @@ export function loadModule({ root, moduleId, now = new Date() }) {
   )
     fail(`pinned ${moduleId} start state does not match its distribution contract`);
   const selectedInput = detectPreviousInput(targetRoot, moduleId, startState, distribution);
+  validateModulePublishedMaterials(targetRoot, distribution, moduleId);
   if (!["module-public-sample", "learner-previous-artifact"].includes(selectedInput.source))
     fail(
       `invalid ${moduleId} start input: ${selectedInput.source}; ${(selectedInput.reasons ?? []).join("; ")}`,
@@ -1484,8 +1779,8 @@ export function loadModule({ root, moduleId, now = new Date() }) {
   const conflicts = [];
   for (const file of inputs) {
     const destination = assertNoSymlinkPath(targetRoot, file.target_path, false);
-    if (!fs.existsSync(destination)) continue;
-    const stat = fs.lstatSync(destination);
+    const stat = lstatIfExists(destination);
+    if (!stat) continue;
     if (stat.isSymbolicLink() || !stat.isFile() || !fs.readFileSync(destination).equals(file.bytes))
       conflicts.push(file.target_path);
   }

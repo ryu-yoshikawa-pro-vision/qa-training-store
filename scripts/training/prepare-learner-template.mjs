@@ -10,6 +10,35 @@ function git(...args) {
   return execFileSync("git", args, { cwd: sourceRoot, encoding: "utf8" }).trim();
 }
 
+export function validateTemplateTarget(target, source = sourceRoot) {
+  const resolved = path.resolve(target);
+  const sourceDirectory = fs.realpathSync(source);
+  const isWithin = (parent, candidate) => {
+    const relative = path.relative(parent, candidate);
+    return (
+      relative === "" ||
+      (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+    );
+  };
+  if (isWithin(sourceDirectory, resolved) || isWithin(resolved, sourceDirectory)) {
+    throw new Error("Template destination must be outside the source checkout");
+  }
+  let candidate = resolved;
+  while (true) {
+    try {
+      if (fs.lstatSync(candidate).isSymbolicLink()) {
+        throw new Error("Template destination must not have symlink ancestors: " + candidate);
+      }
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    const parent = path.dirname(candidate);
+    if (parent === candidate) break;
+    candidate = parent;
+  }
+  return resolved;
+}
+
 function main() {
   const args = process.argv.slice(2);
   if (args.length !== 0 && (args.length !== 2 || args[0] !== "--target" || !args[1])) {
@@ -22,7 +51,9 @@ function main() {
     throw new Error("Template preparation requires a clean source checkout");
   }
   const sourceSha = git("rev-parse", "HEAD");
-  const target = path.resolve(sourceRoot, args[1] ?? "../ai-assisted-qa-learner");
+  const target = validateTemplateTarget(
+    path.resolve(sourceRoot, args[1] ?? "../ai-assisted-qa-learner"),
+  );
   if (fs.existsSync(target)) {
     const stat = fs.lstatSync(target);
     if (stat.isSymbolicLink() || !stat.isDirectory()) {
@@ -45,10 +76,12 @@ function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-try {
-  main();
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error("Template preparation failed: " + message);
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Template preparation failed: " + message);
+    process.exitCode = 1;
+  }
 }
