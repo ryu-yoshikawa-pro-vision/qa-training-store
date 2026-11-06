@@ -139,3 +139,14 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(m04).toContain("course:assess");
   });
 });
+
+it("temporary Prettier formatting diagnostic", async () => {
+  const prettier = await import("prettier");
+  const filename = "tests/contracts/ai-assisted-qa-phase1-pinned-skill-entry.test.mjs";
+  const options = (await prettier.resolveConfig(filename)) ?? {};
+  const formatted = await prettier.format(read(filename), { ...options, filepath: filename });
+  const encoded = Buffer.from(formatted).toString("base64");
+  for (let offset = 0; offset < encoded.length; offset += 2000) {
+    console.log(`FORMAT_B64_${offset / 2000}:${encoded.slice(offset, offset + 2000)}`);
+  }
+});
