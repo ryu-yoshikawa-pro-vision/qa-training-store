@@ -18,7 +18,7 @@ import {
 import { isPublicCourseAsset } from "../../scripts/docs/build-ai-assisted-qa.ts";
 import { validateTemplateTarget } from "../../scripts/training/prepare-learner-template.mjs";
 
-/** Read real static, re-export, and literal dynamic module specifiers without matching strings/comments. */
+/** Read module import specifiers without matching unrelated strings or comments. */
 function runtimeModuleSpecifiers(filePath, source) {
   const syntax = /\.(?:jsx|tsx)$/.test(filePath) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const root = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, syntax);
@@ -1144,7 +1144,7 @@ describe("AI-assisted QA distribution contract", () => {
       '  // from "not-a-package"',
       '  void "another-fake-package";',
       "}",
-      'const fake = \'from "also-not-a-package"\';',
+      'const fake = "not-a-package";',
     ].join("\n");
     expect(runtimeModuleSpecifiers("fixture.mjs", source)).toEqual([
       "./static.mjs",
