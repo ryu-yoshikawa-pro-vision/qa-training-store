@@ -1884,6 +1884,55 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("checks decoded Skill size when the HTTP content length describes compression", async () => {
+    for (const oversized of [false, true]) {
+      const fixture = courseFixture();
+      const first = fixture.manifest.external_skill_files[0];
+      const original = Buffer.from(`fixture skill ${first.skill}\n`);
+      const fetchImpl = async (url) => {
+        if (!url.endsWith(`/${first.source_path}`)) return fixture.fetchImpl(url);
+        const decoded = oversized ? Buffer.concat([original, Buffer.from("x")]) : original;
+        return {
+          status: 200,
+          url,
+          redirected: false,
+          headers: {
+            get: (name) =>
+              name === "content-length"
+                ? String(first.size + 64)
+                : name === "content-encoding"
+                  ? "gzip"
+                  : null,
+          },
+          body: new ReadableStream({
+            start(controller) {
+              controller.enqueue(decoded);
+              controller.close();
+            },
+          }),
+        };
+      };
+      const sync = syncCourse({
+        root: fixture.source,
+        target: fixture.target,
+        sourceSha: "b".repeat(40),
+        fetchImpl,
+        buildShop: false,
+        shopBuildRoot: fixture.source,
+        allowUncommittedFixture: true,
+      });
+      if (oversized) {
+        await expect(sync).rejects.toThrow(/external Skill response exceeds the allowed size/);
+        expect(fs.readdirSync(fixture.target)).toEqual([]);
+      } else {
+        await sync;
+        expect(verifySyncedCourseDistribution({ root: fixture.target }).source_sha).toBe(
+          "b".repeat(40),
+        );
+      }
+    }
+  });
+
   it("rejects redirected, mismatched-URL, and HTML Skill downloads before writing files", async () => {
     for (const scenario of ["redirect", "mismatched-url", "html"]) {
       const fixture = courseFixture();
