@@ -55,7 +55,7 @@ describe("M05-05：専用Config、ポート、証拠の入口を照合する", (
     expect(packageJson.scripts["course:run"]).toContain("ai-assisted-qa-course.mjs run");
     // #215 branch and #199 base have different explicitly approved M05 entrypoint lists.
     // Do not accept an arbitrary list or infer that a direct Playwright run has a course receipt.
-    const m05Entrypoints = runEvidence.match(/M05: new Set\\(\\[([^\\]]+)\\]\\)/)?.[1];
+    const m05Entrypoints = runEvidence.split("M05: new Set([")[1]?.split("])")[0];
     expect([
       '"product-link.spec.ts"',
       '"product-link.spec.ts", "p05-cart-locator.spec.ts"',
