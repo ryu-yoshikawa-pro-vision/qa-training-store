@@ -152,7 +152,7 @@ describe("Phase 3 quiz and understanding coverage", () => {
       "training/ai-assisted-qa-course/exercises/M10/submission-template.md",
     ].map((relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8"));
     const [lesson, exercise, submission] = files;
-    const p05Row = submission.split("\\n").find((line) => line.startsWith("| P05 |"));
+    const p05Row = submission.split("\n").find((line) => line.startsWith("| P05 |"));
     expect(p05Row).toBeDefined();
     for (const scenario of [
       "Install失敗",

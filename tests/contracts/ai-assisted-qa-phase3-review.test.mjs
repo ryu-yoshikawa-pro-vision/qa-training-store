@@ -144,10 +144,10 @@ describe("M08-04 review evidence, false positives, omissions and abstraction", (
     try {
       fs.mkdirSync(path.join(dir, "workspace/M08"), { recursive: true });
       git(dir, "init", "-q", "--initial-branch=main");
-      fs.writeFileSync(path.join(dir, reviewPath), "candidate\\n");
-      fs.writeFileSync(path.join(dir, "workspace/M08/private-note.md"), "harmless marker\\n");
+      fs.writeFileSync(path.join(dir, reviewPath), "candidate\n");
+      fs.writeFileSync(path.join(dir, "workspace/M08/private-note.md"), "harmless marker\n");
       git(dir, "add", "--", reviewPath, "workspace/M08/private-note.md");
-      const stagedPaths = git(dir, "diff", "--cached", "--name-only").split("\\n");
+      const stagedPaths = git(dir, "diff", "--cached", "--name-only").split("\n");
       expect(stagedPaths).toContain("workspace/M08/private-note.md");
       const canCommit = stagedPaths.every((file) => file === reviewPath);
       expect(canCommit).toBe(false);

@@ -87,7 +87,7 @@ describe("M08 isolated Git contract", () => {
       process.env.GIT_INDEX_FILE = path.join(poison, "wrong-index");
       process.env.GIT_CEILING_DIRECTORIES = poison;
       dir = fixture();
-      fs.writeFileSync(path.join(dir, safeFile), "isolated\\n");
+      fs.writeFileSync(path.join(dir, safeFile), "isolated\n");
       git(dir, "add", "--", safeFile);
       expect(git(dir, "diff", "--cached", "--name-only")).toBe(safeFile);
       expect(git(dir, "rev-parse", "--show-toplevel")).toBe(dir);
