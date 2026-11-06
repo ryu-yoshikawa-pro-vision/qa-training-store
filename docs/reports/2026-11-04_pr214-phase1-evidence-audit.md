@@ -108,7 +108,6 @@ PR #214の変更前のbase `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`から、�
 
 [Web CI #42151829759](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42151829759)では契約テストが成功したが、フォーマット診断を含む途中HEADのため最終受入ではない。**CI全体の成功は最終HEADのRunで別途判定する**。本レビューはGitHub上の差分と関連ファイルを照合した作業であり、CodeRabbitの外部レビューを起動した結果ではない。CodeRabbitは非defaultのbaseに対する自動レビューをスキップしている。別実行者による追加レビューや#199統合差分のレビューは#199の最終受入と区別する。
 
-
 ### 2026-11-06 最終タスクリスト更新後のCIと#199側修正
 
 - #214の`ca9d493fa0aee2464be65a9239bdb4a9e17e4cb7`に対する[Web CI #42153146071](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153146071)は**全体Success**。Style Quality（format・Markdownlint・仕様/教材検証）、Code Quality、Vitest (contracts)、Training runtime contracts、必須Chromium E2E、Cloudflare Preview、verify/validateを含む結果である。
