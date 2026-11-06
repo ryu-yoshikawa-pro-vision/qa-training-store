@@ -65,7 +65,15 @@ describe("public Web export dependencies", () => {
       const source = path.join(root, "node_modules/expo-router/assets", image + ".png");
       fs.mkdirSync(path.dirname(source), { recursive: true });
       fs.writeFileSync(source, png);
+      const exported = path.join(root, "dist", imageUri(image).slice(1));
+      fs.mkdirSync(path.dirname(exported), { recursive: true });
+      fs.writeFileSync(exported, png);
     }
+    const density = imageUri("react-navigation/elements/clear-icon").replace(
+      "." + metroHash + ".png",
+      "@2x." + metroHash + ".png",
+    );
+    fs.writeFileSync(path.join(root, "dist", density.slice(1)), png);
     bundle(root, expoAssets.map((name) => 'uri:"' + imageUri(name) + '"').join(";"));
     expect(repairExpoRouterWebAssets(root)).toBe(12);
     const hash = createHash("sha256").update(png).digest("hex").slice(0, 16);
@@ -76,10 +84,26 @@ describe("public Web export dependencies", () => {
       expect(fs.readFileSync(path.join(root, "dist", published))).toEqual(png);
     }
     expect(rewritten).not.toContain("/assets/node_modules/");
+    expect(fs.existsSync(path.join(root, "dist/assets/node_modules"))).toBe(false);
     expect(fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8")).toContain(
       "React Navigation Contributors",
     );
     expect(repairExpoRouterWebAssets(root)).toBe(0);
+  });
+
+  it("refuses unrelated internal exports instead of deleting them", () => {
+    const root = fixture();
+    const source = path.join(root, "node_modules/expo-router/assets/error.png");
+    fs.writeFileSync(source, png);
+    const unexpected = path.join(
+      root,
+      "dist/assets/node_modules/.pnpm/unknown@1/node_modules/unknown/assets/other.png",
+    );
+    fs.mkdirSync(path.dirname(unexpected), { recursive: true });
+    fs.writeFileSync(unexpected, png);
+    bundle(root, 'uri:"' + imageUri("error") + '"');
+    expect(() => repairExpoRouterWebAssets(root)).toThrow(/Unexpected internal Web asset/);
+    expect(fs.readFileSync(unexpected)).toEqual(png);
   });
 
   it("rejects missing, empty, unlicensed and unexpected internal images", () => {
