@@ -102,7 +102,7 @@ PR #214の25変更ファイルについて、教材M00〜M04（README 5件）、
 
 ### 最新baseと差分確認
 
-#214変更前のbase `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`から、確認時点の#199 HEAD `76344d6530876e6eddae4bc5b0eba21374d14036`への追加3コミットの変更対象は、#199所有の`docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md`のみ。#214の25変更ファイルと重複しないため、本PRではそのファイルを直接編集せず、最新baseを基準に差分と依存を確認した。#199へのPRマージやbranch削除は実施していない。
+PR #214の変更前のbase `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`から、確認時点の#199 HEAD `76344d6530876e6eddae4bc5b0eba21374d14036`への追加3コミットの変更対象は、#199所有の`docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md`のみ。#214の25変更ファイルと重複しないため、本PRではそのファイルを直接編集せず、最新baseを基準に差分と依存を確認した。#199へのPRマージやbranch削除は実施していない。
 
 ### CIとレビューの判定境界
 
