@@ -107,3 +107,10 @@ PR #214の変更前のbase `166412cf402f07ed3b4229eb6b3aeb6b5dd5cadf`から、�
 ### CIとレビューの判定境界
 
 [Web CI #42151829759](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42151829759)では契約テストが成功したが、フォーマット診断を含む途中HEADのため最終受入ではない。**CI全体の成功は最終HEADのRunで別途判定する**。本レビューはGitHub上の差分と関連ファイルを照合した作業であり、CodeRabbitの外部レビューを起動した結果ではない。CodeRabbitは非defaultのbaseに対する自動レビューをスキップしている。別実行者による追加レビューや#199統合差分のレビューは#199の最終受入と区別する。
+
+
+### 2026-11-06 最終タスクリスト更新後のCIと#199側修正
+
+- #214の`ca9d493fa0aee2464be65a9239bdb4a9e17e4cb7`に対する[Web CI #42153146071](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153146071)は**全体Success**。Style Quality（format・Markdownlint・仕様/教材検証）、Code Quality、Vitest (contracts)、Training runtime contracts、必須Chromium E2E、Cloudflare Preview、verify/validateを含む結果である。
+- タスクリスト更新後HEAD `e0b9b0e91b3efb415ae624b4172ce3287793ae00`の[Web CI #42153862213](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42153862213)では、#199のbaseへ新たに追加された`tests/contracts/web-public-build.test.ts`のフォーマット違反でStyle Qualityが失敗。**#214の25変更ファイルではない**ため、本PR側で共通テストを編集しない。
+- #199の担当ブランチで、[commit `87b841cd7ad0670093062def4031f6d4fa36986e`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/87b841cd7ad0670093062def4031f6d4fa36986e)により当該テストのPrettier修正が反映された。#214と#199が並行更新中のため、過去の成功Runを移動後baseの成功と混同せず、再検証する。
