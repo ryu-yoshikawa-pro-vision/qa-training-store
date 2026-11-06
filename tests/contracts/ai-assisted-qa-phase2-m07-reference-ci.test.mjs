@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { validateM07Report } from "./ai-assisted-qa-phase2-m07-reference-ci.mjs";
+import { validateIntegratedAfterSource, validateM07Report } from "./ai-assisted-qa-phase2-m07-reference-ci.mjs";
 
 const beforeRoot = "training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-before";
 const beforeNames = ["追加したマグは数量1", "数量を2へ変更できる"];
@@ -81,6 +81,26 @@ describe("M07保守前後の専用Chromium結果の検証", () => {
       const file = fixture(afterNames, overrides);
       expect(() => validateM07Report(file, beforeRoot, afterNames)).toThrow();
     }
+  });
+
+  it("統合HEADのafterは別商品ページへの移動とCart再入場を必須とする", () => {
+    const marker = 'test("数量2への変更はカートを開き直しても維持される", async () => {';
+    const valid =
+      marker +
+      '\nawait page.goto("/products/product-mug");' +
+      '\nawait page.goto("/cart");' +
+      '\n});';
+    expect(() => validateIntegratedAfterSource(valid)).not.toThrow();
+    expect(() => validateIntegratedAfterSource(valid.replace(
+      'await page.goto("/products/product-mug");',
+      'await page.reload();',
+    ))).toThrow("does not navigate away");
+    expect(() => validateIntegratedAfterSource(valid.replace(
+      'await page.goto("/cart");',
+      'await page.reload();',
+    ))).toThrow("does not navigate away");
+    expect(() => validateIntegratedAfterSource('test("数量を2へ変更できる", async () => {});'))
+      .toThrow("does not navigate away");
   });
 
   it("report不在を成功としない", () => {
