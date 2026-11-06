@@ -60,7 +60,7 @@ describe("M05-05：専用Config、ポート、証拠の入口を照合する", (
       '"product-link.spec.ts"',
       '"product-link.spec.ts", "p05-cart-locator.spec.ts"',
     ]).toContain(m05Entrypoints);
-    expect(exercise).toContain("ベース側ではP05も許可対象");
+    expect(exercise).toContain("#199の最新base側ではP05も許可対象");
     expect(runEvidence).toContain('"spec-snapshot.ts"');
     expect(runEvidence).toContain('"run-evidence.json"');
     expect(runEvidence).toContain("spec_sha256:");
