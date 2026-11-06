@@ -5,6 +5,7 @@ import path from "node:path";
 // Metro can embed pnpm's internal package location in Expo Router image URIs.
 const ASSET_URI = /\/assets\/node_modules\/\.pnpm\/expo-router@[^/"'\s]+\/node_modules\/expo-router\/assets\/((?:[a-z0-9_-]+\/)*[a-z0-9_-]+)\.[a-f0-9]{32}\.png/g;
 const PNG_HEADER = Buffer.from("89504e470d0a1a0a", "hex");
+const EXPORTED_ROUTER_PNG = /^\.pnpm\/expo-router@[^/]+\/node_modules\/expo-router\/assets\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+(?:@[0-9.]+x)?\.[a-f0-9]{32}\.png$/;
 const NOTICE = [
   "Expo Router: https://github.com/expo/expo/tree/main/packages/expo-router",
   "React Navigation: https://github.com/react-navigation/react-navigation",
@@ -44,11 +45,45 @@ function bundledJavaScript(directory: string): string[] {
   return files;
 }
 
+// Metro also writes the original pnpm paths into dist, even after its JS URIs are rewritten.
+// Remove only verified Expo Router PNG exports; reject unrelated internal files.
+function removeInternalExpoRouterImages(distDir: string): void {
+  const internalRoot = path.join(distDir, "assets/node_modules");
+  if (!fs.existsSync(internalRoot)) return;
+  if (!fs.lstatSync(internalRoot).isDirectory() || fs.lstatSync(internalRoot).isSymbolicLink()) {
+    throw new Error("Invalid internal Web asset directory");
+  }
+  const inspect = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const file = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Error("Symlink in internal Web assets: " + file);
+      if (entry.isDirectory()) {
+        inspect(file);
+        continue;
+      }
+      const relative = path.relative(internalRoot, file).split(path.sep).join("/");
+      if (!entry.isFile() || !EXPORTED_ROUTER_PNG.test(relative)) {
+        throw new Error("Unexpected internal Web asset: " + relative);
+      }
+      const bytes = fs.readFileSync(file);
+      if (bytes.length <= 8 || !bytes.subarray(0, 8).equals(PNG_HEADER)) {
+        throw new Error("Invalid internal Expo Router PNG: " + relative);
+      }
+    }
+  };
+  inspect(internalRoot);
+  fs.rmSync(internalRoot, { recursive: true });
+}
+
 export function repairExpoRouterWebAssets(rootDir: string, distDir = path.join(rootDir, "dist")): number {
   const jsRoot = path.join(distDir, "_expo/static/js/web");
   if (!fs.existsSync(jsRoot)) return 0; // build:docs may run without Expo export
   const scripts = bundledJavaScript(jsRoot);
-  if (!scripts.some((script) => fs.readFileSync(script, "utf8").includes("/assets/node_modules/"))) return 0;
+  if (
+    !scripts.some((script) => fs.readFileSync(script, "utf8").includes("/assets/node_modules/")) &&
+    !fs.existsSync(path.join(distDir, "assets/node_modules"))
+  )
+    return 0;
 
   const packageRoot = fs.realpathSync(path.join(rootDir, "node_modules/expo-router"));
   const metadata = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")) as {
@@ -92,5 +127,6 @@ export function repairExpoRouterWebAssets(rootDir: string, distDir = path.join(r
   if (published.size) {
     fs.writeFileSync(path.join(distDir, "assets/expo-router/LICENSE"), NOTICE, "utf8");
   }
+  removeInternalExpoRouterImages(distDir);
   return published.size;
 }
