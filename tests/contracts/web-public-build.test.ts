@@ -41,8 +41,13 @@ function fixture(): string {
 }
 
 function imageUri(name: string): string {
-  return "/assets/node_modules/.pnpm/expo-router@57.0.29_abcd/node_modules/expo-router/assets/" +
-    name + "." + metroHash + ".png";
+  return (
+    "/assets/node_modules/.pnpm/expo-router@57.0.29_abcd/node_modules/expo-router/assets/" +
+    name +
+    "." +
+    metroHash +
+    ".png"
+  );
 }
 
 function bundle(root: string, content: string): void {
@@ -64,15 +69,19 @@ describe("public Web export dependencies", () => {
     bundle(root, expoAssets.map((name) => 'uri:"' + imageUri(name) + '"').join(";"));
     expect(repairExpoRouterWebAssets(root)).toBe(12);
     const hash = createHash("sha256").update(png).digest("hex").slice(0, 16);
-    const rewritten = fs.readFileSync(path.join(root, "dist/_expo/static/js/web/entry.js"), "utf8");
+    const rewritten = fs.readFileSync(
+      path.join(root, "dist/_expo/static/js/web/entry.js"),
+      "utf8",
+    );
     for (const image of expoAssets) {
       const published = "assets/expo-router/" + image + "." + hash + ".png";
       expect(rewritten).toContain('uri:"/' + published + '"');
       expect(fs.readFileSync(path.join(root, "dist", published))).toEqual(png);
     }
     expect(rewritten).not.toContain("/assets/node_modules/");
-    expect(fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8"))
-      .toContain("React Navigation Contributors");
+    expect(
+      fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8"),
+    ).toContain("React Navigation Contributors");
     expect(repairExpoRouterWebAssets(root)).toBe(0);
   });
 
@@ -104,10 +113,13 @@ describe("public Web export dependencies", () => {
       "03_instructor-reference",
       "04_learning-effort-reference",
     ]) {
-      expect(isPublicLegacyCurriculumPage("docs/curriculum/test-automation/" + name + ".md"))
-        .toBe(false);
+      expect(
+        isPublicLegacyCurriculumPage("docs/curriculum/test-automation/" + name + ".md"),
+      ).toBe(false);
     }
-    expect(isPublicLegacyCurriculumPage("docs/curriculum/test-automation/README.md")).toBe(true);
+    expect(
+      isPublicLegacyCurriculumPage("docs/curriculum/test-automation/README.md"),
+    ).toBe(true);
     expect(
       isPublicLegacyCurriculumPage(
         "docs/curriculum/test-automation/part1/01_test-automation-foundations.md",
@@ -135,9 +147,13 @@ describe("public Web export dependencies", () => {
     fs.mkdirSync(folder, { recursive: true });
     fs.writeFileSync(path.join(folder, "02_competency-rubric.md"), "# Rubric\n");
     const fence = String.fromCharCode(96).repeat(3);
-    fs.writeFileSync(path.join(folder, "README.md"),
+    fs.writeFileSync(
+      path.join(folder, "README.md"),
       "# Index\n[Rubric](./02_competency-rubric.md)\n" +
-      fence + "md\n[Rubric](./02_competency-rubric.md)\n" + fence + "\n",
+        fence +
+        "md\n[Rubric](./02_competency-rubric.md)\n" +
+        fence +
+        "\n",
     );
     const parsed = parseMarkdownFile(
       path.join(folder, "README.md"),
