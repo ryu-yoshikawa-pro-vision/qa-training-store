@@ -116,10 +116,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
     fs.rmSync(lesson);
     const binary = Buffer.from([0x00, 0xff, 0x00]);
     fs.writeFileSync(lesson, binary);
-    publishedFiles.set(
-      documents[1].path,
-      createHash("sha256").update(binary).digest("hex"),
-    );
+    publishedFiles.set(documents[1].path, createHash("sha256").update(binary).digest("hex"));
     expect(() => readTutorPublicFile(root, "M06", documents[1].path, publishedFiles)).toThrow(
       /binary/,
     );

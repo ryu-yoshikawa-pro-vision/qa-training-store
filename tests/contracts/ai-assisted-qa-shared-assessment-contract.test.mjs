@@ -73,9 +73,12 @@ describe("PR #199 M00 P04 and M05 P05 shared scoring contracts", () => {
       path.join(root, "scripts/training/validate-ai-assisted-qa.ts"),
       "utf8",
     );
-    expect(sharedValidator).toContain(
-      '{ spec: "p05-cart-locator.spec.ts", label: "main", minimum_tests: 1, expected_outcome: "passed" }',
-    );
+    const specIndex = sharedValidator.indexOf('spec: "p05-cart-locator.spec.ts"');
+    expect(specIndex).toBeGreaterThan(-1);
+    const specEntry = sharedValidator.slice(specIndex, specIndex + 250);
+    expect(specEntry).toContain('label: "main"');
+    expect(specEntry).toContain("minimum_tests: 1");
+    expect(specEntry).toContain('expected_outcome: "passed"');
     const exercise = fs.readFileSync(
       path.join(root, "training/ai-assisted-qa-course/exercises/M05/exercise.md"),
       "utf8",
