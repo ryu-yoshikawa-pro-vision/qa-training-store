@@ -236,3 +236,11 @@
 - `analyzed`は仕様・実装・Seed・リスクの**静的基本分析**を意味し、正式Case IDの採用、既存テストの再利用可否、実Web/Android/DB・視覚/アクセシビリティ・ロール別認可・前後不変性、製品のPASSを保証しない。この台帳の動作に確定済みの正式Case IDフィールドは**0件**。
 - 停止operatorのForbidden戻り先`/admin`などの既知製品FAIL、画面・DB・Androidの実証拠、正式Case採否208件、最終SUTの独立レビューは未完了。製品修正は別PR #210が担当し、未マージの変更を#199の製品受入証拠には含めない。
 - 対応する受入条件（79要件・208動作のCase採否、採用Caseの実行証拠、独立レビュー）は**未チェックを維持する**。基本分析の進捗と製品適合の進捗を同じ率で扱わない。
+
+## 2026-11-07 #219 Case追跡CSVの現状と再開条件
+
+- 既存`docs/reports/2026-11-04_pr219-case-traceability.csv`（Blob `7ece3d3ca7bbdce8a4c8de4431e0c0b057e146ea`）を行単位で再集計。**953行・208動作**で、うち**895行は`condition_ref`あり**（C1〜C7）、58行は条件指定なし。重複した`behavior_id + condition_ref`の組は0。**953行を953件の正式Caseと数えない。**
+- このCSVの`analysis_status`は886行`analyzed`、67行`review_required`（後者は12動作）。一方で現在の分析台帳Blob `ef2f50fd65e481ca90dc64da6f88934511c9eebe`は208動作すべて`analyzed`。**CSVの旧状態を現在の基本分析の未完件数として流用しない**。
+- 当該953行の`acceptance_status`はすべて`未受入`。このCSVの`observed`、`db_before/after`、`exit_code`、`ci_run_id`、Trace/動画/画像/Console/Network/Reportのパス欄はすべて空。別に存在するWeb固定Run/失敗証拠を、このCSVの空欄が理由で不存在と断定しない。逆に、別Runを正式Caseへ紐づけず`PASS`へ変更しない。
+- このCSVの`sut_head_sha`は全953行で`46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、`source_blob_sha`は`3143b229afd6dddad52ef7c09a9e91c5995af07f`。現在の#199最終HEAD・未マージの#210とは一致しない。旧台帳のSHA列を現在値に単純置換せず、**正式Case候補の統合・採否→既存テスト/Runとの証拠突合→対象SUT最終SHAでの再実行・独立レビュー**の順に確定する。
+- Case数はリスク・要件・既存Assertionに基づき採用/既存再利用/不要/保留を区別する。既知の停止staff Forbidden FAIL、Web a11y/視覚、Android、DB rollback、公開/個人データの権限境界を重要な個別受入として保持する。既存の正式Case採否と最終実Run受入条件は未チェックのまま。
