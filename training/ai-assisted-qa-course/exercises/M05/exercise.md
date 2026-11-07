@@ -129,7 +129,7 @@ test("M05 P05: 2明細の数量と削除操作対象を識別する", async ({ p
 pnpm course:run M05 p05-cart-locator.spec.ts --label main
 ```
 
-`course:run`は専用Playwright Config・8082番ポートを使い、`workspace/M05/evidence/runs/<run_id>/`へ`spec-snapshot.ts`、`playwright-result.json`、`run-evidence.json`を保存します。標準出力の`run_id`、`outcome`、`spec_sha256`、`evidence`を提出欄に記録してください。receiptには配布元`source_sha`、実行コマンド・exit code・test結果、report/snapshot/attachmentのハッシュ、実行中のspec変更有無が残ります。
+`course:run`は専用Playwright Config・8082番ポートを使い、`workspace/M05/evidence/runs/<run_id>/`へ`spec-snapshot.ts`、`playwright-result.json`、`run-evidence.json`を保存します。標準出力の`run_id`、`outcome`、`spec_sha256`、`evidence`を提出欄に記録してください。receiptには配布元`source_sha`、実行コマンド・exit code・test結果、report/snapshot/attachmentのハッシュ、実行中のspec変更有無（`spec_unchanged_during_run`）が残ります。
 
 `outcome`が`passed`以外、テスト0件・skip・対象外spec・異なる配布SHA・不正なreceiptは正式評価の実行証拠になりません。`passed`でもLocatorや業務Assertionが正しいこと、DB永続化まで保証するものではないため、P05で観測した数量と削除未実行の判断を別途説明してください。
 
