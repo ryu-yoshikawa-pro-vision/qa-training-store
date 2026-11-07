@@ -507,6 +507,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn 
     report = JSON.parse(reportText);
     extracted = reportSpecs(report, moduleRoot, specPath, runDirectory, root);
   }
+  const specUnchangedDuringRun = sha256(currentSpec) === sourceSha256;
   const exitCode = result.error ? 1 : (result.status ?? 1);
   const environmentFailure =
     result.error ||
@@ -515,7 +516,9 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn 
     );
   const outcome = environmentFailure
     ? "blocked"
-    : exitCode === 0 &&
+    : !specUnchangedDuringRun
+      ? "ungradable"
+      : exitCode === 0 &&
         extracted.tests.length > 0 &&
         extracted.tests.every((test) => test.status === "passed")
       ? "passed"
@@ -546,7 +549,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn 
     report_sha256: reportBytes ? sha256(reportBytes) : null,
     tests: extracted.tests,
     attachments: extracted.attachments,
-    spec_unchanged_during_run: sha256(currentSpec) === sourceSha256,
+    spec_unchanged_during_run: specUnchangedDuringRun,
     environment_error: environmentFailure
       ? "Playwright could not run in the configured environment"
       : null,

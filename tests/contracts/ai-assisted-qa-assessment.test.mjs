@@ -2525,6 +2525,62 @@ it("documents the required M05 P05 course:run receipt rather than direct Playwri
   expect(exercise).not.toContain("本PR #215の追跡版");
 });
 
+it("does not report a passing run when the learner spec changes during execution", () => {
+  const root = path.join(tempRoot, "modified-m05-p05-during-run");
+  const moduleRoot = path.join(root, "workspace", "M05");
+  fs.mkdirSync(moduleRoot, { recursive: true });
+  const specPath = path.join(moduleRoot, "p05-cart-locator.spec.ts");
+  fs.writeFileSync(
+    specPath,
+    'import { test } from "@playwright/test";\ntest("M05 P05", async () => {});\n',
+  );
+  const originalExitCode = process.exitCode;
+  try {
+    const result = runAiAssistedQaSpecCli(
+      ["M05", "p05-cart-locator.spec.ts", "--label", "main"],
+      {
+        root,
+        sourceSha: "a".repeat(40),
+        spawn: (_launcher, _args, options) => {
+          fs.writeFileSync(
+            path.join(options.env.AI_QA_OUTPUT_ROOT, "playwright-result.json"),
+            JSON.stringify({
+              config: { rootDir: moduleRoot },
+              suites: [
+                {
+                  specs: [
+                    {
+                      file: "p05-cart-locator.spec.ts",
+                      title: "M05 P05",
+                      tests: [
+                        {
+                          projectName: "ai-assisted-qa-chromium",
+                          expectedStatus: "passed",
+                          status: "expected",
+                          results: [{ status: "passed", attachments: [] }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          );
+          fs.appendFileSync(specPath, "// modified after the snapshot\n");
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    expect(result.receipt.exit_code).toBe(0);
+    expect(result.receipt.tests).toHaveLength(1);
+    expect(result.receipt.spec_unchanged_during_run).toBe(false);
+    expect(result.receipt.outcome).toBe("ungradable");
+    expect(process.exitCode).toBe(1);
+  } finally {
+    process.exitCode = originalExitCode;
+  }
+});
+
 it("requires a verified distribution SHA before course:run can access learner files", () => {
   expect(() =>
     runAiAssistedQaSpecCli(["M05", "product-link.spec.ts", "--label", "main"], {
