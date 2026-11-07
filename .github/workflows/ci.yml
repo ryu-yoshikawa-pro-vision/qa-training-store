@@ -419,6 +419,18 @@ jobs:
           cp "$target/.course/distribution-manifest.json" "$RUNNER_TEMP/qa-course-distribution-manifest.json"
           node -e 'const fs=require("node:fs");const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(m.source_sha!==process.argv[2]||m.created_by_sync!=="course:sync")process.exit(1);console.log(JSON.stringify({source_sha:m.source_sha,distributed_files:m.files.length,external_skill_source:m.external_skill_source,repeat_sync_identical:true}))' "$RUNNER_TEMP/qa-course-distribution-manifest.json" "$COURSE_SOURCE_SHA"
 
+      - name: Verify curriculum knowledge graph CLI and preserve evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/training/knowledge-graph.mjs validate > "$RUNNER_TEMP/qa-knowledge-validation.json"
+          node scripts/training/knowledge-graph.mjs table > "$RUNNER_TEMP/qa-knowledge-table.md"
+          change_list="qa-knowledge-impact-input.txt"
+          trap 'rm -f "$change_list"' EXIT
+          printf '%s\n' 'docs/curriculum/ai-assisted-qa/modules/M05/README.md' > "$change_list"
+          node scripts/training/knowledge-graph.mjs impact --changed-files "$change_list" > "$RUNNER_TEMP/qa-knowledge-impact.json"
+          node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.ok!==true||r.mapped.length!==1||r.unmapped.length!==0)process.exit(1)' "$RUNNER_TEMP/qa-knowledge-impact.json"
+
       - name: Upload distribution verification evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
@@ -427,6 +439,9 @@ jobs:
             ${{ runner.temp }}/qa-course-distribution-manifest.json
             ${{ runner.temp }}/qa-course-files-before.sha256
             ${{ runner.temp }}/qa-course-files-after.sha256
+            ${{ runner.temp }}/qa-knowledge-validation.json
+            ${{ runner.temp }}/qa-knowledge-table.md
+            ${{ runner.temp }}/qa-knowledge-impact.json
           if-no-files-found: error
           retention-days: 14
   e2e-chromium:
