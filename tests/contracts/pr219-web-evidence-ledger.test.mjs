@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 const WEB_CASES = "docs/reports/2026-11-04_pr219-web-case-run-evidence.csv";
 const BEHAVIORS = "docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv";
 const CROSS_CUTTING = "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
-const CROSS_CUTTING_DECISIONS = "docs/reports/2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv";
+const CROSS_CUTTING_DECISIONS =
+  "docs/reports/2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv";
 const CURRENT_ANALYSIS = "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
 const FORMAL_CASE_DECISIONS = "docs/reports/2026-11-07_pr199-formal-case-adoption-decisions.csv";
 
