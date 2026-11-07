@@ -450,17 +450,23 @@ function matchingNodes(graph, query) {
       query,
     );
   const png =
-    /^docs\/curriculum\/ai-assisted-qa\/assets\/(m(?:0[0-9]|10))-[^/]+\.png$/.exec(query);
+    /^docs\/curriculum\/ai-assisted-qa\/assets\/(m(?:0[0-9]|10))-[^/]+\.png$/.exec(
+      query,
+    );
   const moduleId = svg?.[1] ?? png?.[1]?.toUpperCase();
   if (!moduleId) return direct;
   const lesson = graph.nodes.find(
-    (node) => node.type === "lesson" && node.module === moduleId && node.repo === repoName,
+    (node) =>
+      node.type === "lesson" && node.module === moduleId && node.repo === repoName,
   );
   const asset = safeLocalPath(query);
   const lessonFile = lesson && safeLocalPath(lesson.path);
-  if (!asset || !existsSync(asset) || !lessonFile || !existsSync(lessonFile)) return direct;
+  if (!asset || !existsSync(asset) || !lessonFile || !existsSync(lessonFile))
+    return direct;
   const reference = relative(dirname(lesson.path), query).replace(/\\/g, "/");
-  return readFileSync(lessonFile, "utf8").includes("](" + reference + ")") ? [lesson] : direct;
+  return readFileSync(lessonFile, "utf8").includes("](" + reference + ")")
+    ? [lesson]
+    : direct;
 }
 function objectivesForKnowledge(graph, knowledgeId) {
   const affected = new Set([knowledgeId]);
