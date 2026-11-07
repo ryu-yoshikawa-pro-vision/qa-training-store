@@ -189,18 +189,20 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
   });
 
 
-  it("preserves 12 formal Case adoption decisions without declaring product PASS", () => {
+  it("keeps formal Case decisions separate from execution acceptance", () => {
     const decisions = readCsv(FORMAL_CASE_DECISIONS);
     const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
     const byId = new Map(current.behaviors.map((behavior) => [behavior.id, behavior]));
-    expect(decisions.rows).toHaveLength(79);
-    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(12);
+    expect(decisions.rows).toHaveLength(191);
+    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(35);
     const adopted = decisions.rows.filter((row) => row.adoption_decision === "採用");
     const delegated = decisions.rows.filter((row) => row.adoption_decision === "別動作へ引継ぎ");
-    expect(adopted).toHaveLength(77);
-    expect(delegated).toHaveLength(2);
-    expect(new Set(adopted.map((row) => row.formal_case_id)).size).toBe(adopted.length);
-    expect(new Set(decisions.rows.map((row) => row.behavior_id + "|" + row.condition_ref)).size).toBe(decisions.rows.length);
+    expect(adopted).toHaveLength(188);
+    expect(delegated).toHaveLength(3);
+    const caseIds = adopted.map((row) => row.formal_case_id);
+    const conditionKeys = decisions.rows.map((row) => row.behavior_id + "|" + row.condition_ref);
+    expect(new Set(caseIds).size).toBe(caseIds.length);
+    expect(new Set(conditionKeys).size).toBe(conditionKeys.length);
     for (const row of decisions.rows) {
       const behavior = byId.get(row.behavior_id);
       expect(behavior).toBeDefined();
@@ -214,15 +216,19 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       expect(row.execution_acceptance).toBe("未受入");
       expect(row.independent_review).toBe("未実施");
       if (row.adoption_decision === "採用") {
-        expect(row.formal_case_id).toBe(`PR199-CASE-${row.behavior_id}-${row.condition_ref}`);
+        const expectedCaseId = `PR199-CASE-${row.behavior_id}-${row.condition_ref}`;
+        expect(row.formal_case_id).toBe(expectedCaseId);
       } else {
         expect(row.formal_case_id).toBe("");
         expect(row.decision_reason).not.toBe("");
       }
     }
-    expect(delegated.map((row) => row.behavior_id + "|" + row.condition_ref).sort()).toEqual([
+    const delegatedKeys = delegated.map((row) => row.behavior_id + "|" + row.condition_ref);
+    expect(delegatedKeys.sort()).toEqual([
       "SCREEN-CHECKOUT-CONFIRM-S-stale-cart|C6",
+      "SCREEN-ORDERS-LIST-S-empty|C6",
       "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty|C5",
+      "SCREEN-SUPPORTING-GUIDE-A02-02|C5",
     ]);
   });
 
