@@ -165,22 +165,16 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
   });
 
   it("keeps all 208 historical Case decisions distinct from the current analysis", () => {
-    const current = JSON.parse(
-      readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"),
-    );
+    const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
     const historical = readCsv(BEHAVIORS).rows;
     const byId = new Map(current.behaviors.map((entry) => [entry.id, entry]));
 
     expect(current.behaviors).toHaveLength(208);
-    expect(historical.map((entry) => entry.behavior_id).sort()).toEqual(
-      [...byId.keys()].sort(),
-    );
+    expect(historical.map((entry) => entry.behavior_id).sort()).toEqual([...byId.keys()].sort());
     const stale = historical.filter((entry) => {
       const behavior = byId.get(entry.behavior_id);
       expect(entry.kind).toBe(behavior.kind);
-      expect(entry.formal_requirement_refs.split(";")).toEqual(
-        behavior.requirement_refs,
-      );
+      expect(entry.formal_requirement_refs.split(";")).toEqual(behavior.requirement_refs);
       // The source CSV preserves its original review result, not a fabricated current acceptance.
       expect(entry.adoption_decision).toBe("#213によるCase採否決定未確認");
       if (entry.analysis_status === behavior.analysis_status) return false;
@@ -190,9 +184,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     });
 
     expect(stale).toHaveLength(12);
-    expect(
-      current.behaviors.every((entry) => entry.analysis_status === "analyzed"),
-    ).toBe(true);
+    expect(current.behaviors.every((entry) => entry.analysis_status === "analyzed")).toBe(true);
   });
 
   it("traces 29 cross-cutting requirements without claiming unadopted Cases", () => {
