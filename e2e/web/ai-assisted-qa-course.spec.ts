@@ -289,9 +289,14 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       currentIndex: 1,
       resultStatus: "in_progress",
     });
-    await page.evaluate((value) => localStorage.setItem("ai-assisted-qa-quiz:M05", value), oldAnswer);
+    await page.evaluate(
+      (value) => localStorage.setItem("ai-assisted-qa-quiz:M05", value),
+      oldAnswer,
+    );
     await page.reload();
-    await expect(page.getByRole("status").filter({ hasText: "旧版の履歴は同じブラウザ内に保存" })).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "旧版の履歴は同じブラウザ内に保存" }),
+    ).toBeVisible();
     const saved = await page.evaluate(() => ({
       current: localStorage.getItem("ai-assisted-qa-quiz:M05"),
       history: localStorage.getItem("ai-assisted-qa-quiz-history:M05"),
@@ -312,7 +317,10 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       currentIndex: 1,
       resultStatus: "in_progress",
     });
-    await page.evaluate((value) => localStorage.setItem("ai-assisted-qa-quiz:M05", value), oldAnswer);
+    await page.evaluate(
+      (value) => localStorage.setItem("ai-assisted-qa-quiz:M05", value),
+      oldAnswer,
+    );
     await page.addInitScript(() => {
       const originalSetItem = Storage.prototype.setItem;
       Storage.prototype.setItem = function (key, value) {
@@ -323,12 +331,20 @@ test.describe("AI協働QAの公開クイズ画面", () => {
       };
     });
     await page.reload();
-    await expect(page.getByRole("status").filter({ hasText: "旧版の回答を退避できないため" })).toBeVisible();
-    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(oldAnswer);
+    await expect(
+      page.getByRole("status").filter({ hasText: "旧版の回答を退避できないため" }),
+    ).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(
+      oldAnswer,
+    );
     await page.getByRole("button", { name: "回答を始める" }).click();
     await page.locator('input[type="radio"]').first().check();
-    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(oldAnswer);
-    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz-history:M05"))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(
+      oldAnswer,
+    );
+    expect(
+      await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz-history:M05")),
+    ).toBeNull();
   });
 
   test("HTMLとJSONの配布版が混在すると保存回答を維持して拒否する", async ({ page }) => {

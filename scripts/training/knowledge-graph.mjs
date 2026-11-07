@@ -588,10 +588,11 @@ function impact(graph, query) {
     note: "Review candidates only; no curriculum, test target, or Skill was modified.",
   };
 }
+const TRACKED_BINARY_SOURCE =
+  /^(docs\/spec\/|docs\/curriculum\/ai-assisted-qa\/|training\/ai-assisted-qa-course\/|training\/course-sync\/)/;
 const excludedChange = (file) =>
   /(^|\/)(node_modules|output|dist|\.expo|\.git)(\/|$)/i.test(file) ||
-  (/\.(png|jpe?g|gif|webp|ico|woff2?)$/i.test(file) &&
-    !/^(docs\/spec\/|docs\/curriculum\/ai-assisted-qa\/|training\/ai-assisted-qa-course\/|training\/course-sync\/)/.test(file));
+  (/\.(png|jpe?g|gif|webp|ico|woff2?)$/i.test(file) && !TRACKED_BINARY_SOURCE.test(file));
 const relevantChange = (file) =>
   /^(docs\/curriculum\/ai-assisted-qa\/|training\/ai-assisted-qa-course\/|training\/course-sync\/|workspace\/M0[67]\/|scripts\/training\/(ai-assisted-qa|knowledge-graph)|scripts\/docs\/build-ai-assisted-qa\.ts$|tests\/contracts\/ai-assisted-qa-[^/]+$|e2e\/web\/ai-assisted-qa-course\.spec\.ts$|playwright\.ai-assisted-qa\.config\.ts$|package\.json$)/.test(
     file,
