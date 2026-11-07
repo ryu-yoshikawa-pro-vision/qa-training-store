@@ -5,7 +5,7 @@
 現行基本分析の採用方針を変更せず、旧追跡差分の12動作に加え、条件範囲を明記した23動作へ正式Case IDを付与した。**基本分析の再実施ではない。**
 
 - 決定した動作：**35/208**。残り**173動作**は未判定。
-- 対象の条件：**191行**。うち**188条件を採用**して正式Case IDを付与。残り**3条件を別動作に引継ぎ**、この動作での重複Caseを作成しない。
+- 対象の条件：**192行**。うち**188条件を採用**して正式Case IDを付与。残り**4条件を別動作に引継ぎ**、この動作での重複Caseを作成しない。
 - 対象の基本分析：`training/ai-assisted-qa-course/coverage/supported-behaviors.json`（Blob `7f53586e720838544abcf24ac553dece51c13449`）。対象35動作はいずれも `analysis_status=analyzed` であり、既存の `case_policy/test_condition` に採否の根拠がある。
 - 正本：[採否CSV](./2026-11-07_pr199-formal-case-adoption-decisions.csv)。`behavior_id + condition_ref`で一意に識別し、`PR199-CASE-<behavior_id>-<condition_ref>`を正式Case IDとする。採用条件ごとの要件参照、Platform、元の分析欄、採否を記録した。
 - 旧`docs/reports/2026-11-04_pr219-case-traceability.csv`（953行）と旧`docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv`（208行）は当時の履歴として保持する。旧追跡67行との差分があっても、過去の期待結果・Run欄を上書きしない。

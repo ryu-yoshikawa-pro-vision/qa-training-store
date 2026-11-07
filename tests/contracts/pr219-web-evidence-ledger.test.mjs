@@ -193,12 +193,12 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     const decisions = readCsv(FORMAL_CASE_DECISIONS);
     const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
     const byId = new Map(current.behaviors.map((behavior) => [behavior.id, behavior]));
-    expect(decisions.rows).toHaveLength(191);
+    expect(decisions.rows).toHaveLength(192);
     expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(35);
     const adopted = decisions.rows.filter((row) => row.adoption_decision === "採用");
     const delegated = decisions.rows.filter((row) => row.adoption_decision === "別動作へ引継ぎ");
     expect(adopted).toHaveLength(188);
-    expect(delegated).toHaveLength(3);
+    expect(delegated).toHaveLength(4);
     const caseIds = adopted.map((row) => row.formal_case_id);
     const conditionKeys = decisions.rows.map((row) => row.behavior_id + "|" + row.condition_ref);
     expect(new Set(caseIds).size).toBe(caseIds.length);

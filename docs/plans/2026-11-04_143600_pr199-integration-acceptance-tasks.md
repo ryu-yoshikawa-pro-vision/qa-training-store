@@ -12,7 +12,7 @@
 
 ## 正式Case採否の進捗（2026-11-07）
 
-既存`case_policy/test_condition`に採用範囲が明記された**35動作・191条件**について、[正式Case採否CSV](../reports/2026-11-07_pr199-formal-case-adoption-decisions.csv)へ**188条件の採用・正式Case ID**と**3条件の別動作引継ぎ**を記録した。**正式採否35/208動作決定、173動作未判定**。規則と条件数が不一致の`SCREEN-SUPPORTING-PRIVACY-A02-01`/`SCREEN-SUPPORTING-COMMERCE-A02-01`は採否保留。旧953/208行の履歴CSVは上書きしない。実行証拠・製品適合・独立レビューは別判定で、現時点ではCase単位の全77件を未受入としている。既存44条件のチェック数は**10完了・34未完了**のまま。
+既存`case_policy/test_condition`に採用範囲が明記された**35動作・192条件**について、[正式Case採否CSV](../reports/2026-11-07_pr199-formal-case-adoption-decisions.csv)へ**188条件の採用・正式Case ID**と**4条件の別動作引継ぎ**を記録した。**正式採否35/208動作決定、173動作未判定**。規則と条件数が不一致の`SCREEN-SUPPORTING-PRIVACY-A02-01`/`SCREEN-SUPPORTING-COMMERCE-A02-01`は採否保留。旧953/208行の履歴CSVは上書きしない。実行証拠・製品適合・独立レビューは別判定で、現時点ではCase単位の全77件を未受入としている。既存44条件のチェック数は**10完了・34未完了**のまま。
 
 ## 個別PRの作業完了と実受入の扱い（2026-11-05）
 
