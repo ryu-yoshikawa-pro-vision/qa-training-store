@@ -73,6 +73,8 @@ describe("AI-assisted QA tutor external send boundary", () => {
     expect(args).toContain("--agent");
     expect(args).toContain("qa-course-tutor");
     expect(args).not.toContain("--continue");
+    expect(args.at(-1)).toContain("study guidance");
+    expect(args.at(-1)).not.toContain("exact JSON object");
   });
 
   it("reads only three explicitly published course files and refuses unsafe filesystem inputs", () => {

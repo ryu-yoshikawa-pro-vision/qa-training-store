@@ -133,11 +133,22 @@ export function buildOpenCodeEnvironment({
   return { ...environment, ...extra };
 }
 
-export function buildOpenCodeRunArgs({ modelId, agentId, promptPath }) {
+export function buildOpenCodeRunArgs({
+  modelId,
+  agentId,
+  promptPath,
+  requestInstruction = "Return only the exact JSON object required by your system prompt.",
+}) {
   if (!MODEL_ID_PATTERN.test(modelId ?? "")) fail("OpenCode model ID is invalid");
   if (!/^[a-z0-9][a-z0-9._-]*$/i.test(agentId ?? "")) fail("OpenCode agent ID is invalid");
   if (typeof promptPath !== "string" || !path.isAbsolute(promptPath))
     fail("OpenCode prompt path must be absolute");
+  if (
+    typeof requestInstruction !== "string" ||
+    !requestInstruction.trim() ||
+    Buffer.byteLength(requestInstruction, "utf8") > 1024
+  )
+    fail("OpenCode request instruction is invalid");
   return [
     "run",
     "--standalone",
@@ -150,7 +161,7 @@ export function buildOpenCodeRunArgs({ modelId, agentId, promptPath }) {
     "json",
     "--file",
     promptPath,
-    "Return only the exact JSON object required by your system prompt.",
+    requestInstruction,
   ];
 }
 

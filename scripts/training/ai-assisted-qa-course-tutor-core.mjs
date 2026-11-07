@@ -319,6 +319,9 @@ export function buildTutorRunArgs({ modelId, promptPath }) {
     modelId,
     agentId: COURSE_TUTOR_AGENT_ID,
     promptPath,
+    requestInstruction:
+      "Use the approved course materials and learner question to provide study guidance. " +
+      "Do not output grading JSON or decide Phase/Level completion.",
   });
 }
 
