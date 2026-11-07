@@ -127,6 +127,48 @@ describe("AI-assisted QA knowledge graph", () => {
     expect(output).toContain("training/ai-assisted-qa-course/exercises/M00/submission-template.md");
   });
 
+  it("maps only existing diagrams referenced by the matching lesson", () => {
+    fs.mkdirSync(path.join(repositoryRoot, "output"), { recursive: true });
+    const outputDirectory = fs.mkdtempSync(
+      path.join(repositoryRoot, "output", "ai-qa-impact-figures-"),
+    );
+    const listPath = path.join(outputDirectory, "changed-files.txt");
+    const figures = [
+      "docs/curriculum/ai-assisted-qa/assets/figures/M00/01-screen-map.svg",
+      "docs/curriculum/ai-assisted-qa/assets/m00-agent-boundary.png",
+    ];
+    const orphan = "docs/curriculum/ai-assisted-qa/assets/figures/M00/unreferenced.svg";
+    fs.writeFileSync(listPath, [...figures, orphan].join("\n") + "\n", "utf8");
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [
+          "scripts/training/knowledge-graph.mjs",
+          "impact",
+          "--changed-files",
+          path.relative(repositoryRoot, listPath),
+        ],
+        { cwd: repositoryRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+      expect(result.status).toBe(2);
+      const report = JSON.parse(result.stdout) as {
+        mapped: {
+          file: string;
+          impact: { review_modules: { id: string }[]; direct_objectives: string[] };
+        }[];
+        unmapped: string[];
+      };
+      expect(report.mapped.map((entry) => entry.file)).toEqual(figures);
+      expect(report.unmapped).toEqual([orphan]);
+      for (const entry of report.mapped) {
+        expect(entry.impact.review_modules.map((item) => item.id)).toContain("M00");
+        expect(entry.impact.direct_objectives).toContain("M00-01");
+      }
+    } finally {
+      fs.rmSync(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("requires manual review for curriculum-relevant files without graph nodes", () => {
     fs.mkdirSync(path.join(repositoryRoot, "output"), { recursive: true });
     const outputDirectory = fs.mkdtempSync(
