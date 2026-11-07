@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "artifact_id": "M08-public-start-01",
+  "revision": "M08-public-start-v1",
+  "contract_id": "M07-to-M08-handoff-v1",
+  "public": true,
+  "module_id": "M08",
+  "purpose": "Git/PR練習用のM07相当handoffサンプル。先行モジュールの修了記録ではない。",
+  "artifacts": {
+    "spec": "workspace/M08/public-sample/handoff-smoke.spec.ts",
+    "config": "playwright.ai-assisted-qa.config.ts",
+    "dependencies": ["package.json", "pnpm-lock.yaml"],
+    "reset": "training/playwright/support/reset-scenario.ts",
+    "run_evidence": "workspace/M08/public-sample/run-evidence.md"
+  },
+  "source_integrity": "各参照は固定SHAで同期された配布manifestのSHA-256と照合する。"
+}

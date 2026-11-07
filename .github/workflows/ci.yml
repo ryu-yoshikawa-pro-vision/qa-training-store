@@ -372,6 +372,63 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+  pr199-course-distribution:
+    name: Full learner distribution (#199)
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 199
+    needs: build-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_BUILD_KIND: production
+      EXPO_PUBLIC_TEST_MODE: "false"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      EXPO_PUBLIC_BUILD_SHA: ${{ github.event.pull_request.head.sha }}
+      COURSE_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Verify full pinned Shop distribution and idempotent re-sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$COURSE_SOURCE_SHA"
+          target="$(mktemp -d "$RUNNER_TEMP/ai-qa-distribution.XXXXXXXX")"
+          pnpm course:sync --source-sha "$COURSE_SOURCE_SHA" --target "$target"
+          (cd "$target" && node "$GITHUB_WORKSPACE/scripts/training/ai-assisted-qa-course.mjs" verify-distribution)
+          (cd "$target" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$RUNNER_TEMP/qa-course-files-before.sha256"
+          pnpm course:sync --source-sha "$COURSE_SOURCE_SHA" --target "$target"
+          (cd "$target" && node "$GITHUB_WORKSPACE/scripts/training/ai-assisted-qa-course.mjs" verify-distribution)
+          (cd "$target" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$RUNNER_TEMP/qa-course-files-after.sha256"
+          cmp "$RUNNER_TEMP/qa-course-files-before.sha256" "$RUNNER_TEMP/qa-course-files-after.sha256"
+          cp "$target/.course/distribution-manifest.json" "$RUNNER_TEMP/qa-course-distribution-manifest.json"
+          node -e 'const fs=require("node:fs");const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(m.source_sha!==process.argv[2]||m.created_by_sync!=="course:sync")process.exit(1);console.log(JSON.stringify({source_sha:m.source_sha,distributed_files:m.files.length,external_skill_source:m.external_skill_source,repeat_sync_identical:true}))' "$RUNNER_TEMP/qa-course-distribution-manifest.json" "$COURSE_SOURCE_SHA"
+
+      - name: Upload distribution verification evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr199-course-distribution-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/qa-course-distribution-manifest.json
+            ${{ runner.temp }}/qa-course-files-before.sha256
+            ${{ runner.temp }}/qa-course-files-after.sha256
+          if-no-files-found: error
+          retention-days: 14
   e2e-chromium:
     name: Chromium E2E (${{ matrix.name }})
     needs: build-automation
@@ -442,12 +499,203 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload cross-role IndexedDB digest evidence
+        if: ${{ always() && matrix.name == 'cross-role' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr199-cross-role-db-digests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright/test-results/**/*db-digests*
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload Training Web artifacts on failure
         if: ${{ failure() && matrix.name == 'training-web-baseline' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: training-web-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/training/playwright
+          if-no-files-found: warn
+          retention-days: 14
+
+  pr215-m06-reference:
+    name: "M06 reference Chromium (#215 or #199)"
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        (
+          github.event.pull_request.number == 215 &&
+          github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2'
+        ) ||
+        (
+          github.event.pull_request.number == 199 &&
+          github.event.pull_request.head.ref == 'docs/plan-ai-agent-qa-curriculum-redesign'
+        )
+      )
+    needs: build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082
+      PLAYWRIGHT_SKIP_WEB_SERVER: "true"
+      WEB_SERVER_DIST_ROOT: dist
+      WEB_SERVER_PORT: "8082"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Run M06 reference Chromium and preserve three runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/training/ai-assisted-qa/pr215-m06-reference
+          pnpm exec tsx scripts/serve-web-dist.ts > output/training/ai-assisted-qa/pr215-m06-reference/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..60}; do
+            if curl --fail --silent -o /dev/null "$PLAYWRIGHT_BASE_URL/"; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            cat output/training/ai-assisted-qa/pr215-m06-reference/server.log
+            exit 1
+          fi
+          node tests/contracts/ai-assisted-qa-phase2-m06-reference-ci.mjs
+
+      - name: Upload M06 reference evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr215-m06-reference-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/training/ai-assisted-qa/pr215-m06-reference
+          if-no-files-found: warn
+          retention-days: 14
+
+  pr215-m07-reference:
+    name: "M07 before/after Chromium (#215 reference or #199 integration)"
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        (
+          github.event.pull_request.number == 215 &&
+          github.event.pull_request.head.ref == 'work/pr199-curriculum-phase2'
+        ) ||
+        (
+          github.event.pull_request.number == 199 &&
+          github.event.pull_request.head.ref == 'docs/plan-ai-agent-qa-curriculum-redesign'
+        )
+      )
+    needs: build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082
+      PLAYWRIGHT_SKIP_WEB_SERVER: "true"
+      WEB_SERVER_DIST_ROOT: dist
+      WEB_SERVER_PORT: "8082"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      INTEGRATED_COURSE_MODE: ${{ github.event.pull_request.number == 199 && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # Only this immutable reference source is read; the PR #217 branch is not modified.
+      - name: Fetch pinned PR #217 reference spec
+        if: github.event.pull_request.number == 215
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 44afe46fe2d53ec4f1f7d94f671a07d9e3621c3e
+          path: reference-pr217
+          sparse-checkout: training/ai-assisted-qa-course/assessment/playwright/M07/maintenance-after/cart.spec.ts
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Run isolated M07 before and pinned after
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/training/ai-assisted-qa/pr215-m07-reference
+          pnpm exec tsx scripts/serve-web-dist.ts > output/training/ai-assisted-qa/pr215-m07-reference/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..60}; do
+            if curl --fail --silent -o /dev/null "$PLAYWRIGHT_BASE_URL/"; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            cat output/training/ai-assisted-qa/pr215-m07-reference/server.log
+            exit 1
+          fi
+          node tests/contracts/ai-assisted-qa-phase2-m07-reference-ci.mjs
+
+      - name: Upload M07 reference evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr215-m07-reference-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/training/ai-assisted-qa/pr215-m07-reference
           if-no-files-found: warn
           retention-days: 14
 
@@ -616,9 +864,12 @@ jobs:
       - vitest
       - build-automation
       - build-production
+      - pr199-course-distribution
       - codex-artifact-sanitization
       - codex-hook-contract-windows
       - e2e-chromium
+      - pr215-m06-reference
+      - pr215-m07-reference
       - training-runtime
       - ui-review
       - production-smoke
@@ -630,6 +881,7 @@ jobs:
       - name: Validate required job results
         env:
           EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
           STYLE_QUALITY_RESULT: ${{ needs.style-quality.result }}
           CODE_QUALITY_RESULT: ${{ needs.code-quality.result }}
@@ -638,7 +890,10 @@ jobs:
           VITEST_RESULT: ${{ needs.vitest.result }}
           BUILD_AUTOMATION_RESULT: ${{ needs.build-automation.result }}
           BUILD_PRODUCTION_RESULT: ${{ needs.build-production.result }}
+          PR199_DISTRIBUTION_RESULT: ${{ needs.pr199-course-distribution.result }}
           E2E_CHROMIUM_RESULT: ${{ needs.e2e-chromium.result }}
+          PR215_M06_REFERENCE_RESULT: ${{ needs.pr215-m06-reference.result }}
+          PR215_M07_REFERENCE_RESULT: ${{ needs.pr215-m07-reference.result }}
           TRAINING_RUNTIME_RESULT: ${{ needs.training-runtime.result }}
           UI_REVIEW_RESULT: ${{ needs.ui-review.result }}
           PRODUCTION_SMOKE_RESULT: ${{ needs.production-smoke.result }}
@@ -663,7 +918,20 @@ jobs:
           require_success "vitest" "$VITEST_RESULT"
           require_success "build-automation" "$BUILD_AUTOMATION_RESULT"
           require_success "build-production" "$BUILD_PRODUCTION_RESULT"
+          if [[ "$EVENT_NAME" == "pull_request" && "$PR_NUMBER" == "199" ]]; then
+            require_success "pr199-course-distribution" "$PR199_DISTRIBUTION_RESULT"
+          elif [[ "$PR199_DISTRIBUTION_RESULT" != "skipped" ]]; then
+            echo "::error title=Unexpected course distribution job::${PR199_DISTRIBUTION_RESULT}"
+            exit 1
+          fi
           require_success "e2e-chromium" "$E2E_CHROMIUM_RESULT"
+          if [[ "$EVENT_NAME" == "pull_request" && ( "$PR_NUMBER" == "215" || "$PR_NUMBER" == "199" ) ]]; then
+            require_success "pr215-m06-reference" "$PR215_M06_REFERENCE_RESULT"
+            require_success "pr215-m07-reference" "$PR215_M07_REFERENCE_RESULT"
+          elif [[ "$PR215_M06_REFERENCE_RESULT" != "skipped" || "$PR215_M07_REFERENCE_RESULT" != "skipped" ]]; then
+            echo "::error title=Unexpected course reference job::M06=${PR215_M06_REFERENCE_RESULT}, M07=${PR215_M07_REFERENCE_RESULT}"
+            exit 1
+          fi
           require_success "training-runtime" "$TRAINING_RUNTIME_RESULT"
           require_success "ui-review" "$UI_REVIEW_RESULT"
           require_success "production-smoke" "$PRODUCTION_SMOKE_RESULT"

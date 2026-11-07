@@ -4,6 +4,7 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 
 ## 1. 基本原則と常駐契約
 
+- **Scenario Shop製品修正先**：`product/scenario-shop-maintenance`。PR #199に混在していた製品実装・正式製品仕様・既存製品テスト19ファイルを同ブランチへ分離済み。今後の製品側の追加修正も同ブランチで扱い、PR #199の製品SUTは変更しない。具体的な境界と移動履歴は [製品ブランチ方針](docs/plans/2026-11-01_pr199-scenario-shop-product-branch.md) を参照する。製品ブランチへの作業がPR作成・mainへの統合・大きな仕様変更の承認を兼ねるわけではない。
 - 関係のない変更を行わない。ただし、品質ゲートfailureに対してRepository-wide repair policyが適用される場合は、その契約に従う。
 - ドキュメントと既存コードの書き方（命名、構成、記述パターン）が食い違う場合は、関連する既存コードの書き方に従う。仕様・要件・セキュリティ・公開契約・テストとの不整合は、この規則で正当化せず、関連する正本と照合する。
 - 作業中に発見したドキュメントと既存コードの食い違いは、修正の有無にかかわらず最終返答ですべて列挙する。対象ファイル、相違内容、対応内容または未対応の理由を示す。発見しなかった場合はその旨を報告する。
@@ -70,3 +71,33 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 - L1: wordingのみの文書改善は、`REPORT.md`に記録すれば自己承認でよい。
 - L2: workflowやtemplate構造の変更は、実装前にユーザー承認が必要。
 - L3: permission / sandbox / approval / wrapper behaviorの変更は、実装前に明示承認とrollback planが必要。
+
+## 9. PR #199並行作業ブランチのタスクリスト
+
+PR #199から分岐した下記7ブランチで実装・調査・レビューを開始または再開するときは、**ブランチ名を確認したうえで対応するタスクリストを最初に読み、未完了項目・受入条件・検証証拠・他ブランチとの境界を確認する**。同名タスクリストは当該作業ブランチを参照する。旧[共通逐次Plan](docs/plans/2026-11-01_pr199-execution-tasks.md)にある時刻別キューや過去の進捗値を現在の作業順としない。
+
+| ブランチ | 必読タスクリスト（各ブランチ内） |
+| --- | --- |
+| `work/pr199-analysis-coverage` | `docs/plans/2026-11-04_133500_pr199-analysis-coverage-tasks.md` |
+| `work/pr199-curriculum-phase1` | `docs/plans/2026-11-04_133500_pr199-curriculum-phase1-tasks.md` |
+| `work/pr199-curriculum-phase2` | `docs/plans/2026-11-04_133500_pr199-curriculum-phase2-tasks.md` |
+| `work/pr199-curriculum-phase3` | `docs/plans/2026-11-04_133500_pr199-curriculum-phase3-tasks.md` |
+| `work/pr199-formal-assessment` | `docs/plans/2026-11-04_133500_pr199-formal-assessment-tasks.md` |
+| `work/pr199-distribution-security` | `docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md` |
+| `work/pr199-sut-acceptance` | `docs/plans/2026-11-04_133500_pr199-sut-acceptance-tasks.md` |
+
+- 範囲と統合手順は[並行作業Plan](docs/plans/2026-11-04_pr199-parallel-branches.md)に従う。上記にないブランチへ本表のタスクを自動割当てしない。
+- 各項目の完了チェックは、**対応する受入条件と固定HEADの実際の証拠**が揃った場合のみ付ける。環境や承認待ちなら未完了のまま理由と再開条件を残し、別の実行可能な項目へ進む。
+- 別ブランチの専有ファイル・rootの共有ファイル・製品SUTは、品質ゲート修正を理由にしても独断で編集しない。必要な変更はPR上に対象・根拠・影響・受入方法を記録して統合先に引き継ぐ。mainには直接反映しない。
+- 個別PRのbaseは`docs/plan-ai-agent-qa-curriculum-redesign`。Draft PRは作業管理用であり、完了・レビュー承認・マージ許可を意味しない。タスクリスト、PR本文、実際のブランチ差分・CIが食い違う場合は最新の実装と証拠を優先して判断する。
+- 旧00/15/30/45分の定期タスクは本ルールによって自動停止・自動再設定されない。設定はユーザー側で管理する。
+
+## 10. PR #199統合先の横断タスクリスト
+
+個別PR #213〜#219の内容を受け入れ、共有ファイルを変更し、Web学習画面・知識グラフ・各Phaseの引継ぎ・最終Web/Mobile CIを検証するときは、#199本体の[統合・横断受入タスクリスト](docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)を最初に参照する。7ブランチのタスクリストのチェック完了は#199全体の受入完了を意味しない。統合時も製品SUT/正式仕様/既存製品テストは変更しない。
+
+## 11. PR #199の作業エージェントと最終実受入の分担
+
+個別PR #213〜#219では、GitHub接続エージェントが調査、コード/教材/検証用テストの修正、固定SHAでの契約/既存CI結果確認、証拠・引継ぎを行う。**本人Private repo/Codespaces、認証済みOpenCode実モデル、実機・手動ブラウザ、個人成果物、外部配布権利の最終実受入は#199の最後に行う**。既存CIのE2E成功を本人実受入へ自動換算しない。個別PR内で実行できるテスト・修正を実受入待ちにして放置しない。
+
+詳細と未完了条件は[統合・横断受入タスクリスト](docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)を参照。個別PRのチェックはエージェント対応の進捗であり、#199の実受入完了を意味しない。固定HEAD・Case・実行可能な手順・期待結果・未受入理由を引継ぐ。課金・公開・Private資格情報利用・PRマージは別途承認が必要。
