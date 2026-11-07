@@ -108,9 +108,7 @@ describe("M05 P05の正式course:run証拠（隔離Playwright stub検証）", ()
     expect(fs.readFileSync(path.join(dir, "spec-snapshot.ts"))).toEqual(
       fs.readFileSync(data.specPath),
     );
-    expect(fs.readFileSync(path.join(dir, "playwright-result.json"), "utf8")).toContain(
-      "suites",
-    );
+    expect(fs.readFileSync(path.join(dir, "playwright-result.json"), "utf8")).toContain("suites");
     expect(JSON.parse(fs.readFileSync(result.receiptPath, "utf8"))).toEqual(result.receipt);
     expect(result.receipt.report_sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(result.receipt.spec_sha256).toMatch(/^[a-f0-9]{64}$/);
