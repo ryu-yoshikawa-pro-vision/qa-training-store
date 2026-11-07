@@ -79,6 +79,8 @@ describe("Git-free Phase 1/2 learner backup", () => {
     ];
     for (const [relative, bytes] of paths) write(first.root, relative, bytes);
     write(first.root, "workspace/M00/.env.local", "API_KEY=not-to-export");
+    write(first.root, "workspace/M00/.envrc", "export MY_TOKEN=not-to-export");
+    write(first.root, "workspace/M00/.env_backup", "not-to-export");
     write(first.root, "workspace/M05/credentials.txt", "not-to-export");
     write(first.root, "workspace/M08/submission.md", "not-Phase-1-2");
     write(first.root, "output/training/ai-assisted-qa/results.json", "excluded-output");
@@ -87,8 +89,13 @@ describe("Git-free Phase 1/2 learner backup", () => {
     expect(result).toMatchObject({
       status: "exported",
       files: paths.length,
-      excluded: 2,
-      excluded_paths: ["workspace/M00/.env.local", "workspace/M05/credentials.txt"],
+      excluded: 4,
+      excluded_paths: [
+        "workspace/M00/.env.local",
+        "workspace/M00/.env_backup",
+        "workspace/M00/.envrc",
+        "workspace/M05/credentials.txt",
+      ],
       source_sha: identity.source_sha,
     });
     expect(fs.statSync(first.backup).size).toBeGreaterThan(0);
@@ -249,6 +256,9 @@ describe("Git-free Phase 1/2 learner backup", () => {
       },
       (value) => {
         value.files[0].path = "workspace/M00/../../.env";
+      },
+      (value) => {
+        value.files[0].path = "workspace/M00/.envrc";
       },
       (value) => {
         value.files.push({ ...value.files[0] });

@@ -55,7 +55,7 @@ function excluded(relative) {
     .split("/")
     .some(
       (name) =>
-        /^\.env(?:\.|$)/i.test(name) ||
+        /^\.env/i.test(name) ||
         /^(?:\.git|\.ssh|node_modules|\.npmrc|\.course-assessment-tmp)$/i.test(name) ||
         /(?:secret|credential|private-key|access-token)/i.test(name) ||
         /\.(?:pem|key|p12|pfx)$/i.test(name),
