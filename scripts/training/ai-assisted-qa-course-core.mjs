@@ -568,7 +568,7 @@ const PUBLIC_CONTENT_PATTERNS = [
   ],
 ];
 const PUBLIC_TEXT_FILE =
-  /(?:\.(?:css|csv|gitignore|html|js|json|jsx|log|md|mjs|py|svg|ts|tsx|txt|webmanifest|xml|yaml|yml|disabled)|(?:^|\/)[^/.]+)$/i;
+  /(?:\.(?:bash|cfg|conf|css|csv|disabled|gitignore|html|js|json|jsx|key|lock|log|map|md|mjs|p8|pem|properties|py|sh|svg|toml|ts|tsx|txt|webmanifest|xml|yaml|yml)|(?:^|\/)[^/.]+)$/i;
 
 const LEGACY_CURRICULUM_PAGES = new Set([
   "00_learning-design",

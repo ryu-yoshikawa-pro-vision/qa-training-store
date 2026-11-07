@@ -3121,6 +3121,30 @@ describe("AI-assisted QA distribution contract", () => {
     expect(fs.readdirSync(fixture.target)).toEqual([]);
   });
 
+  it("rejects known credentials in generated key, configuration, and source map files", async () => {
+    const examples = [
+      ["dist/public/key.pem", "-----BEGIN PRIVATE KEY-----\\nprivate-data\\n"],
+      ["dist/public/environment.toml", `ghp_${"a".repeat(36)}`],
+      ["dist/public/app.js.map", `ghp_${"b".repeat(36)}`],
+    ];
+    for (const [path, payload] of examples) {
+      const fixture = courseFixture();
+      writeFixtureFile(fixture.source, path, payload);
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "c".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/public course content contains a potential (private key|GitHub token)/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
   it("scans Python and MJS files copied from generated Shop output", async () => {
     for (const filePath of ["dist/inspection.py", "dist/runtime.mjs"]) {
       const fixture = courseFixture();
