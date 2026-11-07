@@ -133,7 +133,14 @@ describe("AI-assisted QA knowledge graph", () => {
       path.join(repositoryRoot, "output", "ai-qa-impact-contract-"),
     );
     const listPath = path.join(outputDirectory, "changed-files.txt");
-    fs.writeFileSync(listPath, "tests/contracts/ai-assisted-qa-next-module.test.ts\n", "utf8");
+    const changed = [
+      "tests/contracts/ai-assisted-qa-next-module.test.ts",
+      "docs/spec/features/new-scenario.md",
+      "docs/spec/assets/new-scenario.png",
+      ".agents/skills/unregistered-helper/SKILL.md",
+      "docs/curriculum/ai-assisted-qa/figures/new-lesson.png",
+    ];
+    fs.writeFileSync(listPath, changed.join("\n") + "\n", "utf8");
     try {
       const result = spawnSync(
         process.execPath,
@@ -149,7 +156,7 @@ describe("AI-assisted QA knowledge graph", () => {
       expect(JSON.parse(result.stdout)).toMatchObject({
         ok: false,
         status: "manual_review_required",
-        unmapped: ["tests/contracts/ai-assisted-qa-next-module.test.ts"],
+        unmapped: changed,
       });
     } catch (error) {
       throw new Error(`Changed-file impact check could not run: ${String(error)}`);
