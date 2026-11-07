@@ -7,8 +7,12 @@
 既存44条件中**10件完了・34件未完了**。今回、実装や分析を繰り返さず、既存証拠で次の2条件を完了と判定した。旧#219正式Caseの採否・Web/Android/DB実受入は末尾の別条件として未完了のまま維持する。
 
 - **教材Webの途中保存・版差分**：`e2e/web/ai-assisted-qa-course.spec.ts:263-401`の既存テストは、旧revisionを別履歴へ退避、退避失敗時は元の回答を保護、異版HTML/JSONの開始拒否、モジュール単位の途中保存とreload復帰を検証。Web [CI #42370398480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42370398480)が同テストを含むChromium/契約ジョブで成功。生成処理`scripts/docs/build-ai-assisted-qa.ts:559-684`は教材JSONの取得とブラウザ内`localStorage`保存を用い、正式Phaseの採点・Codespaces成果物を更新しない。外部チューターの送信保護・本人環境の保存検証は別条件で未完了。
-- **基本分析とCase候補の突合**：`docs/reports/2026-11-07_pr199-case-trace-reconciliation.md`、`docs/reports/2026-11-07_pr199-crosscutting-requirement-readiness.md`と既存契約により、79要件（横断29）、172画面操作＋16独立Use Case＋20状態＝208動作、旧953追跡行・旧208採否行、差分12動作/67行、固定Web Run・既存Integration/Component候補・既知製品FAILと未実行条件を区別済み。製品修正[PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)は未マージ（確認HEAD `4a53efbcf65ce7f5227d742e4c9d49a918e703f6`）。**208件の正式Case採否は未確定**であり、この条件の完了を正式採用の完了としない。
+- **基本分析とCase候補の突合**：`docs/reports/2026-11-07_pr199-case-trace-reconciliation.md`、`docs/reports/2026-11-07_pr199-crosscutting-requirement-readiness.md`と既存契約により、79要件（横断29）、172画面操作＋16独立Use Case＋20状態＝208動作、旧953追跡行・旧208採否行、差分12動作/67行、固定Web Run・既存Integration/Component候補・既知製品FAILと未実行条件を区別済み。製品修正[PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)は未マージ（確認HEAD `4a53efbcf65ce7f5227d742e4c9d49a918e703f6`）。**12/208動作の正式Case採否は決定、196動作は未判定**（採用した77条件の実行受入・独立レビューは全件未完了）であり、この条件の完了を正式採用の完了としない。
 - **証拠保存の不足に対応**：`ci.yml`のcross-role Chromiumジョブで、成功時にもPlaywright `testInfo.outputPath`へ明示保存した`*db-digests.json`だけを14日保存する。スクリーンショット・セッションログ等の全量公開は避ける。新方式の実Artifact存在・保存数は変更後CIで判定する。Web/Androidの正式受入は未完了。
+
+## 正式Case採否の進捗（2026-11-07）
+
+旧追跡との差分が確認済みの**12動作・79条件**について、既存の`case_policy/test_condition`を採否の根拠として、[正式Case採否CSV](../reports/2026-11-07_pr199-formal-case-adoption-decisions.csv)へ**77条件の採用・正式Case ID**と**2条件の別動作引継ぎ**を記録した。**正式採否12/208動作完了、196動作未判定**。旧953/208行の履歴CSVは上書きしない。実行証拠・製品適合・独立レビューは別判定で、現時点ではCase単位の全77件を未受入としている。既存44条件のチェック数は**10完了・34未完了**のまま。
 
 ## 個別PRの作業完了と実受入の扱い（2026-11-05）
 

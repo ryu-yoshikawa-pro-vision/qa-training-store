@@ -6,6 +6,7 @@ const WEB_CASES = "docs/reports/2026-11-04_pr219-web-case-run-evidence.csv";
 const BEHAVIORS = "docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv";
 const CROSS_CUTTING = "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
 const CURRENT_ANALYSIS = "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
+const FORMAL_CASE_DECISIONS = "docs/reports/2026-11-07_pr199-formal-case-adoption-decisions.csv";
 
 // Quoted commas, escaped quotes and multiline fields are valid CSV.
 function parseCsv(source) {
@@ -185,6 +186,44 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
 
     expect(stale).toHaveLength(12);
     expect(current.behaviors.every((entry) => entry.analysis_status === "analyzed")).toBe(true);
+  });
+
+
+  it("preserves 12 formal Case adoption decisions without declaring product PASS", () => {
+    const decisions = readCsv(FORMAL_CASE_DECISIONS);
+    const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
+    const byId = new Map(current.behaviors.map((behavior) => [behavior.id, behavior]));
+    expect(decisions.rows).toHaveLength(79);
+    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(12);
+    const adopted = decisions.rows.filter((row) => row.adoption_decision === "採用");
+    const delegated = decisions.rows.filter((row) => row.adoption_decision === "別動作へ引継ぎ");
+    expect(adopted).toHaveLength(77);
+    expect(delegated).toHaveLength(2);
+    expect(new Set(adopted.map((row) => row.formal_case_id)).size).toBe(adopted.length);
+    expect(new Set(decisions.rows.map((row) => row.behavior_id + "|" + row.condition_ref)).size).toBe(decisions.rows.length);
+    for (const row of decisions.rows) {
+      const behavior = byId.get(row.behavior_id);
+      expect(behavior).toBeDefined();
+      expect(behavior.analysis_status).toBe("analyzed");
+      expect(row.kind).toBe(behavior.kind);
+      expect(row.platform).toBe(behavior.platform);
+      expect(row.requirement_refs.split(";")).toEqual(behavior.requirement_refs);
+      expect(behavior.test_condition).toContain(row.condition_ref);
+      expect(row.source_analysis_blob_sha).toMatch(/^[a-f0-9]{40}$/);
+      expect(row.source_decision_ref).toContain(row.behavior_id);
+      expect(row.execution_acceptance).toBe("未受入");
+      expect(row.independent_review).toBe("未実施");
+      if (row.adoption_decision === "採用") {
+        expect(row.formal_case_id).toBe(`PR199-CASE-${row.behavior_id}-${row.condition_ref}`);
+      } else {
+        expect(row.formal_case_id).toBe("");
+        expect(row.decision_reason).not.toBe("");
+      }
+    }
+    expect(delegated.map((row) => row.behavior_id + "|" + row.condition_ref).sort()).toEqual([
+      "SCREEN-CHECKOUT-CONFIRM-S-stale-cart|C6",
+      "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty|C5",
+    ]);
   });
 
   it("traces 29 cross-cutting requirements without claiming unadopted Cases", () => {
