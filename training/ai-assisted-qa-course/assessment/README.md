@@ -39,7 +39,7 @@ M05の`product-link.spec.ts` before/afterとは別に、P05の本人作成`works
 
 P05はdefaultをResetし、Mugとlow-stockの各1点を追加したCartで、全体の数量select・削除buttonがそれぞれ2件、対象明細内ではそれぞれ1件、数量が1であることをread-only Assertionで検証します。削除は実行しません。**RunがPASSした事実だけで業務Assertionの妥当性・DB永続化まで証明したことにはなりません。** それぞれの証拠・本人の説明はM05の正式AI評価で区別します。
 
-教材PR #215のM05演習には従来の「`course:run`がP05を拒否する」という説明が残るため、#199への統合前に教材側の記述をこの実行契約へ合わせる必要があります。教材専有ファイルはこのPRで編集しません。
+M05演習のP05実行手順は統合後の`course:run M05 p05-cart-locator.spec.ts --label main`へ統一しました。Playwrightの直接実行JSONを`course:run`のreceiptへ読み替えません。
 
 ## M07のbefore/afterは異なるspec SHAで受け入れる
 

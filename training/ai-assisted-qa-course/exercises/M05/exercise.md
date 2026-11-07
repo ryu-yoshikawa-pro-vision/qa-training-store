@@ -104,13 +104,13 @@ M05教本の「Web-first assertion・Actionの自動待機と失敗の区別」�
 
 終了コードは**各コマンド直後**に`echo $?`で読み、診断の最初の行、ファイル、修正前後、Playwrightなら別`run_id`・`spec_sha256`・reportを提出欄へ記載してください。ここでの構文・型・実行時の独立コードを通しても、M05の専用8082実ChromiumやCart業務AssertionがPASSしたことにはなりません。
 
-### P05の新規specを専用Configで実行する
+### P05の新規specを`course:run`で実行する
 
-P05で本人が作成する`workspace/M05/p05-cart-locator.spec.ts`は、初期配布の`product-link.spec.ts`とは別の練習ファイルです。本PR #215の追跡版`course:run`が受け付けるM05のspecは`product-link.spec.ts`のみであり、P05の新規spec名は拒否されます。一方、#199の最新base側ではP05も許可対象（`p05-cart-locator.spec.ts`）に追加されています。**統合採用HEADで実際に利用できる入口を確認してください。拒否をPlaywright成功と扱わず、直接実行のJSON/終了コードを`course:run`のreceiptとして読み替えないでください。P05の受入は使用した実行経路ごとの証拠で判定します。**
+P05では本人が`workspace/M05/p05-cart-locator.spec.ts`を新規作成します。これは初期配布の`product-link.spec.ts`とは別の練習ファイルです。現在の`course:run`は両specを受け付けます。P05は`--label main`で実行し、正式評価には`course:run`が生成したRun IDとreceiptが必要です。Playwrightの直接実行ログを、後から`course:run`の証拠に読み替えないでください。
 
-P05では本人のspecが存在することを確認し、以下のとおり**新課程専用Config**でそのspecだけを直接実行します。まず`pnpm course:load M05`で教材をロードし、実Shopの画面で実際のRole/Name/Labelと削除ボタン数を確認してから自分でテストを書きます。完成見本を丸写しにして学習達成としません。
+先に`pnpm course:load M05`で教材をロードし、実ShopのCartを確認します。商品名と数量・削除操作のRole/Name/Labelを観測してから、自分でLocatorと業務Assertionを実装してください。完成見本を丸写しにして学習達成としません。
 
-`workspace/M05/p05-cart-locator.spec.ts`は本人が新規作成します。共通Resetは`workspace/M05`からの相対パスで読み込みます。以下は未完成の入口だけで、正解LocatorやAssertionは含みません。**TODOエラーを削除しただけでは実技達成になりません。** 商品の追加と2明細の業務Assertionを自分で実装します。
+以下は未完成の入口だけで、正解LocatorやAssertionは含みません。**TODOエラーを削除しただけでは実技達成になりません。** 商品2件の追加、Cart全体の2明細、明細内の数量1と削除操作対象をread-onlyで検証します。
 
 ```ts
 import { test } from "@playwright/test";
@@ -123,76 +123,15 @@ test("M05 P05: 2明細の数量と削除操作対象を識別する", async ({ p
 });
 ```
 
+保存したら、学習用リポジトリのルートから次のコマンドを実行します。
+
 ```bash
-p05_spec=workspace/M05/p05-cart-locator.spec.ts
-test -f "$p05_spec" && test ! -L "$p05_spec" || {
-  echo "本人のP05 specがありません、またはsymlinkです: $p05_spec"; exit 1;
-}
-mkdir -p workspace/M05/evidence
-p05_output="$(mktemp -d workspace/M05/evidence/p05-direct-XXXXXX)" || exit 1
-cp -- "$p05_spec" "$p05_output/spec-snapshot.ts" || exit 1
-p05_before_sha="$(sha256sum "$p05_output/spec-snapshot.ts" | cut -d ' ' -f 1)"
-p05_current_sha="$(sha256sum "$p05_spec" | cut -d ' ' -f 1)"
-test "$p05_before_sha" = "$p05_current_sha" || {
-  echo "実行前にspecが変更されました。再取得してください"; exit 1;
-}
-p05_exit=0
-PLAYWRIGHT_TEST_ROOT=workspace/M05 \
-  AI_QA_OUTPUT_ROOT="$p05_output" \
-  pnpm exec playwright test p05-cart-locator.spec.ts \
-    --config=playwright.ai-assisted-qa.config.ts \
-    --project=ai-assisted-qa-chromium --retries=0 \
-    > "$p05_output/console.log" 2>&1 || p05_exit=$?
-p05_after_sha="$(sha256sum "$p05_spec" | cut -d ' ' -f 1)"
-cat "$p05_output/console.log"
-printf 'exit_code=%s\noutput_root=%s\nspec_sha256=%s\n' \
-  "$p05_exit" "$p05_output" "$p05_before_sha"
-test "$p05_before_sha" = "$p05_after_sha" || {
-  echo "実行中にspecが変更されました。この結果は採用できません"; exit 1;
-}
-test -s "$p05_output/playwright-result.json" && \
-  test ! -L "$p05_output/playwright-result.json" || {
-    echo "Playwright JSON reportがありません、または不正です"; exit 1;
-  }
-test "$p05_exit" -eq 0 || {
-  echo "Playwrightが非0で終了したためP05は未達です"; exit 1;
-}
-node - "$p05_output/playwright-result.json" "$p05_spec" <<'NODE'
-const fs = require("node:fs");
-const path = require("node:path");
-const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-const targetSpec = path.resolve(process.argv[3]);
-const expectedRoot = path.dirname(targetSpec);
-const reportRoot = report.config?.rootDir;
-if (typeof reportRoot !== "string" || path.resolve(reportRoot) !== expectedRoot) {
-  throw new Error("Playwright JSON reportのrootDirが対象specのディレクトリと一致しません");
-}
-const tests = [];
-function visit(suite) {
-  for (const spec of suite.specs ?? []) {
-    // Playwright JSON reporter serializes spec.file relative to config.rootDir.
-    if (typeof spec.file !== "string" || path.resolve(reportRoot, spec.file) !== targetSpec) {
-      throw new Error("別のspecがreportへ混入しました: " + String(spec.file));
-    }
-    for (const test of spec.tests ?? []) {
-      tests.push({
-        title: spec.title,
-        expected: test.expectedStatus,
-        actual: test.results?.at(-1)?.status,
-      });
-    }
-  }
-  for (const child of suite.suites ?? []) visit(child);
-}
-for (const suite of report.suites ?? []) visit(suite);
-if (tests.length === 0 || tests.some((test) => test.actual !== "passed" || test.expected !== "passed")) {
-  throw new Error("P05の対象testが0件、未実行、またはPASS以外です: " + JSON.stringify(tests));
-}
-console.log("P05対象test件数=" + tests.length + "、全件PASS");
-NODE
+pnpm course:run M05 p05-cart-locator.spec.ts --label main
 ```
 
-`$p05_output/spec-snapshot.ts`は実行前に保存した本人specのコピーです。実行直前と直後のspec SHA-256がそのコピーと一致することを確認します。不一致なら、そのJSON reportを該当specの成功証拠として採用しません。`$p05_output/playwright-result.json`の対象test名・件数・結果、実行前後の画面、必要なTrace/画像、spec SHA-256、終了コードを提出欄へ記録します。Playwrightの終了コードが非0、reportがない、対象testが一致しない場合はPASS扱いしません。成功した場合でも、これは`course:run`が生成する`run-evidence.json`（Run ID、`source_sha`等）とは**別の直接実行**です。後で正式なRunが必要な項目の代用にせず、受入側では取得方法の違いを明示します。
+`course:run`は専用Playwright Config・8082番ポートを使い、`workspace/M05/evidence/runs/<run_id>/`へ`spec-snapshot.ts`、`playwright-result.json`、`run-evidence.json`を保存します。標準出力の`run_id`、`outcome`、`spec_sha256`、`evidence`を提出欄に記録してください。receiptには配布元`source_sha`、実行コマンド・exit code・test結果、report/snapshot/attachmentのハッシュ、実行中のspec変更有無が残ります。
+
+`outcome`が`passed`以外、テスト0件・skip・対象外spec・異なる配布SHA・不正なreceiptは正式評価の実行証拠になりません。`passed`でもLocatorや業務Assertionが正しいこと、DB永続化まで保証するものではないため、P05で観測した数量と削除未実行の判断を別途説明してください。
 
 **完了確認**：P01〜P04は実行した新規スクリプトの出力を残し、P05/P06は既存Locator修正の再掲ではなく別の要素・別の判断を記録します。練習用短コードの出力をPlaywrightの`course:run`と混同しません。
 

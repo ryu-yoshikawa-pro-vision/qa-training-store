@@ -2514,6 +2514,17 @@ it("accepts the M05 P05 locator spec only through the approved course:run entryp
   expect(() => runAiAssistedQaSpecCli(otherArgs, { root })).toThrow(/Usage: pnpm course:run/);
 });
 
+it("documents the required M05 P05 course:run receipt rather than direct Playwright", () => {
+  const exercise = fs.readFileSync(
+    path.resolve("training/ai-assisted-qa-course/exercises/M05/exercise.md"),
+    "utf8",
+  );
+  expect(exercise).toContain("pnpm course:run M05 p05-cart-locator.spec.ts --label main");
+  expect(exercise).toContain("run-evidence.json");
+  expect(exercise).not.toContain("p05-direct-");
+  expect(exercise).not.toContain("本PR #215の追跡版");
+});
+
 it("requires a verified distribution SHA before course:run can access learner files", () => {
   expect(() =>
     runAiAssistedQaSpecCli(["M05", "product-link.spec.ts", "--label", "main"], {
