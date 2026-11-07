@@ -15,7 +15,7 @@ const MODULE_IDS = Array.from({ length: 11 }, (_, index) => `M${String(index).pa
 const MODULE_ID_PATTERN = /^M(?:0[0-9]|10)$/;
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const FORBIDDEN_PATH =
-  /(?:^|\/)(?:\.git|\.codex|node_modules|output|evals|secrets?|private|answer-keys?|model-answers?|\.aws|\.ssh)(?:\/|$)|(?:^|\/)assessment\/(?:reference-solutions|scoring-tests|completed-states)(?:\/|$)|(?:^|\/)(?:\.env(?:[._-]|$)|\.npmrc$|\.pypirc$|\.netrc$|\.git-credentials$)/i;
+  /(?:^|\/)(?:\.git|\.codex|node_modules|output|evals|secrets?|private|answer-keys?|model-answers?|\.aws|\.kube|\.ssh)(?:\/|$)|(?:^|\/)assessment\/(?:reference-solutions|scoring-tests|completed-states)(?:\/|$)|(?:^|\/)(?:\.env[^/]*|\.npmrc$|\.pypirc$|\.netrc$|\.git-credentials$)/i;
 const GITHUB_WORKFLOW_PATH = /(?:^|\/)\.github\/workflows(?:\/|$)/i;
 const REQUIRED_ASSESSMENT_EXCLUSIONS = [
   "training/ai-assisted-qa-course/assessment/reference-solutions/**",

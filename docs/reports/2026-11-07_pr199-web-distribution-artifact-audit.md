@@ -59,3 +59,20 @@
 - この検査で未知PII、画素中の個人情報、フォントの権利、外部Skillの再配布許諾を保証しない。後続のCase追跡テスト変更によってPR HEADが移動しているため、`855cb40`を最終HEADの合格証拠へ流用しない。本人のPrivate配布は未実施。
 
 **判定**：このHEADの公開ZIP実体の既知禁止物検査・配布同期整合は完了。Web生成ジョブとcourse同期ジョブの完全バイト一致、公開前の全資料・権利・個人データ監査は未完了のまま。
+
+## 2026-11-08 追加監査：HEAD `b37df6084eb9303aec24fd6e08afc839a6e3aacd`
+
+同HEADの[Web CI #42395158961](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42395158961)が生成したArtifact 3件を取得し、ZIP実ファイルをPython標準`zipfile`と`hashlib`で検査した。**Web CI全体は`Chromium E2E (cross-role)`が失敗して`completed/failure`。配布ジョブの成功とWeb CI全体の合格は区別する。**
+
+| ZIP Artifact | ID | ファイル数 | ZIP SHA-256 |
+| --- | ---: | ---: | --- |
+| [`pr199-course-distribution-42395158961-1`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42395158961/artifacts/13583128084) | 13583128084 | 7 | `10e5bcf316d8ddb34128cac326489977657214cefc4d60afac981d667f04c69e` |
+| [`web-dist-production`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42395158961/artifacts/13583575325) | 13583575325 | 320 | `bf9bbaa3361c0e6f502a9b89d8c80d04ba4e51d3b5f06bb369fae2a271a19414` |
+| [`spec-site-automation`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42395158961/artifacts/13583561004) | 13583561004 | 116 | `c594c9416e78861b76797eee4866515b766770a9f2592eb128b7aa70488c4b41` |
+
+- 配布manifestの`source_sha`はHEADと一致。全登録567件（`generated-shop` 320・`local` 142・`external-skill` 105）、配布先重複0。同期前後SHA一覧568行の内容はバイト列一致。
+- Web ZIPは320件、展開25,654,131 bytes。Shop登録320件と319件でパスが一致し、そのうち318件はSHA-256一致。別ジョブが生成した`entry-*.js`のファイル名と`index.html`のSHAが異なるため、同一HEADでも別ジョブ間の完全一致は証明しない。
+- Web ZIPのテキスト190件（7,217,475 bytes）・非テキスト130件（18,436,656 bytes）。3つのZIPの公開禁止パス、ZIP重複、Symlink、空ファイル、CRC破損は検出0。全ファイルのバイト列を対象とするGitHub/OpenAI/AWS/Google/Slack既知Token形式・秘密鍵ヘッダ・主要個人メールドメインの正規表現検出は0件。未知PII、画像内容、フォント内情報、再配布許諾の保証ではない。
+- **配布ガードに不足を確認**：`manifest.json`の`**/.env*`に対し、`scripts/training/ai-assisted-qa-course-core.mjs`の`FORBIDDEN_PATH`は`.envrc`・`.environment`を拒否せず、`.kube/config`も禁止対象外だった。一方`.env_backup`と`.env.local`は従来から拒否できる。現Artifactの混入ではなく、将来の生成Shop/manifest登録の検証漏れ。共通ガードと既存契約テストに負例を追加する。**修正後HEADのCIが成功するまで受入未確定**。
+
+**マージ前の作業1は未完了。** 固定Skill 105ファイル・Web JS/フォント/画像の権利/NOTICEの全件確認、公開禁止情報の独立監査、許諾の解消が必要。Web CI全体が失敗しているため、最終CIも未完了。

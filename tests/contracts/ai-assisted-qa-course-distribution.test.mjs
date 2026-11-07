@@ -3018,9 +3018,31 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects hidden configuration paths in course manifest source and destination", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    for (const relative of [
+      "training/ai-assisted-qa-course/.envrc",
+      "training/ai-assisted-qa-course/.environment",
+      "training/ai-assisted-qa-course/.kube/config",
+    ]) {
+      for (const field of ["source_path", "target_path"]) {
+        const first = { ...manifest.local_files[0], [field]: relative };
+        expect(() =>
+          validateCourseManifest({
+            ...manifest,
+            local_files: [first, ...manifest.local_files.slice(1)],
+          }),
+        ).toThrow(/prohibited/);
+      }
+    }
+  });
+
   it("rejects private configuration paths in generated Shop assets before any distribution writes", async () => {
     for (const relativePath of [
       "dist/.env_local",
+      "dist/.envrc",
+      "dist/public/.environment",
+      "dist/public/.kube/config",
       "dist/public/.npmrc",
       "dist/public/.pypirc",
       "dist/public/.netrc",
