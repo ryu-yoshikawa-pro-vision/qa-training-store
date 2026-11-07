@@ -281,6 +281,38 @@ test.describe("AI協働QAの公開クイズ画面", () => {
     await expect(page.getByRole("button", { name: "回答を始める" })).toBeVisible();
   });
 
+  test("HTMLとJSONの配布版が混在すると保存回答を維持して拒否する", async ({ page }) => {
+    await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M05.html");
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "ai-assisted-qa-quiz:M05",
+        JSON.stringify({
+          revision: document.body.dataset.revision,
+          answers: { "M05-Q01": "B" },
+          currentIndex: 1,
+          resultStatus: "in_progress",
+        }),
+      );
+    });
+    const storedAnswer = await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"));
+    await page.route("**/M05.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ...readQuiz("M05"), revised_content: true }),
+      });
+    });
+    await page.reload();
+    await expect(page.getByRole("alert")).toContainText(
+      "教材とクイズデータの版が一致しません。ページを再読み込みしてください。",
+    );
+    await expect(page.locator("#start-panel")).toBeHidden();
+    await expect(page.locator("#question-panel")).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(
+      storedAnswer,
+    );
+  });
+
   test("同じ版の途中回答だけをモジュール単位で保存し、続きから再開できる", async ({ page }) => {
     const quiz = readQuiz("M05");
     await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M05.html");
