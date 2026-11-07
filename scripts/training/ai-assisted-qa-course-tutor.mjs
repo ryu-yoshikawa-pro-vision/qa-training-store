@@ -288,7 +288,9 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
         });
         if (confirmedPrompt !== prepared) fail("model input changed after SEND confirmation");
       } catch {
-        console.error("BLOCKED: 送信確認後に教材・成果物・Runが変更されました。外部AIは起動しません。");
+        console.error(
+          "BLOCKED: 送信確認後に教材・成果物・Runが変更されました。外部AIは起動しません。",
+        );
         continue;
       }
       const directory = fs.mkdtempSync(path.join(os.tmpdir(), "qa-course-tutor-"));
