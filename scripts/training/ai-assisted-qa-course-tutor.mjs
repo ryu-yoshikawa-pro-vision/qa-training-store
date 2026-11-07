@@ -67,6 +67,63 @@ export function runValidatedTutorTurn({ request, question, documents, history = 
   return invoke(prompt);
 }
 
+export function prepareTutorTurnForSend({
+  root,
+  request,
+  question,
+  documents,
+  publishedFiles,
+  history = [],
+  pendingExcerpt = null,
+  pendingRunSummary = null,
+  sourceSha,
+}) {
+  // Read the actual pinned bytes, not previously buffered text, at both approval gates.
+  const refreshedDocuments = documents.map(({ path: relativePath }) => ({
+    path: relativePath,
+    text: readTutorPublicFile(root, request.moduleId, relativePath, publishedFiles),
+  }));
+  const verifiedExcerpt = pendingExcerpt
+    ? (() => {
+        const range = pendingExcerpt.range.split("-").map(Number);
+        const current = readTutorWorkspaceExcerpt(
+          root,
+          request.moduleId,
+          pendingExcerpt.path,
+          range[0],
+          range[1],
+        );
+        if (
+          current.source_sha256 !== pendingExcerpt.source_sha256 ||
+          current.text !== pendingExcerpt.text
+        )
+          fail("selected learner file changed before sending");
+        return current;
+      })()
+    : null;
+  const verifiedRun = pendingRunSummary
+    ? (() => {
+        const current = verifiedTutorRunSummary({
+          root,
+          moduleId: request.moduleId,
+          runId: pendingRunSummary.run_id,
+          sourceSha,
+        });
+        if (JSON.stringify(current) !== JSON.stringify(pendingRunSummary))
+          fail("selected Run metadata changed before sending");
+        return current;
+      })()
+    : null;
+  return buildTutorTurnPrompt({
+    moduleId: request.moduleId,
+    question,
+    documents: refreshedDocuments,
+    history,
+    excerpt: verifiedExcerpt,
+    runSummary: verifiedRun,
+  });
+}
+
 export async function runTutorCli(argv = process.argv.slice(2)) {
   const request = parseTutorArgs(argv);
   const verifiedDistribution = verifySyncedCourseDistribution({ root: ROOT });
@@ -161,6 +218,7 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
           documents[3] = { path: source, text };
           console.log("公開仕様を一件だけ選択しました。次の質問で送信確認します。");
         } catch {
+          documents.length = 3;
           console.error("BLOCKED: 公開仕様の参照を拒否しました。");
         }
         continue;
@@ -168,46 +226,17 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
       // No OpenCode child process, including --version, runs before these checks.
       let prepared;
       try {
-        const verifiedExcerpt = pendingExcerpt
-          ? (() => {
-              const range = pendingExcerpt.range.split("-").map(Number);
-              const current = readTutorWorkspaceExcerpt(
-                ROOT,
-                request.moduleId,
-                pendingExcerpt.path,
-                range[0],
-                range[1],
-              );
-              if (
-                current.source_sha256 !== pendingExcerpt.source_sha256 ||
-                current.text !== pendingExcerpt.text
-              )
-                fail("selected learner file changed before sending");
-              return current;
-            })()
-          : null;
-        const verifiedRun = pendingRunSummary
-          ? (() => {
-              const current = verifiedTutorRunSummary({
-                root: ROOT,
-                moduleId: request.moduleId,
-                runId: pendingRunSummary.run_id,
-                sourceSha: verifiedDistribution.source_sha,
-              });
-              if (JSON.stringify(current) !== JSON.stringify(pendingRunSummary))
-                fail("selected Run metadata changed before sending");
-              return current;
-            })()
-          : null;
-        prepared = buildTutorTurnPrompt({
-          moduleId: request.moduleId,
+        prepared = prepareTutorTurnForSend({
+          root: ROOT,
+          request,
           question,
           documents,
+          publishedFiles,
           history,
-          excerpt: verifiedExcerpt,
-          runSummary: verifiedRun,
+          pendingExcerpt,
+          pendingRunSummary,
+          sourceSha: verifiedDistribution.source_sha,
         });
-        validateTutorText(question, "question", MAX_TUTOR_QUESTION_BYTES);
       } catch {
         pendingExcerpt = null;
         pendingRunSummary = null;
@@ -235,8 +264,33 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
         continue;
       }
 
+      const approvedExcerpt = pendingExcerpt;
+      const approvedRunSummary = pendingRunSummary;
       pendingExcerpt = null;
       pendingRunSummary = null;
+      try {
+        const currentDistribution = verifySyncedCourseDistribution({ root: ROOT });
+        if (
+          currentDistribution.source_sha !== verifiedDistribution.source_sha ||
+          currentDistribution.distribution_files_verified !== publishedFiles.size
+        )
+          fail("distribution changed after SEND confirmation");
+        const confirmedPrompt = prepareTutorTurnForSend({
+          root: ROOT,
+          request,
+          question,
+          documents,
+          publishedFiles,
+          history,
+          pendingExcerpt: approvedExcerpt,
+          pendingRunSummary: approvedRunSummary,
+          sourceSha: verifiedDistribution.source_sha,
+        });
+        if (confirmedPrompt !== prepared) fail("model input changed after SEND confirmation");
+      } catch {
+        console.error("BLOCKED: 送信確認後に教材・成果物・Runが変更されました。外部AIは起動しません。");
+        continue;
+      }
       const directory = fs.mkdtempSync(path.join(os.tmpdir(), "qa-course-tutor-"));
       try {
         const environment = makeIsolatedEnvironment(directory, request);

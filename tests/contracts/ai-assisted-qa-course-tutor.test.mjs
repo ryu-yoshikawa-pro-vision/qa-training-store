@@ -18,6 +18,7 @@ import {
 } from "../../scripts/training/ai-assisted-qa-course-tutor-core.mjs";
 import {
   makeIsolatedEnvironment,
+  prepareTutorTurnForSend,
   runValidatedTutorTurn,
 } from "../../scripts/training/ai-assisted-qa-course-tutor.mjs";
 
@@ -293,6 +294,44 @@ describe("AI-assisted QA tutor external send boundary", () => {
       ).toThrow();
     }
     expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("revalidates selected tutor inputs before sending rather than trusting buffered sources", () => {
+    const root = fixture();
+    const publishedFiles = new Map(
+      documents.map((doc) => [doc.path, createHash("sha256").update(doc.text).digest("hex")]),
+    );
+    const selectedPath = "workspace/M06/notes.md";
+    const selectedAbsolute = path.join(root, selectedPath);
+    fs.mkdirSync(path.dirname(selectedAbsolute), { recursive: true });
+    fs.writeFileSync(selectedAbsolute, "# 観測\n数量1");
+    const pendingExcerpt = readTutorWorkspaceExcerpt(root, "M06", selectedPath, 1, 2);
+    const params = {
+      root,
+      request,
+      question: "実行結果を説明して",
+      documents,
+      publishedFiles,
+      pendingExcerpt,
+      sourceSha: "a".repeat(40),
+    };
+    const initialPrompt = prepareTutorTurnForSend(params);
+    expect(initialPrompt).toContain("数量1");
+    expect(prepareTutorTurnForSend(params)).toBe(initialPrompt);
+
+    fs.appendFileSync(selectedAbsolute, "\n追加の記録");
+    expect(() => prepareTutorTurnForSend(params)).toThrow(/changed before sending/);
+    fs.writeFileSync(selectedAbsolute, "# 観測\n数量1");
+
+    const lesson = path.join(root, documents[1].path);
+    fs.appendFileSync(lesson, "\n後から変更");
+    expect(() => prepareTutorTurnForSend(params)).toThrow(/changed since/);
+    fs.writeFileSync(lesson, documents[1].text);
+    expect(prepareTutorTurnForSend(params)).toBe(initialPrompt);
+
+    fs.rmSync(lesson);
+    fs.symlinkSync(path.join(root, documents[0].path), lesson);
+    expect(() => prepareTutorTurnForSend(params)).toThrow(/symlink/);
   });
 
   it("isolates OpenCode config, persistence and environment from the user's global settings", () => {
