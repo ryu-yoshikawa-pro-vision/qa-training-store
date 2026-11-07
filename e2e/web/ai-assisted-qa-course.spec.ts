@@ -322,6 +322,51 @@ test.describe("AI協働QAの公開クイズ画面", () => {
     expect(accessibility.violations.map((violation) => violation.id)).toEqual([]);
   });
 
+  test("取得失敗を表示し、ページ再読み込み後にクイズを始められる", async ({ page }) => {
+    let firstRequest = true;
+    await page.route("**/M10.json", async (route) => {
+      if (firstRequest) {
+        firstRequest = false;
+        await route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M10.html");
+    await expect(page.getByRole("alert")).toContainText(
+      "クイズデータを読み込めませんでした。ページを再読み込みしてください。",
+    );
+    await expect(page.getByRole("button", { name: "回答を始める" })).toBeHidden();
+    await page.reload();
+    await expect(page.getByRole("alert")).toBeHidden();
+    await page.getByRole("button", { name: "回答を始める" }).click();
+    await expect(page.getByText(`第1問 / 全${readQuiz("M10").questions.length}問`)).toBeVisible();
+  });
+
+  test("0問・別モジュールID・選択肢欠落のクイズを拒否する", async ({ page }) => {
+    const valid = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/quizzes/M10.json"), "utf8"),
+    );
+    const malformed = [
+      { ...valid, questions: [] },
+      { ...valid, questions: [{ ...valid.questions[0], id: "M09-Q01" }] },
+      { ...valid, questions: [{ ...valid.questions[0], options: [] }] },
+    ];
+    for (const document of malformed) {
+      await page.route("**/M10.json", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(document),
+        });
+      });
+      await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M10.html");
+      await expect(page.getByRole("alert")).toContainText("クイズデータの形式が正しくありません");
+      await expect(page.getByRole("button", { name: "回答を始める" })).toBeHidden();
+      await page.unroute("**/M10.json");
+    }
+  });
+
   test("形式が壊れたJSONを受け入れず、クイズ開始を拒否する", async ({ page }) => {
     await page.route("**/M10.json", async (route) =>
       route.fulfill({
