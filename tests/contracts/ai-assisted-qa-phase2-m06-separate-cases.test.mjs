@@ -58,7 +58,9 @@ describe("M06-01：削除004と数量更新005は別Case・別業務Assertion", 
 
   it("course:runの4 outcomeと未実行を、終了コード・report・receiptで区別する", () => {
     const runner = read("scripts/training/ai-assisted-qa-run-evidence.mjs");
-    expect(runner).toContain("const outcome = environmentFailure");
+    expect(runner).toContain('let outcome = "ungradable"');
+    expect(runner).toContain("if (environmentFailure)");
+    expect(runner).toContain("specUnchangedDuringRun");
     for (const status of ['"passed"', '"failed"', '"blocked"', '"ungradable"']) {
       expect(runner).toContain(status);
     }

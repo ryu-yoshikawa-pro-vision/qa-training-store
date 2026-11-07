@@ -51,6 +51,6 @@ describe("M05-02：2明細のLocatorを実装と参照specで照合する", () =
     expect(exercise).toContain("Cart全体では各2件となる曖昧さ");
     expect(exercise).toContain("商品名だけでは一意にならない");
     expect(exercise).toContain("削除は実行しません");
-    expect(exercise).toContain("P05の新規specを専用Configで実行する");
+    expect(exercise).toContain("P05の新規specを`course:run`で実行する");
   });
 });

@@ -1,175 +1,161 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { runAiAssistedQaSpecCli } from "../../scripts/training/ai-assisted-qa-run-evidence.mjs";
 
-const exercise = fs.readFileSync(
-  path.join(process.cwd(), "training/ai-assisted-qa-course/exercises/M05/exercise.md"),
-  "utf8",
-);
-const runSection = exercise
-  .split("### P05の新規specを専用Configで実行する")[1]
-  ?.split("### 固定Skillと本人の判断")[0];
-const fence = String.fromCharCode(96).repeat(3);
-const bashFence = new RegExp(fence + "bash\\n([\\s\\S]*?)\\n" + fence, "g");
-const directRun = Array.from((runSection ?? "").matchAll(bashFence), (match) => match[1])[0];
+const roots = [];
+const initialExitCode = process.exitCode;
+const sourceSha = "a".repeat(40);
+const args = ["M05", "p05-cart-locator.spec.ts", "--label", "main"];
 
-const tempDirectories = [];
 afterEach(() => {
-  for (const directory of tempDirectories.splice(0)) {
-    fs.rmSync(directory, { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
   }
+  process.exitCode = initialExitCode;
 });
 
-/** 直接実行手順を隔離検証するためのworkspaceとpnpm stubを作成する。 */
 function fixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "course-m05-p05-direct-"));
-  tempDirectories.push(root);
-  const specPath = path.join(root, "workspace/M05/p05-cart-locator.spec.ts");
-  fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, "/* learner-authored placeholder for command testing only */\n");
-  const binDir = path.join(root, "bin");
-  fs.mkdirSync(binDir);
-  const report = (
-    file,
-    actual,
-    expected = "passed",
-    reportRoot = path.join(root, "workspace/M05"),
-  ) =>
-    JSON.stringify({
-      config: { rootDir: reportRoot },
-      suites: [
-        {
-          specs: [
-            {
-              file,
-              title: "M05 P05: 2明細の数量と削除操作対象を識別する",
-              tests: [{ expectedStatus: expected, results: [{ status: actual }] }],
-            },
-          ],
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "course-m05-p05-"));
+  roots.push(root);
+  const moduleRoot = path.join(root, "workspace", "M05");
+  fs.mkdirSync(moduleRoot, { recursive: true });
+  const specPath = path.join(moduleRoot, "p05-cart-locator.spec.ts");
+  fs.writeFileSync(
+    specPath,
+    'import { test } from "@playwright/test";\ntest("M05 P05", async () => {});\n',
+  );
+  return { root, moduleRoot, specPath };
+}
+
+function simulatedRun(data, mode = "pass") {
+  const invoked = [];
+  const spawn = (launcher, commandArgs, options) => {
+    invoked.push({ launcher, commandArgs, options });
+    if (mode !== "no-report") {
+      const report = {
+        config: {
+          rootDir: mode === "wrong-root" ? data.root : data.moduleRoot,
         },
-      ],
-    });
-  const reports = {
-    pass: report("p05-cart-locator.spec.ts", "passed"),
-    empty: JSON.stringify({ suites: [] }),
-    wrongSpec: report("product-link.spec.ts", "passed"),
-    skipped: report("p05-cart-locator.spec.ts", "skipped"),
-    wrongExpectation: report("p05-cart-locator.spec.ts", "failed", "failed"),
-    wrongRoot: report("p05-cart-locator.spec.ts", "passed", "passed", root),
+        suites: [
+          {
+            specs: [
+              {
+                file: mode === "wrong-spec" ? "product-link.spec.ts" : "p05-cart-locator.spec.ts",
+                title: "M05 P05",
+                tests:
+                  mode === "empty"
+                    ? []
+                    : [
+                        {
+                          projectName: "ai-assisted-qa-chromium",
+                          expectedStatus: mode === "expected-failure" ? "failed" : "passed",
+                          status: mode === "skipped" ? "skipped" : "expected",
+                          results: [
+                            {
+                              status: mode === "skipped" ? "skipped" : "passed",
+                              attachments: [],
+                            },
+                          ],
+                        },
+                      ],
+              },
+            ],
+          },
+        ],
+      };
+      fs.writeFileSync(
+        path.join(options.env.AI_QA_OUTPUT_ROOT, "playwright-result.json"),
+        JSON.stringify(report),
+      );
+    }
+    if (mode === "mutate") {
+      fs.appendFileSync(data.specPath, "// changed during the run\n");
+    }
+    return { status: mode === "nonzero" ? 9 : 0, stdout: "", stderr: "" };
   };
-  const stub = [
-    "#!/bin/sh",
-    'printf "%s\\n" "$*" > "$AI_QA_OUTPUT_ROOT/args.txt"',
-    'printf "%s\\n" "$PLAYWRIGHT_TEST_ROOT" > "$AI_QA_OUTPUT_ROOT/test-root.txt"',
-    'case "$P05_TEST_MODE" in',
-    "  no-report) ;;",
-    `  empty) printf '%s\\n' '${reports.empty}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
-    `  wrong-spec) printf '%s\\n' '${reports.wrongSpec}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
-    `  wrong-root) printf '%s\\n' '${reports.wrongRoot}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
-    `  skipped) printf '%s\\n' '${reports.skipped}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
-    `  wrong-expectation) printf '%s\\n' '${reports.wrongExpectation}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
-    `  *) printf '%s\\n' '${reports.pass}' > "$AI_QA_OUTPUT_ROOT/playwright-result.json" ;;`,
-    "esac",
-    'if [ "$P05_TEST_MODE" = "mutate" ]; then',
-    "  printf '\\n// changed during execution\\n' >> workspace/M05/p05-cart-locator.spec.ts",
-    "fi",
-    'echo "stubbed pnpm: no browser run"',
-    'if [ "$P05_TEST_MODE" = "fail" ]; then exit 9; fi',
-    "exit 0",
-  ].join("\n");
-  fs.writeFileSync(path.join(binDir, "pnpm"), stub + "\n", { mode: 0o755 });
-  return { root, specPath, binDir };
+  const result = runAiAssistedQaSpecCli(args, { root: data.root, sourceSha, spawn });
+  return { result, invoked };
 }
 
-/** 指定したstub結果で教材の直接実行コマンドを検証する。 */
-function run(fixtureRoot, binDir, mode = "pass") {
-  return spawnSync("bash", ["-c", directRun], {
-    cwd: fixtureRoot,
-    env: {
-      ...process.env,
-      PATH: binDir + path.delimiter + process.env.PATH,
-      P05_TEST_MODE: mode,
-    },
-    encoding: "utf8",
-    timeout: 10_000,
-  });
-}
-
-describe("M05 P05の直接Playwright実行コマンド（隔離stub検証）", () => {
-  const linuxIt = process.platform === "linux" ? it : it.skip;
-
-  it("教材が専用Config・対象spec・実行前snapshotを明示する", () => {
-    expect(directRun).toContain("p05-cart-locator.spec.ts");
-    expect(directRun).toContain("spec-snapshot.ts");
-    expect(directRun).toContain("PLAYWRIGHT_TEST_ROOT=workspace/M05");
-    expect(directRun).toContain("AI_QA_OUTPUT_ROOT=");
-    expect(directRun).toContain("--config=playwright.ai-assisted-qa.config.ts");
-    expect(directRun).toContain("--project=ai-assisted-qa-chromium");
+describe("M05 P05の正式course:run証拠（隔離Playwright stub検証）", () => {
+  it("教材の正規入口と固定spec、専用Configを使用する", () => {
+    const exercise = fs.readFileSync(
+      path.resolve("training/ai-assisted-qa-course/exercises/M05/exercise.md"),
+      "utf8",
+    );
+    expect(exercise).toContain("pnpm course:run M05 p05-cart-locator.spec.ts --label main");
+    const { result, invoked } = simulatedRun(fixture());
+    expect(invoked).toHaveLength(1);
+    expect(invoked[0].commandArgs).toContain("p05-cart-locator.spec.ts");
+    expect(invoked[0].commandArgs).toContain("--config=playwright.ai-assisted-qa.config.ts");
+    expect(invoked[0].commandArgs).toContain("--project=ai-assisted-qa-chromium");
+    expect(result.receipt.project).toBe("ai-assisted-qa-chromium");
   });
 
-  linuxIt("成功時のログ・JSON report・spec snapshotが独立した出力先に残る", () => {
+  it("正常終了時にRun ID・receipt・snapshot・reportを同じRun directoryへ保存する", () => {
     const data = fixture();
-    const result = run(data.root, data.binDir);
-    expect(result.status, result.stderr + result.stdout).toBe(0);
-    const evidenceDir = path.join(data.root, "workspace/M05/evidence");
-    const entries = fs.readdirSync(evidenceDir);
-    expect(entries).toHaveLength(1);
-    const outputRoot = path.join(evidenceDir, entries[0]);
-    expect(entries[0]).toMatch(/^p05-direct-/);
-    expect(fs.readFileSync(path.join(outputRoot, "spec-snapshot.ts"))).toEqual(
+    const { result, invoked } = simulatedRun(data);
+    expect(result.receipt.outcome).toBe("passed");
+    expect(result.receipt.exit_code).toBe(0);
+    expect(result.receipt.source_sha).toBe(sourceSha);
+    expect(result.receipt.spec_unchanged_during_run).toBe(true);
+    expect(result.receipt.tests).toHaveLength(1);
+    const dir = path.dirname(result.receiptPath);
+    expect(path.basename(dir)).toBe(result.receipt.run_id);
+    expect(dir).toContain(path.join("workspace", "M05", "evidence", "runs"));
+    expect(fs.readFileSync(path.join(dir, "spec-snapshot.ts"))).toEqual(
       fs.readFileSync(data.specPath),
     );
-    expect(fs.readFileSync(path.join(outputRoot, "playwright-result.json"), "utf8")).toContain(
+    expect(fs.readFileSync(path.join(dir, "playwright-result.json"), "utf8")).toContain(
       "suites",
     );
-    expect(fs.readFileSync(path.join(outputRoot, "console.log"), "utf8")).toContain(
-      "no browser run",
-    );
-    expect(fs.readFileSync(path.join(outputRoot, "args.txt"), "utf8")).toContain(
-      "exec playwright test p05-cart-locator.spec.ts",
-    );
-    expect(fs.readFileSync(path.join(outputRoot, "test-root.txt"), "utf8").trim()).toBe(
-      "workspace/M05",
-    );
-    expect(result.stdout).toContain("exit_code=0");
-    expect(result.stdout).toContain("spec_sha256=");
+    expect(JSON.parse(fs.readFileSync(result.receiptPath, "utf8"))).toEqual(result.receipt);
+    expect(result.receipt.report_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.receipt.spec_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(invoked[0].options.env.PLAYWRIGHT_TEST_ROOT).toBe(data.moduleRoot);
+    expect(invoked[0].options.env.AI_QA_OUTPUT_ROOT).toBe(dir);
   });
 
-  linuxIt("実行中にspecが変更された場合は失敗として扱う", () => {
-    const data = fixture();
-    const result = run(data.root, data.binDir, "mutate");
-    expect(result.status).not.toBe(0);
-    expect(result.stdout).toContain("実行中にspecが変更されました");
+  it("実行中のspec改変はPlaywrightがPASSでも正式Runを不採用にする", () => {
+    const { result } = simulatedRun(fixture(), "mutate");
+    expect(result.receipt.exit_code).toBe(0);
+    expect(result.receipt.spec_unchanged_during_run).toBe(false);
+    expect(result.receipt.outcome).toBe("ungradable");
+    expect(process.exitCode).toBe(1);
   });
 
-  linuxIt("report不在とPlaywright非0終了を成功にしない", () => {
-    const data = fixture();
-    const missingReport = run(data.root, data.binDir, "no-report");
-    expect(missingReport.status).not.toBe(0);
-    expect(missingReport.stdout).toContain("Playwright JSON reportがありません");
-
-    const failedPlaywright = run(data.root, data.binDir, "fail");
-    expect(failedPlaywright.status).not.toBe(0);
-    expect(failedPlaywright.stdout).toContain("exit_code=9");
-  });
-
-  linuxIt("JSON reportの対象testなし・別spec・rootDir違い・skip・期待失敗を拒否する", () => {
-    const data = fixture();
-    for (const mode of ["empty", "wrong-spec", "wrong-root", "skipped", "wrong-expectation"]) {
-      const result = run(data.root, data.binDir, mode);
-      expect(result.status, `mode=${mode} ${result.stderr}`).not.toBe(0);
+  it("report欠落・テスト0件・Playwright非0終了を成功にしない", () => {
+    for (const mode of ["no-report", "empty", "nonzero"]) {
+      const { result } = simulatedRun(fixture(), mode);
+      expect(result.receipt.outcome, mode).not.toBe("passed");
+      expect(process.exitCode, mode).toBe(1);
     }
   });
 
-  linuxIt("specのsymlinkを拒否する", () => {
+  it("別spec・別root・skip・期待失敗が混入したreportを拒否する", () => {
+    for (const mode of ["wrong-spec", "wrong-root", "skipped", "expected-failure"]) {
+      expect(() => simulatedRun(fixture(), mode), mode).toThrow();
+    }
+  });
+
+  it("specがsymlinkの場合はPlaywrightを起動しない", () => {
     const data = fixture();
     const target = path.join(data.root, "original-spec.ts");
     fs.renameSync(data.specPath, target);
     fs.symlinkSync(target, data.specPath);
-    const result = run(data.root, data.binDir);
-    expect(result.status).not.toBe(0);
-    expect(result.stdout).toContain("またはsymlinkです");
+    let invoked = false;
+    expect(() =>
+      runAiAssistedQaSpecCli(args, {
+        root: data.root,
+        sourceSha,
+        spawn: () => {
+          invoked = true;
+          return { status: 0 };
+        },
+      }),
+    ).toThrow(/regular file/);
+    expect(invoked).toBe(false);
   });
 });

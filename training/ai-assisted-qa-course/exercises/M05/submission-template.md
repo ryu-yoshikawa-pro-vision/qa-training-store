@@ -78,16 +78,17 @@
 - `waitForTimeout(5000)`の提案を採らなかった根拠:
 - 教材の架空HTML／本人が実行したScenario Shopの証拠の区別:
 
-### P05の専用Configによる直接実行記録
+### P05の`course:run`実行記録
 
 - 本人作成specのパスとSHA-256（`p05-cart-locator.spec.ts`）:
-- 実行コマンド、`PLAYWRIGHT_TEST_ROOT`、8082、`AI_QA_OUTPUT_ROOT`:
-- 終了コード、実行時刻、標準出力/エラー（`console.log`）:
-- 実行前に保存した`spec-snapshot.ts`と、実行直前・直後のspec SHA-256一致確認（不一致なら受入不可）:
-- 出力ディレクトリと`playwright-result.json`のtest名・件数・結果（0件・別spec・skip・想定FAIL・JSON不正はPASSとしない）:
+- 実行コマンド（`pnpm course:run M05 p05-cart-locator.spec.ts --label main`）:
+- `run_id`、`source_sha`、`outcome`、`exit_code`:
+- `workspace/M05/evidence/runs/<run_id>/run-evidence.json`の場所とハッシュ:
+- `spec-snapshot.ts`・`playwright-result.json`・添付ファイルのSHA-256、test名・件数・結果（0件・別spec・skip・想定FAILはPASSとしない）:
+- `spec_unchanged_during_run`（falseの場合は実行結果を採用しない）:
 - 商品追加前のResetと2明細の観測、全体で2件・商品単位で1件のLocator判定:
 - 削除ボタンを押していないことと、数量の業務Assertion:
-- 直接実行（正式な`course:run` receiptではない）と、その制限:
+- `course:run`の実行証拠と、業務Assertion・DB永続化の保証範囲の区別:
 - 未実行・未確認事項:
 
 必要な証拠は関連する既存の必須提出物にも反映し、同じ内容を二重に作らないでください。学習用の架空データ・合成ログ・AI自己申告と、実行したspec/Runを区別してください。
