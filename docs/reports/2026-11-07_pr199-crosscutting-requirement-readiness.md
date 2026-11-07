@@ -62,3 +62,15 @@
 - 実証拠の対象Runは旧SUT・旧Test SHAであり、#210未マージの不具合修正や現在の#199の最終SUT動作を証明しない。最新版のCase採否、Rule/Role/Seed/DB前後、実行結果と独立レビューで再判定する。
 
 **判定**：既存テスト参照29/29、横断CSV29/29との静的整合、およびWeb暫定キー43参照の実在は確認完了。製品FAIL5参照・未確定Behavior6履歴行と未実行のAndroid/DB/Visual等があるため、正式Caseの採否・動的受入・独立レビューは未完了。
+
+## 6履歴行の実アサーション確認（3暫定キー）
+
+`e2e/web/pr219-cross-role-lifecycle.spec.ts`の固定実装（#199 HEAD `4fbe389e3ec78298fca81ef864f288a2a4d57aad`）を直接確認した。旧Web証拠CSVでは3キーに2件ずつRun履歴があり、`case_mapping_status`は「要件IDのみ・Behavior ID未確定」のままである。
+
+| Web暫定キー | 対象要件 | 実際に検証するAssertion | 当該要件の完了に不足すること |
+| --- | --- | --- | --- |
+| `PR219-WEB-005` | `BR-AUTH-001` | `suspended-user`の`/checkout/address`直アクセスがLoginまたはForbiddenへ遷移し、配送先見出しを表示しない（spec 187行付近） | **ログイン処理を実行していない**。停止中ログイン拒否、Session未生成、全DB before/afterの要件はこのCaseだけでは判定不能 |
+| `PR219-WEB-006` | `BR-AUTH-001` | `withdrawn-user`で上記と同じURL・見出しの拒否（同spec 187行付近） | **ログイン処理を実行していない**。退会済みの資格情報拒否・Session未生成・DB不変を別に確認する必要がある |
+| `PR219-WEB-007` | `BR-AUTH-002` | `gold@example.com`で他人の`/orders/order-paid`を開き、NotFound見出しを表示し注文番号を表示しない（同spec 198行付近） | 他人の注文非表示の代表例だが、**customer/operator/adminのログイン先、Checkout/管理権限、DB不変**の全要求を網羅しない |
+
+上記はテストソースに記述された直接Assertionのレビューであり、最終SUTの実行PASSや全Platformの適合を再判定したものではない。**3キーを特定のBehavior IDへ勝手に付け替えず、元のWeb証拠CSVも書き換えない**。正式Case採否時に、対象要件の追加Assertion・Run・DB前後・最終SUT SHAを確認し、要件ID・動作ID・Case IDの対応を承認する。
