@@ -34,6 +34,15 @@
       "from_module": "M07",
       "optional": true,
       "same_input_contract": true
+    },
+    {
+      "artifact_id": "M07-result-04",
+      "path": "workspace/M07/maintenance.spec.ts",
+      "revision": "M07-result-v1",
+      "contract_id": "M07-to-M08-handoff-v1",
+      "from_module": "M07",
+      "optional": true,
+      "same_input_contract": true
     }
   ],
   "environment": ["personal learning repository"],

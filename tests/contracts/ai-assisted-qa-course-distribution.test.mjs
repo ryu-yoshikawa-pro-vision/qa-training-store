@@ -2231,7 +2231,19 @@ describe("AI-assisted QA distribution contract", () => {
         contract_id: "M07-to-M08-handoff-v1",
       }),
     );
-    expect(m08Start.inputs.map((input) => input.artifact_id)).toContain("M07-result-03");
+    expect(m07End.outputs).toContainEqual(
+      expect.objectContaining({
+        artifact_id: "M07-result-04",
+        path: "workspace/M07/maintenance.spec.ts",
+        contract_id: "M07-to-M08-handoff-v1",
+      }),
+    );
+    expect(m08Start.inputs.map((input) => input.artifact_id)).toEqual([
+      "M07-result-01",
+      "M07-result-02",
+      "M07-result-03",
+      "M07-result-04",
+    ]);
 
     for (const moduleId of ["M08", "M10"]) {
       const state = JSON.parse(

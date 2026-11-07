@@ -29,7 +29,7 @@ function existsInDistribution(source, target) {
 
 describe("M07 to M10 Phase 3 handoff", () => {
   for (const [from, to, count] of [
-    ["M07", "M08", 3],
+    ["M07", "M08", 4],
     ["M08", "M09", 1],
     ["M09", "M10", 2],
   ]) {

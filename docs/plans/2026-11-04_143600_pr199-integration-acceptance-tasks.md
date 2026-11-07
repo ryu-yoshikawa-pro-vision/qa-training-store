@@ -100,6 +100,12 @@
 - 同Web ZIPのパス検査で旧教材5ページ・`.pnpm`・`node_modules`・`evals`・`scoring-tests`・`reference-solutions`・`completed-states`・`.env`・秘密情報ディレクトリの混入0。テキスト7,216,614 bytesの既知GitHub/OpenAI/Anthropic/AWS/Slack/Google API token形式、秘密鍵ヘッダ、主要個人メールドメインの検出0。**未知のPIIや全Secret形式・画像やその他バイナリ・第三者権利の不在を保証しない**ため、公開禁止資料/個人情報と権利の最終監査は未完了。
 - この文書の更新後はコード変更なしでもHEADが進むため、最終HEADの同一commit CIがsuccessかを別に確認してから元21を完了判定する。本人Codespaces・実OpenCode・正式Case全件受入は今回実施していない。
 
+## 2026-11-07 M07→M08の任意成果物引継ぎの整合
+
+- 既存`M07/end.json`は`M07-result-01〜04`を出力するが、`M08/start.json`は`01〜03`しか受け入れず、M07の`handoff-template.md`にある保守後spec `workspace/M07/maintenance.spec.ts`（`M07-result-04`）が欠けていた。
+- M08の先行入力へ`M07-result-04`を**同じ`M07-to-M08-handoff-v1`・`M07-result-v1`の任意入力**として追加した。既存の3入力、公開fallback`M08-public-start-01`、本人修了と公開サンプルの分離は維持。契約テストで4出力・4入力のID/path/revision一致とfallback非衝突を検証する。
+- これは本人の実Runを生成せず、M07の本人修了やM08の実学習が済んだことも示さない。**変更commitのWeb/Mobile CIが成功するまで統合受入チェックは更新しない。**
+
 ## PR #218から移管した未完了タスク（2026-11-05）
 
 [PR #218の配布・安全性タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-distribution-security/docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md)にあった未完了6項目の責任を整理する。**以下6件はすべて未完了**。先頭1件はWeb生成物の受入部分のみを移管し、配布manifest/validator・配布固有契約テストの実装と確認は引き続き#218が担当する。残り5件は受入条件ごと#199へ移管する。既存の横断項目（公開Web、配布・個人データ保護、通常チューター、最終実受入）との関係を残すが、同じ実績を二重に完了計上しない。#218の過去のチェック済み15件はそのまま保持する。
