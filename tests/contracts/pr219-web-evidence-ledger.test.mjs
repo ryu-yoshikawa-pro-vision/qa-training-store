@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const WEB_CASES = "docs/reports/2026-11-04_pr219-web-case-run-evidence.csv";
 const BEHAVIORS = "docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv";
 const CROSS_CUTTING = "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
+const CROSS_CUTTING_DECISIONS = "docs/reports/2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv";
 const CURRENT_ANALYSIS = "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
 const FORMAL_CASE_DECISIONS = "docs/reports/2026-11-07_pr199-formal-case-adoption-decisions.csv";
 
@@ -194,6 +195,8 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     const byId = new Map(current.behaviors.map((behavior) => [behavior.id, behavior]));
     expect(decisions.rows).toHaveLength(965);
     expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(208);
+    const actualIds = [...new Set(decisions.rows.map((row) => row.behavior_id))].sort();
+    expect(actualIds).toEqual(current.behaviors.map((behavior) => behavior.id).sort());
     const adopted = decisions.rows.filter((row) => row.adoption_decision === "採用");
     const delegated = decisions.rows.filter((row) => row.adoption_decision === "別動作へ引継ぎ");
     expect(adopted).toHaveLength(959);
@@ -210,7 +213,10 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       expect(row.platform).toBe(behavior.platform);
       expect(row.requirement_refs.split(";")).toEqual(behavior.requirement_refs);
       if (row.condition_ref) {
-        expect(behavior.test_condition.includes(row.condition_ref) || behavior.case_policy.includes(row.condition_ref)).toBe(true);
+        const conditionDocumented =
+          behavior.test_condition.includes(row.condition_ref) ||
+          behavior.case_policy.includes(row.condition_ref);
+        expect(conditionDocumented).toBe(true);
       } else {
         expect(behavior.test_condition).not.toBe("");
       }
@@ -263,6 +269,38 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
         expect(related.length).toBeGreaterThan(0);
         expect(related.every((item) => behaviors.includes(item.behavior_id))).toBe(true);
       }
+    }
+  });
+
+  it("tracks 29 cross-cutting requirements without claiming product acceptance", () => {
+    const historical = readCsv(CROSS_CUTTING).rows;
+    const decisions = readCsv(CROSS_CUTTING_DECISIONS).rows;
+    const source = new Map(historical.map((entry) => [entry.requirement_id, entry]));
+    const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
+    const requirementIds = current.requirements.map((requirement) => requirement.id);
+    const adopted = decisions.map((entry) => entry.formal_case_id);
+
+    expect(historical).toHaveLength(29);
+    expect(decisions).toHaveLength(51);
+    expect(new Set(decisions.map((entry) => entry.requirement_id)).size).toBe(29);
+    expect(new Set(adopted).size).toBe(adopted.length);
+    for (const row of decisions) {
+      const original = source.get(row.requirement_id);
+      expect(original).toBeDefined();
+      expect(requirementIds).toContain(row.requirement_id);
+      const conditions = original.source_test_condition.includes("C1〜C3採用")
+        ? ["C1", "C2", "C3"]
+        : [""];
+      expect(conditions).toContain(row.condition_ref);
+      const suffix = row.condition_ref ? `-${row.condition_ref}` : "";
+      expect(row.formal_case_id).toBe(`PR199-CASE-REQ-${row.requirement_id}${suffix}`);
+      expect(row.adoption_decision).toBe("採用");
+      expect(row.representative_behavior_ids).toBe(original.representative_behavior_ids);
+      expect(row.existing_test_candidate).toBe(original.existing_cross_cutting_test);
+      expect(row.web_evidence_key_candidates).toBe(original.matching_web_evidence_key_candidates);
+      expect(row.source_handoff_blob_sha).toMatch(/^[a-f0-9]{40}$/);
+      expect(row.execution_acceptance).toBe("未受入");
+      expect(row.independent_review).toBe("未実施");
     }
   });
 

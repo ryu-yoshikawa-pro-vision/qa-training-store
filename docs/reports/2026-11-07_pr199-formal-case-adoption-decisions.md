@@ -25,14 +25,23 @@
 
 ## 既存テストと動的受入の境界
 
-既存テスト候補は[12動作のCase追跡と既存Assertion](./2026-11-07_pr199-case-trace-reconciliation.md)、[29横断要件の確認結果](./2026-11-07_pr199-crosscutting-requirement-readiness.md)、最終HEADの[Web CI #42376633442](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42376633442)を参照。個々の条件への**既存テスト再利用は採否決定だけで自動確定しない**。同一Case IDの仕様・実Assertion・Role/Seed/Platform・DB前後と実Runを突合して、再利用、必要な追加実行、製品FAIL、環境BLOCKEDを別々に判定する。
+既存テスト候補は[12動作のCase追跡と既存Assertion](./2026-11-07_pr199-case-trace-reconciliation.md)、[29横断要件の確認結果](./2026-11-07_pr199-crosscutting-requirement-readiness.md)、以前の成功HEADの[Web CI #42376633442](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42376633442)を参照。個々の条件への**既存テスト再利用は採否決定だけで自動確定しない**。同一Case IDの仕様・実Assertion・Role/Seed/Platform・DB前後と実Runを突合して、再利用、必要な追加実行、製品FAIL、環境BLOCKEDを別々に判定する。
 
-現時点では959件すべて `execution_acceptance=未受入`、`independent_review=未実施`。特に商品管理の選択残留・ページ非リセット、stale Cartの誤復帰、停止operatorのForbidden循環、actor権限失効競合を**製品PASSにしない**。製品SUT・正式仕様・Seed/Resetと独立PR #210を変更せず、#210未マージの修正を#199へ採用済みと記録しない。
+現時点では動作Caseの959件と横断Caseの51件すべて `execution_acceptance=未受入`、`independent_review=未実施`。特に商品管理の選択残留・ページ非リセット、stale Cartの誤復帰、停止operatorのForbidden循環、actor権限失効競合を**製品PASSにしない**。製品SUT・正式仕様・Seed/Resetと独立PR #210を変更せず、#210未マージの修正を#199へ採用済みと記録しない。
 
 ## 残る正式受入
 
-動作単位のCase採否・IDは208/208を記録した。番号のない代表条件56動作は、その`test_condition`に記されたRole・Seed・境界の複数組合せを**省略せず**、同じCase IDの実行パラメータで追跡する。既存テスト再利用の条件別突合、29横断要件の別Case採否、Web/Android/SQLite・rollback、視覚/a11y、独立レビューと実Runは未受入。既存44受入条件の「正式採用Caseの対応・最終判定」は**未完了**。
+動作208/208と横断要件29/29のCase採否・IDを記録した。番号のない代表条件56動作は、その`test_condition`に記されたRole・Seed・境界の複数組合せを**省略せず**、同じCase IDの実行パラメータで追跡する。既存テスト再利用の条件別突合、Web/Android/SQLite・rollback、視覚/a11y、独立レビューと実Runは未受入。既存44受入条件の「正式採用Caseの対応・最終判定」は**未完了**。
 
 ## 条件番号の抽出に関する訂正
 
 `SCREEN-SUPPORTING-PRIVACY-A02-01`の`C4往復`と`SCREEN-SUPPORTING-COMMERCE-A02-01`の`C4状態`は、実際には定義済み。以前の機械抽出で空白を必須としたため見落としたが、現行の`test_condition`に根拠がある。両動作はC1〜C4をそのまま採用した。仕様・分析台帳を変更していない。
+
+## 横断29要件のCase採否
+
+[横断要件の正式採否CSV](./2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv)に、**29/29要件、計51条件**の採用・正式Case IDを記録した。既存の[横断要件引継ぎCSV](./2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv)にある`source_case_policy/source_test_condition`に依拠するもので、基本分析は再実施していない。
+
+- Native/Roleの11要件は既存の「C1〜C3採用」に従い各3条件、残り18要件は既存の代表条件を各1件とする。代表条件内のRole/Seed/Platform/Stateは省略しない。
+- 既存テストは**再利用候補**であり、単なるファイルの存在やWeb暫定キー一致を当該要件の直接Assertion・製品PASSに変換しない。
+- 横断51条件は動作959条件と別の要求追跡を目的とする。同一SUT動作やRunを重複実行・二重集計することを要求しない。
+- 全51条件の実行受入・独立レビューは未完了。Web/Android/SQLite、視覚/a11y、既知製品FAIL、実モデル受入の各既存ゲートを維持する。
