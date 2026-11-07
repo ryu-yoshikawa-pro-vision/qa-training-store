@@ -1241,7 +1241,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
         cells.push(cell);
         cell = "";
       } else if ((char === "\r" || char === "\n") && !quoted) {
-        if (char === "\r" && content[index + 1] === "\\n") index += 1;
+        if (char === "\r" && content[index + 1] === "\n") index += 1;
         cells.push(cell);
         if (cells.some(Boolean)) records.push(cells);
         cells = [];
