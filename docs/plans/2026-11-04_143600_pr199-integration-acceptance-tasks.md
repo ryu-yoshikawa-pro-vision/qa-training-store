@@ -8,7 +8,7 @@
 
 - **教材Webの途中保存・版差分**：`e2e/web/ai-assisted-qa-course.spec.ts:263-401`の既存テストは、旧revisionを別履歴へ退避、退避失敗時は元の回答を保護、異版HTML/JSONの開始拒否、モジュール単位の途中保存とreload復帰を検証。Web [CI #42370398480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42370398480)が同テストを含むChromium/契約ジョブで成功。生成処理`scripts/docs/build-ai-assisted-qa.ts:559-684`は教材JSONの取得とブラウザ内`localStorage`保存を用い、正式Phaseの採点・Codespaces成果物を更新しない。外部チューターの送信保護・本人環境の保存検証は別条件で未完了。
 - **基本分析とCase候補の突合**：`docs/reports/2026-11-07_pr199-case-trace-reconciliation.md`、`docs/reports/2026-11-07_pr199-crosscutting-requirement-readiness.md`と既存契約により、79要件（横断29）、172画面操作＋16独立Use Case＋20状態＝208動作、旧953追跡行・旧208採否行、差分12動作/67行、固定Web Run・既存Integration/Component候補・既知製品FAILと未実行条件を区別済み。製品修正[PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)は未マージ（確認HEAD `4a53efbcf65ce7f5227d742e4c9d49a918e703f6`）。**208件の正式Case採否は未確定**であり、この条件の完了を正式採用の完了としない。
-- **証拠保存の不足に対応**：`ci.yml`のcross-role Chromiumジョブで、成功時にも既存Playwright `*db-digests*` 添付だけを14日保存する。スクリーンショット・セッションログ等の全量公開は避ける。新方式の実Artifact存在・保存数は変更後CIで判定する。Web/Androidの正式受入は未完了。
+- **証拠保存の不足に対応**：`ci.yml`のcross-role Chromiumジョブで、成功時にもPlaywright `testInfo.outputPath`へ明示保存した`*db-digests.json`だけを14日保存する。スクリーンショット・セッションログ等の全量公開は避ける。新方式の実Artifact存在・保存数は変更後CIで判定する。Web/Androidの正式受入は未完了。
 
 ## 個別PRの作業完了と実受入の扱い（2026-11-05）
 

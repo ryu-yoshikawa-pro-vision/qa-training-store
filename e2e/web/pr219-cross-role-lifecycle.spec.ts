@@ -1,4 +1,5 @@
-import type { Page } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
+import type { Page, TestInfo } from "@playwright/test";
 import type { TestMetadata } from "@/application/contracts";
 import { AxeBuilder } from "@axe-core/playwright";
 import { addDefaultAddress, expect, login, test } from "./fixtures";
@@ -42,6 +43,18 @@ async function indexedDbTableDigests(page: Page, tableNames?: readonly string[])
     },
     tableNames === undefined ? null : [...tableNames],
   );
+}
+
+// Explicit output files remain available to the CI artifact uploader after a passing test.
+// Keep only table names and SHA-256 digests: no raw records, credentials or Session IDs.
+async function attachIndexedDbDigests(
+  testInfo: TestInfo,
+  name: string,
+  evidence: { before: Record<string, string>; after: Record<string, string>; tables?: string[] },
+) {
+  const outputPath = testInfo.outputPath(`${name}.json`);
+  await writeFile(outputPath, JSON.stringify(evidence, null, 2) + "\n", "utf8");
+  await testInfo.attach(name, { path: outputPath, contentType: "application/json" });
 }
 
 // Log only public scenario/build metadata. Never log credentials, user records or Session IDs.
@@ -217,9 +230,9 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
       // Failed authentication cannot create a Session or modify any other table.
       // Attach only hashes for review; never write credentials or DB rows to logs.
       const after = await indexedDbTableDigests(page);
-      await testInfo.attach(`pr219-${account.status}-login-denial-db-digests`, {
-        body: JSON.stringify({ before, after }, null, 2),
-        contentType: "application/json",
+      await attachIndexedDbDigests(testInfo, `pr219-${account.status}-login-denial-db-digests`, {
+        before,
+        after,
       });
       expect(after).toEqual(before);
 
@@ -501,9 +514,10 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
     await expect(page.getByRole("button", { name: /を支払う$/ })).toHaveCount(0);
 
     const after = await indexedDbTableDigests(page);
-    await testInfo.attach("pr219-stale-confirm-rejected-db-digests", {
-      body: JSON.stringify({ tables: Object.keys(before), before, after }, null, 2),
-      contentType: "application/json",
+    await attachIndexedDbDigests(testInfo, "pr219-stale-confirm-rejected-db-digests", {
+      tables: Object.keys(before),
+      before,
+      after,
     });
     expect(after).toEqual(before);
 
@@ -1022,9 +1036,9 @@ test.describe("PR #219: suspended staff forbidden-link loop", () => {
     await expect(page).toHaveURL(/\/forbidden$/);
     await expect(returnLink).toBeVisible();
     const after = await indexedDbTableDigests(page);
-    await testInfo.attach("pr219-forbidden-indexeddb-digests", {
-      body: JSON.stringify({ before, after }, null, 2),
-      contentType: "application/json",
+    await attachIndexedDbDigests(testInfo, "pr219-forbidden-indexeddb-digests", {
+      before,
+      after,
     });
     expect(after).toEqual(before);
     console.log(
