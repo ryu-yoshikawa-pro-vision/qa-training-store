@@ -2,6 +2,14 @@
 
 対象PR：[#199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199)。作業ブランチは`docs/plan-ai-agent-qa-curriculum-redesign`。個別PR #213〜#219の専用タスクリストと[分担Plan](./2026-11-04_pr199-parallel-branches.md)を参照する。**このファイルは#199本体だけで編集する**。以前の共通逐次Planの時刻別キューや当時のHEAD/進捗を現行のタスクとして流用しない。
 
+## 現在の受入進捗（2026-11-07）
+
+既存44条件中**10件完了・34件未完了**。今回、実装や分析を繰り返さず、既存証拠で次の2条件を完了と判定した。旧#219正式Caseの採否・Web/Android/DB実受入は末尾の別条件として未完了のまま維持する。
+
+- **教材Webの途中保存・版差分**：`e2e/web/ai-assisted-qa-course.spec.ts:263-401`の既存テストは、旧revisionを別履歴へ退避、退避失敗時は元の回答を保護、異版HTML/JSONの開始拒否、モジュール単位の途中保存とreload復帰を検証。Web [CI #42370398480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42370398480)が同テストを含むChromium/契約ジョブで成功。生成処理`scripts/docs/build-ai-assisted-qa.ts:559-684`は教材JSONの取得とブラウザ内`localStorage`保存を用い、正式Phaseの採点・Codespaces成果物を更新しない。外部チューターの送信保護・本人環境の保存検証は別条件で未完了。
+- **基本分析とCase候補の突合**：`docs/reports/2026-11-07_pr199-case-trace-reconciliation.md`、`docs/reports/2026-11-07_pr199-crosscutting-requirement-readiness.md`と既存契約により、79要件（横断29）、172画面操作＋16独立Use Case＋20状態＝208動作、旧953追跡行・旧208採否行、差分12動作/67行、固定Web Run・既存Integration/Component候補・既知製品FAILと未実行条件を区別済み。製品修正[PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)は未マージ（確認HEAD `4a53efbcf65ce7f5227d742e4c9d49a918e703f6`）。**208件の正式Case採否は未確定**であり、この条件の完了を正式採用の完了としない。
+- **証拠保存の不足に対応**：`ci.yml`のcross-role Chromiumジョブで、成功時にも既存Playwright `*db-digests*` 添付だけを14日保存する。スクリーンショット・セッションログ等の全量公開は避ける。新方式の実Artifact存在・保存数は変更後CIで判定する。Web/Androidの正式受入は未完了。
+
 ## 個別PRの作業完了と実受入の扱い（2026-11-05）
 
 個別#213〜#219は**GitHub接続エージェントができる調査・教材/コード修正・契約/負例テスト・既存GitHub Actionsでの検証・固定SHAの証拠整理**を担当する。本人のPrivate Codespaces・OpenCode認証済み実モデル・Private GitHub repo・料金/権限の判断、実機/ブラウザ・個人成果物操作、第三者再配布権利の最終判断は**#199の最後の実受入**として扱う。CIでテストを実行した証拠は保存するが、実利用者の学習・実受入のPASSへ自動変換しない。
@@ -137,7 +145,7 @@
 
 - [x] 既存`scripts/docs/build-docs.ts`→`scripts/docs/build-ai-assisted-qa.ts`で公開学習入口・M00〜M10の11教材・クイズが一つの正本Markdown/JSONから生成されることを確認。入口、目標、前提、本文、コード/演習、前後移動、復習、公開仕様リンク、旧課程のURL非回帰を受け入れる。
 - [x] 一問表示→選択→前/次→未回答拒否→全問後の採点/選択肢解説/誤答別復習→再挑戦、0問/不正ID/欠落選択肢・リンクの拒否、読み込み失敗時の再読込を検証。既存`e2e/web/ai-assisted-qa-course.spec.ts`と`tests/contracts/ai-assisted-qa-curriculum.test.ts`を優先し、不足する負例だけ追加。
-- [ ] 同一ブラウザの版付き`localStorage`による途中保存とrevision変更後の旧回答非流用を検証。Webの自己確認は正式Phase合格を変更せず、Codespaces上の個人成績を送信・上書きしない。Webと配布教材のソース版不一致は明示し、無断同期しない。
+- [x] 同一ブラウザの版付き`localStorage`による途中保存とrevision変更後の旧回答非流用を検証。Webの自己確認は正式Phase合格を変更せず、Codespaces上の個人成績を送信・上書きしない。Webと配布教材のソース版不一致は明示し、無断同期しない。
 - [ ] Desktop/スマートフォン/タブレット、キーボード/フォーカス/画面読み上げ、直URL、XSS/HTML出力・Secret/採点完成資料の不混入、公開Build/Smoke/旧Webの回帰を検証。**#219の製品UI受入とは別**。
 
 ## 知識グラフ・51目標・教材の意味的な整合
@@ -156,7 +164,7 @@
 - [ ] #217の評価器が必要なM06/M07の新しいPlaywright Runを限定実行/取得して証拠を照合し、M10では本人の実GitHub APIから最新PR HEAD・Run/attempt・Check・Artifact・対象specを検証することを受け入れる。単なる自己申告/旧Run/作成済みログのハッシュ一致では合格にしない。
   - **PR #217から移管・未完了（M05 P05）**：`assessment/scoring-tests/M05.json` の `execution_evidence.required_runs` と共有 `scripts/training/validate-ai-assisted-qa.ts` の固定期待値を同時に更新し、`p05-cart-locator.spec.ts|main`（1件以上PASS・専用receipt・対象spec/SHA一致）の必須性を保つ。その後、`scripts/training/ai-assisted-qa-run-evidence.mjs` のM05専用Run注入を削除する。重複・欠落Runを拒否し、`pnpm run test:contracts`、`pnpm run validate`、production buildを最終統合HEADのCIで確認する。根拠：[移管記録](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6657600739)。
 - [ ] #218配布manifest・固定Shop・Skill-local依存・`course:load/check`・正式採点資料の固定SHA取得・非破壊性が、#214〜#217の教材/状態/評価器と結合して機能するか検証。Phase 1/2の成果物・評価履歴をGit/PR不要で安全にエクスポート・保全できる条件を確認。
-- [ ] #213の79要件・188操作・20状態の確定分母/基本分析率と、#219が準備したCase候補・既存テスト・固定Run/未実行・既知製品FAILを突合。正式Caseの採否・IDと最終Web/Android/DB実Runは本リスト末尾の最終実受入で判定する。#210の製品修正は未マージなら#199に反映済みと扱わず、対象commitを記録。
+- [x] #213の79要件・188操作・20状態の確定分母/基本分析率と、#219が準備したCase候補・既存テスト・固定Run/未実行・既知製品FAILを突合。正式Caseの採否・IDと最終Web/Android/DB実Runは本リスト末尾の最終実受入で判定する。#210の製品修正は未マージなら#199に反映済みと扱わず、対象commitを記録。
 - [ ] 第三者由来Skill/依存物のライセンス・NOTICE、Secret/個人データ非漏洩、静的Web/Template/Artifactの除外を#218の証拠で最終確認。出典未確認・実機未実施をPASSへ変更しない。
 
 ## 最終CI・レビュー・完了

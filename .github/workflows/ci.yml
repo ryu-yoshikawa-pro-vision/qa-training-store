@@ -499,6 +499,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload cross-role IndexedDB digest evidence
+        if: ${{ always() && matrix.name == 'cross-role' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr199-cross-role-db-digests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright/test-results/**/*db-digests*
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload Training Web artifacts on failure
         if: ${{ failure() && matrix.name == 'training-web-baseline' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
