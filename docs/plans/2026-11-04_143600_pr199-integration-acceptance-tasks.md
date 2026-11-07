@@ -42,7 +42,7 @@
 | 6 | 通常チューターと正式評価の分離 | 既存実装あり・実ランタイム検証待ち | 開発側先行／本人確認は後続 | 知識グラフ節と末尾の分離受入を同じ設定・履歴・送信証拠で確認 |
 | 7 | 共有ファイルと採用差分の調停 | 子PR7件統合・共有差分とWeb/Mobile CIを確認済み | マージ前 | 再実装せず、最終統合HEADと必要な差分/テストを確認 |
 | 8 | 11教材とWeb生成・導線 | 11教材・演習・クイズの生成・導線・旧URLを確認済み | マージ前 | Web生成・配布の実Artifactを再利用 |
-| 9 | Webクイズの操作と異常系 | 自動テストあり・受入網羅性確認待ち | マージ前 | 既存E2E/契約で十分な条件は新規テストを作らない |
+| 9 | Webクイズの操作と異常系 | 完了：全11クイズ・異常JSON・取得失敗再読込・復習リンクをE2E/契約で確認 | マージ前 | 既存E2E/契約で十分な条件は新規テストを作らない |
 | 10 | 途中保存・版変更時の回答保全 | 既存契約あり・実操作検証待ち | マージ前 | Web/Template版不一致と同じrevisionで確認 |
 | 11 | 教材Webの端末幅・a11y・非公開除外 | 既存CIあり・実受入不足 | マージ前 | Scenario Shop製品画面の視覚受入とは別。公開成果物検査は除外監査と共用 |
 | 12 | 82理解事項の意味レビュー | 内容レビュー・確認者の判定待ち | マージ前 | 形式的なID一致を完了根拠にしない |
@@ -92,6 +92,14 @@
 - **公開権利BLOCKED**：固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のroot LICENSE/NOTICE、13 Skillの`license:`宣言を確認できない。`learner-THIRD_PARTY_NOTICES.md`も最終全件監査未完と明記。推測で再配布許諾済みにしない。
 - **検証HEAD**：本記録のcommitでHEADが更新される。元21の「同じ最終HEADでWeb/Mobile CI」は更新後の実Runが終わってから判定する。本人のPrivate Codespaces・OpenCode・料金/認証を必要とする作業は別工程で保持。
 
+## 2026-11-07 最終HEADのWebクイズ・構造検証と配布実体監査
+
+- 検証HEAD `39bd9a7180b74375a3436ddc2066670aeccaba8a`の[Web CI #42317201860](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42317201860)はcompleted/success（29 jobs success・1 optional skipped）、[Mobile CI #42317201975](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42317201975)もcompleted/success（10 jobs）。`Chromium E2E (required)`ジョブで66テストPASS。公開11クイズの全問操作、採点/復習/再挑戦、未回答拒否、版変更時の回答不継承、途中保存、キーボード操作と375pxのa11yを確認。新規のHTTP 503→再読込復帰、0問・別モジュールID・選択肢欠落の拒否も個別PASS。全78問の復習先は`ai-assisted-qa-curriculum.test.ts`の見出しリンク検証が実Buildに対してPASSした。**元9を追加完了**とする。
+- 同HEADの`knowledge-graph.mjs`は契約テストで`validate`・51行`table`・未登録変更時の`impact --changed-files`拒否が成功。手元の静的再照合で339 node / 796 edge / 51目標 / 82理解事項 / 22状態、node ID重複0、edge参照欠落0、82理解事項の復習先見出し照合エラー0、採点JSONの51/51目標・82/82知識参照を確認。**82件すべて`draft_requires_content_review`なので意味・Level 2の独立レビューは未承認**。元12・13を構造検証だけでチェックしない。
+- 同Runの実配布Artifact`pr199-course-distribution-42317201860-1`（ID 13551586122）は`source_sha`が上記HEAD、manifest 567件、同期前後SHA一覧568行の一致。実`web-dist-production` ZIP（ID 13551262460、SHA-256 `64ade697b1a7e1d097842a8df3882d7e6e109b2b656d9ce34ab1b42cf379f5cc`）の320ファイルを列挙。Shopのmanifest対象320件との比較で318件はパス・ハッシュ一致。生成JSのファイル名1件と`index.html`1件は別ジョブのBuild SHA差により一致しないため、誤って全ファイルのハッシュ一致と書かない。**同期ジョブ内の自己整合は320/320検証済み**。
+- 同Web ZIPのパス検査で旧教材5ページ・`.pnpm`・`node_modules`・`evals`・`scoring-tests`・`reference-solutions`・`completed-states`・`.env`・秘密情報ディレクトリの混入0。テキスト7,216,614 bytesの既知GitHub/OpenAI/Anthropic/AWS/Slack/Google API token形式、秘密鍵ヘッダ、主要個人メールドメインの検出0。**未知のPIIや全Secret形式・画像やその他バイナリ・第三者権利の不在を保証しない**ため、公開禁止資料/個人情報と権利の最終監査は未完了。
+- この文書の更新後はコード変更なしでもHEADが進むため、最終HEADの同一commit CIがsuccessかを別に確認してから元21を完了判定する。本人Codespaces・実OpenCode・正式Case全件受入は今回実施していない。
+
 ## PR #218から移管した未完了タスク（2026-11-05）
 
 [PR #218の配布・安全性タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-distribution-security/docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md)にあった未完了6項目の責任を整理する。**以下6件はすべて未完了**。先頭1件はWeb生成物の受入部分のみを移管し、配布manifest/validator・配布固有契約テストの実装と確認は引き続き#218が担当する。残り5件は受入条件ごと#199へ移管する。既存の横断項目（公開Web、配布・個人データ保護、通常チューター、最終実受入）との関係を残すが、同じ実績を二重に完了計上しない。#218の過去のチェック済み15件はそのまま保持する。
@@ -116,7 +124,7 @@
 所有者は#199統合先。#214〜#216は各モジュールの教材Markdown・クイズJSON内容を確認・修正し、Web共通処理は変更提案を#199へ渡す。基準：`docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md`。
 
 - [x] 既存`scripts/docs/build-docs.ts`→`scripts/docs/build-ai-assisted-qa.ts`で公開学習入口・M00〜M10の11教材・クイズが一つの正本Markdown/JSONから生成されることを確認。入口、目標、前提、本文、コード/演習、前後移動、復習、公開仕様リンク、旧課程のURL非回帰を受け入れる。
-- [ ] 一問表示→選択→前/次→未回答拒否→全問後の採点/選択肢解説/誤答別復習→再挑戦、0問/不正ID/欠落選択肢・リンクの拒否、読み込み失敗時の再読込を検証。既存`e2e/web/ai-assisted-qa-course.spec.ts`と`tests/contracts/ai-assisted-qa-curriculum.test.ts`を優先し、不足する負例だけ追加。
+- [x] 一問表示→選択→前/次→未回答拒否→全問後の採点/選択肢解説/誤答別復習→再挑戦、0問/不正ID/欠落選択肢・リンクの拒否、読み込み失敗時の再読込を検証。既存`e2e/web/ai-assisted-qa-course.spec.ts`と`tests/contracts/ai-assisted-qa-curriculum.test.ts`を優先し、不足する負例だけ追加。
 - [ ] 同一ブラウザの版付き`localStorage`による途中保存とrevision変更後の旧回答非流用を検証。Webの自己確認は正式Phase合格を変更せず、Codespaces上の個人成績を送信・上書きしない。Webと配布教材のソース版不一致は明示し、無断同期しない。
 - [ ] Desktop/スマートフォン/タブレット、キーボード/フォーカス/画面読み上げ、直URL、XSS/HTML出力・Secret/採点完成資料の不混入、公開Build/Smoke/旧Webの回帰を検証。**#219の製品UI受入とは別**。
 
