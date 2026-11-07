@@ -1221,7 +1221,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(() => validateCoverage({ root, data: changed })).toThrow(/unknown related Use Case/);
   });
 
-  it("cross-checks the actual #219 case CSV against all 208 behaviors and 79 requirement traces", () => {
+  it("cross-checks #219 case CSV against 208 behaviors and 79 requirements", () => {
     const csvPath = path.join(root, "docs/reports/2026-11-04_pr219-case-traceability.csv");
     const content = fs.readFileSync(csvPath, "utf8");
     const records = [];
@@ -1337,9 +1337,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect([...new Set(stale.map((row) => row.behavior_id))].sort()).toEqual(
       expectedStaleBehaviors.sort(),
     );
-    for (const row of rows.filter(
-      (entry) => !expectedStaleBehaviors.includes(entry.behavior_id),
-    )) {
+    for (const row of rows.filter((entry) => !expectedStaleBehaviors.includes(entry.behavior_id))) {
       expect(row.case_expected_from_behavior).toBe(
         data.behaviors.find((item) => item.id === row.behavior_id).expected,
       );
@@ -1347,9 +1345,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
 
     for (const requirement of data.requirements) {
       const trace = requirement.requirement_analysis.sut_case_trace;
-      expect(trace.source_path).toBe(
-        "docs/reports/2026-11-04_pr219-case-traceability.csv",
-      );
+      expect(trace.source_path).toBe("docs/reports/2026-11-04_pr219-case-traceability.csv");
       for (const { behavior_id: behaviorId, condition_refs: expected } of trace.row_keys) {
         expect(new Set(byBehavior.get(behaviorId)), requirement.id + ": " + behaviorId).toEqual(
           new Set(expected),
