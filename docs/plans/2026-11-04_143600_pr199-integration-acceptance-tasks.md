@@ -28,20 +28,20 @@
 - **新しい必須作業の扱い**：合意済みの要件、正式仕様、実行による再現性のある不具合、具体的なセキュリティ・データ保護上の問題に直接結びつかない改善案は、PR #199の新しい必須条件にしない。既存受入条件を妨げる問題は**その条件の未達・修正原因**として記録し、同じ条件を別タスクへ重複計上しない。要件・時期・PR範囲の変更が必要なら、変更前に利用者の承認を得る。新しい子PR・製品変更・mainへのマージは、別の明示依頼なく実行しない。
 - **終了判定**：証拠のある既定条件の完了、BLOCKED/未実行・マージ後の本人作業の分離、統合Plan・PR本文の一致、必要な独立レビュー・同一最終HEAD CIに基づき一度判断する。チェック数・レビュー回数・追加テスト件数・個別PRの完了率だけで全体完了としない。未確認条件を黙って削らない。
 
-## 未完了41項目の一次分類（2026-11-07）
+## 元の未完了41項目の分類（2026-11-07）
 
-**既存チェックを削除・追加・完了化しない。** 以下は本ファイルの未チェック41件を上から順に対応させ、作業の性質と実施時期を整理したもの。既存の部分実装や子PRのCI成功は、実物・本人の受入の完了とは区別する。「実装済み部分あり」は最終統合での十分性の確認を残す。未実装と断定するには現行ソースと仕様の不足を実証する必要があり、今回の整理のみを理由に新たな実装タスクを発生させない。
+**既存チェックの母集団を削除・追加しない。証拠がある項目は完了へ更新する。** 以下は分類当時の未チェック41件を上から順に対応させ、作業の性質と実施時期を整理したもの。既存の部分実装や子PRのCI成功は、実物・本人の受入の完了とは区別する。「実装済み部分あり」は最終統合での十分性の確認を残す。未実装と断定するには現行ソースと仕様の不足を実証する必要があり、今回の整理のみを理由に新たな実装タスクを発生させない。
 
 | 順 | 既存チェック項目 | 現在の判定 | 実施時期 | 重複作業の整理 |
 | ---: | --- | --- | --- | --- |
-| 1 | 生成Webの依存閉包 | 既存修正あり・実Artifact最終照合待ち | マージ前 | 旧教材・画像12 URIの修正証拠はある。全静的/動的参照閉包は別途実物で判定 |
-| 2 | 固定commitの実Shop全量同期 | 実行検証待ち | マージ前 | Web生成修正後、同一clean HEADで同期・再同期・SHA・非破壊性を検査 |
+| 1 | 生成Webの依存閉包 | 実HEADのShop全依存・内部パス・旧教材5ページ除外を検証済み | マージ前 | 旧教材・画像12 URIの修正証拠はある。全静的/動的参照閉包は別途実物で判定 |
+| 2 | 固定commitの実Shop全量同期 | 固定HEADで568同期・再同期0変更、Artifact保存済み | マージ前 | Web生成修正後、同一clean HEADで同期・再同期・SHA・非破壊性を検査 |
 | 3 | 禁止資料・Secret・個人データ除外 | 実Artifact検証待ち | マージ前 | 配布・Webの成果物を共通の実物で確認。下の権利監査と証拠を共用 |
 | 4 | 通常AIの送信・保存境界 | 実装済み部分あり・実ランタイム検証待ち | 開発側先行／本人確認は後続 | 末尾の「通常AIの送信・保存保護」と同じ送信前ガードを検証 |
 | 5 | Web/Templateの版不一致表示 | 既存revision契約あり・表示受入待ち | マージ前 | Webの保存・不一致・最終配布の同じ版で照合 |
 | 6 | 通常チューターと正式評価の分離 | 既存実装あり・実ランタイム検証待ち | 開発側先行／本人確認は後続 | 知識グラフ節と末尾の分離受入を同じ設定・履歴・送信証拠で確認 |
-| 7 | 共有ファイルと採用差分の調停 | 子PR統合済み・共有差分の最終照合待ち | マージ前 | 再実装せず、最終統合HEADと必要な差分/テストを確認 |
-| 8 | 11教材とWeb生成・導線 | 既存生成物あり・受入待ち | マージ前 | Web生成・配布の実Artifactを再利用 |
+| 7 | 共有ファイルと採用差分の調停 | 子PR7件統合・共有差分とWeb/Mobile CIを確認済み | マージ前 | 再実装せず、最終統合HEADと必要な差分/テストを確認 |
+| 8 | 11教材とWeb生成・導線 | 11教材・演習・クイズの生成・導線・旧URLを確認済み | マージ前 | Web生成・配布の実Artifactを再利用 |
 | 9 | Webクイズの操作と異常系 | 自動テストあり・受入網羅性確認待ち | マージ前 | 既存E2E/契約で十分な条件は新規テストを作らない |
 | 10 | 途中保存・版変更時の回答保全 | 既存契約あり・実操作検証待ち | マージ前 | Web/Template版不一致と同じrevisionで確認 |
 | 11 | 教材Webの端末幅・a11y・非公開除外 | 既存CIあり・実受入不足 | マージ前 | Scenario Shop製品画面の視覚受入とは別。公開成果物検査は除外監査と共用 |
@@ -76,16 +76,28 @@
 | 40 | 通常チューター/正式評価の履歴分離 | 実ランタイムでの確認待ち | 開発側先行／本人確認は後続 | 分離契約・学習導線と同じ実行を使用 |
 | 41 | M00 P04・M05 P05の統合受入 | 現HEADの契約あり・証拠突合待ち | マージ前 | 51目標・Run受入・M06/M07非回帰と同じ検証結果を用いる |
 
-**重複の扱い**：送信・保存（4・39）、通常/正式評価の分離（6・16・40）、版不一致（5・10・37）、配布と保全（2・18・32・36・37）、知識グラフ・51目標（12〜14）、証拠とCase採否（17・19・24・30・41）は、共通する**実行・Artifact・レビュー結果を再利用**する。ただし異なる受入条件（教材Webと製品Web、開発側テストと本人実操作、コードレビューと正式Case独立レビューなど）まで同一PASSにしない。41項目は既存の受入条件の数であり、41件の新規実装や41回の別Runを意味しない。
+**重複の扱い**：送信・保存（4・39）、通常/正式評価の分離（6・16・40）、版不一致（5・10・37）、配布と保全（2・18・32・36・37）、知識グラフ・51目標（12〜14）、証拠とCase採否（17・19・24・30・41）は、共通する**実行・Artifact・レビュー結果を再利用**する。ただし異なる受入条件（教材Webと製品Web、開発側テストと本人実操作、コードレビューと正式Case独立レビューなど）まで同一PASSにしない。元の41項目は既存の受入条件の数であり、41件の新規実装や41回の別Runを意味しない。
 
 **作業順**：既存の修正・CI証拠を再利用して共有差分と残存コード上の不整合を先に確定する → 実生成Web/Shop配布・秘密情報除外・同一HEADの検証 → 学習目標・採点・Web操作・引継ぎの横断照合 → 正式Case採否とリスクに応じた実Web/Android/DBの技術受入・独立レビュー → 最終HEAD CI・マージ判断。本人環境・権利・費用を伴う作業は既存合意に従って別に扱う。新機能追加や更なるPR分割をこの順序に含めない。
+
+## 2026-11-07 開発側の受入結果と残件
+
+**既存44項目のうち7件完了・37件未完了。** 今回は元の未完了項目1・2・7・8を証拠付きで完了にした。本人受入、製品正式Case、権利判断を無断で完了扱いにしない。
+
+- **実行根拠**：HEAD `2e583ba9fbbaa06ed5d725373342a06cb2cc5c39`、[Web CI #42261691047](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42261691047)と[Mobile CI #42261691043](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42261691043)は両方成功。固定HEADの配布同期/検証/再同期は初回568ファイル、再同期変更0、manifest 567項目、Shop 320、Skill 105、状態22を検証し[Artifact #13524234720](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42261691047/artifacts/13524234720)にmanifestとSHA-256一覧を保存。Web資産の内部`.pnpm`パス、非公開の旧教材5ページ、欠落する既知HTML/CSS/JS参照を拒否する既存検証も合格。
+- **教材Web**：11教材/演習/クイズと導線の生成、公開仕様・復習リンクと旧URL非回帰は`tests/contracts/ai-assisted-qa-curriculum.test.ts`、`e2e/web/ai-assisted-qa-course.spec.ts`、Web生成Artifactで確認。全11クイズの回答・採点・復習、1365px/375pxの導線とaxeもPASS。読込失敗からの復帰など元9の全異常系には未確認範囲があるので、元9・10・11は未チェック。
+- **配布監査の限界**：Web ZIPの320ファイルに既知の秘密鍵/token形式と禁止パスを確認した範囲で一致0。独立Web build-productionと同一HEAD配布ジョブでJS bundle名・index.htmlのBuild SHAが異なるため、異なるジョブを単純なハッシュ同一性根拠にしない。同一HEADの同期ジョブ自体は全Shop登録ファイルを検証。未知PII・バイナリの全無害性・第三者の全著作権許諾は未検証で、項目3・20・38は未完了。
+- **学習グラフ**：`knowledge-graph.json`の339 nodes/796 edges、51目標・82理解事項・22状態についてID重複・参照欠損は0。ただし82理解事項すべて`draft_requires_content_review`のため、意味レビュー・Level 2判断は未承認のまま。
+- **Scenario Shop正式Case**：208動作台帳は196`analyzed`・12`review_required`、**正式Case採否208件が未確定**。Web証拠キーが直接紐づく動作は11件。最新Web cross-roleでも停止operatorのForbidden戻り先`/admin`という既知製品FAILを再現。Android Runtime/Maestroのジョブ成功は正式Case全件の製品適合を意味しない。製品修正は独立PR #210。
+- **公開権利BLOCKED**：固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のroot LICENSE/NOTICE、13 Skillの`license:`宣言を確認できない。`learner-THIRD_PARTY_NOTICES.md`も最終全件監査未完と明記。推測で再配布許諾済みにしない。
+- **検証HEAD**：本記録のcommitでHEADが更新される。元21の「同じ最終HEADでWeb/Mobile CI」は更新後の実Runが終わってから判定する。本人のPrivate Codespaces・OpenCode・料金/認証を必要とする作業は別工程で保持。
 
 ## PR #218から移管した未完了タスク（2026-11-05）
 
 [PR #218の配布・安全性タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-distribution-security/docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md)にあった未完了6項目の責任を整理する。**以下6件はすべて未完了**。先頭1件はWeb生成物の受入部分のみを移管し、配布manifest/validator・配布固有契約テストの実装と確認は引き続き#218が担当する。残り5件は受入条件ごと#199へ移管する。既存の横断項目（公開Web、配布・個人データ保護、通常チューター、最終実受入）との関係を残すが、同じ実績を二重に完了計上しない。#218の過去のチェック済み15件はそのまま保持する。
 
-- [ ] **#218から一部移管：生成Webの実ファイル依存閉包。** #199所有の`scripts/docs/build-ai-assisted-qa.ts`・Web Build生成物で、JSの画像URI12件に対応する実ファイルを`node_modules/.pnpm`を含まない安全な公開パスへ出力し、参照URIを一致させる。HTML `src/href/srcset`、CSS `url/@import`、JS静的/動的import・runtime assetまで、同一固定HEADの実Artifact・manifestで欠落/0 byte/禁止パス0を確認する。旧教材5ページとそのリンク12件も生成物から除外する。**出力側の不備を配布側ガードの緩和で回避しない**。#218は`training/course-sync/manifest.json`のallowlist、固定Skill・SHA、生成物検証guardと契約テストを継続する。元タスク：#218「配布物の生成と固定SHA」先頭。
-- [ ] **#218から移管：固定commitからの実Shop全量同期。** 生成Webの修正後、cleanな同一commitで`pnpm run build:web`→`course:sync`→`verify-distribution`→再同期・SHA/manifest/Skill照合を実施し、正常・失敗時の実行コマンド、exit、Run ID、Artifact、差分と最終HEADを残す。fixtureだけの同期PASSやWeb CIの単純なbuild成功で代替しない。本人のPrivate Codespaces実配布はこのリスト末尾の最終実受入として別判定。元タスク：#218「配布物の生成と固定SHA」2番目。
+- [x] **#218から一部移管：生成Webの実ファイル依存閉包。** #199所有の`scripts/docs/build-ai-assisted-qa.ts`・Web Build生成物で、JSの画像URI12件に対応する実ファイルを`node_modules/.pnpm`を含まない安全な公開パスへ出力し、参照URIを一致させる。HTML `src/href/srcset`、CSS `url/@import`、JS静的/動的import・runtime assetまで、同一固定HEADの実Artifact・manifestで欠落/0 byte/禁止パス0を確認する。旧教材5ページとそのリンク12件も生成物から除外する。**出力側の不備を配布側ガードの緩和で回避しない**。#218は`training/course-sync/manifest.json`のallowlist、固定Skill・SHA、生成物検証guardと契約テストを継続する。元タスク：#218「配布物の生成と固定SHA」先頭。
+- [x] **#218から移管：固定commitからの実Shop全量同期。** 生成Webの修正後、cleanな同一commitで`pnpm run build:web`→`course:sync`→`verify-distribution`→再同期・SHA/manifest/Skill照合を実施し、正常・失敗時の実行コマンド、exit、Run ID、Artifact、差分と最終HEADを残す。fixtureだけの同期PASSやWeb CIの単純なbuild成功で代替しない。本人のPrivate Codespaces実配布はこのリスト末尾の最終実受入として別判定。元タスク：#218「配布物の生成と固定SHA」2番目。
 - [ ] **#218から移管：公開禁止資料・Secret・個人データの全成果物除外。** Web Build/Template/配布Artifactから`assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec、正式workflow、旧教材、個人成績、`.env`/credential/secretが除外されていることを実ファイルと負例で確認。旧教材HTML5件とそのリンク12件は生成元を修正してから再検査する。既知Secretの正規表現0件だけで個人情報やバイナリの無害化を保証しない。#218で既に実装したTemplate/manifest拒否テストは再作成せず、統合最終HEADで受け入れる。元タスク：#218「配布除外・法的条件・安全性」先頭。
 - [ ] **#218から移管：通常AIへの送信・保存境界。** 通常チューターの外部AI送信対象を本人回答・関連教材節・必要なRun要約に限定して明示する。送信前にToken/Secret・個人情報・無関係ファイルを拒否/除外し、ファイル別・総量・モデル入力のサイズ上限と負例を設ける。OpenCodeの読取許可・通常会話のGit外保存/保持先・復元/削除の説明を実装と一致させる。正式AI評価側の送信・権限・履歴は#217と境界を突合し、#217所有コードは直接重複実装しない。元タスク：#218「配布除外・法的条件・安全性」外部AI項目。
 - [ ] **#218から移管：公開WebとTemplateの版不一致表示・受講者向け受入。** Web/Templateの同一Markdown・クイズJSONとrevisionの一致を維持し、WebでGit commitの`source_sha`（40桁）と教材内容SHA-256 revision（64桁）を混同せず提示する。異版時には原因・再生成/再読込方法を表示し、旧回答を無断流用・個人評価履歴を上書きしない。公開Webの一問ずつのクイズ操作・キーボード/アクセシビリティ・共通生成処理を#199のWeb受入で検証する。#219の製品画面受入とは分離する。#218で完了した**静的な35/35教材版照合と異版BLOCKED契約**は再実装しない。元タスク：#218「Web・AIチューター・成果物保全との接続」Web項目。
@@ -96,14 +108,14 @@
 ## 個別PRの統合と重複管理
 
 - [x] #213〜#219すべての最新HEAD/差分/チェック項目/未確認/BLOCKED/外部依存を確認。受入完了した範囲を#199へ統合し、各PRの未解決条件をこのリストで調停。**マージは個別の明示承認後のみ**。
-- [ ] `package.json`、lockfile、`scripts/training/ai-assisted-qa-course.mjs`、共有`tests/contracts/ai-assisted-qa-curriculum.test.ts`・`ai-assisted-qa-practical-exercises.test.mjs`、共通設計Planなどを複数PRから同時編集しない。所有PRから変更目的と検証条件を受けて一か所で調停。
+- [x] `package.json`、lockfile、`scripts/training/ai-assisted-qa-course.mjs`、共有`tests/contracts/ai-assisted-qa-curriculum.test.ts`・`ai-assisted-qa-practical-exercises.test.mjs`、共通設計Planなどを複数PRから同時編集しない。所有PRから変更目的と検証条件を受けて一か所で調停。
 - [x] 旧課程`docs/curriculum/test-automation/**`、既存Training / 既存製品workflowと新課程の物理的な分離を最終差分で確認。#210との製品修正の混入・重複も確認。
 
 ## 公開Webの教材閲覧・クイズ
 
 所有者は#199統合先。#214〜#216は各モジュールの教材Markdown・クイズJSON内容を確認・修正し、Web共通処理は変更提案を#199へ渡す。基準：`docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_web-learning.md`。
 
-- [ ] 既存`scripts/docs/build-docs.ts`→`scripts/docs/build-ai-assisted-qa.ts`で公開学習入口・M00〜M10の11教材・クイズが一つの正本Markdown/JSONから生成されることを確認。入口、目標、前提、本文、コード/演習、前後移動、復習、公開仕様リンク、旧課程のURL非回帰を受け入れる。
+- [x] 既存`scripts/docs/build-docs.ts`→`scripts/docs/build-ai-assisted-qa.ts`で公開学習入口・M00〜M10の11教材・クイズが一つの正本Markdown/JSONから生成されることを確認。入口、目標、前提、本文、コード/演習、前後移動、復習、公開仕様リンク、旧課程のURL非回帰を受け入れる。
 - [ ] 一問表示→選択→前/次→未回答拒否→全問後の採点/選択肢解説/誤答別復習→再挑戦、0問/不正ID/欠落選択肢・リンクの拒否、読み込み失敗時の再読込を検証。既存`e2e/web/ai-assisted-qa-course.spec.ts`と`tests/contracts/ai-assisted-qa-curriculum.test.ts`を優先し、不足する負例だけ追加。
 - [ ] 同一ブラウザの版付き`localStorage`による途中保存とrevision変更後の旧回答非流用を検証。Webの自己確認は正式Phase合格を変更せず、Codespaces上の個人成績を送信・上書きしない。Webと配布教材のソース版不一致は明示し、無断同期しない。
 - [ ] Desktop/スマートフォン/タブレット、キーボード/フォーカス/画面読み上げ、直URL、XSS/HTML出力・Secret/採点完成資料の不混入、公開Build/Smoke/旧Webの回帰を検証。**#219の製品UI受入とは別**。
