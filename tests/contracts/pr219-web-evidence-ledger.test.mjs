@@ -192,12 +192,12 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     const decisions = readCsv(FORMAL_CASE_DECISIONS);
     const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
     const byId = new Map(current.behaviors.map((behavior) => [behavior.id, behavior]));
-    expect(decisions.rows).toHaveLength(862);
-    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(144);
+    expect(decisions.rows).toHaveLength(965);
+    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(208);
     const adopted = decisions.rows.filter((row) => row.adoption_decision === "採用");
     const delegated = decisions.rows.filter((row) => row.adoption_decision === "別動作へ引継ぎ");
-    expect(adopted).toHaveLength(857);
-    expect(delegated).toHaveLength(5);
+    expect(adopted).toHaveLength(959);
+    expect(delegated).toHaveLength(6);
     const caseIds = adopted.map((row) => row.formal_case_id);
     const conditionKeys = decisions.rows.map((row) => row.behavior_id + "|" + row.condition_ref);
     expect(new Set(caseIds).size).toBe(caseIds.length);
@@ -209,13 +209,18 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       expect(row.kind).toBe(behavior.kind);
       expect(row.platform).toBe(behavior.platform);
       expect(row.requirement_refs.split(";")).toEqual(behavior.requirement_refs);
-      expect(behavior.test_condition).toContain(row.condition_ref);
+      if (row.condition_ref) {
+        expect(behavior.test_condition.includes(row.condition_ref) || behavior.case_policy.includes(row.condition_ref)).toBe(true);
+      } else {
+        expect(behavior.test_condition).not.toBe("");
+      }
       expect(row.source_analysis_blob_sha).toMatch(/^[a-f0-9]{40}$/);
       expect(row.source_decision_ref).toContain(row.behavior_id);
       expect(row.execution_acceptance).toBe("未受入");
       expect(row.independent_review).toBe("未実施");
       if (row.adoption_decision === "採用") {
-        const expectedCaseId = `PR199-CASE-${row.behavior_id}-${row.condition_ref}`;
+        const suffix = row.condition_ref ? `-${row.condition_ref}` : "";
+        const expectedCaseId = `PR199-CASE-${row.behavior_id}${suffix}`;
         expect(row.formal_case_id).toBe(expectedCaseId);
       } else {
         expect(row.formal_case_id).toBe("");
@@ -226,6 +231,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     expect(delegatedKeys.sort()).toEqual([
       "SCREEN-CHECKOUT-CONFIRM-S-stale-cart|C6",
       "SCREEN-ORDERS-LIST-A02-02|C5",
+      "SCREEN-ORDERS-LIST-A02-03|C5",
       "SCREEN-ORDERS-LIST-S-empty|C6",
       "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty|C5",
       "SCREEN-SUPPORTING-GUIDE-A02-02|C5",
