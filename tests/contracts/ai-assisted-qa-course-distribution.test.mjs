@@ -3018,6 +3018,33 @@ describe("AI-assisted QA distribution contract", () => {
     );
   });
 
+  it("rejects private configuration paths in generated Shop assets before any distribution writes", async () => {
+    for (const relativePath of [
+      "dist/.env_local",
+      "dist/public/.npmrc",
+      "dist/public/.pypirc",
+      "dist/public/.netrc",
+      "dist/public/.git-credentials",
+      "dist/public/.aws/credentials",
+      "dist/public/.ssh/id_rsa",
+    ]) {
+      const fixture = courseFixture();
+      writeFixtureFile(fixture.source, relativePath, "auth=fixture-value\\n");
+      await expect(
+        syncCourse({
+          root: fixture.source,
+          target: fixture.target,
+          sourceSha: "e".repeat(40),
+          fetchImpl: fixture.fetchImpl,
+          buildShop: false,
+          shopBuildRoot: fixture.source,
+          allowUncommittedFixture: true,
+        }),
+      ).rejects.toThrow(/generated target_path is prohibited/);
+      expect(fs.readdirSync(fixture.target)).toEqual([]);
+    }
+  });
+
   it("rejects Secret and personal email patterns before copying learner files", async () => {
     for (const [label, payload] of [
       ["GitHub token", `ghp_${"a".repeat(36)}`],
