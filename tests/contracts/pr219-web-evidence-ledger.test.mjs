@@ -188,17 +188,16 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     expect(current.behaviors.every((entry) => entry.analysis_status === "analyzed")).toBe(true);
   });
 
-
   it("keeps formal Case decisions separate from execution acceptance", () => {
     const decisions = readCsv(FORMAL_CASE_DECISIONS);
     const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
     const byId = new Map(current.behaviors.map((behavior) => [behavior.id, behavior]));
-    expect(decisions.rows).toHaveLength(192);
-    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(35);
+    expect(decisions.rows).toHaveLength(862);
+    expect(new Set(decisions.rows.map((row) => row.behavior_id)).size).toBe(144);
     const adopted = decisions.rows.filter((row) => row.adoption_decision === "採用");
     const delegated = decisions.rows.filter((row) => row.adoption_decision === "別動作へ引継ぎ");
-    expect(adopted).toHaveLength(188);
-    expect(delegated).toHaveLength(4);
+    expect(adopted).toHaveLength(857);
+    expect(delegated).toHaveLength(5);
     const caseIds = adopted.map((row) => row.formal_case_id);
     const conditionKeys = decisions.rows.map((row) => row.behavior_id + "|" + row.condition_ref);
     expect(new Set(caseIds).size).toBe(caseIds.length);
@@ -226,6 +225,7 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     const delegatedKeys = delegated.map((row) => row.behavior_id + "|" + row.condition_ref);
     expect(delegatedKeys.sort()).toEqual([
       "SCREEN-CHECKOUT-CONFIRM-S-stale-cart|C6",
+      "SCREEN-ORDERS-LIST-A02-02|C5",
       "SCREEN-ORDERS-LIST-S-empty|C6",
       "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty|C5",
       "SCREEN-SUPPORTING-GUIDE-A02-02|C5",
