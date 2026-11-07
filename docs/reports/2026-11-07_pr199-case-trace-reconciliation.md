@@ -49,3 +49,27 @@ PR #199の追跡用CSV `docs/reports/2026-11-04_pr219-case-traceability.csv`（G
 - 空商品一覧の戻り導線は `docs/spec/features/storefront.md:73`、再開通知の一度だけ表示は `docs/spec/features/checkout-and-payment.md:73`、stale Cartの安全な復帰は同 `:126-134` を正本として照合。既存のBreadcrumbsやPayment戻り先が十分かは静的存在だけでは判定せず、UI実物・表示と仕様解釈を独立に確認する。
 - 管理商品一覧は `docs/spec/features/admin-catalog.md:59-73`、管理ユーザーは `docs/spec/features/admin-users.md:9-15,23,50-51,75-79`、Forbiddenは `docs/spec/roles-and-permissions.md:31-45` が直接根拠。商品検索・フィルター、ユーザーRank/Sortの詳細は `docs/05_ui/ui_specifications.md:169-170,174-186` も参照するが、正式仕様より詳細な補助記述の拘束力や現製品との差の採否は#210/仕様責任者の判定を要する。
 - **未受入の維持**：旧追跡CSV全953行の `未受入` と208動作の正式Case採否未確定を維持する。各Caseの期待結果/Assertion、対象Role・Scenario、DB before/after・rollback、Android/Visual/a11y、Run/attempt/Traceを証拠付きで審査し、採用/既存再利用/不要/保留を独立に決定するまでは完了チェックを変更しない。実ログの再集計だけでは製品SUT、既存製品テスト、#210を変更しない。
+
+## 差分12動作の既存Assertion・最新Web Runへの対応
+
+以下は旧追跡CSVの67行に対する**既存Case再利用候補の調査結果**。記載する行番号はPR #199の対象テストソースにおけるテスト開始行である。Runは[Web CI #42365035206](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42365035206)の `Chromium E2E (cross-role)` job `128381486885`、実checkout `48d0bf123804a8b5dd570718f04b7758b52856be` を指す。Integrationの実行は同Runの `Vitest (integration)` job `128381294593` にて、`pr219-admin-user-acceptance.test.ts` 8件・`pr219-actor-revocation.test.ts` 2件を含む全150件が成功。ただしテスト成功と製品適合は分離する。
+
+| Behavior ID | Webの直接ログ記録 | 検証可能な既存テストの入口 | 正式Case採否に不足する条件 |
+| --- | ---: | --- | --- |
+| `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty` | 6 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:326,348,607,704,797,850`、`tests/component/pr219-storefront-states.test.tsx:52` | 無条件0件でBreadcrumbsだけが正式な戻り導線を満たすか、検索条件0件との差、Role/Session/DBと正式視覚正本の最終判定。Native empty視覚を本状態のWeb必須条件へ混入しない |
+| `SCREEN-CHECKOUT-ADDRESS-S-resume-notice` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:885`、`tests/integration/pr219-checkout-boundaries.test.ts:97` | 同一tab再入場・reload・Reset・新Checkout ID・別tab・24h期限の通知回数とSession/DB。新ログイン確認1件を全条件の証拠にしない |
+| `SCREEN-CHECKOUT-CONFIRM-S-stale-cart` | 2 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:442,480`、`tests/integration/pr219-checkout-boundaries.test.ts:169`、既知戻り先再現`e2e/web/pr219-cross-role-lifecycle.spec.ts:433` | 確認画面到達**後**のCart.version競合とbeginOrder拒否、Order/Payment/在庫/Session全不変、Cart/該当Stepへの安全な復帰。Paymentへの誤復帰は製品適合未解消 |
+| `SCREEN-ADMIN-PRODUCTS-A01-02` | 2（うち1件expected fail） | `e2e/web/pr219-cross-role-lifecycle.spec.ts:368,383,544`、`tests/integration/pr219-admin-product-query.test.ts:64,90,99,119` | SKU検索、カテゴリー/ブランド、選択残留、ページ変更、一括対象0件、SKU0件価格。現行の選択残留とページ非リセットは製品FAILとして扱う |
+| `SCREEN-ADMIN-USERS-A01-02` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:238`、`tests/integration/pr219-admin-user-acceptance.test.ts:219` | UIのRank/SortとRepository/Use Case一致、20件ページ境界、operator等による個人情報アクセス拒否。補助UI仕様の拘束力は製品側で判断 |
+| `SCREEN-ADMIN-USER-DETAIL-A01-02` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:209`、`tests/integration/pr219-admin-user-acceptance.test.ts:67,186` | 他者Role更新の2→1正常系/自己拒否/Version競合、Session全失効、UI・DB前後。後述actor失効競合は別Case |
+| `SCREEN-ADMIN-USER-DETAIL-A01-03` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:256`、`tests/integration/pr219-admin-user-acceptance.test.ts:280`、`tests/integration/pr219-isolated-fixtures.test.ts:152` | Rank変更後のCheckout放棄・再計算、非customer/withdrawn拒否、Version競合・rollback、DB全表・Web表示 |
+| `SCREEN-ADMIN-USER-DETAIL-A01-04` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:302`、`tests/integration/pr219-admin-user-acceptance.test.ts:105,138`、`tests/integration/pr219-isolated-fixtures.test.ts:82,115` | active↔suspended、全Session失効・再開後旧Session不復活、Checkout放棄・Cart保持、stale/障害注入・UI文言 |
+| `SCREEN-ADMIN-USER-DETAIL-A02-01` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:271`、`tests/integration/pr219-admin-user-acceptance.test.ts:67,235` | 自己Role変更と自己停止の両拒否、管理者2人でも自己拒否、全表不変・Web非操作化、focus/a11y |
+| `SCREEN-ADMIN-USER-DETAIL-A02-02` | 1 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:286`、`tests/integration/pr219-admin-user-acceptance.test.ts:254` | withdrawnのRole/Rank/Status全拒否、Customer以外のfixture、stale/欠損Targetの優先判定、全表不変 |
+| `SCREEN-ADMIN-USER-DETAIL-A02-03` | 0 | **Web直接ログなし**。`tests/integration/pr219-admin-user-acceptance.test.ts:67,105,138`、`tests/integration/pr219-actor-revocation.test.ts:97,123` | 2→1正常系・自己拒否/並行競合はIntegration候補が存在。ただしactor権限失効後に他Userを変更できる**製品不具合再現テスト**を含む。#210の修正HEAD/再実行と独立判断が必要 |
+| `SCREEN-BOUNDARY-FORBIDDEN-A01-01` | 4 | `e2e/web/pr219-cross-role-lifecycle.spec.ts:124,138,154,172,924`、`tests/component/pr219-forbidden-route.test.tsx:41,47,54` | 停止operatorが`/forbidden`と`/admin`を循環する既知FAILの解消、Native拒否画面、Session/DB不変・表示非露出・戻り先 |
+
+**数値上の注意**：12動作に直接結びつくWebログは11動作・**21記録**。ここに未記録のA02-03を「未テスト」と書くのは誤りで、既存Integration証拠を別に記録する。逆にE2E/Integrationのジョブ成功だけを、Role/Scenario/Platform/DB/Visualすべての製品適合証拠へ拡張するのも誤り。29横断要件の暫定キーとこの21記録は重複し得るため合算しない。
+
+**次の判定作業**：各C1〜C7相当の期待結果を正式仕様（`docs/spec/**`）と実Assertionで照合し、正式Case ID・採用/既存再利用/不要/保留・Review担当を決定する。必要なCaseだけを同一製品SHA・テストSHA・Seed/Clock・Role/Session・Run/attempt・保存Artifact・匿名化DB before/afterで再実証する。#210未マージの変更結果、未実行Android/実機・視覚・権利判断を混ぜない。
+
