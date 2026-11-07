@@ -25,6 +25,15 @@
       "from_module": "M06",
       "optional": true,
       "same_input_contract": true
+    },
+    {
+      "artifact_id": "M06-result-03",
+      "path": "workspace/M06/new-case.spec.ts",
+      "revision": "M06-result-v1",
+      "contract_id": "M06-to-M07-handoff-v1",
+      "from_module": "M06",
+      "optional": true,
+      "same_input_contract": true
     }
   ],
   "environment": ["M06 spec", "Run logs and Trace"],

@@ -6,8 +6,8 @@ const statesRoot = path.join(process.cwd(), "training/ai-assisted-qa-course/stat
 const transitions = [
   ["M04", "M05", 2],
   ["M05", "M06", 1],
-  ["M06", "M07", 2],
-  ["M07", "M08", 3],
+  ["M06", "M07", 3],
+  ["M07", "M08", 4],
 ];
 
 /** 指定モジュールの学習開始・終了状態定義を読み込む。 */

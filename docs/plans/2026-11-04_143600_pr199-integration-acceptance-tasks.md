@@ -106,6 +106,12 @@
 - M08の先行入力へ`M07-result-04`を**同じ`M07-to-M08-handoff-v1`・`M07-result-v1`の任意入力**として追加した。既存の3入力、公開fallback`M08-public-start-01`、本人修了と公開サンプルの分離は維持。契約テストで4出力・4入力のID/path/revision一致とfallback非衝突を検証する。
 - これは本人の実Runを生成せず、M07の本人修了やM08の実学習が済んだことも示さない。**変更commitのWeb/Mobile CIが成功するまで統合受入チェックは更新しない。**
 
+## 2026-11-07 全モジュール境界の引継ぎ照合
+
+- M00→M01〜M09→M10の全10境界で終了`outputs`と次開始`inputs`を確認。M06の新規Case `M06-result-03`がM07開始に、M08のレビュー対象 `M08-result-02`がM09開始に欠落していた。M07の教材§8.1とM08演習P06はそれぞれの引継ぎを要求するため、同じ既存contract/revisionを使う**任意入力**として追加する。前回修正した`M07-result-04`も維持。
+- M05の`M05-result-02`（初学者用`product-link.spec.ts`）はM06の実習開始条件に要求されておらず、今回の修正には含めない。**終了outputの全件を次モジュールへ機械的に要求しない**。M06・M08の公開fallbackはそのままにし、前工程修了の証拠にはしない。
+- `ai-assisted-qa-phase2-handoff.test.mjs`でM06→M07を3件、M07→M08を4件、`ai-assisted-qa-phase3-handoff.test.mjs`でM08→M09を2件とし、参照ID/path/revision/contract、optional、fallback非衝突の既存検証を適用。本人の実Runを作成したわけではないため、実動作受入のチェックを先取りしない。
+
 ## PR #218から移管した未完了タスク（2026-11-05）
 
 [PR #218の配布・安全性タスクリスト](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/work/pr199-distribution-security/docs/plans/2026-11-04_133500_pr199-distribution-security-tasks.md)にあった未完了6項目の責任を整理する。**以下6件はすべて未完了**。先頭1件はWeb生成物の受入部分のみを移管し、配布manifest/validator・配布固有契約テストの実装と確認は引き続き#218が担当する。残り5件は受入条件ごと#199へ移管する。既存の横断項目（公開Web、配布・個人データ保護、通常チューター、最終実受入）との関係を残すが、同じ実績を二重に完了計上しない。#218の過去のチェック済み15件はそのまま保持する。

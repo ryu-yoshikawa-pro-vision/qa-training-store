@@ -16,6 +16,15 @@
       "from_module": "M08",
       "optional": true,
       "same_input_contract": true
+    },
+    {
+      "artifact_id": "M08-result-02",
+      "path": "workspace/M08/review-candidate.md",
+      "revision": "M08-result-v1",
+      "contract_id": "M08-to-M09-handoff-v1",
+      "from_module": "M08",
+      "optional": true,
+      "same_input_contract": true
     }
   ],
   "environment": ["GitHub Actions course workflow"],
