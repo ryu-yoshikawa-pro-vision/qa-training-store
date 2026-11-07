@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const WEB_CASES = "docs/reports/2026-11-04_pr219-web-case-run-evidence.csv";
 const BEHAVIORS = "docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv";
 const CROSS_CUTTING = "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv";
+const CURRENT_ANALYSIS = "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
 
 // Quoted commas, escaped quotes and multiline fields are valid CSV.
 function parseCsv(source) {
@@ -161,6 +162,33 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       });
       expect(incorrectlyLinked).toBe(false);
     }
+  });
+
+  it("keeps all 208 historical Case decisions distinct from the current analysis", () => {
+    const current = JSON.parse(readFileSync(join(process.cwd(), CURRENT_ANALYSIS), "utf8"));
+    const historical = readCsv(BEHAVIORS).rows;
+    const byId = new Map(current.behaviors.map((entry) => [entry.id, entry]));
+
+    expect(current.behaviors).toHaveLength(208);
+    expect(historical.map((entry) => entry.behavior_id).sort()).toEqual(
+      [...byId.keys()].sort(),
+    );
+    const stale = historical.filter((entry) => {
+      const behavior = byId.get(entry.behavior_id);
+      expect(entry.kind).toBe(behavior.kind);
+      expect(entry.formal_requirement_refs.split(";")).toEqual(behavior.requirement_refs);
+      // The source CSV preserves its original review result, not a fabricated current acceptance.
+      expect(entry.adoption_decision).toBe("#213によるCase採否決定未確認");
+      if (entry.analysis_status === behavior.analysis_status) return false;
+      expect(entry.analysis_status).toBe("review_required");
+      expect(behavior.analysis_status).toBe("analyzed");
+      return true;
+    });
+
+    expect(stale).toHaveLength(12);
+    expect(current.behaviors.every((entry) => entry.analysis_status === "analyzed")).toBe(
+      true,
+    );
   });
 
   it("traces 29 cross-cutting requirements without claiming unadopted Cases", () => {

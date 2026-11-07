@@ -36,6 +36,13 @@ PR #199の追跡用CSV `docs/reports/2026-11-04_pr219-case-traceability.csv`（G
 
 **受入判定**：Case正式採否と実証拠は全件未受入。既存44完了条件のチェック状態は維持し、製品SUT・既存テスト・#210へ変更を加えない。
 
+## 208動作の採否CSVとの整合（現行分析を履歴へ上書きしない）
+
+- `docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv`（Blob `8b0abce723acadc3259b73ad743a9aa11e4672d4`）の208行を現行分析台帳（Blob `7f53586e720838544abcf24ac553dece51c13449`）と再照合した。Behavior ID 208/208、kind 208/208、要件参照208/208は一致する。
+- **分析状態のみ12動作で差分**：旧CSVは196行`analyzed`・12行`review_required`、現行台帳は208動作すべて`analyzed`。これは上記旧Case追跡CSV（953行）の差分12動作と同じ集合である。旧CSVの履歴は残し、静的基本分析の現在値を旧状態で置き換えない。
+- **正式採否は208/208件未確定**：旧CSVの`adoption_decision`はすべて`#213によるCase採否決定未確認`。Web暫定キーが直接記録されているのは11動作、残り197動作の`web_executed_case_count`は0。ただし0は「他レベルのテストなし」でも「新規E2E必須」でもない。Integration/Component/Nativeの再利用候補は各Case条件ごとに別確認する。
+- `tests/contracts/pr219-web-evidence-ledger.test.mjs`に、208 IDの集合一致、kind/要件参照の一致、履歴の12`review_required`と現行`analyzed`の区別、全件正式採否未確定を検証する契約を追加する。正式Caseと実Runが承認された際は、証拠に合わせて台帳と契約を更新する。今回の検証は製品のPASSを増やさない。
+
 ## 2026-11-07 最終HEADのWeb実Runを用いた追加照合
 
 - 対象：PR #199のHEAD `8ba2fd4fab8ca4739cf82064230dd17cfc37b1d4`。 [Web CI #42365035206](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42365035206) は `completed/success`。確認対象は同Runの `Chromium E2E (cross-role)` job `128381486885` の**実ログ**であり、前回CSVの履歴Runを更新したものではない。

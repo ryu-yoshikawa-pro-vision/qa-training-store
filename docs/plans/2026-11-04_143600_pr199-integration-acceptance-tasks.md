@@ -88,7 +88,7 @@
 - **教材Web**：11教材/演習/クイズと導線の生成、公開仕様・復習リンクと旧URL非回帰は`tests/contracts/ai-assisted-qa-curriculum.test.ts`、`e2e/web/ai-assisted-qa-course.spec.ts`、Web生成Artifactで確認。全11クイズの回答・採点・復習、1365px/375pxの導線とaxeもPASS。読込失敗からの復帰など元9の全異常系には未確認範囲があるので、元9・10・11は未チェック。
 - **配布監査の限界**：Web ZIPの320ファイルに既知の秘密鍵/token形式と禁止パスを確認した範囲で一致0。独立Web build-productionと同一HEAD配布ジョブでJS bundle名・index.htmlのBuild SHAが異なるため、異なるジョブを単純なハッシュ同一性根拠にしない。同一HEADの同期ジョブ自体は全Shop登録ファイルを検証。未知PII・バイナリの全無害性・第三者の全著作権許諾は未検証で、項目3・20・38は未完了。
 - **学習グラフ**：`knowledge-graph.json`の339 nodes/796 edges、51目標・82理解事項・22状態についてID重複・参照欠損は0。ただし82理解事項すべて`draft_requires_content_review`のため、意味レビュー・Level 2判断は未承認のまま。
-- **Scenario Shop正式Case**：208動作台帳は196`analyzed`・12`review_required`、**正式Case採否208件が未確定**。Web証拠キーが直接紐づく動作は11件。最新Web cross-roleでも停止operatorのForbidden戻り先`/admin`という既知製品FAILを再現。Android Runtime/Maestroのジョブ成功は正式Case全件の製品適合を意味しない。製品修正は独立PR #210。
+- **Scenario Shop正式Case**：現行208動作はすべて`analyzed`（操作172＋独立Use Case16＋非default状態20）。旧#219採否CSVは196`analyzed`・12`review_required`で、12件は履歴上の差分であり現行の分析未完数ではない。**正式Case採否208件が未確定**。Web暫定証拠が直接結び付く動作は11件。停止operatorのForbidden戻り先`/admin`など既知の製品FAILを再現しており、Android Runtime/Maestroのジョブ成功を製品適合PASSに流用しない。製品修正は独立PR #210。
 - **公開権利BLOCKED**：固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`のroot LICENSE/NOTICE、13 Skillの`license:`宣言を確認できない。`learner-THIRD_PARTY_NOTICES.md`も最終全件監査未完と明記。推測で再配布許諾済みにしない。
 - **検証HEAD**：本記録のcommitでHEADが更新される。元21の「同じ最終HEADでWeb/Mobile CI」は更新後の実Runが終わってから判定する。本人のPrivate Codespaces・OpenCode・料金/認証を必要とする作業は別工程で保持。
 
