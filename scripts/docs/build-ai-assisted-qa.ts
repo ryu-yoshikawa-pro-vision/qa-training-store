@@ -650,7 +650,22 @@ const QUIZ_JS = `(async()=>{
     const actualRevision=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",quizBytes)),(byte)=>byte.toString(16).padStart(2,"0")).join("");
     if(actualRevision!==revision)throw new Error("教材とクイズデータの版が一致しません。ページを再読み込みしてください。");
     let saved=null;try{const raw=localStorage.getItem(storageKey);if(raw)saved=JSON.parse(raw);}catch{storageAvailable=false;}
-    if(saved&&saved.revision!==revision){try{const archiveKey="ai-assisted-qa-quiz-history:"+moduleId;const history=JSON.parse(localStorage.getItem(archiveKey)||"[]");if(Array.isArray(history)){history.push(saved);localStorage.setItem(archiveKey,JSON.stringify(history));}localStorage.removeItem(storageKey);}catch{}saved=null;setText(storageMessage,"クイズの版が更新されました。旧版の履歴は同じブラウザ内に保存し、新しい版で確認してください。");}
+    if(saved&&saved.revision!==revision){
+      let archived=false;
+      try{
+        const archiveKey="ai-assisted-qa-quiz-history:"+moduleId;
+        const history=JSON.parse(localStorage.getItem(archiveKey)||"[]");
+        if(!Array.isArray(history))throw new Error("クイズ履歴の形式が正しくありません。");
+        history.push(saved);
+        localStorage.setItem(archiveKey,JSON.stringify(history));
+        localStorage.removeItem(storageKey);
+        archived=true;
+      }catch{storageAvailable=false;}
+      saved=null;
+      setText(storageMessage,archived
+        ?"クイズの版が更新されました。旧版の履歴は同じブラウザ内に保存し、新しい版で確認してください。"
+        :"クイズの版が更新されました。旧版の回答を退避できないため、保存済み回答を保持し、新版の回答は保存しません。");
+    }
     const questionIds=new Set(quiz.questions.map((question)=>question.id));
     const savedAnswersValid=saved?.answers&&typeof saved.answers==="object"&&Object.entries(saved.answers).every(([id,value])=>questionIds.has(id)&&["A","B","C","D"].includes(value));
     if(saved&&saved.revision===revision&&savedAnswersValid&&Number.isInteger(saved.currentIndex)&&["in_progress","completed"].includes(saved.resultStatus)){
@@ -659,7 +674,7 @@ const QUIZ_JS = `(async()=>{
       byId("start-button").hidden=true;byId("resume-button").hidden=false;byId("restart-start-button").hidden=false;
       setText(byId("resume-button"),"続きから再開（第"+(state.currentIndex+1)+"問）");
     }
-    if(!storageAvailable)setText(storageMessage,"このブラウザでは再開用の保存ができません。回答・結果は表示できますが、ページを閉じると回答は保持されません。");
+    if(!storageAvailable&&!storageMessage.textContent)setText(storageMessage,"このブラウザでは再開用の保存ができません。回答・結果は表示できますが、ページを閉じると回答は保持されません。");
     byId("start-button").addEventListener("click",begin);
     byId("resume-button").addEventListener("click",renderQuestion);
     byId("restart-start-button").addEventListener("click",()=>{state={answers:{},currentIndex:0,resultStatus:"in_progress"};begin();});

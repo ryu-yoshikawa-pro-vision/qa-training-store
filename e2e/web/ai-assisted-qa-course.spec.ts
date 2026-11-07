@@ -281,6 +281,56 @@ test.describe("AI協働QAの公開クイズ画面", () => {
     await expect(page.getByRole("button", { name: "回答を始める" })).toBeVisible();
   });
 
+  test("旧版の回答を退避してからのみ、新版の保存を始める", async ({ page }) => {
+    await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M05.html");
+    const oldAnswer = JSON.stringify({
+      revision: "outdated-version",
+      answers: { "M05-Q01": "A" },
+      currentIndex: 1,
+      resultStatus: "in_progress",
+    });
+    await page.evaluate((value) => localStorage.setItem("ai-assisted-qa-quiz:M05", value), oldAnswer);
+    await page.reload();
+    await expect(page.getByRole("status").filter({ hasText: "旧版の履歴は同じブラウザ内に保存" })).toBeVisible();
+    const saved = await page.evaluate(() => ({
+      current: localStorage.getItem("ai-assisted-qa-quiz:M05"),
+      history: localStorage.getItem("ai-assisted-qa-quiz-history:M05"),
+    }));
+    expect(saved.current).toBeNull();
+    expect(JSON.parse(saved.history ?? "[]")).toEqual([JSON.parse(oldAnswer)]);
+    await page.getByRole("button", { name: "回答を始める" }).click();
+    await page.locator('input[type="radio"]').first().check();
+    const current = await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"));
+    expect(JSON.parse(current ?? "{}").revision).not.toBe("outdated-version");
+  });
+
+  test("旧回答の退避に失敗すると旧回答を維持し、新版で上書きしない", async ({ page }) => {
+    await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M05.html");
+    const oldAnswer = JSON.stringify({
+      revision: "outdated-version",
+      answers: { "M05-Q01": "C" },
+      currentIndex: 1,
+      resultStatus: "in_progress",
+    });
+    await page.evaluate((value) => localStorage.setItem("ai-assisted-qa-quiz:M05", value), oldAnswer);
+    await page.addInitScript(() => {
+      const originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === "ai-assisted-qa-quiz-history:M05") {
+          throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+        }
+        return originalSetItem.call(this, key, value);
+      };
+    });
+    await page.reload();
+    await expect(page.getByRole("status").filter({ hasText: "旧版の回答を退避できないため" })).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(oldAnswer);
+    await page.getByRole("button", { name: "回答を始める" }).click();
+    await page.locator('input[type="radio"]').first().check();
+    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz:M05"))).toBe(oldAnswer);
+    expect(await page.evaluate(() => localStorage.getItem("ai-assisted-qa-quiz-history:M05"))).toBeNull();
+  });
+
   test("HTMLとJSONの配布版が混在すると保存回答を維持して拒否する", async ({ page }) => {
     await page.goto("/docs/curriculum/ai-assisted-qa/quizzes/M05.html");
     await page.evaluate(() => {
