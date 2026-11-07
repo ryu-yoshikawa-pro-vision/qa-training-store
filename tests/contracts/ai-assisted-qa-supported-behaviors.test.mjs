@@ -1240,8 +1240,8 @@ describe("サポート機能の仕様と実装の追跡", () => {
       } else if (char === "," && !quoted) {
         cells.push(cell);
         cell = "";
-      } else if ((char === "\\r" || char === "\\n") && !quoted) {
-        if (char === "\\r" && content[index + 1] === "\\n") index += 1;
+      } else if ((char === "\r" || char === "\n") && !quoted) {
+        if (char === "\r" && content[index + 1] === "\\n") index += 1;
         cells.push(cell);
         if (cells.some(Boolean)) records.push(cells);
         cells = [];
@@ -1291,7 +1291,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
     const allBehaviorIds = new Set(data.behaviors.map((behavior) => behavior.id));
     for (const row of rows) {
       expect(allBehaviorIds.has(row.behavior_id), row.behavior_id).toBe(true);
-      const key = row.behavior_id + "\\0" + row.condition_ref;
+      const key = row.behavior_id + "\0" + row.condition_ref;
       expect(keys.has(key), key).toBe(false);
       keys.add(key);
       const behavior = data.behaviors.find((entry) => entry.id === row.behavior_id);
