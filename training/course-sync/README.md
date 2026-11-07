@@ -28,11 +28,11 @@ pnpm install --frozen-lockfile
 node scripts/training/prepare-learner-template.mjs
 ```
 
-生成スクリプトは既定でソース外の `../ai-assisted-qa-learner/` を作り、確定HEADのSHAで既存 `course:sync` を実行する。Shop Web Build、固定Skill104ファイル・教材・LICENSE/NOTICEの配布後に `verify-distribution` でHash等を検証する。生成先が既に空でない場合は上書きせず拒否。任意の別ディレクトリは `--target <空ディレクトリ>` で指定可。**実生成して成功ログがあるまでは配布実Run完了とはしない。**
+生成スクリプトは既定でソース外の `../ai-assisted-qa-learner/` を作り、確定HEADのSHAで既存 `course:sync` を実行する。Shop Web Build、配布manifestに登録された固定Skill全ファイル・教材・LICENSE/NOTICEの配布後に `verify-distribution` でSHA等を検証する。固定Skillの件数を受入条件として固定せず、manifestと実ファイルの一致を確認する。生成先が既に空でない場合は上書きせず拒否。任意の別ディレクトリは `--target <空ディレクトリ>` で指定可。**実生成して成功ログがあるまでは配布実Run完了とはしない。**
 
 成功した生成先ディレクトリの**中身を隠しファイルも含めて**、本人が用意した公開リポジトリのルートにコピーする。`.course/distribution-manifest.json` の `source_sha` はマージ後のHEADになり、`README.md`、`LICENSE`、`THIRD_PARTY_NOTICES.md`、`.devcontainer/devcontainer.json`、`course/shop/index.html` 等を含む。公開先はGitHubのTemplateリポジトリに設定する。
 
-本人がマージ後に公開・コピーする方針は確定済みで、再質問しない。B1のPR内配布**準備は完了**。外部ライブラリ等以外は本人制作物として権利確認済み。B3の本人Private repo/2コアCodespacesは他の全PR作業が完了してから後続受入し、無断課金しない。
+本人がマージ後に公開・コピーする方針は確定済みで、再質問しない。B1のPR内配布**準備は完了**。ただし固定Skill・第三者素材の再配布許諾と必要なLICENSE/NOTICEの最終監査は未完了であり、許諾を確認するまで公開受入はBLOCKEDとする。B3の本人Private repo/2コアCodespacesは他の全PR作業が完了してから後続受入し、無断課金しない。
 
 ## 更新・検証
 
