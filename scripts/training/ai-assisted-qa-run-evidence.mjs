@@ -514,17 +514,22 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn 
     /Executable doesn't exist|browser(?:s)?[^\n]*(?:not installed|missing)|ERR_CONNECTION_REFUSED|ECONNREFUSED|webServer.*failed|Timed out waiting .*webServer|EADDRINUSE/i.test(
       String(result.stdout ?? "") + "\n" + String(result.stderr ?? ""),
     );
-  const outcome = environmentFailure
-    ? "blocked"
-    : !specUnchangedDuringRun
-      ? "ungradable"
-      : exitCode === 0 &&
-        extracted.tests.length > 0 &&
-        extracted.tests.every((test) => test.status === "passed")
-      ? "passed"
-      : extracted.tests.some((test) => test.status === "failed")
-        ? "failed"
-        : "ungradable";
+  let outcome = "ungradable";
+  if (environmentFailure) {
+    outcome = "blocked";
+  } else if (
+    specUnchangedDuringRun &&
+    exitCode === 0 &&
+    extracted.tests.length > 0 &&
+    extracted.tests.every((test) => test.status === "passed")
+  ) {
+    outcome = "passed";
+  } else if (
+    specUnchangedDuringRun &&
+    extracted.tests.some((test) => test.status === "failed")
+  ) {
+    outcome = "failed";
+  }
   const receipt = {
     schema_version: 1,
     kind: "ai-assisted-qa-playwright-run",

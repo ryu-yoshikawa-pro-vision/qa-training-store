@@ -2536,41 +2536,41 @@ it("does not report a passing run when the learner spec changes during execution
   );
   const originalExitCode = process.exitCode;
   try {
-    const result = runAiAssistedQaSpecCli(
-      ["M05", "p05-cart-locator.spec.ts", "--label", "main"],
-      {
-        root,
-        sourceSha: "a".repeat(40),
-        spawn: (_launcher, _args, options) => {
-          fs.writeFileSync(
-            path.join(options.env.AI_QA_OUTPUT_ROOT, "playwright-result.json"),
-            JSON.stringify({
-              config: { rootDir: moduleRoot },
-              suites: [
-                {
-                  specs: [
-                    {
-                      file: "p05-cart-locator.spec.ts",
-                      title: "M05 P05",
-                      tests: [
-                        {
-                          projectName: "ai-assisted-qa-chromium",
-                          expectedStatus: "passed",
-                          status: "expected",
-                          results: [{ status: "passed", attachments: [] }],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            }),
-          );
-          fs.appendFileSync(specPath, "// modified after the snapshot\n");
-          return { status: 0, stdout: "", stderr: "" };
-        },
-      },
-    );
+    const args = ["M05", "p05-cart-locator.spec.ts", "--label", "main"];
+    const spawnMock = (_launcher, _args, options) => {
+      const report = {
+        config: { rootDir: moduleRoot },
+        suites: [
+          {
+            specs: [
+              {
+                file: "p05-cart-locator.spec.ts",
+                title: "M05 P05",
+                tests: [
+                  {
+                    projectName: "ai-assisted-qa-chromium",
+                    expectedStatus: "passed",
+                    status: "expected",
+                    results: [{ status: "passed", attachments: [] }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      fs.writeFileSync(
+        path.join(options.env.AI_QA_OUTPUT_ROOT, "playwright-result.json"),
+        JSON.stringify(report),
+      );
+      fs.appendFileSync(specPath, "// modified after the snapshot\n");
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const result = runAiAssistedQaSpecCli(args, {
+      root,
+      sourceSha: "a".repeat(40),
+      spawn: spawnMock,
+    });
     expect(result.receipt.exit_code).toBe(0);
     expect(result.receipt.tests).toHaveLength(1);
     expect(result.receipt.spec_unchanged_during_run).toBe(false);
