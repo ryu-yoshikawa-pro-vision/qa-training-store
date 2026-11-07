@@ -72,4 +72,3 @@ PR #199の追跡用CSV `docs/reports/2026-11-04_pr219-case-traceability.csv`（G
 **数値上の注意**：12動作に直接結びつくWebログは11動作・**21記録**。ここに未記録のA02-03を「未テスト」と書くのは誤りで、既存Integration証拠を別に記録する。逆にE2E/Integrationのジョブ成功だけを、Role/Scenario/Platform/DB/Visualすべての製品適合証拠へ拡張するのも誤り。29横断要件の暫定キーとこの21記録は重複し得るため合算しない。
 
 **次の判定作業**：各C1〜C7相当の期待結果を正式仕様（`docs/spec/**`）と実Assertionで照合し、正式Case ID・採用/既存再利用/不要/保留・Review担当を決定する。必要なCaseだけを同一製品SHA・テストSHA・Seed/Clock・Role/Session・Run/attempt・保存Artifact・匿名化DB before/afterで再実証する。#210未マージの変更結果、未実行Android/実機・視覚・権利判断を混ぜない。
-
