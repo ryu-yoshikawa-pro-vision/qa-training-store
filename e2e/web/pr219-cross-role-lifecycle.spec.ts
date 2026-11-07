@@ -195,6 +195,52 @@ test.describe("PR #219: WEB Role and direct-route acceptance", () => {
     });
   }
 
+  for (const account of [
+    { status: "suspended", email: "suspended@example.com", message: "利用停止中" },
+    { status: "withdrawn", email: "withdrawn@example.com", message: "退会済み" },
+  ] as const) {
+    test(`SCREEN-AUTH-LOGIN-A02-01: ${account.status} account login is denied without Session`, async ({
+      page,
+      scenario,
+    }, testInfo) => {
+      await scenario("default");
+      await page.goto("/login");
+      const before = await indexedDbTableDigests(page);
+
+      await page.getByLabel("メールアドレス").fill(account.email);
+      await page.getByLabel("パスワード").fill("testpass1");
+      await page.getByRole("button", { name: "ログイン" }).click();
+
+      await expect(page.getByRole("alert")).toContainText(account.message);
+      await expect(page).toHaveURL(/\\/login$/);
+      await expect
+        .poll(() => page.evaluate(() => localStorage.getItem("scenario-shop.session-id")))
+        .toBeNull();
+
+      // Failed authentication cannot create a Session or modify any other table.
+      // Attach only hashes for review; never write credentials or DB rows to logs.
+      const after = await indexedDbTableDigests(page);
+      await testInfo.attach(`pr219-${account.status}-login-denial-db-digests`, {
+        body: JSON.stringify({ before, after }, null, 2),
+        contentType: "application/json",
+      });
+      expect(after).toEqual(before);
+
+      console.log(
+        "PR219_CASE_EVIDENCE " +
+          JSON.stringify({
+            behavior: "SCREEN-AUTH-LOGIN-A02-01",
+            requirement: "BR-AUTH-001",
+            condition: "login-rejected-without-session",
+            accountStatus: account.status,
+            tablesChecked: Object.keys(before).length,
+            allTablesUnchanged: true,
+            productAcceptance: "not-evaluated-by-this-case",
+          }),
+      );
+    });
+  }
+
   test("BR-AUTH-002: a different customer cannot see another user's order", async ({
     page,
     scenario,
