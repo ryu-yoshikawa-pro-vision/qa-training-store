@@ -385,6 +385,7 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
       EXPO_PUBLIC_BUILD_SHA: ${{ github.event.pull_request.head.sha }}
       COURSE_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      COURSE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -430,6 +431,17 @@ jobs:
           printf '%s\n' 'docs/curriculum/ai-assisted-qa/modules/M05/README.md' > "$change_list"
           node scripts/training/knowledge-graph.mjs impact --changed-files "$change_list" > "$RUNNER_TEMP/qa-knowledge-impact.json"
           node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.ok!==true||r.mapped.length!==1||r.unmapped.length!==0)process.exit(1)' "$RUNNER_TEMP/qa-knowledge-impact.json"
+          git fetch --no-tags --depth=1 origin "$COURSE_BASE_SHA"
+          git -c diff.renames=false diff --name-only "$COURSE_BASE_SHA" "$COURSE_SOURCE_SHA" > "$change_list"
+          set +e
+          node scripts/training/knowledge-graph.mjs impact --changed-files "$change_list" > "$RUNNER_TEMP/qa-knowledge-pr-impact.json"
+          impact_exit=$?
+          set -e
+          if [ "$impact_exit" -ne 0 ] && [ "$impact_exit" -ne 2 ]; then
+            exit "$impact_exit"
+          fi
+          node -e 'const fs=require("node:fs");const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof v.ok!=="boolean"||!Array.isArray(v.mapped)||!Array.isArray(v.unmapped)||v.ok!==(process.argv[2]==="0"))process.exit(1);console.log(JSON.stringify({pr_impact_status:v.status,mapped:v.mapped.length,unmapped:v.unmapped.length,review_required:!v.ok}))' "$RUNNER_TEMP/qa-knowledge-pr-impact.json" "$impact_exit"
+
 
       - name: Upload distribution verification evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -442,6 +454,7 @@ jobs:
             ${{ runner.temp }}/qa-knowledge-validation.json
             ${{ runner.temp }}/qa-knowledge-table.md
             ${{ runner.temp }}/qa-knowledge-impact.json
+            ${{ runner.temp }}/qa-knowledge-pr-impact.json
           if-no-files-found: error
           retention-days: 14
   e2e-chromium:

@@ -163,6 +163,7 @@
 - [ ] #214〜#216から各モジュールの理解事項（現行82件）のレビュー結果を受領し、意味・粒度・重複・前提順序・説明節・適用実技・クイズの観測点と評価基準を確認。人間レビュー未実施は承認済みと偽らず、開発時の内容/AI校正証拠と区別。
 - [ ] `knowledge-graph.json`と`scripts/training/knowledge-graph.mjs`を統合先で検証・必要に応じ更新。既存`validate`、`table`、`impact --changed-files <path-list-file>`で全51目標・理解事項・教材・クイズ/実技・Phase採点・22開始/終了状態の参照、未登録変更、削除/移動、仕様/Skill改訂時の影響を検査。既存機能と同じ実装を増やさない。
   - 既存`knowledge-graph.mjs`の`validate`・`table`・`impact --changed-files`をPR #199配布CIで同一HEAD実行し、出力を既存配布Artifactに保存する手順を追加した。実Runの結果、未登録・削除/移動の全差分レビュー、82理解事項の意味レビューは別途判定し、本チェックは未完了とする。
+  - 2026-11-08：単一M05教材でのCLI動作確認に加えて、PR base/headの**全変更パス**を同じ`impact --changed-files`へ入力し、対応済み・未登録パス一覧と要レビュー状態を同一配布Artifactへ保存する手順を追加。`manual_review_required`（exit 2）は検証コマンド自体の障害と区別し、内容レビュー未了のままチェックを付けない。実結果は新HEADのCIで確定する。
 - [ ] 51目標の「説明→例→誘導→別条件→提出証拠→Level 2判定→復習先」をモジュール横断で全量照合し、`table`の出力と実ファイルを比較。Web確認クイズの正解のみで独立した実技や本人判断を認定しない。
   - **PR #217から移管・未完了（M00 P04）**：[#214](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/214) の `training/ai-assisted-qa-course/exercises/M00/exercise.md` にある架空誤回答（タブ閉鎖によるCodespace停止・Remoteへの自動反映）を、#217の `assessment/scoring-tests/M00.json` の `M00-CR-03` と同一統合HEADで照合する。学習者へ架空回答が提示され、実AIの応答とは別に本人が独立訂正し、指定2資料の原文見出し・出典を提出できることを確認する。不足時はLevel 2にしない。根拠：[移管記録](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6657600739)。
 - [ ] M04→M05に分析・Case・BR/AC・初期データ、M07→M08に実Run済みspec・Config・Reset・結果が、同一ID/revisionで渡ることを検証。M02→M03、M05→M06、M09→M10も担当PRの証拠と最終配布条件で再照合。先行修了を公開基準入力から架空に復元しない。
