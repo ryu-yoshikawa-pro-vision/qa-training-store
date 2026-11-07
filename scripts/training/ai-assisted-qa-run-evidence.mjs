@@ -524,10 +524,7 @@ function executeSpec({ moduleId, specName, label, root = ROOT, sourceSha, spawn 
     extracted.tests.every((test) => test.status === "passed")
   ) {
     outcome = "passed";
-  } else if (
-    specUnchangedDuringRun &&
-    extracted.tests.some((test) => test.status === "failed")
-  ) {
+  } else if (specUnchangedDuringRun && extracted.tests.some((test) => test.status === "failed")) {
     outcome = "failed";
   }
   const receipt = {
