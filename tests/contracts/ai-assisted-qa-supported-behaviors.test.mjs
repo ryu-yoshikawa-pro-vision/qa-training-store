@@ -1221,6 +1221,107 @@ describe("サポート機能の仕様と実装の追跡", () => {
     expect(() => validateCoverage({ root, data: changed })).toThrow(/unknown related Use Case/);
   });
 
+  it("cross-checks the actual #219 case CSV against all 208 behaviors and 79 requirement traces", () => {
+    const csvPath = path.join(root, "docs/reports/2026-11-04_pr219-case-traceability.csv");
+    const content = fs.readFileSync(csvPath, "utf8");
+    const records = [];
+    let cells = [];
+    let cell = "";
+    let quoted = false;
+    for (let index = 0; index < content.length; index += 1) {
+      const char = content[index];
+      if (char === '"') {
+        if (quoted && content[index + 1] === '"') {
+          cell += '"';
+          index += 1;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (char === "," && !quoted) {
+        cells.push(cell);
+        cell = "";
+      } else if ((char === "\\r" || char === "\\n") && !quoted) {
+        if (char === "\\r" && content[index + 1] === "\\n") index += 1;
+        cells.push(cell);
+        if (cells.some(Boolean)) records.push(cells);
+        cells = [];
+        cell = "";
+      } else {
+        cell += char;
+      }
+    }
+    expect(quoted).toBe(false);
+    expect(cells).toEqual([]);
+    expect(cell).toBe("");
+    const [columns, ...rawRows] = records;
+    const expectedHeaders = [
+      "behavior_id",
+      "condition_ref",
+      "kind",
+      "platform",
+      "role",
+      "scenario",
+      "requirements",
+      "analysis_status",
+      "source_blob_sha",
+      "sut_head_sha",
+      "case_expected_from_behavior",
+      "case_expected_detail_ref",
+      "observed",
+      "db_before",
+      "db_after",
+      "exit_code",
+      "ci_run_id",
+      "trace_path",
+      "video_path",
+      "image_path",
+      "console_path",
+      "network_path",
+      "report_path",
+      "acceptance_status",
+    ];
+    expect(columns).toEqual(expectedHeaders);
+    const rows = rawRows.map((values) => {
+      expect(values).toHaveLength(columns.length);
+      return Object.fromEntries(columns.map((name, index) => [name, values[index]]));
+    });
+    expect(rows).toHaveLength(953);
+    const byBehavior = new Map();
+    const keys = new Set();
+    const allBehaviorIds = new Set(data.behaviors.map((behavior) => behavior.id));
+    for (const row of rows) {
+      expect(allBehaviorIds.has(row.behavior_id), row.behavior_id).toBe(true);
+      const key = row.behavior_id + "\\0" + row.condition_ref;
+      expect(keys.has(key), key).toBe(false);
+      keys.add(key);
+      const behavior = data.behaviors.find((entry) => entry.id === row.behavior_id);
+      expect(row.kind).toBe(behavior.kind);
+      expect(row.requirements).toBe(behavior.requirement_refs.join(";"));
+      expect(row.acceptance_status).toBe("未受入");
+      expect(row.sut_head_sha).toMatch(/^[a-f0-9]{40}$/);
+      for (const evidenceColumn of expectedHeaders.slice(12, 23)) {
+        expect(row[evidenceColumn], key + ": " + evidenceColumn).toBe("");
+      }
+      const existing = byBehavior.get(row.behavior_id) ?? [];
+      existing.push(row.condition_ref || null);
+      byBehavior.set(row.behavior_id, existing);
+    }
+    expect(byBehavior.size).toBe(data.behaviors.length);
+    for (const requirement of data.requirements) {
+      const trace = requirement.requirement_analysis.sut_case_trace;
+      expect(trace.source_path).toBe(
+        "docs/reports/2026-11-04_pr219-case-traceability.csv",
+      );
+      for (const { behavior_id: behaviorId, condition_refs: expected } of trace.row_keys) {
+        expect(new Set(byBehavior.get(behaviorId)), requirement.id + ": " + behaviorId).toEqual(
+          new Set(expected),
+        );
+      }
+    }
+    // All CSV rows remain unaccepted. The check must be revised when formal Case
+    // IDs and verified Run evidence are actually recorded, not when analysis is updated.
+  });
+
   it("tracks 79 requirements to unaccepted case conditions", () => {
     expect(data.requirements).toHaveLength(79);
     for (const requirement of data.requirements) {
