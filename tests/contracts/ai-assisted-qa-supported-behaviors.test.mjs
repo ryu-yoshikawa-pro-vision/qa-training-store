@@ -1397,6 +1397,20 @@ describe("サポート機能の仕様と実装の追跡", () => {
     }
   });
 
+  it("traces ROLE-03 to denied suspended and withdrawn logins, not active registration", () => {
+    const role03 = data.requirements.find((entry) => entry.id === "ROLE-03");
+    const review = role03?.requirement_analysis?.case_reuse_review;
+    expect(review?.existing_test_path).toBe("tests/integration/auth-account.test.ts");
+    expect(review?.existing_test_titles).toEqual(["rejects %s before creating a session"]);
+
+    const source = fs.readFileSync(path.join(root, review.existing_test_path), "utf8");
+    expect(source).toContain('"rejects %s before creating a session"');
+    expect(source).toContain('"ACCOUNT_SUSPENDED"');
+    expect(source).toContain('"ACCOUNT_WITHDRAWN"');
+    expect(source).toContain("database.sessions.count()).toBe(0)");
+    expect(source).toContain("sessionStore.value).toBeNull()");
+  });
+
   it("traces 29 cross-cutting requirements to existing tests without claiming runtime acceptance", () => {
     const linked = new Set(data.behaviors.flatMap((entry) => entry.requirement_refs ?? []));
     const crossCutting = data.requirements.filter((entry) => !linked.has(entry.id));

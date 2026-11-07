@@ -74,3 +74,10 @@
 | `PR219-WEB-007` | `BR-AUTH-002` | `gold@example.com`で他人の`/orders/order-paid`を開き、NotFound見出しを表示し注文番号を表示しない（同spec 198行付近） | 他人の注文非表示の代表例だが、**customer/operator/adminのログイン先、Checkout/管理権限、DB不変**の全要求を網羅しない |
 
 上記はテストソースに記述された直接Assertionのレビューであり、最終SUTの実行PASSや全Platformの適合を再判定したものではない。**3キーを特定のBehavior IDへ勝手に付け替えず、元のWeb証拠CSVも書き換えない**。正式Case採否時に、対象要件の追加Assertion・Run・DB前後・最終SUT SHAを確認し、要件ID・動作ID・Case IDの対応を承認する。
+
+## ROLE-03の既存テスト参照を実Assertionに合わせて修正
+
+- 旧`case_reuse_review.existing_test_titles`は`tests/integration/auth-account.test.ts:223`の「有効なregular顧客の登録・ログアウト」を指していた。これは`ROLE-03`（停止・退会顧客のログイン拒否、Session未生成）を直接検証しない。**テスト名が同じファイルに存在することだけでは要件の実証にならない**。
+- 同一ファイルの`it.each`（同:120付近）は`suspended@example.com → ACCOUNT_SUSPENDED`と`withdrawn@example.com → ACCOUNT_WITHDRAWN`の`AuthUseCases.login()`拒否、`database.sessions.count() === 0`、ローカルSessionの`null`を確認する。台帳の`ROLE-03`再利用テスト名を`rejects %s before creating a session`へ変更し、誤った再利用候補を解消した。元の#219横断CSVは履歴Blobとして保持し、推測で上書きしない。
+- [Web CI #42366012937](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42366012937)の`Vitest (integration)`成功は前HEADの実行根拠。停止・退会アカウントの**ブラウザ直URL拒否**（`PR219-WEB-005/006`）と、`AuthUseCases.login()`での**Session未生成**は別のAssertionであり、Webログイン操作・Android・古いSession・DB全表不変の受入が別途必要。
+- 本修正は`ROLE-03`の既存Case参照の正確性を上げるだけで、29要件の正式Case ID・採否・製品適合、既存44完了条件を変更しない。

@@ -35584,7 +35584,7 @@
           "decision": "既存テストの該当assertionだけ再利用。不足条件は追加Case候補として採用し、実Runは#219、最終受入は#199へ引継ぐ",
           "existing_test_path": "tests/integration/auth-account.test.ts",
           "existing_test_titles": [
-            "registers a normalized regular customer and logs out"
+            "rejects %s before creating a session"
           ],
           "existing_case_id_status": "既存テスト名で追跡。正式Case IDは未確定",
           "candidate_web_evidence_keys": [
