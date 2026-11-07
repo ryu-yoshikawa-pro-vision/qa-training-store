@@ -345,7 +345,10 @@ test.describe("AI協働QAの公開クイズ画面", () => {
 
   test("0問・別モジュールID・選択肢欠落のクイズを拒否する", async ({ page }) => {
     const valid = JSON.parse(
-      fs.readFileSync(path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/quizzes/M10.json"), "utf8"),
+      fs.readFileSync(
+        path.join(repositoryRoot, "docs/curriculum/ai-assisted-qa/quizzes/M10.json"),
+        "utf8",
+      ),
     );
     const malformed = [
       { ...valid, questions: [] },
