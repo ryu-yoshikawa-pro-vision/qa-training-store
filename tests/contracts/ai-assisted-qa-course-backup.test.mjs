@@ -332,7 +332,7 @@ describe("Git-free Phase 1/2 learner backup", () => {
   it("excludes hidden credential stores even when files have no text extension", () => {
     const first = fixture();
     write(first.root, "workspace/M00/notes.md", "safe learner notes");
-    write(first.root, "workspace/M00/.netrc", "machine example.invalid login sample password example");
+    write(first.root, "workspace/M00/.netrc", "machine example.invalid login x password y");
     write(first.root, "workspace/M00/.pypirc", "[pypi]\\npassword = sample");
     write(first.root, "workspace/M00/.aws/config", "[default]\\nregion = example");
     write(first.root, "workspace/M00/.kube/config", "clusters: []");

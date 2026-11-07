@@ -56,7 +56,8 @@ function excluded(relative) {
     .some(
       (name) =>
         /^\.env/i.test(name) ||
-        /^(?:\.git|\.ssh|\.aws|\.kube|node_modules|\.npmrc|\.pypirc|\.netrc|\.course-assessment-tmp)$/i.test(name) ||
+        /^(?:\.git|\.ssh|\.aws|\.kube|node_modules)$/i.test(name) ||
+        /^(?:\.npmrc|\.pypirc|\.netrc|\.course-assessment-tmp)$/i.test(name) ||
         /(?:secret|credential|private-key|access-token)/i.test(name) ||
         /\.(?:pem|key|p12|pfx)$/i.test(name),
     );
