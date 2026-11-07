@@ -4,7 +4,7 @@
 
 固定分析台帳 `training/ai-assisted-qa-course/coverage/supported-behaviors.json`（Blob `ef2f50fd65e481ca90dc64da6f88934511c9eebe`）の要件79件から、208動作の`requirement_refs`に直接現れない**29横断要件**を抽出した。内訳はBR/AC 4、権限 7、状態遷移 10、UI 2、対象範囲 6件。
 
-29件の`requirement_analysis.case_reuse_review`にある既存テスト参照を、PR #199 HEAD `104ead3ff2826316ff460f919a41c86e3f29ec55`の**16実ファイル**で直接照合した。記録されたテスト名29件の文字列は、各ファイル内ですべて存在する。**43件の候補Web証拠キー（10要件）**も台帳に記録されている。
+29件の`requirement_analysis.case_reuse_review`にある既存テスト参照を、PR #199 HEAD `104ead3ff2826316ff460f919a41c86e3f29ec55`の**16実ファイル**で直接照合した。記録されたテスト名29件の文字列は、各ファイル内ですべて存在する。**Web証拠キーの候補43参照（重複を除く19キー、10要件）**も台帳に記録されている。
 
 これは既存テストの再利用**候補が存在することの静的確認**であり、各testが現在の実SUT/SeedでPASSしたことや、要件の期待結果・Platform/Role・DB前後/rollback・Visual/a11yを十分に評価していることは保証しない。各要件の`acceptance_status`は依然として**未受入**で、正式Case IDの採用・実Runは独立した最終受入へ残す。
 
@@ -50,3 +50,15 @@
 - **独立レビューと権利**：採用/既存再利用/不要/保留の判定者・根拠を残し、#210に委ねた製品修正の未マージ分と本人Private環境・Skill再配布許諾を混同しない。
 
 本書の29件は79要件の内数であり、208動作へ29件の新規E2Eを機械的に追加する指示ではない。既存44受入条件のチェック数は変更しない。
+
+## #219実行証拠CSVとの突合
+
+`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`（Blob `d36ce7b879fd31fa72182165efa5e6545fa8bc3c`）の**50履歴行・27種類の暫定キー**と照合した。元の横断要件CSV `docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv`（Blob `da0d14b148e94034952ae13aa3968f6d0b0cd8b2`）も全29行の要件ID・既存テストパス・候補キー・Case条件・採用方針を分析正本と比較した結果、同5項目の不一致は0件。
+
+- 10要件が参照する**延べ43件・固有19キー**は、実Web証拠CSVにすべて存在する。ただし暫定Web証拠キーは正式Case IDではなく、複数要件から同じキーを参照する。
+- 43参照のうち**38参照**には、旧HEAD・旧Runに`case_result`が`PASS`で始まり、同時に`job_result`が`success`で始まる**履歴行が少なくとも1件**ある。**これは38件の正式CaseがPASSした意味ではない**。別Run・別SUTの扱いやworkflow全体の成否、カバレッジの妥当性は別に判定する。
+- 残る**5参照**は既知の製品FAILを再現した暫定キーに対応する。`PR219-WEB-024`は`ROLE-01/02/03/04`の4参照で、停止operatorの旧Session→Forbidden循環を再現。`PR219-WEB-018`は`STATE-BOUNDARY`の1参照で、Checkout競合後の戻り先が想定と異なる事象を再現。**テストジョブ成功を製品のPASSへ読み替えない**。
+- Web証拠CSVの**6履歴行（`PR219-WEB-005/006/007`それぞれ2実行）**は、`behavior_id`に`BR-AUTH-001/002`という要件IDを記載し、`case_mapping_status`が「要件IDのみ・Behavior ID未確定」。これを208動作の任意のBehavior IDへ推測で割り当てない。
+- 実証拠の対象Runは旧SUT・旧Test SHAであり、#210未マージの不具合修正や現在の#199の最終SUT動作を証明しない。最新版のCase採否、Rule/Role/Seed/DB前後、実行結果と独立レビューで再判定する。
+
+**判定**：既存テスト参照29/29、横断CSV29/29との静的整合、およびWeb暫定キー43参照の実在は確認完了。製品FAIL5参照・未確定Behavior6履歴行と未実行のAndroid/DB/Visual等があるため、正式Caseの採否・動的受入・独立レビューは未完了。
