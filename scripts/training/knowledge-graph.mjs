@@ -598,7 +598,8 @@ const relevantChange = (file) =>
     file,
   ) ||
   /^docs\/spec\//.test(file) ||
-  /^(?:\.agents\/)?skills\//.test(file);
+  /^(?:\.agents\/)?skills\//.test(file) ||
+  /^\.github\/workflows\/[^/]+\.ya?ml$/.test(file);
 function changedFilesImpact(graph, listPath) {
   const actual = safeLocalPath(listPath);
   if (!actual || !existsSync(actual))

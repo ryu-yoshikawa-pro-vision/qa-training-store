@@ -139,6 +139,7 @@ describe("AI-assisted QA knowledge graph", () => {
       "docs/spec/assets/new-scenario.png",
       ".agents/skills/unregistered-helper/SKILL.md",
       "docs/curriculum/ai-assisted-qa/figures/new-lesson.png",
+      ".github/workflows/new-learner-acceptance.yml",
     ];
     fs.writeFileSync(listPath, changed.join("\n") + "\n", "utf8");
     try {
