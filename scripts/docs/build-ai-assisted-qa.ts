@@ -643,7 +643,10 @@ const QUIZ_JS = `(async()=>{
   try{
     const response=await fetch(quizFile);
     if(!response.ok)throw new Error("クイズデータを読み込めませんでした。ページを再読み込みしてください。");
-    quiz=await response.json();
+    const quizBytes=await response.arrayBuffer();
+    const actualRevision=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",quizBytes)),(byte)=>byte.toString(16).padStart(2,"0")).join("");
+    if(actualRevision!==revision)throw new Error("教材とクイズデータの版が一致しません。ページを再読み込みしてください。");
+    quiz=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(quizBytes));
     if(quiz.schema_version!==1||quiz.module_id!==moduleId||!Array.isArray(quiz.questions)||quiz.questions.length===0||quiz.questions.some((question)=>!validQuestion(question))||new Set(quiz.questions.map((question)=>question.id)).size!==quiz.questions.length)throw new Error("クイズデータの形式が正しくありません。");
     for(const question of quiz.questions){if(!Array.isArray(question.options)||question.options.length!==4||!question.options.some((option)=>option.value===question.correct_value))throw new Error("問題または選択肢に不整合があります。");}
     let saved=null;try{const raw=localStorage.getItem(storageKey);if(raw)saved=JSON.parse(raw);}catch{storageAvailable=false;}
