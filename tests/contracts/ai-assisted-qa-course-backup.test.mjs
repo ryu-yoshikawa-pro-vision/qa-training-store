@@ -261,6 +261,9 @@ describe("Git-free Phase 1/2 learner backup", () => {
         value.files[0].path = "workspace/M00/.envrc";
       },
       (value) => {
+        value.files[0].path = "workspace/M00/.netrc";
+      },
+      (value) => {
         value.files.push({ ...value.files[0] });
         value.total_bytes *= 2;
       },
@@ -324,6 +327,28 @@ describe("Git-free Phase 1/2 learner backup", () => {
     );
     expect(snapshot(second.root, "workspace/M00/submission.md")).toEqual(before);
     expect(fs.existsSync(path.join(second.root, "workspace/M05"))).toBe(false);
+  });
+
+  it("excludes hidden credential stores even when files have no text extension", () => {
+    const first = fixture();
+    write(first.root, "workspace/M00/notes.md", "safe learner notes");
+    write(first.root, "workspace/M00/.netrc", "machine example.invalid login sample password example");
+    write(first.root, "workspace/M00/.pypirc", "[pypi]\\npassword = sample");
+    write(first.root, "workspace/M00/.aws/config", "[default]\\nregion = example");
+    write(first.root, "workspace/M00/.kube/config", "clusters: []");
+    const result = exportLearnerWorkspace({ root: first.root, target: first.backup });
+    expect(result).toMatchObject({
+      files: 1,
+      excluded: 4,
+      excluded_paths: [
+        "workspace/M00/.aws",
+        "workspace/M00/.kube",
+        "workspace/M00/.netrc",
+        "workspace/M00/.pypirc",
+      ],
+    });
+    const archive = JSON.parse(gunzipSync(fs.readFileSync(first.backup)).toString("utf8"));
+    expect(archive.files.map((entry) => entry.path)).toEqual(["workspace/M00/notes.md"]);
   });
 
   it("blocks known credentials and personal email contents before export", () => {
