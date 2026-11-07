@@ -36,7 +36,7 @@
 
 - 画像118件はデコード可能。確認したPNG/WebPメタデータにEXIF/XMPの項目は見つからなかった。これは**画像のピクセル内容に個人情報がないことの証明ではない**。
 - 非テキスト130件の画像内容・フォント内部の全情報、未知形式のSecret、未列挙の個人情報、第三者の再配布許諾については今回のパターン検査では保証しない。
-- 固定外部`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の配布対象は13 Skill・105ファイルで、Skill原著作物のLICENSE/NOTICEと`THIRD_PARTY_NOTICES.md`の最終権利判断は未完了。** learner用LICENSEが存在することは外部Skillの再配布許諾を意味しない。**
+- 固定外部`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`の配布対象は13 Skill・105ファイルで、Skill原著作物のLICENSE/NOTICEと`THIRD_PARTY_NOTICES.md`の最終権利判断は未完了。**learner用LICENSEが存在することは外部Skillの再配布許諾を意味しない。**
 
 ## 判定と残タスク
 
