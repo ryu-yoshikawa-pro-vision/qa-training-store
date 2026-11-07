@@ -1307,6 +1307,44 @@ describe("サポート機能の仕様と実装の追跡", () => {
       byBehavior.set(row.behavior_id, existing);
     }
     expect(byBehavior.size).toBe(data.behaviors.length);
+
+    // The older CSV is deliberately not rewritten to the newer analysis claims.
+    // Any new disagreement must be reviewed before it is accepted as Case evidence.
+    const expectedStaleBehaviors = [
+      "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
+      "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
+      "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+      "SCREEN-ADMIN-PRODUCTS-A01-02",
+      "SCREEN-ADMIN-USERS-A01-02",
+      "SCREEN-ADMIN-USER-DETAIL-A01-02",
+      "SCREEN-ADMIN-USER-DETAIL-A01-03",
+      "SCREEN-ADMIN-USER-DETAIL-A01-04",
+      "SCREEN-ADMIN-USER-DETAIL-A02-01",
+      "SCREEN-ADMIN-USER-DETAIL-A02-02",
+      "SCREEN-ADMIN-USER-DETAIL-A02-03",
+      "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+    ];
+    const stale = rows.filter((row) => {
+      const behavior = data.behaviors.find((entry) => entry.id === row.behavior_id);
+      return (
+        row.case_expected_from_behavior !== behavior.expected ||
+        row.role !== behavior.role ||
+        row.scenario !== behavior.scenario ||
+        row.analysis_status !== behavior.analysis_status
+      );
+    });
+    expect(stale).toHaveLength(67);
+    expect([...new Set(stale.map((row) => row.behavior_id))].sort()).toEqual(
+      expectedStaleBehaviors.sort(),
+    );
+    for (const row of rows.filter(
+      (entry) => !expectedStaleBehaviors.includes(entry.behavior_id),
+    )) {
+      expect(row.case_expected_from_behavior).toBe(
+        data.behaviors.find((item) => item.id === row.behavior_id).expected,
+      );
+    }
+
     for (const requirement of data.requirements) {
       const trace = requirement.requirement_analysis.sut_case_trace;
       expect(trace.source_path).toBe(
