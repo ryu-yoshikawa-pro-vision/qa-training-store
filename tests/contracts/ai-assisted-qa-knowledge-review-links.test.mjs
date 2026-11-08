@@ -93,10 +93,7 @@ describe("AI-assisted QA knowledge and assessment references", () => {
       "K-M00-06": ["M00", "3.3 Secret、外部送信、公開範囲"],
       "K-M05-06": ["M05", "6. 非同期処理：処理の完了を待つ（`async` と `await`）"],
       "K-M05-08": ["M05", "7.2 表示確認（弱いAssertion）と業務結果の確認の違い"],
-      "K-M05-09": [
-        "M05",
-        "8.1 Web-first assertion・Actionの自動待機と失敗の区別（M05-04）",
-      ],
+      "K-M05-09": ["M05", "8.1 Web-first assertion・Actionの自動待機と失敗の区別（M05-04）"],
       "K-M06-01": ["M06", "手順付き練習：Caseをコードへ写す前に対応表を作る（M06-01）"],
     };
 
@@ -129,7 +126,6 @@ describe("AI-assisted QA knowledge and assessment references", () => {
     expect(criterion.required_evidence.join(" ")).toContain(
       graph.nodes.find((node) => node.id === "K-M05-09").can_do,
     );
-
   });
 
   it("keeps M00 port visibility and usage limits linked to M00-04 grading", () => {
