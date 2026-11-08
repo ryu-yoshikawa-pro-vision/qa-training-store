@@ -125,3 +125,29 @@
 ### 4.5の5引継ぎの静的照合
 
 同じPR HEAD `8c2960863abba41ef58c8a9805a188869588f127` で、M02→M03（1入力）、M04→M05（2入力）、M05→M06（1入力）、M07→M08（4入力）、M09→M10（2入力）のState JSONを直接確認し、採用された入力計10件すべてで`artifact_id`・`path`・`revision`・`contract_id`が出力と一致。M05からの出力2件のうちM06が受け取るのは`M05-result-01`だけで、**出力の一部を次章の任意入力にしない契約**として記録した。これだけで本人提出物の内容・source SHA・実Run・P04/P05本人判断を完了扱いしない。未確認の4.5、6.3、独立レビューは未受入のまま。
+
+## 2026-11-08 固定HEAD `8c296086` のWeb実証拠と横断Caseの部分照合
+
+対象：PR #199 HEAD `8c2960863abba41ef58c8a9805a188869588f127` の[Web CI #42468179971](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42468179971)（`completed/success`）、[Chromium E2E cross-role job #128692770347](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42468179971/job/128692770347)と同版の`e2e/web/pr219-cross-role-lifecycle.spec.ts`（Git Blob `49f02c9de10fde0e2f9fad160982e9a44a61f2c9`）。CI実行記録のcheckoutはPR merge SHA `fb0bd83eac9d011c991dbb96fb4cb6fef3f8ee2a`であり、branch HEADと同一SHAではない。実際の`PR219_CASE_RUN`に対象testの`testStatus=passed`・`expectedStatus=passed`・`retry=0`があることを確認した。
+
+同Runの[DB digest Artifact #13611754078](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42468179971/artifacts/13611754078)をダウンロードして検査。ZIP SHA-256 `8205eb64946fe4c0cf4cd2d88627eb1b05c09151485d41b690766113918e314b`がGitHub digestと一致し、CRC破損0。**4つのJSON（stale Checkout、suspended login、withdrawn login、停止operatorのForbidden）ごとに23テーブルのbefore/after digestが一致**。JSONはhash値のみで業務row・認証情報を出力しない。この不変性は各拒否処理に限定し、全CaseのtransactionやNative SQLiteの保証ではない。
+
+| 採用済み横断Case | 対応する実Web操作とAssertion（上記cross-role job） | 残る条件 |
+| --- | --- | --- |
+| `PR199-CASE-REQ-ROLE-01-C2` | guestで`/checkout/address`へ直接アクセスすると`/login`に遷移し、配送先見出しが表示されない（test 167–179行） | Use Case直呼び、Android、Session/DB全表比較 |
+| `PR199-CASE-REQ-ROLE-01-C3` | guestで`/admin/users`へ直接アクセスすると`/login`へ遷移し、管理見出しが表示されない（同test） | Store/管理の全Route、Use Case直呼び、DB不変性 |
+| `PR199-CASE-REQ-ROLE-02-C2` | gold customerが他者の注文詳細を開くとNot Found画面となり、本人以外の注文番号を表示しない（284–292行） | 他人の住所・Cart/Order全操作、Android・DB |
+| `PR199-CASE-REQ-ROLE-02-C3` | active customerの管理画面直URLが`/forbidden`となり、ユーザー管理見出しが存在しない（181–195行） | 管理Use Case直呼び・全Route・Android/DB |
+| `PR199-CASE-REQ-ROLE-03-C1` | suspended顧客のWebログインを拒否、`/login`残留、Session pointerなし、23表のdigest不変（241–282行） | 実Use Caseの全状態、Android SQLite、他Session |
+| `PR199-CASE-REQ-ROLE-03-C2` | withdrawn顧客に対し同じ拒否・Session pointerなし・23表不変を独立Runで確認（241–282行） | 退会後の既存Session、Android SQLite、全Role |
+| `PR199-CASE-REQ-ROLE-03-C3` | suspended/withdrawn Seedで`/checkout/address`直アクセスを拒否し、配送先見出しなし（229–239行） | 既存Session失効の動的検査、Checkout Use Case、Android・全表不変 |
+| `PR199-CASE-REQ-ROLE-04-C1` | active operatorが`/admin/inventories`を開き「在庫管理」を表示（197–213行） | Store管理全機能の許可・更新・履歴 |
+| `PR199-CASE-REQ-ROLE-04-C2` | 同operatorで`/admin/users`は`/forbidden`となり管理見出しは表示されない（同test） | User管理Use Caseの直拒否・DB不変 |
+| `PR199-CASE-REQ-ROLE-04-C3` | operatorの`/checkout/address`は`/forbidden`（同test） | Checkout Use Case直拒否・Native/DB |
+| `PR199-CASE-REQ-ROLE-05-C2` | active adminが`/admin/users`を開き「ユーザー管理」を表示（215–227行） | User管理の全操作・自己/最後admin禁止条件 |
+| `PR199-CASE-REQ-ROLE-05-C3` | adminが`/checkout/address`へ進むと`/forbidden`、配送先見出しなし（同test） | Checkout Use Case直拒否とDB/Session不変 |
+| `PR199-CASE-REQ-ROLE-STATUS-C1` | 管理UIからactive customerをsuspendedへ変更し、再ログイン拒否のalertを検証（388–408行） | suspended→active復帰、version競合、全Sessionとrollback |
+| `PR199-CASE-REQ-ROLE-STATUS-C2` | withdrawn顧客の管理画面にランク/変更/再開操作がない（372–386行） | Use Caseでの終端変更拒否・DB不変 |
+| `PR199-CASE-REQ-ROLE-STATUS-C3` | operator→adminへの役割変更後、古いLocal Session pointerを復元して管理画面へ進むと`/login`（295–322行） | **状態変更による**全旧Session失効、再開後の新認証、Android/SQLite |
+
+上記15 Caseは**Run根拠を照合した部分証拠**であり、既存の条件を狭めたり正式仕様の全期待値を満たしたと判断したりしない。横断CSVの`execution_acceptance=未受入`・`independent_review=未実施`は維持する。サポートされたログイン・認可経路の確認と、停止operatorの[既知Forbidden循環FAIL](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)は両立する。cross-role jobの`test.fail`期待失敗2件と既知不具合再現の緑色も、製品PASSとはみなさない。

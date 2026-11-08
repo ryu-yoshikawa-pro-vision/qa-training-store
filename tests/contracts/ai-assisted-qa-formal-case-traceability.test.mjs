@@ -54,11 +54,11 @@ const handoff = csvRows(
 );
 const behaviorById = new Map(analysis.behaviors.map((entry) => [entry.id, entry]));
 const handoffById = new Map(handoff.map((entry) => [entry.requirement_id, entry]));
-const conditionLabels = (text) => {
-  const matches = text.matchAll(
-    /(?<![A-Za-z0-9])C([1-7])(?=(?:[\u3000-\u9fff]|[（(:：= \t]|$))/g,
-  );
-  return [...new Set([...matches].map((match) => "C" + match[1]))].sort();
+const CASE_REF_PATTERN = /(?<![A-Za-z0-9])C([1-7])(?=(?:[\u3000-\u9fff]|[（(:：= \t]|$))/g;
+const conditionLabels = (value) => {
+  const matches = [...value.matchAll(CASE_REF_PATTERN)];
+  const labels = matches.map((match) => "C" + match[1]);
+  return [...new Set(labels)].sort();
 };
 
 describe("PR #199 adopted Case-to-condition integrity (static only)", () => {
@@ -78,9 +78,8 @@ describe("PR #199 adopted Case-to-condition integrity (static only)", () => {
       expect(item.requirement_refs).toBe(behavior.requirement_refs.join(";"));
       expect(item.source_analysis_blob_sha).toBe("7f53586e720838544abcf24ac553dece51c13449");
       if (item.adoption_decision === "採用") {
-        expect(item.formal_case_id).toBe(
-          "PR199-CASE-" + item.behavior_id + (item.condition_ref ? "-" + item.condition_ref : ""),
-        );
+        const suffix = item.condition_ref ? "-" + item.condition_ref : "";
+        expect(item.formal_case_id).toBe("PR199-CASE-" + item.behavior_id + suffix);
       } else {
         expect(item.formal_case_id).toBe("");
       }
