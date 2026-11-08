@@ -535,6 +535,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # Success screenshots are testInfo.attach outputs. Keep only fixed Scenario
+      # Shop visual/a11y names; never upload entire traces, raw DB or logs.
+      - name: Upload cross-role visual and accessibility evidence
+        if: ${{ success() && matrix.name == 'cross-role' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pr199-cross-role-visual-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/playwright/test-results/**/attachments/pr219-catalog-*.png
+            output/playwright/test-results/**/attachments/pr219-empty-*.png
+            output/playwright/test-results/**/attachments/pr219-filter-empty-*.png
+            output/playwright/test-results/**/attachments/pr219-checkout-stale-conflict-*.png
+            output/playwright/test-results/**/attachments/pr219-empty-axe-*.json
+            output/playwright/test-results/**/attachments/pr219-checkout-stale-conflict-axe-*.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload Training Web artifacts on failure
         if: ${{ failure() && matrix.name == 'training-web-baseline' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
