@@ -151,3 +151,24 @@
 | `PR199-CASE-REQ-ROLE-STATUS-C3` | operator→adminへの役割変更後、古いLocal Session pointerを復元して管理画面へ進むと`/login`（295–322行） | **状態変更による**全旧Session失効、再開後の新認証、Android/SQLite |
 
 上記15 Caseは**Run根拠を照合した部分証拠**であり、既存の条件を狭めたり正式仕様の全期待値を満たしたと判断したりしない。横断CSVの`execution_acceptance=未受入`・`independent_review=未実施`は維持する。サポートされたログイン・認可経路の確認と、停止operatorの[既知Forbidden循環FAIL](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)は両立する。cross-role jobの`test.fail`期待失敗2件と既知不具合再現の緑色も、製品PASSとはみなさない。
+
+## 2026-11-08 Android実機相当Runtimeの横断Native Case部分照合
+
+対象：固定HEAD `a367f5e7019e8705bca1f49a4d8418b199c61040` の[Mobile CI #42456368784](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42456368784)（全体SUCCESS）と[Native Runtime Artifact #13608233136](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42456368784/artifacts/13608233136)。実ZIPのSHA-256 `c2e4227f839763e209c45aef85d6cb803e26a7c93b9a5b632892ae0be6f983a2`はGitHubと一致、CRC破損0。Android API 34のエミュレータ上でMaestro JUnit 17 Suite全件成功、失敗0を確認済み。以下の対象flow YAMLは現PR HEADでもGit Blobが同一であることを照合した。これは**最新PR HEADのMobile CI成功**を意味しない。
+
+| 採用済み横断Case | 実行が示したNative側の部分証拠 | 未確認の範囲 |
+| --- | --- | --- |
+| `PR199-CASE-REQ-BR-NATIVE-001-C1` | `native-purchase`がデフォルトSeedからログインして顧客Cart操作へ進む | 同SeedのWeb/NativeのAccount DTO・Role・Error完全一致 |
+| `PR199-CASE-REQ-BR-NATIVE-001-C2` | `native-purchase`がCart数量・Address・Payment・Confirmation・注文完了・Order一覧への遷移を確認 | Webとの同一DTO・金額/Version/DB状態の比較 |
+| `PR199-CASE-REQ-BR-NATIVE-001-C3` | `native-review`が対象注文からReviewを入力して「レビューを保存しました」を確認 | ReviewのWeb/Native同等性・全所有者/エラー・権限の網羅 |
+| `PR199-CASE-REQ-BR-NATIVE-002-C1` | `native-test-control`と`native-contract-harness`がAutomationでTest runtime readyとHarness表示を確認 | 開発版の全入出力とProductionとの差分監査 |
+| `PR199-CASE-REQ-BR-NATIVE-002-C2` | `native-production-validation`が本番画面でHarness不可・Automation marker非表示を確認 | Production bundleの全モジュール・import・文字列の静的除外検証 |
+| `PR199-CASE-REQ-BR-NATIVE-002-C3` | `native-contract-harness`がAndroid UI上の「Native contract passed」を確認 | 業務SQLite全テーブル・全失敗注入点のrollback、外部キー違反全境界 |
+| `PR199-CASE-REQ-AC-NATIVE-001-C1` | 購入flowでCart→Checkout→Paymentへ進み、注文完了を表示 | Webとの一致・失敗条件・全Role/State |
+| `PR199-CASE-REQ-AC-NATIVE-001-C2` | 購入後の注文一覧が表示された | Orderの本人限定・金額・Payment/Shipment/History整合とWeb同等性 |
+| `PR199-CASE-REQ-AC-NATIVE-001-C3` | Review入力と保存通知を確認 | 権限のない操作、他者レビュー、Native Admin非混入全境界 |
+| `PR199-CASE-REQ-AC-NATIVE-002-C1` | AutomationのTest Control/Harnessへ実端末環境で到達 | 自動化API全経路とproduction拒否を同一条件で網羅 |
+| `PR199-CASE-REQ-AC-NATIVE-002-C2` | Production validationで専用Harness・実行ボタン・結果を非表示と確認 | binary/bundle内部のMarker/Service/Moduleを全件検索する検証 |
+| `PR199-CASE-REQ-AC-NATIVE-002-C3` | Android 17 Suite成功、同固定HEADではiOSは独立ビルド検証のみ | 最新HEADのMobile CI、iOS実機・Simulator実Runの保証外範囲 |
+
+上記12 Caseは**既存成功Runの補助証拠**であって新たな12件の受入完了ではない。上のWeb部分証拠15件と合わせて横断Case **27/51件に少なくとも一部の実Run根拠**を紐付けたが、51件の`execution_acceptance`と`independent_review`は変更していない。実Web/Androidの同Seed・同DTO比較、セキュリティ/rollback、現HEADのMobile外部HTTP 504と独立レビューは未受入である。

@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { format } from "prettier";
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
@@ -50,9 +49,7 @@ const behaviorCases = csvRows("docs/reports/2026-11-07_pr199-formal-case-adoptio
 const requirementCases = csvRows(
   "docs/reports/2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv",
 );
-const handoff = csvRows(
-  "docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv",
-);
+const handoff = csvRows("docs/reports/2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv");
 const behaviorById = new Map(analysis.behaviors.map((entry) => [entry.id, entry]));
 const handoffById = new Map(handoff.map((entry) => [entry.requirement_id, entry]));
 const CASE_REF_PATTERN = /(?<![A-Za-z0-9])C([1-7])(?=(?:[\u3000-\u9fff]|[（(:：= \t]|$))/g;
@@ -63,26 +60,13 @@ const conditionLabels = (value) => {
 };
 
 describe("PR #199 adopted Case-to-condition integrity (static only)", () => {
-  it("temporarily records the formatter's exact output for this contract", async () => {
-    const file = "tests/contracts/ai-assisted-qa-formal-case-traceability.test.mjs";
-    const current = read(file);
-    const formatted = await format(current, {
-      parser: "babel",
-      semi: true,
-      singleQuote: false,
-      trailingComma: "all",
-      printWidth: 100,
-      endOfLine: "lf",
-    });
-    if (formatted !== current) {
-      console.log("PR199_FORMAT_OUTPUT_BASE64=" + Buffer.from(formatted).toString("base64"));
-    }
-  });
   it("keeps 959 adopted behaviors, six explicit handoffs and all 208 sources", () => {
     expect(behaviorCases).toHaveLength(965);
     expect(behaviorById.size).toBe(208);
     expect(behaviorCases.filter((item) => item.adoption_decision === "採用")).toHaveLength(959);
-    expect(behaviorCases.filter((item) => item.adoption_decision === "別動作へ引継ぎ")).toHaveLength(6);
+    expect(
+      behaviorCases.filter((item) => item.adoption_decision === "別動作へ引継ぎ"),
+    ).toHaveLength(6);
     const seen = new Set();
     for (const item of behaviorCases) {
       const behavior = behaviorById.get(item.behavior_id);
