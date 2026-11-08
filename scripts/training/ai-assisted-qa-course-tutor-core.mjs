@@ -74,6 +74,13 @@ export function isTutorPublicPath(moduleId, relativePath) {
   );
 }
 
+function openTutorFileNoFollow(absolute) {
+  const noFollow = fs.constants.O_NOFOLLOW;
+  if (!Number.isInteger(noFollow) || noFollow === 0)
+    fail("safe no-follow file access is unsupported on this platform");
+  return fs.openSync(absolute, fs.constants.O_RDONLY | noFollow);
+}
+
 export function readTutorPublicFile(root, moduleId, relativePath, publishedFiles) {
   const expectedHash = publishedFiles instanceof Map ? publishedFiles.get(relativePath) : null;
   if (!isTutorPublicPath(moduleId, relativePath) || !/^[a-f0-9]{64}$/.test(expectedHash ?? ""))
@@ -86,7 +93,7 @@ export function readTutorPublicFile(root, moduleId, relativePath, publishedFiles
     current = path.join(current, part);
     if (fs.lstatSync(current).isSymbolicLink()) fail("symlink in public source path");
   }
-  const fd = fs.openSync(current, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+  const fd = openTutorFileNoFollow(current);
   try {
     const stat = fs.fstatSync(fd);
     if (!stat.isFile() || stat.size < 1 || stat.size > MAX_TUTOR_FILE_BYTES)
@@ -153,7 +160,7 @@ export function readTutorWorkspaceExcerpt(root, moduleId, relativePath, firstLin
   }
   let fd;
   try {
-    fd = fs.openSync(location, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+    fd = openTutorFileNoFollow(location);
     const stat = fs.fstatSync(fd);
     if (!stat.isFile() || stat.size < 1 || stat.size > MAX_TUTOR_FILE_BYTES)
       fail("selected learner source is empty, oversized or not regular");

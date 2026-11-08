@@ -133,6 +133,63 @@ describe("AI-assisted QA tutor external send boundary", () => {
     );
   });
 
+  it("rejects public source swapped to a symlink immediately before opening", () => {
+    const root = fixture();
+    const relativePath = documents[1].path;
+    const target = path.join(root, relativePath);
+    const outside = path.join(root, "outside-lesson.md");
+    fs.writeFileSync(outside, documents[1].text);
+    const publishedFiles = new Map([
+      [relativePath, createHash("sha256").update(documents[1].text).digest("hex")],
+    ]);
+    const open = fs.openSync.bind(fs);
+    let swapped = false;
+    const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && location === target) {
+        swapped = true;
+        fs.renameSync(target, target + ".original");
+        fs.symlinkSync(outside, target);
+      }
+      return open(location, ...args);
+    });
+    try {
+      expect(() => readTutorPublicFile(root, "M06", relativePath, publishedFiles)).toThrow(
+        /ELOOP|symlink|no-follow|link/i,
+      );
+      expect(swapped).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("rejects learner excerpt swapped to a symlink immediately before opening", () => {
+    const root = fixture();
+    const relativePath = "workspace/M06/notes/submission.md";
+    const target = path.join(root, relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, "# 学習者による観測\n数量1");
+    const outside = path.join(root, "outside-notes.md");
+    fs.writeFileSync(outside, "# 非公開\n共有しない");
+    const open = fs.openSync.bind(fs);
+    let swapped = false;
+    const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && location === target) {
+        swapped = true;
+        fs.renameSync(target, target + ".original");
+        fs.symlinkSync(outside, target);
+      }
+      return open(location, ...args);
+    });
+    try {
+      expect(() => readTutorWorkspaceExcerpt(root, "M06", relativePath, 1, 2)).toThrow(
+        /ELOOP|symlink|no-follow|link/i,
+      );
+      expect(swapped).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("redacts synthetic contact examples and environment filenames from pinned lessons", () => {
     const root = fixture();
     const lessonPath = documents[1].path;
