@@ -74,12 +74,6 @@ jobs:
       - name: Format check
         run: pnpm run format:check:strict
 
-      - name: Diagnose course-run harness formatting on failed check
-        if: ${{ failure() && github.event_name == 'pull_request' && github.event.pull_request.number == 199 }}
-        run: |
-          pnpm exec prettier tests/contracts/ai-assisted-qa-phase2-course-run-ci.mjs --write
-          git diff --no-ext-diff -- tests/contracts/ai-assisted-qa-phase2-course-run-ci.mjs
-
       - name: Markdown lint
         run: pnpm run lint:markdown
 

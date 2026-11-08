@@ -223,10 +223,7 @@ function main() {
     verification: checks,
   };
   fs.mkdirSync(outputRoot, { recursive: true });
-  fs.writeFileSync(
-    path.join(outputRoot, "summary.json"),
-    JSON.stringify(summary, null, 2) + "\n",
-  );
+  fs.writeFileSync(path.join(outputRoot, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
   console.log(
     JSON.stringify(
       {
