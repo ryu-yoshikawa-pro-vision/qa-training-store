@@ -137,6 +137,18 @@ describe("PR #199 adopted Case-to-condition integrity (static only)", () => {
     expect(seen.size).toBe(1010);
   });
 
+  it("keeps a bounded, explicit evidence row for every cross-cutting Case", () => {
+    const review = read("docs/reports/2026-11-07_pr199-formal-case-adoption-decisions.md");
+    for (const item of requirementCases) {
+      expect(review, item.formal_case_id + ": evidence row missing").toContain(
+        "| \`" + item.formal_case_id + "\` |",
+      );
+      // Partial evidence does not replace formal execution or independent review.
+      expect(item.execution_acceptance).toBe("未受入");
+      expect(item.independent_review).toBe("未実施");
+    }
+  });
+
   it("records individual review objectives for the eleven grouped requirements", () => {
     const review = read("docs/reports/2026-11-07_pr199-formal-case-adoption-decisions.md");
     const grouped = handoff.filter((item) => item.source_test_condition.startsWith("C1〜C3採用"));

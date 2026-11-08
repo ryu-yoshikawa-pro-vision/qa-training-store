@@ -195,3 +195,30 @@
 **進捗の境界**：従来のWeb 15件＋Native 12件に、上記の異なる10 Caseを加え、横断51条件のうち **37/51件には少なくとも一部の実行証拠が紐付く**。これは**37件PASS**や、残る14件にテストが存在しないという意味ではない。複数のCaseで同じ実Runを再利用しているが、テスト件数をCase件数へ換算していない。実装された画面・Use Case・Role/Seed/State/Platform/DBの全期待結果、既知製品FAIL、本人環境、独立レビューを満たすまでは全51件の`execution_acceptance=未受入`・`independent_review=未実施`を保持する。作業6.3と上位8作業は未完了、個別検証20/39を変更しない。
 
 **次の照合対象**：まだ部分証拠を直接結び付けていない横断14件（`STATE-BOUNDARY`、`STATE-NATIVE`、`UI-BREAKPOINT`、`UI-DESIGN`、`SCOPE-SUPPORTED-1/2/3/4/6`、`PLATFORM-NATIVE`、および他の残件）について、実CI/ArtifactとCaseの個別期待を突合する。画面幅やa11y、Nativeの主張は、Policy/Use Caseの緑だけで代用しない。
+
+## 2026-11-08 残る横断14 Caseの実行証拠と不足条件の照合
+
+対象：固定PR HEAD `7cc5ef3cdb5647ac359f1ad8d2a516f56cf3841a` の[Web CI #42471513178](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178)（全体SUCCESS）。[Vitest (unit) #128703136379](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703136379) 66件PASS、[Vitest (integration) #128703136446](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703136446) 150件PASS、[Vitest (contracts) #128703136430](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703136430)でNative runtime/CI/visualの対象契約テスト成功をログで確認。実ブラウザの[mobile-boundary #128703300882](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703300882)は4件PASS、[accessibility #128703300923](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703300923)は5件PASS。別固定HEAD `a367f5e7` の[Mobile CI #42456368784](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42456368784)はAndroid実エミュレータのMaestro 17件PASSであり、前節で実Artifactを照合済み。異なるHEAD間のCI合格を同一HEADの最終受入へ転用しない。
+
+この表は従来の27件と前節の10件を**除く、残る14 Case**について、実際に成功した既存テストのAssertionまたは実Runtimeの範囲と、欠損する条件を特定した記録である。既存製品テストを変更せず、Case IDや条件数を増やさない。
+
+| 採用済み横断Case | 実Run・Assertionの部分証拠 | 正式受入に不足する条件 |
+| --- | --- | --- |
+| `PR199-CASE-REQ-ROLE-01-C1` | `tests/integration/cart-use-cases.test.ts:77–101`のGuest Cart初回作成・数量・金額・所有者を実Use Caseで確認。Webの公開画面はaccessibility E2Eで表示確認 | Guest公開商品閲覧の全条件、Role×State・Android、所有権と全DB不変性 |
+| `PR199-CASE-REQ-ROLE-02-C1` | `checkout-order-use-cases.test.ts:155–227`でactive customer本人の配送先・購入・本人注文と決済／在庫一回性、`cart-use-cases.test.ts:103–125`で本人Cartを検証 | Account/Addressなど本人データ全操作、別ユーザーの拒否・Android・画面/DB全条件 |
+| `PR199-CASE-REQ-ROLE-05-C1` | `tests/unit/policies.test.ts:57–63`でadminのStore管理・User管理許可を検査。前節Web cross-role実Runはadminで`/admin/users`の見出しを表示 | adminのStore管理全経路・実Use Case・各変更/履歴、権限と安全性の直接照合 |
+| `PR199-CASE-REQ-TRANSITION-PRODUCT` | `tests/unit/policies.test.ts:68–80`でdraft→published許可、discontinued→published拒否。`admin-product-use-cases.test.ts:277–347`で公開可能条件を検査 | 全状態遷移・終端・Version競合、直接Use CaseによるDB前後・UI |
+| `PR199-CASE-REQ-STATE-BOUNDARY` | `e2e/web/pr219-cross-role-lifecycle.spec.ts`のLoading/Empty/Error復帰・Checkout競合画面、`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`のCart/価格変更時拒否を既存成功Runと照合 | Conflict/Not Found/processing等の全状態・全Role/Seed、参照画像・rollback・Android |
+| `PR199-CASE-REQ-STATE-NATIVE` | 固定HEAD `a367f5e7` のMaestro 17件でNative Customerの購入・再起動・注文/Reviewを観測。`tests/contracts/native-runtime-service-surface.test.ts:5–52`で顧客用サービスと非顧客Role排除の静的契約を確認 | 全`NATIVE_CUSTOMER_SCENARIOS`・同Seed Web/Native差、SQLite/Navigationの全Case |
+| `PR199-CASE-REQ-UI-BREAKPOINT` | `e2e/web/mobile-boundary.spec.ts:57–123`で1024→390pxのFilter状態と320pxのCart/購入・タップ領域を実ブラウザ確認。旧名前付きPNG Artifactに7幅の一部状態を保存 | 767/768/1023/1024pxと管理画面を含む全対象状態、フォーカス/画面正本比較 |
+| `PR199-CASE-REQ-UI-DESIGN` | `tests/contracts/native-visual-contract.test.ts:23–43`で共有Token・寸法・タップ領域の静的契約を検査。旧[名前付きPNG #13611404164](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42465706700/artifacts/13611404164)に36画像を保存済み | Web/Androidの独立した正本画像差分、全幅/全状態、実アクセシビリティとデザイン承認 |
+| `PR199-CASE-REQ-SCOPE-SUPPORTED-1` | `tests/integration/catalog-use-cases.test.ts:47–68`で固定時計によるSale境界・商品公開可否とNot Found/権限差を実検証 | 検索/Facet/価格/Stock/Variation/ReviewSummary全操作とWeb/Native実結果 |
+| `PR199-CASE-REQ-SCOPE-SUPPORTED-2` | `cart-use-cases.test.ts:77–101`のGuest Cartと`checkout-order-use-cases.test.ts:155–227`のCustomer購入/ローカル決済、旧Native購入Maestroが実行済み | Guest→Customer Cart統合、購入拒否、金額/Version・同Seed Web/Android/DB全条件 |
+| `PR199-CASE-REQ-SCOPE-SUPPORTED-3` | `checkout-order-use-cases.test.ts:155–227`で本人注文・Payment/Shipment snapshot、`review-user-use-cases.test.ts:66–124`で本人レビュー作成/更新/削除を実検証 | 所有権否定・注文全状態・Review拒否/失敗・Web/Androidと実DB全条件 |
+| `PR199-CASE-REQ-SCOPE-SUPPORTED-4` | `admin-product-use-cases.test.ts:90–114`でoperatorの商品下書き作成、`admin-operations-use-cases.test.ts:61–89`で在庫変更と履歴、`review-user-use-cases.test.ts:242–260`で管理レビュー非公開化を実検証 | 商品/Category/Brand/Order/User管理全経路・Role、既知UI製品FAILと独立レビュー |
+| `PR199-CASE-REQ-SCOPE-SUPPORTED-6` | `e2e/web/accessibility.spec.ts:62–251`の公開/顧客/admin画面のaxe・Breadcrumb・キーボード、`mobile-boundary.spec.ts`の320/390/1024px実Runを確認 | ScreenReader実操作、全状態/7幅と画面正本、Android/管理画面の残る条件 |
+| `PR199-CASE-REQ-PLATFORM-NATIVE` | `tests/contracts/native-ci-workflow.test.ts`の28契約がCIでPASS、固定HEAD `a367f5e7`のAndroid Maestro 17件成功を実Artifactで照合済み。iOSはビルド受入に限定 | Native顧客全機能/Role・Android SQLite全業務、最終HEADのMobileビルドと実Run |
+
+**結論と未完了の扱い**：横断51/51 Caseに、少なくとも一つの既存テスト成功または固定HEAD実Runtimeの**部分的な照合先**を記録した。これは実行されたテストが正式Caseの全Assertionを満たすという意味ではない。テスト成功はテストの範囲だけを示し、対象Role/Seed/State/Platform、全失敗・競合、業務DB不変性、画像・スクリーンリーダー、独立判定を補完しない。**51/51正式Caseの`execution_acceptance`は引き続き「未受入」、`independent_review`は「未実施」**。作業6.3の959動作Case全数受入は未達であり、個別20/39、上位0/8のまま。
+
+**次の具体的操作**：上記表と以前の959件採否CSVを参照し、Role・State・Versionの失敗時に直接DB副作用が未照合のCase（特に`ROLE-STATUS`、`TRANSITION-ACCOUNT`、`STATE-TERMINAL`）について既存の実Use Case契約を優先して確認する。SUTを変更せず、追加したQA契約テストの全23テーブル比較により拒否時と正常時の変更境界を検証し、最終HEADの実CIとは別に結果を記録する。
