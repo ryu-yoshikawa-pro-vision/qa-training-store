@@ -330,23 +330,23 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
                 REQUIRED_OPEN_CODE_VERSION
             )
               fail("OpenCode CLI 2.0.22 is required");
-            const result = spawnSync(cli, buildTutorRunArgs({ modelId: request.modelId, promptPath }), {
-              cwd: directory,
-              env: environment,
-              encoding: "utf8",
-              stdio: ["ignore", "pipe", "pipe"],
-              maxBuffer: 1024 * 1024,
-              timeout: 120000,
-              shell: false,
-            });
-            if (result.error || result.status !== 0) fail("model command failed; no raw logs retained");
-            const parsed = parseOpenCodeJsonEvents(result.stdout, result.status);
-            const answer = validateTutorText(
-              parsed.response,
-              "model response",
-              MAX_TUTOR_QUESTION_BYTES,
+            const result = spawnSync(
+              cli,
+              buildTutorRunArgs({ modelId: request.modelId, promptPath }),
+              {
+                cwd: directory,
+                env: environment,
+                encoding: "utf8",
+                stdio: ["ignore", "pipe", "pipe"],
+                maxBuffer: 1024 * 1024,
+                timeout: 120000,
+                shell: false,
+              },
             );
-            return answer;
+            if (result.error || result.status !== 0)
+              fail("model command failed; no raw logs retained");
+            const parsed = parseOpenCodeJsonEvents(result.stdout, result.status);
+            return validateTutorText(parsed.response, "model response", MAX_TUTOR_QUESTION_BYTES);
           } finally {
             fs.rmSync(directory, { recursive: true, force: true });
           }
