@@ -5654,6 +5654,11 @@
       "to": "K-M00-07"
     },
     {
+      "from": "M00-04",
+      "relation": "requires_knowledge",
+      "to": "K-M00-08"
+    },
+    {
       "from": "M00",
       "relation": "has_end_state",
       "to": "STATE-M00-END"
@@ -6913,6 +6918,11 @@
       "from": "QUIZ-M00-Q06",
       "relation": "evaluates",
       "to": "M00-02"
+    },
+    {
+      "from": "QUIZ-M00-Q06",
+      "relation": "evaluates",
+      "to": "M00-04"
     },
     {
       "from": "QUIZ-M00-Q06",

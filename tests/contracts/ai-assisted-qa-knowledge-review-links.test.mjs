@@ -88,6 +88,49 @@ describe("AI-assisted QA knowledge and assessment references", () => {
     }
   });
 
+  it("keeps M00 port visibility and usage limits linked to M00-04 grading", () => {
+    const objective = "M00-04";
+    const knowledge = "K-M00-08";
+    expect(
+      graph.edges.some(
+        (edge) =>
+          edge.from === objective &&
+          edge.to === knowledge &&
+          edge.relation === "requires_knowledge",
+      ),
+    ).toBe(true);
+
+    const quiz = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, curriculumRoot, "quizzes/M00.json"), "utf8"),
+    );
+    const question = quiz.questions.find((item) => item.id === "M00-Q06");
+    expect(question.knowledge_ids).toContain(knowledge);
+    expect(question.objective_ids).toEqual(["M00-02", objective]);
+    expect(
+      graph.edges.some(
+        (edge) =>
+          edge.from === "QUIZ-M00-Q06" &&
+          edge.to === objective &&
+          edge.relation === "evaluates",
+      ),
+    ).toBe(true);
+
+    const scoring = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          repositoryRoot,
+          "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json",
+        ),
+        "utf8",
+      ),
+    );
+    const criterion = scoring.criteria.find((item) => item.id === "M00-CR-04");
+    expect(criterion.objective_ids).toContain(objective);
+    expect(criterion.knowledge_ids).toContain(knowledge);
+    expect(criterion.required_evidence.join(" ")).toContain("K-M00-08");
+    expect(criterion.pass_conditions.join(" ")).toContain("K-M00-08");
+  });
+
   it("keeps the 78 quiz evaluation links consistent with the knowledge graph", () => {
     const quizNodes = graph.nodes.filter((node) => node.type === "quiz");
     const quizEdges = graph.edges.filter(

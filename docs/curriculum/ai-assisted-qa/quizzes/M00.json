@@ -210,7 +210,8 @@
     {
       "id": "M00-Q06",
       "objective_ids": [
-        "M00-02"
+        "M00-02",
+        "M00-04"
       ],
       "knowledge_ids": [
         "K-M00-08"
