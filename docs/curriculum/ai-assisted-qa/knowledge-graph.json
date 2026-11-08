@@ -1093,7 +1093,7 @@
       "module": "M00",
       "can_do": "危険な操作を避け、作業と請求の境界を確認する",
       "status": "draft_requires_content_review",
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#エージェントskill権限"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M00/README.md#33-secret外部送信公開範囲"
     },
     {
       "id": "K-M00-07",
@@ -1390,7 +1390,7 @@
       "module": "M05",
       "can_do": "待つ必要のある処理と結果の順序を説明する",
       "status": "draft_requires_content_review",
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#6-非同期処理処理の完了を待つasync-と-await"
     },
     {
       "id": "K-M05-07",
@@ -1408,16 +1408,16 @@
       "module": "M05",
       "can_do": "可視性と業務結果が同じではないことを判断する",
       "status": "draft_requires_content_review",
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#コードを読む"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#72-表示確認弱いassertionと業務結果の確認の違い"
     },
     {
       "id": "K-M05-09",
       "type": "knowledge",
       "title": "自動待機・Web-first assertionと失敗の分類",
       "module": "M05",
-      "can_do": "構文・型・実行時・Assertionエラーを区別する",
+      "can_do": "Actionの自動待機とWeb-first assertionの再試行を区別し、構文・型・実行時・Assertionエラーを分類する",
       "status": "draft_requires_content_review",
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#待機と失敗の読み分け"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M05/README.md#81-web-first-assertionactionの自動待機と失敗の区別m05-04"
     },
     {
       "id": "K-M05-10",
@@ -1489,7 +1489,7 @@
       "module": "M06",
       "can_do": "前提・操作・期待結果をコードと結び付ける",
       "status": "draft_requires_content_review",
-      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#6-実行証拠evidenceを読む"
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M06/README.md#手順付き練習caseをコードへ写す前に対応表を作るm06-01"
     },
     {
       "id": "K-M06-02",

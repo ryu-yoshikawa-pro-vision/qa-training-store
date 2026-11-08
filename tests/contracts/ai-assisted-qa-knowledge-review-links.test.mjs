@@ -88,6 +88,35 @@ describe("AI-assisted QA knowledge and assessment references", () => {
     }
   });
 
+  it("links safety, asynchronous work, assertions and Case mapping to the teaching section", () => {
+    const expectedHeadings = {
+      "K-M00-06": ["M00", "3.3 Secret、外部送信、公開範囲"],
+      "K-M05-06": ["M05", "6. 非同期処理：処理の完了を待つ（`async` と `await`）"],
+      "K-M05-08": ["M05", "7.2 表示確認（弱いAssertion）と業務結果の確認の違い"],
+      "K-M05-09": [
+        "M05",
+        "8.1 Web-first assertion・Actionの自動待機と失敗の区別（M05-04）",
+      ],
+      "K-M06-01": ["M06", "手順付き練習：Caseをコードへ写す前に対応表を作る（M06-01）"],
+    };
+
+    for (const [id, [moduleId, heading]] of Object.entries(expectedHeadings)) {
+      const node = graph.nodes.find((item) => item.id === id);
+      expect(node, `${id}: missing knowledge node`).toBeDefined();
+      const lesson = fs.readFileSync(
+        path.join(repositoryRoot, curriculumRoot, "modules", moduleId, "README.md"),
+        "utf8",
+      );
+      expect(lesson, `${id}: teaching heading absent`).toContain(heading);
+      expect(node.review_path).toBe(
+        `${curriculumRoot}/modules/${moduleId}/README.md#${slugHeading(heading)}`,
+      );
+    }
+    expect(graph.nodes.find((node) => node.id === "K-M05-09")?.can_do).toContain(
+      "Web-first assertionの再試行",
+    );
+  });
+
   it("keeps M00 port visibility and usage limits linked to M00-04 grading", () => {
     const objective = "M00-04";
     const knowledge = "K-M00-08";
