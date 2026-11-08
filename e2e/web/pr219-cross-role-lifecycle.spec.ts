@@ -57,6 +57,28 @@ async function attachIndexedDbDigests(
   await testInfo.attach(name, { path: outputPath, contentType: "application/json" });
 }
 
+// Persist only axe rule IDs, impact levels and affected counts; DOM excerpts,
+// accessible names and element HTML may contain private user data.
+async function attachSafeAxeSummary(
+  testInfo: TestInfo,
+  name: string,
+  width: number,
+  violations: readonly { id: string; impact?: string | null; nodes: unknown[] }[],
+) {
+  const outputPath = testInfo.outputPath(`${name}.json`);
+  const safe = {
+    caseName: testInfo.title,
+    width,
+    violations: violations.map((issue) => ({
+      id: issue.id,
+      impact: issue.impact ?? null,
+      affectedNodes: issue.nodes.length,
+    })),
+  };
+  await writeFile(outputPath, JSON.stringify(safe, null, 2) + "\n", "utf8");
+  await testInfo.attach(name, { path: outputPath, contentType: "application/json" });
+}
+
 // Log only public scenario/build metadata. Never log credentials, user records or Session IDs.
 function logRuntimeMetadata(evidenceCaseKey: string, metadata: TestMetadata) {
   console.log(
@@ -564,10 +586,12 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
       });
       if (viewport.width === 320 || viewport.width === 1024) {
         const axe = await new AxeBuilder({ page }).analyze();
-        await testInfo.attach(`pr219-checkout-stale-conflict-axe-${viewport.width}`, {
-          body: JSON.stringify(axe.violations, null, 2),
-          contentType: "application/json",
-        });
+        await attachSafeAxeSummary(
+          testInfo,
+          `pr219-checkout-stale-conflict-axe-${viewport.width}`,
+          viewport.width,
+          axe.violations,
+        );
         const blocking = axe.violations.filter((issue) =>
           ["serious", "critical"].includes(issue.impact ?? ""),
         );
@@ -885,10 +909,12 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
         const violations = axe.violations.filter((item) =>
           ["critical", "serious"].includes(item.impact ?? ""),
         );
-        await testInfo.attach(`pr219-empty-axe-${viewport.width}`, {
-          body: JSON.stringify(axe.violations, null, 2),
-          contentType: "application/json",
-        });
+        await attachSafeAxeSummary(
+          testInfo,
+          `pr219-empty-axe-${viewport.width}`,
+          viewport.width,
+          axe.violations,
+        );
         expect(violations).toEqual([]);
       }
       if (viewport.width === 320 || viewport.width === 390) {

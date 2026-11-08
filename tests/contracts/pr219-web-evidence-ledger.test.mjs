@@ -319,11 +319,20 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       "name: pr199-cross-role-visual-${{ github.run_id }}-${{ github.run_attempt }}",
     );
     expect(upload).toContain("output/playwright/report/data/*.png");
-    expect(upload).toContain("output/playwright/report/data/*.json");
+    expect(upload).toContain("output/playwright/test-results/**/*-axe-*.json");
     expect(upload).toContain("if-no-files-found: error");
     expect(upload).not.toContain("path: output/playwright");
     expect(upload).not.toContain("path: output/playwright/report");
     expect(upload).not.toContain("*.zip");
+    const qa = readFileSync(
+      join(process.cwd(), "e2e/web/pr219-cross-role-lifecycle.spec.ts"),
+      "utf8",
+    );
+    expect(qa).toContain("async function attachSafeAxeSummary(");
+    expect(qa).toContain("id: issue.id");
+    expect(qa).toContain("impact: issue.impact ?? null");
+    expect(qa).toContain("affectedNodes: issue.nodes.length");
+    expect(qa).not.toContain("body: JSON.stringify(axe.violations");
   });
 
   it("rejects an invalid quoted field instead of shifting Case evidence", () => {

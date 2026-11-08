@@ -535,8 +535,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Playwright HTML reporter materializes testInfo.attach({ body }) in data/,
-      # not under test-results/attachments. Never upload trace.zip or full HTML.
+      # Store screenshots from HTML reporter and sanitized axe summaries from test output.
+      # Do not upload HTML, raw DOM, trace.zip, DB records or other test output.
       - name: Upload cross-role visual and accessibility evidence
         if: ${{ success() && matrix.name == 'cross-role' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -544,7 +544,7 @@ jobs:
           name: pr199-cross-role-visual-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             output/playwright/report/data/*.png
-            output/playwright/report/data/*.json
+            output/playwright/test-results/**/*-axe-*.json
           if-no-files-found: error
           retention-days: 14
 
