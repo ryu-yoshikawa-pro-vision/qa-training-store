@@ -6,7 +6,8 @@
 - [x] 管理ユーザー変更の拒否・許可時のWeb DB 23テーブルに対する不変性をQA契約に追加する。
 - [x] 最終adminの競合模擬における全23テーブルの変更境界をQA契約に追加する。
 - [x] 横断51件の各Caseに既存実Runの部分証拠と未検証条件を区別して紐付け、静的回帰契約を追加する。
-- [ ] 在庫・Order/Shipmentで拒否時の全23表不変と正常時の許可テーブル境界を実CIで確認する。
+- [x] 在庫・Order/Shipmentで拒否時の全23表不変と正常時の許可テーブル境界を実CIで確認する。固定HEAD `d95f6922`のWeb CI #42474779455のVitest契約4件PASS。
+- [ ] Native SQLite（Node実SQL）でGuest Cart・Version・Seed失敗後の23テーブルrollbackを検証し、Android実Runtime未受入を区別する。
 - [ ] 現HEADのWeb/Mobile CI全体の最終結論・不具合を照合し、PR #199に作業進捗と再開先を報告する。
 
 ## Blocked

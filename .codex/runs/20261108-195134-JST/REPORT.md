@@ -23,3 +23,10 @@
 - `tests/integration/review-user-use-cases.test.ts` と CustomerReviewUseCases / AdminReviewUseCases の現行処理を確認し、専用QA契約でレビューの配送前拒否、他人の編集/削除拒否、Version競合、deleted終端を全23テーブル比較する。
 - 正常な作成・更新・削除および公開/非公開の更新は `reviews`、`review_status_histories`、`product_review_summaries` のみを許容して他テーブルの非変更を検査する。
 - 追加時点のCIは未確定。Web Dexie契約でありAndroid SQLiteや独立レビューへの受入拡張は行わない。
+
+## 2026-11-08 継続対応：6.7 Native SQLite SQL実行境界
+
+- 開始HEAD `a57a11a8258d3fd2e0a3fbee9f0bbf8b8a100130`。Web CI #42475530179はSUCCESS（29 job SUCCESS・1 skipped）、Mobile CI #42475530188は確認時にin_progress。CIが終わるまでの待機は行っていない。
+- ADR-0004/0009と`tests/contracts/native-sqlite-transactions.test.ts`、`tests/repository-contract/native-customer-shared.test.ts`、`src/infrastructure/database/sqlite/native-customer-repositories.ts`の実行経路を確認。Node環境では`node:sqlite`で実SQLを走らせるがAndroid `expo-sqlite`の代用として正式受入へ昇格しない。
+- 新規の`tests/contracts/ai-assisted-qa-native-sqlite-rollback.test.ts`は、(1)新規Guest Cartの存在しないVariant拒否、(2)Cart Item挿入後の故障注入、(3)stale Cart/Itemと数量超過、(4)Seed途中の外部キー違反について、Native 23テーブルを全件前後比較。比較するレコード実値をログやArtifactへ書き出さない。
+- 追加時点のCIは未確定。実行時に形式・Assertion・環境差異を確認し、失敗した場合はQA契約の不備か製品不具合かを切り分ける。
