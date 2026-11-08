@@ -19,7 +19,7 @@
 
 ## 個別検証の進捗（受入範囲は変更しない）
 
-**実証済み 19/39件、未完了 20件。** これは元のマージ前28条件を満たすための**個別検証・判断の内訳**であり、元条件の28件や上位8作業の完了数とは異なる。上位8作業は全条件成立まで未完了のまま。完了済み19件のうち18件は既存Runと**固定HEAD `fbb1bbfcbb638a53b682a5f2657adc9d9c6655e7`**の実証拠を再照合した結果である。今回追加の5.4は**固定HEAD `0fd2d8c8e16067d3fa9831feeedd89ed7ef22bff`**の実`course:run`と評価器による検証であり、受講者本人の実技ではない。
+**実証済み 20/39件、未完了 19件。** これは元のマージ前28条件を満たすための**個別検証・判断の内訳**であり、元条件の28件や上位8作業の完了数とは異なる。上位8作業は全条件成立まで未完了のまま。完了済み20件のうち18件は既存Runと**固定HEAD `fbb1bbfcbb638a53b682a5f2657adc9d9c6655e7`**の実証拠を再照合した結果である。今回追加の5.4は**固定HEAD `0fd2d8c8e16067d3fa9831feeedd89ed7ef22bff`**の実`course:run`と評価器による検証であり、受講者本人の実技ではない。
 
 - `[x]`は**その行に記載した具体的検証だけ**が完了した意味。参考spec、モック、構造検査、旧HEAD成功を実モデル・本人実操作・最終内容受入へ流用しない。
 - 同じCI/Artifactを複数の異なる観点へ使う場合、検証内容を行ごとに区別する。テスト件数やファイル数を作業件数へ換算しない。
@@ -67,14 +67,14 @@
 - [ ] **5.5** 専用M10 workflowの実PR head・attempt・Check・Artifactを本人のPrivate環境で確認する（認証・有効化までBLOCKED）。（旧行174）
 - [ ] **5.6** M04/M07/M10の実モデルで正答・誤答・別解・不正証拠・Prompt Injectionを校正し重大誤PASS 0件を確認する。（旧行223）
 
-### 6. Scenario Shop正式Case・Web/Android/DB（旧行205・206・207・208・209・211）：2/7
+### 6. Scenario Shop正式Case・Web/Android/DB（旧行205・206・207・208・209・211）：3/7
 
 - [x] **6.1** Checkout拒否・suspended/withdrawnログイン拒否・Forbiddenの4件で各23テーブルの前後digest一致を確認した。（旧行205・209） [DB Artifact #13600374602](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/artifacts/13600374602)
 - [x] **6.2** 同一HEADのcross-role Chromium E2Eを試行2で実行し、ジョブの成功を確認した。初回Locator失敗の未修正を保持する。（旧行205） [Web CI試行2](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128)
 - [ ] **6.3** 採用条件959件＋横断51件と正式Case/Assertion/Role/State/実Artifactを個別に照合し、PASS/FAIL/未実行を確定する。（旧行205・211）
 - [ ] **6.4** 停止staffのForbidden循環とSession/DB・Androidの観測を最終SUTで判定し、製品FAILを解消または残リスクとして確定する。（旧行206）
 - [ ] **6.5** 製品Webの指定7画面幅・全状態・画像差分・キーボード/axe・保存ArtifactをCase単位で確定する。教材Webのa11yと混同しない。（旧行207）
-- [ ] **6.6** Android実機/妥当なエミュレータのMaestro・Navigation・SQLiteを端末/OS/アプリSHA付きで実行する。（旧行208）
+- [x] **6.6** HEAD `a367f5e7` の[Mobile CI #42456368784](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42456368784)でAndroid API 34／x86_64エミュレータのMaestro 17 Suiteが全件SUCCESS。実[Runtime Artifact #13608233136](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42456368784/artifacts/13608233136)の17 JUnitと端末情報、実APK SHA-256 `90c0af0252aea55bd6b157139094c495f02a62a0f19c7162afa436d71a10fd03`を[Build Artifact #13608097791](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42456368784/artifacts/13608097791)と照合した。商品→Cart→ログイン→Checkout→注文→注文一覧、Review、アプリ再起動後のCartとCheckout再開のNavigationを確認。専用SQLite DB上のNative Contract Harnessが購入・Cart・認証拒否・Review・外部キー制約を実検証した。（旧行208）**対象はNative Customer。停止staffのForbidden循環と業務DBの全Case rollbackは6.4／6.7で未受入。**
 - [ ] **6.7** Web IndexedDB/DexieとAndroid SQLiteの競合/失敗/rollbackを採用Caseごとに照合する。4件のdigestだけで全数PASSとしない。（旧行209）
 
 ### 7. 独立レビュー（旧行184・210）：0/2
