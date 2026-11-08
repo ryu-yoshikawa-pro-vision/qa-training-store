@@ -126,7 +126,6 @@
 
 以下は元の28条件の検証要件を保存した記録であり、B案で全項目をマージ前に完了するという意味ではない。マージ前の判断は冒頭の「B案：マージ前受入」に従う。
 
-
 - [ ] **1. 公開・配布成果物の非公開情報除外と第三者権利を受け入れる**（旧行137、178、226）
   - 同じ最終HEADの実Web Build、Template、配布manifest、CI Artifactを照合し、`assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec・正式workflow・旧教材・個人成績、`.env`・認証情報・個人データの混入を検査する。既存の禁止パス・負例テストを再利用する。ファイルの存在を確認できない場合は安全と判定しない。
   - 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`と配布済みJS/フォント/画像等について、再配布できる権利者・出典・一次ライセンス・LICENSE/NOTICEの全件監査と配布先の表示を確認する。[固定Skill監査](../reports/2026-11-07_pr199-fixed-skill-license-audit.md)で許諾を確認できていないため、現在の公開判断は**BLOCKED**。不存在を権利侵害の証明とも許諾の証明とも扱わない。
