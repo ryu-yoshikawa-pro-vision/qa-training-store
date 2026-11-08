@@ -70,7 +70,7 @@ test.describe("AI協働QAの公開クイズ画面", () => {
   for (const moduleId of moduleIds) {
     test(
       moduleId +
-        " 全教材・全クイズをdesktop/mobileで表示し、導線・アクセシビリティ・横幅を確認する",
+        " 全教材・全クイズをdesktop/tablet/mobileで表示し、導線・アクセシビリティ・横幅を確認する",
       async ({ page }) => {
         await page.setViewportSize({ width: 1365, height: 900 });
         await page.goto(`/docs/curriculum/ai-assisted-qa/modules/${moduleId}/`);
@@ -103,6 +103,12 @@ test.describe("AI協働QAの公開クイズ画面", () => {
         expect(visibleText).not.toMatch(/(?:source_sha|spec_sha256)\s*[:=]\s*[a-f0-9]{40,64}\b/i);
         expect(visibleText).not.toMatch(/[a-f0-9]{64}/i);
 
+        await page.setViewportSize({ width: 768, height: 1024 });
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        ).toBe(true);
+        await expectCoursePageAccessible(page);
+
         await page.setViewportSize({ width: 375, height: 812 });
         await expect(page.locator(".mobile-primary-navigation")).toBeVisible();
         expect(
@@ -111,9 +117,15 @@ test.describe("AI協働QAの公開クイズ画面", () => {
         await expectCoursePageAccessible(page);
 
         const quiz = readQuiz(moduleId);
-        await page.setViewportSize({ width: 375, height: 812 });
+        await page.setViewportSize({ width: 768, height: 1024 });
         await page.goto(`/docs/curriculum/ai-assisted-qa/quizzes/${moduleId}.html`);
         await expect(page.locator(".module-progress")).toContainText(moduleId);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        ).toBe(true);
+        await expectCoursePageAccessible(page);
+
+        await page.setViewportSize({ width: 375, height: 812 });
         await page.getByRole("button", { name: "回答を始める" }).click();
         await expect(page.getByText(`第1問 / 全${quiz.questions.length}問`)).toBeVisible();
         await expectCoursePageAccessible(page);
