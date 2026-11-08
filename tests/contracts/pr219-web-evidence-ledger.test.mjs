@@ -318,8 +318,9 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
     expect(upload).toContain(
       "name: pr199-cross-role-visual-${{ github.run_id }}-${{ github.run_attempt }}",
     );
-    expect(upload).toContain("output/playwright/report/data/*.png");
+    expect(upload).toContain("output/playwright/test-results/**/pr219-*.png");
     expect(upload).toContain("output/playwright/test-results/**/*-axe-*.json");
+    expect(upload).toContain("!output/playwright/test-results/**/attachments/**");
     expect(upload).toContain("if-no-files-found: error");
     expect(upload).not.toContain("path: output/playwright");
     expect(upload).not.toContain("path: output/playwright/report");
@@ -329,10 +330,13 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
       "utf8",
     );
     expect(qa).toContain("async function attachSafeAxeSummary(");
+    expect(qa).toContain("async function attachEvidenceScreenshot(");
+    expect(qa).toContain("page.screenshot({ path: outputPath, fullPage: true })");
     expect(qa).toContain("id: issue.id");
     expect(qa).toContain("impact: issue.impact ?? null");
     expect(qa).toContain("affectedNodes: issue.nodes.length");
     expect(qa).not.toContain("body: JSON.stringify(axe.violations");
+    expect(qa).not.toContain("body: await page.screenshot");
   });
 
   it("rejects an invalid quoted field instead of shifting Case evidence", () => {

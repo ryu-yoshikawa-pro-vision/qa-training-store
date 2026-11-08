@@ -79,6 +79,14 @@ async function attachSafeAxeSummary(
   await testInfo.attach(name, { path: outputPath, contentType: "application/json" });
 }
 
+// Keep Scenario/State/viewport in the file name so the Artifact can be
+// matched to an assertion without decoding Playwright's hashed HTML names.
+async function attachEvidenceScreenshot(page: Page, testInfo: TestInfo, name: string) {
+  const outputPath = testInfo.outputPath(`${name}.png`);
+  await page.screenshot({ path: outputPath, fullPage: true });
+  await testInfo.attach(name, { path: outputPath, contentType: "image/png" });
+}
+
 // Log only public scenario/build metadata. Never log credentials, user records or Session IDs.
 function logRuntimeMetadata(evidenceCaseKey: string, metadata: TestMetadata) {
   console.log(
@@ -580,10 +588,7 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
-      await testInfo.attach(`pr219-checkout-stale-conflict-${viewport.width}`, {
-        body: await page.screenshot({ fullPage: true }),
-        contentType: "image/png",
-      });
+      await attachEvidenceScreenshot(page, testInfo, `pr219-checkout-stale-conflict-${viewport.width}`);
       if (viewport.width === 320 || viewport.width === 1024) {
         const axe = await new AxeBuilder({ page }).analyze();
         await attachSafeAxeSummary(
@@ -732,10 +737,7 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
           true,
         );
-        await testInfo.attach(`pr219-catalog-loading-${viewport.width}`, {
-          body: await page.screenshot({ fullPage: true }),
-          contentType: "image/png",
-        });
+        await attachEvidenceScreenshot(page, testInfo, `pr219-catalog-loading-${viewport.width}`);
         if (viewport.width === 320 || viewport.width === 1024) {
           const axe = await new AxeBuilder({ page }).analyze();
           const violations = axe.violations.filter((item) =>
@@ -828,10 +830,7 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      await testInfo.attach(`pr219-catalog-error-${viewport.width}`, {
-        body: await page.screenshot({ fullPage: true }),
-        contentType: "image/png",
-      });
+      await attachEvidenceScreenshot(page, testInfo, `pr219-catalog-error-${viewport.width}`);
       if (viewport.width === 320 || viewport.width === 1024) {
         const axe = await new AxeBuilder({ page }).analyze();
         const violations = axe.violations.filter((item) =>
@@ -900,10 +899,7 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
       );
       await home.focus();
       await expect(home).toBeFocused();
-      await testInfo.attach(`pr219-empty-${viewport.width}`, {
-        body: await page.screenshot({ fullPage: true }),
-        contentType: "image/png",
-      });
+      await attachEvidenceScreenshot(page, testInfo, `pr219-empty-${viewport.width}`);
       if (viewport.width === 320 || viewport.width === 1024) {
         const axe = await new AxeBuilder({ page }).analyze();
         const violations = axe.violations.filter((item) =>
@@ -945,10 +941,7 @@ test.describe("PR #219: storefront empty responsive and accessibility evidence",
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      await testInfo.attach(`pr219-filter-empty-${viewport.width}`, {
-        body: await page.screenshot({ fullPage: true }),
-        contentType: "image/png",
-      });
+      await attachEvidenceScreenshot(page, testInfo, `pr219-filter-empty-${viewport.width}`);
       if (viewport.width === 320 || viewport.width === 390) {
         await assertMobileCatalogPageEndReachable(page, "filter-empty", viewport.width);
       }
@@ -996,10 +989,7 @@ test.describe("PR #219: Checkout resume after authentication Session replacement
     await expect(
       page.getByText("カートの更新により、購入手続きを最新の内容へ置き換えました。"),
     ).toHaveCount(0);
-    await testInfo.attach("pr219-checkout-resume-new-auth-session", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
+    await attachEvidenceScreenshot(page, testInfo, "pr219-checkout-resume-new-auth-session");
   });
 });
 
