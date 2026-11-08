@@ -126,11 +126,7 @@ describe("AI-assisted QA: inventory and order rollback across 23 Web tables", ()
     });
     expect(after.product_variants).not.toEqual(before.product_variants);
     expect(after.inventory_histories).not.toEqual(before.inventory_histories);
-    expectOnlyTablesChanged(
-      before,
-      after,
-      new Set(["product_variants", "inventory_histories"]),
-    );
+    expectOnlyTablesChanged(before, after, new Set(["product_variants", "inventory_histories"]));
   });
 
   it("rejects invalid order and shipment transitions atomically", async () => {
