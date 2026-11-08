@@ -588,7 +588,11 @@ test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
-      await attachEvidenceScreenshot(page, testInfo, `pr219-checkout-stale-conflict-${viewport.width}`);
+      await attachEvidenceScreenshot(
+        page,
+        testInfo,
+        `pr219-checkout-stale-conflict-${viewport.width}`,
+      );
       if (viewport.width === 320 || viewport.width === 1024) {
         const axe = await new AxeBuilder({ page }).analyze();
         await attachSafeAxeSummary(
