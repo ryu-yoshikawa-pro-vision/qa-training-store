@@ -36,6 +36,14 @@ async function snapshot(database) {
   return Object.fromEntries(entries);
 }
 
+// Only user access, Session, and Checkout lifecycle tables may change on suspension.
+function expectUnrelatedTablesUnchanged(before, after) {
+  for (const [tableName, records] of Object.entries(before)) {
+    if (["users", "sessions", "checkout_sessions"].includes(tableName)) continue;
+    expect(after[tableName], tableName).toEqual(records);
+  }
+}
+
 describe("AI-assisted QA: admin suspension and data preservation", () => {
   it("suspends and resumes a customer without reviving checkout or changing the cart", async () => {
     const database = new ScenarioShopDatabase(`training-admin-status-${crypto.randomUUID()}`);
@@ -56,6 +64,7 @@ describe("AI-assisted QA: admin suspension and data preservation", () => {
         .where("cartId")
         .equals(beforeCheckout.cartId)
         .toArray();
+      const beforeTables = await snapshot(database);
 
       const suspended = await useCases.changeSuspension({
         userId: beforeUser.id,
@@ -73,6 +82,7 @@ describe("AI-assisted QA: admin suspension and data preservation", () => {
       expect(
         await database.cart_items.where("cartId").equals(beforeCheckout.cartId).toArray(),
       ).toEqual(beforeItems);
+      expectUnrelatedTablesUnchanged(beforeTables, await snapshot(database));
 
       const resumed = await useCases.changeSuspension({
         userId: beforeUser.id,
@@ -83,6 +93,7 @@ describe("AI-assisted QA: admin suspension and data preservation", () => {
       expect(resumed.version).toBe(beforeUser.version + 2);
       expect(await database.checkout_sessions.get(beforeCheckout.id)).toEqual(abandoned);
       expect(await database.sessions.where("userId").equals(beforeUser.id).count()).toBe(0);
+      expectUnrelatedTablesUnchanged(beforeTables, await snapshot(database));
     } finally {
       const name = database.name;
       database.close();
