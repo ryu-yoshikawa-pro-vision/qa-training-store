@@ -115,6 +115,21 @@ describe("AI-assisted QA knowledge and assessment references", () => {
     expect(graph.nodes.find((node) => node.id === "K-M05-09")?.can_do).toContain(
       "Web-first assertionの再試行",
     );
+    const m05 = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          repositoryRoot,
+          "training/ai-assisted-qa-course/assessment/scoring-tests/M05.json",
+        ),
+        "utf8",
+      ),
+    );
+    const criterion = m05.criteria.find((item) => item.id === "M05-CR-04");
+    expect(criterion.knowledge_ids).toContain("K-M05-09");
+    expect(criterion.required_evidence.join(" ")).toContain(
+      graph.nodes.find((node) => node.id === "K-M05-09").can_do,
+    );
+
   });
 
   it("keeps M00 port visibility and usage limits linked to M00-04 grading", () => {
