@@ -10,6 +10,16 @@ import { createScenarioDataset } from "../../src/seeds/scenarios";
 
 const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
+// Read every business table without persisting raw rows in test artifacts.
+async function tableSnapshot(database) {
+  const tables = await Promise.all(
+    database.tables.map(async (table) => [table.name, await table.toArray()]),
+  );
+  expect(tables).toHaveLength(23);
+  return Object.fromEntries(tables);
+}
+
+
 // A controlled interleaving, not proof that a real concurrent request has occurred.
 describe("AI-assisted QA: last-admin protection under an authorization interleaving", () => {
   it.each(["role", "suspension"])(
@@ -45,6 +55,7 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
             .filter((user) => user.role === "admin" && user.accountStatus === "active")
             .count();
         expect(await activeAdminCount()).toBe(2);
+        const beforeTables = await tableSnapshot(database);
 
         const delegate = new DexieApplicationTransactionRunner(database);
         let interleaved = false;
@@ -96,6 +107,19 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
           beforeTargetSessions,
         );
         expect(await activeAdminCount()).toBe(1);
+        const afterTables = await tableSnapshot(database);
+        for (const [name, records] of Object.entries(beforeTables)) {
+          if (name === "users") continue;
+          expect(afterTables[name], name).toEqual(records);
+        }
+        // Only the deliberately interleaved actor demotion may change the User table.
+        expect(afterTables.users).toEqual(
+          beforeTables.users.map((user) =>
+            user.id === "user-admin"
+              ? { ...user, role: "operator", version: user.version + 1 }
+              : user,
+          ),
+        );
       } finally {
         const name = database.name;
         database.close();
