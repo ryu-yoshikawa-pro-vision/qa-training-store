@@ -155,6 +155,18 @@ describe("M10-01 spec and dependency closure", () => {
     expect(sample.indexOf("verify-distribution")).toBeLessThan(
       sample.indexOf("pnpm exec playwright install --with-deps chromium"),
     );
+    expect(manifest.load_files).toContainEqual(
+      expect.objectContaining({
+        module_id: "M10",
+        source_path: "course/modules/M10/inputs/public-sample-workflow.yml.disabled",
+        target_path: "workspace/M10/public-sample/course-e2e.workflow.yml.disabled",
+      }),
+    );
+    const textbook = read("docs/curriculum/ai-assisted-qa/modules/M10/README.md");
+    expect(textbook).toContain("配布済みShopとmanifestの存在確認");
+    expect(textbook).toContain("配布検証とprebuilt固定が含まれます");
+    expect(textbook).not.toContain("旧配布ガードが不足");
+    expect(textbook).not.toContain("配布検証・prebuilt固定を欠く");
   });
 
   it("requires reviewed paths and explicit activation without leaking learner files", () => {
