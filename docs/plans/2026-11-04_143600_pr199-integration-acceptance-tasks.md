@@ -17,6 +17,78 @@
 
 [整理前の44条件と詳細な実施履歴（固定commit）](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/c608e6c211b40ae7890b64d96d1ebd0755b78d6f/docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md)を過去記録として参照する。以下の「旧行」はこの固定commitの行番号であり、完了済み条件や古い作業ログを再登録しない。
 
+## 個別検証の進捗（受入範囲は変更しない）
+
+**実証済み 18/39件、未完了 21件。** これは元のマージ前28条件を満たすための**個別検証・判断の内訳**であり、元条件の28件や上位8作業の完了数とは異なる。上位8作業は全条件成立まで未完了のまま。完了済み18件は今回新たに実行した件数ではなく、既存Runと**固定HEAD `fbb1bbfcbb638a53b682a5f2657adc9d9c6655e7`**の実証拠を再照合した結果である。
+
+- `[x]`は**その行に記載した具体的検証だけ**が完了した意味。参考spec、モック、構造検査、旧HEAD成功を実モデル・本人実操作・最終内容受入へ流用しない。
+- 同じCI/Artifactを複数の異なる観点へ使う場合、検証内容を行ごとに区別する。テスト件数やファイル数を作業件数へ換算しない。
+- 最新HEADが変わった場合も固定SHAの実証済み履歴は残すが、新HEADへの適用を自動承認しない。「最終HEADのCI」は別の未完了行で判定する。
+- 次回セッションでは**最初の未完了行を1件選び、条件がそろえば`[x]`に変更する**。外部権利・本人認証・実機・独立確認がBLOCKEDなら必要な当事者と入力を明記し、別の実行可能行に移る。作業件数が変わる場合は既存28条件の対応を保ち、分母の変更理由を記す。
+
+### 1. 公開・配布成果物と第三者権利（旧行137・178・226）：1/4
+
+- [x] **1.1** 固定SHA配布manifestの567件を確認し、禁止パス登録0件・同期前後のSHA一覧一致を確認した。（旧行137・178） [Artifact #13600459011](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/artifacts/13600459011)
+- [ ] **1.2** 最終Web/Template/ZIPの未知PII、バイナリ内情報、画面に映る個人情報、完成評価資料の全除外を実物で検証する。（旧行137・178）
+- [ ] **1.3** 固定Skill 105ファイルの権利者・一次ライセンス・再配布許諾・NOTICEを確定する。権利根拠なしはBLOCKED。（旧行178・226）
+- [ ] **1.4** 公開JS・画像・フォント等の第三者素材の許諾と必要表示を全件確認する。（旧行178・226）
+
+### 2. 通常AI送信・権限・保存と正式評価の分離（旧行138・140・170・246・247）：3/5
+
+- [x] **2.1** 通常チューターの入力選択、Secret/PII・サイズ上限・送信直前再検証の契約13件を実行した。（旧行138・246） [Vitest contracts job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614576830)
+- [x] **2.2** 公開教材・本人選択ファイルのno-followとsymlink差替え拒否の回帰テストを実行した。（旧行138・246） [commit fbb1bbfc](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/fbb1bbfcbb638a53b682a5f2657adc9d9c6655e7)
+- [x] **2.3** 独立したHOME/XDG、`:memory:` DB、deny-all権限と正式評価への状態混入防止の契約テストを実行した。（旧行140・170・247） [チューター契約13件PASS](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614576830)
+- [ ] **2.4** 実OpenCode CLIのSTART/SEND拒否・プロセス未起動、実送信payload、exitと最小権限を確認する。（旧行138・140・246）
+- [ ] **2.5** 実Providerの料金・保持/削除、OpenCodeセッション復元と正式評価履歴の非混在を実証する。本人認証のない項目はBLOCKED。（旧行140・170・247）
+
+### 3. 公開教材Web・配布と非破壊性（旧行139・157・176）：5/6
+
+- [x] **3.1** 同一HEADの配布manifestの567件・revisionと同期前後のSHA一覧一致を検証した。（旧行139・176） [配布Artifact #13600459011](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/artifacts/13600459011)
+- [x] **3.2** M00〜M10の教材/クイズ11組を実Chromium E2Eで表示・操作・採点・復習した。（旧行139・157） [教材E2E 69件PASS](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614609667)
+- [x] **3.3** 各教材/クイズのdesktop・tablet（768px）・mobileの横幅とaxe自動検査を実行した。（旧行157） [同E2E job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614609667)
+- [x] **3.4** HTML/JSON異版、旧回答保全、クイズ中断再開、キーボード操作の負例E2Eを実行した。（旧行139・157） [同E2E job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614609667)
+- [x] **3.5** バックアップ/復元の正常・改ざん・symlink・版不一致等の契約15件を実行した。（旧行176） [Vitest contracts job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614576830)
+- [ ] **3.6** 実スクリーンリーダーでの読み上げ・フォーカス確認と、実配布/復元の残る手動受入を実施する。後続の本人6条件と混同しない。（旧行157・176）
+
+### 4. 82理解事項・51目標と引継ぎ（旧行163・164・167・169・248）：2/5
+
+- [x] **4.1** 同一HEADのknowledge-graph validateを実行し、339ノード・51目標・82理解事項・22状態の構造を検証した。（旧行164） [配布Artifact #13600459011](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/artifacts/13600459011)
+- [x] **4.2** PR差分のimpactを取得し、残る手動確認候補152パスの分類と受入先を既存記録に対応付けた。（旧行164） [変更影響の記録](../reports/2026-11-08_pr199-knowledge-graph-impact-triage.md)
+- [ ] **4.3** 82理解事項の意味・粒度・重複・前提順・実技/クイズ/採点の整合を1件ずつレビューする。（旧行163）
+- [ ] **4.4** 51目標の説明・例・誘導・別条件・提出証拠・Level 2判定・復習先を1件ずつレビューする。（旧行167）
+- [ ] **4.5** 5つのPhase引継ぎとM00 P04/M05 P05の意味・実Run・SHAを照合し、独立判断の未確認を区別する。（旧行169・248）
+
+### 5. 正式評価・実Run・実モデル校正（旧行174・223）：3/6
+
+- [x] **5.1** M06完成参照specの固定3件・追加初回2件・再実行2件を実ChromiumでPASSした。本人Runではない。（旧行174） [M06 reference job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614609774)
+- [x] **5.2** M07完成参照specのbefore2件・after3件を実ChromiumでPASSした。本人Runではない。（旧行174） [M07 reference job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614577105)
+- [x] **5.3** M10のPR head/Run/Check/Artifact/digestと拒否条件の固定応答契約9件をPASSした。実API照合ではない。（旧行174） [Vitest contracts job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614576830)
+- [ ] **5.4** M06/M07の正式course:runのreceipt/spec snapshot/実Assertion/別Runを実行・検証する。（旧行174）
+- [ ] **5.5** 専用M10 workflowの実PR head・attempt・Check・Artifactを本人のPrivate環境で確認する（認証・有効化までBLOCKED）。（旧行174）
+- [ ] **5.6** M04/M07/M10の実モデルで正答・誤答・別解・不正証拠・Prompt Injectionを校正し重大誤PASS 0件を確認する。（旧行223）
+
+### 6. Scenario Shop正式Case・Web/Android/DB（旧行205・206・207・208・209・211）：2/7
+
+- [x] **6.1** Checkout拒否・suspended/withdrawnログイン拒否・Forbiddenの4件で各23テーブルの前後digest一致を確認した。（旧行205・209） [DB Artifact #13600374602](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/artifacts/13600374602)
+- [x] **6.2** 同一HEADのcross-role Chromium E2Eを試行2で実行し、ジョブの成功を確認した。初回Locator失敗の未修正を保持する。（旧行205） [Web CI試行2](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128)
+- [ ] **6.3** 採用条件959件＋横断51件と正式Case/Assertion/Role/State/実Artifactを個別に照合し、PASS/FAIL/未実行を確定する。（旧行205・211）
+- [ ] **6.4** 停止staffのForbidden循環とSession/DB・Androidの観測を最終SUTで判定し、製品FAILを解消または残リスクとして確定する。（旧行206）
+- [ ] **6.5** 製品Webの指定7画面幅・全状態・画像差分・キーボード/axe・保存ArtifactをCase単位で確定する。教材Webのa11yと混同しない。（旧行207）
+- [ ] **6.6** Android実機/妥当なエミュレータのMaestro・Navigation・SQLiteを端末/OS/アプリSHA付きで実行する。（旧行208）
+- [ ] **6.7** Web IndexedDB/DexieとAndroid SQLiteの競合/失敗/rollbackを採用Caseごとに照合する。4件のdigestだけで全数PASSとしない。（旧行209）
+
+### 7. 独立レビュー（旧行184・210）：0/2
+
+- [ ] **7.1** PR #199統合差分の独立コード/セキュリティ/配布/内容レビューを実施し、担当と指摘・再検証を保存する。（旧行184）
+- [ ] **7.2** 正式採用Caseの証拠と結果を実行者とは別の確認者がレビューし、判定と差戻しを記録する。（旧行210）
+
+### 8. 最終HEAD・マージ前判断（旧行183・185）：2/4
+
+- [x] **8.1** SHA `fbb1bbfc`のWeb CI（試行2）成功を確認した。後続変更後の最終CIとは別。（旧行183） [Web CI #42438837128](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128)
+- [x] **8.2** 同SHAのMobile CI成功を確認した。後続変更後の最終CIとは別。（旧行183） [Mobile CI #42438837135](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837135)
+- [ ] **8.3** 作業1〜7の全変更が確定した**最終HEAD**の必須Web/Mobile CI・Artifactを照合する。（旧行183）
+- [ ] **8.4** 最終受入・公開権利・独立レビューとBLOCKED/FAILを整理し、マージ可否を根拠付きで判定する。（旧行185）
+
 ## マージ前の残タスク
 
 - [ ] **1. 公開・配布成果物の非公開情報除外と第三者権利を受け入れる**（旧行137、178、226）
