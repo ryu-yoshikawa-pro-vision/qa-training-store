@@ -94,14 +94,11 @@ describe("AI-assisted QA SCREEN-CHECKOUT-CONFIRM-A01-02 confirmation contract", 
   }
 
   async function checkoutSafetySnapshot() {
-    return {
-      ...(await snapshot()),
-      orderItems: await database.order_items.toArray(),
-      orderHistory: await database.order_status_histories.toArray(),
-      sequences: await database.daily_sequences.toArray(),
-      variants: await database.product_variants.toArray(),
-      inventoryHistory: await database.inventory_histories.toArray(),
-    };
+    const tables = await Promise.all(
+      database.tables.map(async (table) => [table.name, await table.toArray()]),
+    );
+    expect(tables).toHaveLength(23);
+    return Object.fromEntries(tables);
   }
 
   async function readyCheckout() {
