@@ -61,8 +61,10 @@ describe("AI-assisted QA tutor external send boundary", () => {
     expect(config.update).toBe("disable");
     expect(config.model).toBe(request.modelId);
     expect(config.share).toBe("disabled");
+    expect(config.instructions).toEqual([]);
     expect(config.plugins).toEqual([]);
-    expect(config.mcp).toEqual({});
+    expect(config.skills).toEqual([]);
+    expect(config.mcp).toEqual({ servers: {} });
     expect(config.permissions).toEqual([{ action: "*", resource: "*", effect: "deny" }]);
     expect(agent.permissions).toEqual([{ action: "*", resource: "*", effect: "deny" }]);
     expect(JSON.stringify(config)).not.toContain("workspace/M06/*");
@@ -399,6 +401,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
     const environment = makeIsolatedEnvironment(dir, request);
     expect(environment.OPENCODE_DB).toBe(":memory:");
     expect(environment.OPENCODE_DISABLE_PROJECT_CONFIG).toBe("true");
+    expect(environment.OPENCODE_DISABLE_EXTERNAL_SKILLS).toBe("true");
     expect(environment.OPENCODE_DISABLE_AUTOUPDATE).toBe("true");
     expect(environment.XDG_CONFIG_HOME).toBe(path.join(dir, "config"));
     expect(environment.XDG_DATA_HOME).toBe(path.join(dir, "data"));

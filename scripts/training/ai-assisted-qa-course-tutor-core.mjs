@@ -302,8 +302,10 @@ export function buildTutorConfig({ moduleId, modelId }) {
     default_agent: COURSE_TUTOR_AGENT_ID,
     update: "disable",
     share: "disabled",
+    instructions: [],
     plugins: [],
-    mcp: {},
+    skills: [],
+    mcp: { servers: {} },
     permissions: [{ action: "*", resource: "*", effect: "deny" }],
     agents: {
       [COURSE_TUTOR_AGENT_ID]: {

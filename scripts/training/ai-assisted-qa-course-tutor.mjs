@@ -49,6 +49,7 @@ export function makeIsolatedEnvironment(directory, request) {
       OPENCODE_CONFIG_DIR: config,
       OPENCODE_DB: ":memory:",
       OPENCODE_DISABLE_PROJECT_CONFIG: "true",
+      OPENCODE_DISABLE_EXTERNAL_SKILLS: "true",
       OPENCODE_DISABLE_AUTOUPDATE: "true",
       OPENCODE_CONFIG_CONTENT: JSON.stringify(buildTutorConfig(request)),
     },
