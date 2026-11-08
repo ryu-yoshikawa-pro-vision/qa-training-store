@@ -42,7 +42,9 @@ function csvRows(relativePath) {
   });
 }
 
-const analysis = JSON.parse(read("training/ai-assisted-qa-course/coverage/supported-behaviors.json"));
+const analysis = JSON.parse(
+  read("training/ai-assisted-qa-course/coverage/supported-behaviors.json"),
+);
 const behaviorCases = csvRows("docs/reports/2026-11-07_pr199-formal-case-adoption-decisions.csv");
 const requirementCases = csvRows(
   "docs/reports/2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv",
@@ -52,8 +54,12 @@ const handoff = csvRows(
 );
 const behaviorById = new Map(analysis.behaviors.map((entry) => [entry.id, entry]));
 const handoffById = new Map(handoff.map((entry) => [entry.requirement_id, entry]));
-const conditionLabels = (text) =>
-  [...new Set([...text.matchAll(/(?<![A-Za-z0-9])C([1-7])(?=(?:[\u3000-\u9fff]|[（(:：= \t]|$))/g)].map((match) => "C" + match[1]))].sort();
+const conditionLabels = (text) => {
+  const matches = text.matchAll(
+    /(?<![A-Za-z0-9])C([1-7])(?=(?:[\u3000-\u9fff]|[（(:：= \t]|$))/g,
+  );
+  return [...new Set([...matches].map((match) => "C" + match[1]))].sort();
+};
 
 describe("PR #199 adopted Case-to-condition integrity (static only)", () => {
   it("keeps 959 adopted behaviors, six explicit handoffs and all 208 sources", () => {
