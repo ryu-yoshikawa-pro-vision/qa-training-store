@@ -95,3 +95,33 @@
 同HEADの[Vitest (contracts) job #128642447954](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42451813033/job/128642447954)では`tests/contracts/ai-assisted-qa-checkout-confirmation.test.mjs`（Git blob `049ef7dcc4058a9b93ce82cd798fc640ffc4f562`）の16テストがPASS。268〜285行のC1向け契約は`getConfirmation()`／`getConfirmation(session.id)`と`beginOrder`の`CART_VERSION_CHANGED`拒否を検査。288〜303行のC2向け契約は表示後のCart版変化による`beginOrder`拒否と`getConfirmation`拒否を検査する。各テストはCart・Cart items・Checkout・Order・Payment・Session・Order items・Order status histories・Daily sequences・Product variants・Inventory historiesの11テーブルを前後比較する。これは製品Use Caseの実テスト根拠であって、Web画面や全Role/Platformの受入の代替ではない。
 
 **判断境界**：この7正式Caseへの追加証拠を確認したが、採用台帳の`execution_acceptance=未受入`、`independent_review=未実施`を変更しない。33件のTest結果から959採用条件＋横断51条件の一括PASSを生成しない。製品SUT・正式仕様・既存製品テスト・Seed/Resetは変更しない。製品不具合は[独立PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)で扱い、修正が#199へ未統合の間は製品FAIL/未受入を維持する。次の照合はこの6件で残るRole/Android/Use Case実Assertionと、まだ直接証拠のない採用Caseを優先する。
+
+## 2026-11-08 正式Caseの条件別実行観点（既存採用IDを維持）
+
+### C1〜C3一括記述の11横断要件
+
+横断要件の[引継ぎ原文](./2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv)では、下表の11要件はすべて「C1〜C3採用」と**一括**記載されている。[横断正式Case CSV](./2026-11-07_pr199-cross-cutting-case-adoption-decisions.csv)は各要件についてC1・C2・C3の3 Caseを採用済みである。以下は正式仕様と引継ぎ原文から**実行時に個別照合する観点**を分けたもので、原文に存在しない個別C番号が確定済みだったと主張しない。検証者は対象Caseに対しRole/Seed/Version・実Assertion・Web/Android・Run/Artifact・DB前後を記録し、不足があれば未受入とする。
+
+| 要件 | C1で照合する観点 | C2で照合する観点 | C3で照合する観点 |
+| --- | --- | --- | --- |
+| `BR-NATIVE-001` | 同SeedのWeb/NativeでLogin・Accountの共有DTO/Role/エラーを照合 | Cart→Checkout→Payment→Orderの状態・金額・エラー/Versionの契約を照合 | Reviewの状態・所有者/エラーとNative管理機能非提供を照合 |
+| `BR-NATIVE-002` | automation/local環境だけがTest Control/Harness/bridgeを提供することを検証 | Production bundleの対象モジュール・画面・サービス・markerが除外されることを検証 | Native SQLite排他transaction・外部キー制約・失敗時rollbackを検証 |
+| `AC-NATIVE-001` | Web/NativeのCart→Checkout→Paymentの購入経路と拒否を照合 | Orderの本人所有・状態・金額・エラーを照合 | Reviewの本人操作と管理権限非混入を照合 |
+| `AC-NATIVE-002` | Automation buildで許可されたHarness/Test Controlへ到達できるか検証 | Production bundleのTest Control/marker/サービス混入なしを検証 | Android実RunとiOS buildのみの保証境界を区別する |
+| `ROLE-01` | guestの公開閲覧とGuest Cart許可を確認 | guestのCheckoutと顧客個人データをRoute・Use Caseで拒否 | guestのStore/User管理を拒否し、拒否前後のSession/DB不変性を確認 |
+| `ROLE-02` | active customerのCart/Checkout・本人データ操作を確認 | 別customerの住所・Order・個人データをRoute・Use Caseで拒否 | active customerの管理Route・Use Caseを拒否しSession/DBを照合 |
+| `ROLE-03` | suspended customerのログイン拒否・新Sessionなしを確認 | withdrawn customerのログイン拒否・新Sessionなしを確認 | 旧Session失効とCheckout拒否、必要なDB不変性をWeb/Nativeで確認 |
+| `ROLE-04` | active operatorのStore管理許可を確認 | operatorのUser管理をRouteとUse Case双方で拒否 | operatorのCheckoutを拒否し、Guest閲覧だけが許可される境界を確認 |
+| `ROLE-05` | active adminのStore管理許可を確認 | adminのUser管理許可を確認 | adminのCheckout拒否と顧客業務への権限混入なしを確認 |
+| `ROLE-RANK` | regular会員の閲覧・表示価格・送料を確認 | gold/platinumのランク制限・割引・送料を境界値で比較 | Rank変更後の旧Checkout失効・再計算を照合 |
+| `ROLE-STATUS` | active↔suspendedの許可された遷移と拒否を確認 | withdrawn終端・変更禁止を確認 | 状態変更時の既存Session失効・再開後の再ログイン・Checkout/DB不変性を確認 |
+
+上表は既存原文からの**検証項目の整理**であり、正式仕様で保証されないNative管理機能や外部決済接続を付け足さない。3件ずつを同一の既存テスト名で一括PASSにしない。BR/ACの根拠は[ネイティブ顧客機能](../../docs/spec/features/native-customer.md)、権限・状態の根拠は[ロールと権限](../../docs/spec/roles-and-permissions.md)。共通Caseの既存テスト候補は元CSVの`existing_test_candidate`を参照する。**原文のC1〜C3を変更・再番号付けしていない**ため、動的実行の正式判定と独立レビューでは、個別期待の採用可否も確認者が記録する必要がある。
+
+### `SCREEN-ORDERS-LIST-A02-03`の条件記述の相違
+
+この動作の正式CSVはC1〜C6の6件を採用するが、分析`test_condition`にはC3〜C6だけが明示され、C1/C2は冒頭にまとめて記されている。一方、同動作の`case_policy`は **C1＝payment_failed/DECLINEDとpaid/succeededの比較、C2＝Webの表示文言・tone、C3＝Nativeの状態文字列** と区分する。この対応を元の分析記録に遡って確認した。引継ぎ元ではないC1/C2の新規判定・新しい期待結果を捏造せず、正式Case IDに対するRole/Seedと実Assertionを個別に確認する。
+
+### 4.5の5引継ぎの静的照合
+
+同じPR HEAD `8c2960863abba41ef58c8a9805a188869588f127` で、M02→M03（1入力）、M04→M05（2入力）、M05→M06（1入力）、M07→M08（4入力）、M09→M10（2入力）のState JSONを直接確認し、採用された入力計10件すべてで`artifact_id`・`path`・`revision`・`contract_id`が出力と一致。M05からの出力2件のうちM06が受け取るのは`M05-result-01`だけで、**出力の一部を次章の任意入力にしない契約**として記録した。これだけで本人提出物の内容・source SHA・実Run・P04/P05本人判断を完了扱いしない。未確認の4.5、6.3、独立レビューは未受入のまま。

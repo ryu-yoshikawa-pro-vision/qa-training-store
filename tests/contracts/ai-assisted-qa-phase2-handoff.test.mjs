@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const statesRoot = path.join(process.cwd(), "training/ai-assisted-qa-course/states");
 const transitions = [
+  ["M02", "M03", 1],
   ["M04", "M05", 2],
   ["M05", "M06", 1],
   ["M06", "M07", 3],
