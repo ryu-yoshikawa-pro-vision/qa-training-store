@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { format } from "prettier";
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
@@ -62,6 +63,21 @@ const conditionLabels = (value) => {
 };
 
 describe("PR #199 adopted Case-to-condition integrity (static only)", () => {
+  it("temporarily records the formatter's exact output for this contract", async () => {
+    const file = "tests/contracts/ai-assisted-qa-formal-case-traceability.test.mjs";
+    const current = read(file);
+    const formatted = await format(current, {
+      parser: "babel",
+      semi: true,
+      singleQuote: false,
+      trailingComma: "all",
+      printWidth: 100,
+      endOfLine: "lf",
+    });
+    if (formatted !== current) {
+      console.log("PR199_FORMAT_OUTPUT_BASE64=" + Buffer.from(formatted).toString("base64"));
+    }
+  });
   it("keeps 959 adopted behaviors, six explicit handoffs and all 208 sources", () => {
     expect(behaviorCases).toHaveLength(965);
     expect(behaviorById.size).toBe(208);
