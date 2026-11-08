@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "module_id": "M10",
+  "questions": [
+    {
+      "id": "M10-Q01",
+      "objective_ids": [
+        "M10-01"
+      ],
+      "question": "Phase 2のテストをPRへ持ち込む直前に、最初に確認することはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "diffで対象spec、関連設定、Secretや無関係な変更がないか確かめる",
+          "meaning": "diffで対象spec、関連設定、Secretや無関係な変更がないか確かめる",
+          "reason": "共有前に公開範囲と変更の根拠を確認できます。"
+        },
+        {
+          "value": "B",
+          "label": "workflowを有効化し、差分はCI後に確認する",
+          "meaning": "workflowを有効化し、差分はCI後に確認する",
+          "reason": "CIへ公開する前に範囲と権限を確認する必要があります。"
+        },
+        {
+          "value": "C",
+          "label": "M07のテストを含む全repositoryを無条件に追加する",
+          "meaning": "M07のテストを含む全repositoryを無条件に追加する",
+          "reason": "課題に関係しないコードや機密の混入を防げません。"
+        },
+        {
+          "value": "D",
+          "label": "AIにPR全体の範囲判断を任せる",
+          "meaning": "AIにPR全体の範囲判断を任せる",
+          "reason": "自動提案だけで変更許可やSecret有無を認定できません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#diffと公開対象を確認する",
+      "knowledge_ids": [
+        "K-M10-01"
+      ]
+    },
+    {
+      "id": "M10-Q02",
+      "objective_ids": [
+        "M10-02"
+      ],
+      "question": "受講者のPlaywright specだけをCIで実行したい。適切なworkflow設計はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "すべてのworkflowとNative suiteを常に実行する",
+          "meaning": "すべてのworkflowとNative suiteを常に実行する",
+          "reason": "対象範囲が必要以上に広くなり、教材の目的と費用を超えます。"
+        },
+        {
+          "value": "B",
+          "label": "Secretとdeployを加え、アプリを公開する",
+          "meaning": "Secretとdeployを加え、アプリを公開する",
+          "reason": "課題に不要な権限と外部副作用を追加しています。"
+        },
+        {
+          "value": "C",
+          "label": "対象spec、必要なBrowser、最小権限、結果保存を明示する",
+          "meaning": "対象spec、必要なBrowser、最小権限、結果保存を明示する",
+          "reason": "実行範囲と証拠を必要最小限にできます。"
+        },
+        {
+          "value": "D",
+          "label": "testDirを指定せず、リポジトリ中の全specを探索させる",
+          "meaning": "testDirを指定せず、リポジトリ中の全specを探索させる",
+          "reason": "旧課程や正式回帰テストまで意図せず実行する可能性があります。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象specとworkflowを限定する",
+      "knowledge_ids": [
+        "K-M10-02"
+      ]
+    },
+    {
+      "id": "M10-Q03",
+      "objective_ids": [
+        "M10-03"
+      ],
+      "question": "CIがPASSしましたが、Artifact内のtarget-sha.txtが現在のPR HEADと異なります。現在のPRをどう報告しますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "古いPASSを現在のPRへ移して成功とする",
+          "meaning": "古いPASSを現在のPRへ移して成功とする",
+          "reason": "異なるcommitを確認した結果は、今のheadの証拠ではありません。"
+        },
+        {
+          "value": "B",
+          "label": "現在のPR HEADに一致するtarget-sha.txtと同じRunのCheck/Artifactを確認するまで未確認とする",
+          "meaning": "現在のPR HEADに一致するtarget-sha.txtと同じRunのCheck/Artifactを確認するまで未確認とする",
+          "reason": "SHAの一致を条件にして検証済み範囲を正しく報告できます。"
+        },
+        {
+          "value": "C",
+          "label": "Run URLが同じrepositoryならPASSとする",
+          "meaning": "Run URLが同じrepositoryならPASSとする",
+          "reason": "repositoryが同じでも実行対象commitが違う場合があります。"
+        },
+        {
+          "value": "D",
+          "label": "Artifactだけ保存しRun/Checkを記録しない",
+          "meaning": "Artifactだけ保存しRun/Checkを記録しない",
+          "reason": "成果物の由来と対象commitを追えません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#対象shaとrunの証拠を照合する",
+      "knowledge_ids": [
+        "K-M10-03"
+      ]
+    },
+    {
+      "id": "M10-Q04",
+      "objective_ids": [
+        "M10-04"
+      ],
+      "question": "PlaywrightはローカルでPASSし、CIではbrowser起動前に失敗しました。次の判断として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "すぐAssertionを弱める",
+          "meaning": "すぐAssertionを弱める",
+          "reason": "ブラウザー起動前の失敗は期待値の誤りとまだ確認できていません。"
+        },
+        {
+          "value": "B",
+          "label": "Timeoutを長くして原因を確定したと報告する",
+          "meaning": "Timeoutを長くして原因を確定したと報告する",
+          "reason": "待ち時間の変更だけでは環境・依存・起動問題の原因を区別できません。"
+        },
+        {
+          "value": "C",
+          "label": "CI失敗はすべてテストと無関係と無視する",
+          "meaning": "CI失敗はすべてテストと無関係と無視する",
+          "reason": "CI環境に関する証拠の調査を省略してしまいます。"
+        },
+        {
+          "value": "D",
+          "label": "該当Runとstep logから起動・依存・browser条件を調べ、spec結果と分ける",
+          "meaning": "該当Runとstep logから起動・依存・browser条件を調べ、spec結果と分ける",
+          "reason": "失敗段階と環境差に基づいて追加調査できます。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#ci失敗の最初の段階を分類する",
+      "knowledge_ids": [
+        "K-M10-04"
+      ]
+    },
+    {
+      "id": "M10-Q05",
+      "objective_ids": [
+        "M10-05"
+      ],
+      "question": "AIがCI提案とコード修正を作りました。最終報告に含めるべき内容はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "AIが修正したので理由や確認範囲は省略する",
+          "meaning": "AIが修正したので理由や確認範囲は省略する",
+          "reason": "自動変更の根拠や未検証事項が分かりません。"
+        },
+        {
+          "value": "B",
+          "label": "CIが緑なら未実行の確認も完了扱いにする",
+          "meaning": "CIが緑なら未実行の確認も完了扱いにする",
+          "reason": "実行していない検証は完了した証拠がありません。"
+        },
+        {
+          "value": "C",
+          "label": "採否の理由、確認したdiff/仕様、対象SHAとCI証拠、未確認事項",
+          "meaning": "採否の理由、確認したdiff/仕様、対象SHAとCI証拠、未確認事項",
+          "reason": "判断の根拠と検証範囲を明確にできます。"
+        },
+        {
+          "value": "D",
+          "label": "失敗したRunを報告から外し、最後の結果だけ書く",
+          "meaning": "失敗したRunを報告から外し、最後の結果だけ書く",
+          "reason": "経緯や残る問題を隠し、判断の再確認ができません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#結果と未確認事項を報告する",
+      "knowledge_ids": [
+        "K-M10-05"
+      ]
+    },
+    {
+      "id": "M10-Q06",
+      "objective_ids": [
+        "M10-03"
+      ],
+      "knowledge_ids": [
+        "K-M10-06"
+      ],
+      "question": "Artifactのtarget SHAは一致しましたが要求したspecとは異なるspecが実行されました。適切な報告はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "指定specは未確認であり実行対象を照合し直す",
+          "meaning": "指定specは未確認であり実行対象を照合し直す",
+          "reason": "要求specが実行されていないため、その検証は未確認と報告します。"
+        },
+        {
+          "value": "B",
+          "label": "SHA一致で全てPASSと認定する",
+          "meaning": "SHA一致で全てPASSと認定する",
+          "reason": "SHA一致だけでは指定specを実行したことは示せません。"
+        },
+        {
+          "value": "C",
+          "label": "別specでも同じ検証として扱う",
+          "meaning": "別specでも同じ検証として扱う",
+          "reason": "違うspecの結果を要求specの成功証拠に流用できません。"
+        },
+        {
+          "value": "D",
+          "label": "緑色CheckならSKIPもPASSとみなす",
+          "meaning": "緑色CheckならSKIPもPASSとみなす",
+          "reason": "SKIPは実行してPASSしたことを意味しません。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-06"
+    },
+    {
+      "id": "M10-Q07",
+      "objective_ids": [
+        "M10-04"
+      ],
+      "knowledge_ids": [
+        "K-M10-07"
+      ],
+      "question": "CIの依存導入が失敗しテストは未実行です。適切な次の判断はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Assertionを変更する",
+          "meaning": "Assertionを変更する",
+          "reason": "テストが始まっていないためAssertion修正の根拠がありません。"
+        },
+        {
+          "value": "B",
+          "label": "原因・権限・費用を確認して再実行可否を判断する",
+          "meaning": "原因・権限・費用を確認して再実行可否を判断する",
+          "reason": "依存導入の失敗を調査し、権限と費用を確認して再実行を判断します。"
+        },
+        {
+          "value": "C",
+          "label": "FAILのRunをPASSと報告する",
+          "meaning": "FAILのRunをPASSと報告する",
+          "reason": "FAILのRunをPASSとして報告できません。"
+        },
+        {
+          "value": "D",
+          "label": "利用枠が不明でも無制限に再試行する",
+          "meaning": "利用枠が不明でも無制限に再試行する",
+          "reason": "料金不明のまま無制限の再試行は避けます。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M10/README.md#k-m10-07"
+    }
+  ]
+}

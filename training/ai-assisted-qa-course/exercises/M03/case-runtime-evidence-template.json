@@ -1,0 +1,8 @@
+{
+  "operation": "verify_runtime_evidence",
+  "skill": "test-case-design",
+  "normalized_skill_input": {},
+  "artifact_markdown": "Replace this placeholder with the exact current text of workspace/M03/cases.md.",
+  "previous_artifact_markdown": null,
+  "partial_rerun": false
+}
