@@ -10,6 +10,15 @@ import { createScenarioDataset } from "../../src/seeds/scenarios";
 
 const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
+// A rejected Use Case must leave every business table unchanged.
+async function tableSnapshot(database) {
+  const entries = await Promise.all(
+    database.tables.map(async (table) => [table.name, await table.toArray()]),
+  );
+  expect(entries).toHaveLength(23);
+  return Object.fromEntries(entries);
+}
+
 describe("AI-assisted QA: self access changes preserve all records", () => {
   it("rejects an admin's own role demotion and suspension without side effects", async () => {
     const database = new ScenarioShopDatabase(`training-admin-self-change-${crypto.randomUUID()}`);
@@ -32,12 +41,7 @@ describe("AI-assisted QA: self access changes preserve all records", () => {
         clock: new TestClock(FIXED_TIME),
         idGenerator: { generate: () => "training-id" },
       });
-      const before = {
-        users: await database.users.toArray(),
-        sessions: await database.sessions.toArray(),
-        checkouts: await database.checkout_sessions.toArray(),
-        carts: await database.carts.toArray(),
-      };
+      const before = await tableSnapshot(database);
       const admin = await database.users.get("user-admin");
       expect(admin).toBeDefined();
 
@@ -56,10 +60,7 @@ describe("AI-assisted QA: self access changes preserve all records", () => {
         }),
       ).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
 
-      expect(await database.users.toArray()).toEqual(before.users);
-      expect(await database.sessions.toArray()).toEqual(before.sessions);
-      expect(await database.checkout_sessions.toArray()).toEqual(before.checkouts);
-      expect(await database.carts.toArray()).toEqual(before.carts);
+      expect(await tableSnapshot(database)).toEqual(before);
     } finally {
       const name = database.name;
       database.close();
@@ -88,12 +89,7 @@ describe("AI-assisted QA: self access changes preserve all records", () => {
         clock: new TestClock(FIXED_TIME),
         idGenerator: { generate: () => "training-id" },
       });
-      const before = {
-        users: await database.users.toArray(),
-        sessions: await database.sessions.toArray(),
-        checkouts: await database.checkout_sessions.toArray(),
-        carts: await database.carts.toArray(),
-      };
+      const before = await tableSnapshot(database);
       const admin = await database.users.get("user-admin");
       const operator = await database.users.get("user-operator");
       expect(admin).toBeDefined();
@@ -130,10 +126,7 @@ describe("AI-assisted QA: self access changes preserve all records", () => {
         }),
       ).rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
 
-      expect(await database.users.toArray()).toEqual(before.users);
-      expect(await database.sessions.toArray()).toEqual(before.sessions);
-      expect(await database.checkout_sessions.toArray()).toEqual(before.checkouts);
-      expect(await database.carts.toArray()).toEqual(before.carts);
+      expect(await tableSnapshot(database)).toEqual(before);
     } finally {
       const name = database.name;
       database.close();
