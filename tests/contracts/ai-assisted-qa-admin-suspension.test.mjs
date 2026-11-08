@@ -27,11 +27,13 @@ function createUseCases(database) {
 }
 
 async function snapshot(database) {
-  return {
-    users: await database.users.toArray(),
-    sessions: await database.sessions.toArray(),
-    checkouts: await database.checkout_sessions.toArray(),
-  };
+  // Rejected access changes must not modify any persisted business table.
+  // Keep records in memory only; do not save personal data in CI artifacts.
+  const entries = await Promise.all(
+    database.tables.map(async (table) => [table.name, await table.toArray()]),
+  );
+  expect(entries).toHaveLength(23);
+  return Object.fromEntries(entries);
 }
 
 describe("AI-assisted QA: admin suspension and data preservation", () => {
@@ -88,7 +90,7 @@ describe("AI-assisted QA: admin suspension and data preservation", () => {
     }
   });
 
-  it("rejects withdrawn, self-suspension, stale version and same-state requests atomically", async () => {
+  it("rejects withdrawn, self-suspension, stale version and same-state requests across all 23 tables", async () => {
     const database = new ScenarioShopDatabase(
       `training-admin-status-denied-${crypto.randomUUID()}`,
     );
