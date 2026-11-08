@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";

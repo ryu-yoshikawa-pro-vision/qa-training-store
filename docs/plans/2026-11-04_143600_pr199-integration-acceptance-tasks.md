@@ -19,7 +19,7 @@
 
 ## 個別検証の進捗（受入範囲は変更しない）
 
-**実証済み 18/39件、未完了 21件。** これは元のマージ前28条件を満たすための**個別検証・判断の内訳**であり、元条件の28件や上位8作業の完了数とは異なる。上位8作業は全条件成立まで未完了のまま。完了済み18件は今回新たに実行した件数ではなく、既存Runと**固定HEAD `fbb1bbfcbb638a53b682a5f2657adc9d9c6655e7`**の実証拠を再照合した結果である。
+**実証済み 19/39件、未完了 20件。** これは元のマージ前28条件を満たすための**個別検証・判断の内訳**であり、元条件の28件や上位8作業の完了数とは異なる。上位8作業は全条件成立まで未完了のまま。完了済み19件のうち18件は既存Runと**固定HEAD `fbb1bbfcbb638a53b682a5f2657adc9d9c6655e7`**の実証拠を再照合した結果である。今回追加の5.4は**固定HEAD `0fd2d8c8e16067d3fa9831feeedd89ed7ef22bff`**の実`course:run`と評価器による検証であり、受講者本人の実技ではない。
 
 - `[x]`は**その行に記載した具体的検証だけ**が完了した意味。参考spec、モック、構造検査、旧HEAD成功を実モデル・本人実操作・最終内容受入へ流用しない。
 - 同じCI/Artifactを複数の異なる観点へ使う場合、検証内容を行ごとに区別する。テスト件数やファイル数を作業件数へ換算しない。
@@ -58,12 +58,12 @@
 - [ ] **4.4** 51目標の説明・例・誘導・別条件・提出証拠・Level 2判定・復習先を1件ずつレビューする。（旧行167）
 - [ ] **4.5** 5つのPhase引継ぎとM00 P04/M05 P05の意味・実Run・SHAを照合し、独立判断の未確認を区別する。（旧行169・248）
 
-### 5. 正式評価・実Run・実モデル校正（旧行174・223）：3/6
+### 5. 正式評価・実Run・実モデル校正（旧行174・223）：4/6
 
 - [x] **5.1** M06完成参照specの固定3件・追加初回2件・再実行2件を実ChromiumでPASSした。本人Runではない。（旧行174） [M06 reference job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614609774)
 - [x] **5.2** M07完成参照specのbefore2件・after3件を実ChromiumでPASSした。本人Runではない。（旧行174） [M07 reference job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614577105)
 - [x] **5.3** M10のPR head/Run/Check/Artifact/digestと拒否条件の固定応答契約9件をPASSした。実API照合ではない。（旧行174） [Vitest contracts job](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42438837128/job/128614576830)
-- [ ] **5.4** M06/M07の正式course:runのreceipt/spec snapshot/実Assertion/別Runを実行・検証する。（旧行174）
+- [x] **5.4** M06/M07の正式`course:run`のreceipt・spec snapshot・Playwright JSON report・業務Assertion・別Runを固定HEAD `0fd2d8c8`の実Chromiumで検証した。M06は3 Run／4チェック、M07は5 Run／7チェックが評価器でPASS（意図的失敗2 Runを含む）。完成参照specを用いた開発側検証であり、受講者本人の修了や実モデル校正は含まない。（旧行174） [実証拠Artifact #13604004761](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42447943699/artifacts/13604004761)
 - [ ] **5.5** 専用M10 workflowの実PR head・attempt・Check・Artifactを本人のPrivate環境で確認する（認証・有効化までBLOCKED）。（旧行174）
 - [ ] **5.6** M04/M07/M10の実モデルで正答・誤答・別解・不正証拠・Prompt Injectionを校正し重大誤PASS 0件を確認する。（旧行223）
 
