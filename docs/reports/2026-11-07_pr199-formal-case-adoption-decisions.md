@@ -73,3 +73,22 @@
 | `PR199-CASE-SCREEN-BOUNDARY-FORBIDDEN-A01-01-C3` | `suspended-operator-surviving-session`で拒否画面から`/admin`への循環を再現。23表不変、ログは`productAcceptance=FAIL` | **製品適合PASSではない**。#210の修正確認、Native/全Role・Visual/a11y |
 
 この3つは**実行証拠の対応付けのみ**。最終SUT/テストHEAD、Role/Seedの追加組合せ、正式期待・観測、独立レビューの判定が揃うまで、個別Caseの`execution_acceptance`も統合44条件も完了扱いにしない。
+
+## 2026-11-08 HEAD `ea02e42b` の実Web Case・DB Artifact照合
+
+対象はPR #199 head `ea02e42bcb203c0971ed1053e017371b16dec83f`。同HEADの[Web CI #42451813033](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42451813033)はattempt 1で全体SUCCESS。実行された[Chromium E2E (cross-role) job #128642596000](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42451813033/job/128642596000)は33テストがPlaywright上でpassed。ただし既知不具合を`test.fail`で期待失敗にしている2件も含むため、33件を正式製品CaseのPASSとはしない。
+
+- 実ログの`PR219_CASE_RUN`は`retry=0`、`project=cross-role-chromium`で、`buildSha=634d98eddc15a1555092bb39102c16f75e7cc55d`を記録。これはPRのmerge-checkoutビルドSHAであり、branch HEADとは別。複数の`PR219_RUNTIME_METADATA`でアプリ`0.1.0`、schema`1`、seed`11`、Reset Clock`2026-07-01T03:00:00.000Z`を観測。既存テスト`e2e/web/pr219-cross-role-lifecycle.spec.ts`のGit blobは`9b398822c36e940f7065e4e2846a11c3dd4e25e5`。
+- 同Runの[DB Artifact #13606091765](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42451813033/artifacts/13606091765)の実ZIPを取得・展開。ZIP SHA-256は`8ff0658f3b5f62651661ee48fe62dad5ba0a0a9ecaca5627cb31ca3a40bed415`でGitHub Artifact digestと一致。4 JSONとも`before`と`after`に同じ23テーブルが存在し、値はすべて64桁の小文字16進SHA-256。各JSONで全23ハッシュが前後一致、4 JSON間のテーブル名集合も一致。生の個人情報、Session値、DB行はArtifactに含めない。
+- 照合したJSONは`pr219-suspended-login-denial-db-digests.json`、`pr219-withdrawn-login-denial-db-digests.json`、`pr219-stale-confirm-rejected-db-digests.json`、`pr219-forbidden-indexeddb-digests.json`。これは各操作のDB不変性の証拠であり、全Role/Platformの適合や画面上の不具合修正を示さない。
+
+| 正式Case ID | 直接確認できたAssertion・Role/状態 | この時点の判定と不足 |
+| --- | --- | --- |
+| `PR199-CASE-SCREEN-AUTH-LOGIN-A02-01-C2` | `default` Seedで`suspended`・`withdrawn`のWebログインフォームを操作し、各拒否alert、`/login`残留、Local Session Pointer未設定、23テーブル不変。実ログは双方`testStatus=passed`、`expectedStatus=passed`、`retry=0` | **Web部分証拠あり・正式Case未受入**。C2のAndroid上の利用者向け文言・Session/SQLite、必要な状態比較と独立判定が不足 |
+| `PR199-CASE-SCREEN-CHECKOUT-CONFIRM-S-stale-cart-C1` | `regular-member`で確認画面を一度表示してからCart数量を変え、再表示時に購入確認を拒否、支払うボタン非表示、23テーブル不変。固定Seedの初期Step不一致を成功根拠にしていない | **Web部分証拠あり・未受入**。`getConfirmation`の`CART_VERSION_CHANGED`直検査、C2の`beginOrder`拒否・決済/在庫/History・競合時点の網羅は別。実ログだけで両Use CaseをPASSにしない |
+| `PR199-CASE-SCREEN-CHECKOUT-CONFIRM-S-stale-cart-C3` | 既知不具合再現テストで復帰Linkのhrefが`/checkout/payment`。7画面幅・一部axe・キーボード遷移の別テストはpassedだが、遷移先の正式適合は判定していない | **復帰先の既知差分を再観測・未受入**。Cart/該当Stepという正式要件の適合判定と修正先はPR #210。テストの緑を復帰UXの製品PASSにしない |
+| `PR199-CASE-SCREEN-BOUNDARY-FORBIDDEN-A01-01-C3` | 停止operatorの生存SessionでForbidden表示後、`管理画面へ`リンクが`/admin`を指し、Enter後も`/forbidden`へ戻る循環を再現。23テーブル不変。実ログ`PR219_CASE_EVIDENCE.productAcceptance=FAIL` | **製品FAILを確認**。DB不変と既知循環不具合は両立する。PR #210による製品側修正と再実行、Android等のCase条件・独立レビューは未受入 |
+| `PR199-CASE-SCREEN-ADMIN-PRODUCTS-A01-02-C3` | `many-products`の2/50ページから最低価格を変更するテストで、1ページに絞られた結果へ戻らない既知不具合を再現。`test.fail`のため実ログは`testStatus=failed/expectedStatus=failed` | **製品不具合の部分再現・未受入**。他の非keyword条件の網羅、正しい再実行・製品修正はPR #210側の判断を要する |
+| `PR199-CASE-SCREEN-ADMIN-PRODUCTS-A01-02-C4` | `default`で商品1件選択後、該当商品が見えない条件へ絞っても選択が残る。`test.fail`で期待失敗を確認 | **製品不具合の部分再現・未受入**。実`bulkChangeStatus`空`targetIds`・UI例外/DB不変まではこのテストで直接検証していない |
+
+**判断境界**：この6正式Caseへの追加証拠を確認したが、採用台帳の`execution_acceptance=未受入`、`independent_review=未実施`を変更しない。33件のTest結果から959採用条件＋横断51条件の一括PASSを生成しない。製品SUT・正式仕様・既存製品テスト・Seed/Resetは変更しない。製品不具合は[独立PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210)で扱い、修正が#199へ未統合の間は製品FAIL/未受入を維持する。次の照合はこの6件で残るRole/Android/Use Case実Assertionと、まだ直接証拠のない採用Caseを優先する。
