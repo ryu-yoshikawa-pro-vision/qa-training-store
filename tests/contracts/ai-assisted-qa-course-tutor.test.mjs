@@ -19,6 +19,7 @@ import {
 import {
   makeIsolatedEnvironment,
   prepareTutorTurnForSend,
+  runPriceCheckedTutorTurn,
   runValidatedTutorTurn,
 } from "../../scripts/training/ai-assisted-qa-course-tutor.mjs";
 
@@ -393,6 +394,27 @@ describe("AI-assisted QA tutor external send boundary", () => {
     fs.rmSync(lesson);
     fs.symlinkSync(path.join(root, documents[0].path), lesson);
     expect(() => prepareTutorTurnForSend(params)).toThrow(/symlink/);
+  });
+
+  it("refuses model execution when free pricing is missing or differs from the selected model", async () => {
+    const invoke = vi.fn(() => "answer");
+    const unavailable = vi.fn().mockRejectedValue(new Error("BLOCKED: pricing unavailable"));
+    await expect(
+      runPriceCheckedTutorTurn({ modelId: request.modelId, verifyPrice: unavailable, invoke }),
+    ).rejects.toThrow(/pricing unavailable/);
+    expect(invoke).not.toHaveBeenCalled();
+
+    const mismatch = vi.fn().mockResolvedValue({ model_id: "opencode/other-model" });
+    await expect(
+      runPriceCheckedTutorTurn({ modelId: request.modelId, verifyPrice: mismatch, invoke }),
+    ).rejects.toThrow(/differs from selected model/);
+    expect(invoke).not.toHaveBeenCalled();
+
+    const valid = vi.fn().mockResolvedValue({ model_id: request.modelId });
+    await expect(
+      runPriceCheckedTutorTurn({ modelId: request.modelId, verifyPrice: valid, invoke }),
+    ).resolves.toBe("answer");
+    expect(invoke).toHaveBeenCalledOnce();
   });
 
   it("isolates OpenCode config, persistence and environment from the user's global settings", () => {

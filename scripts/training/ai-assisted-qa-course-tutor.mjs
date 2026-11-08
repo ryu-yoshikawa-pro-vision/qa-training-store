@@ -9,6 +9,7 @@ import {
   buildOpenCodeEnvironment,
   parseOpenCodeJsonEvents,
 } from "./ai-assisted-qa-assessment-core.mjs";
+import { verifyCurrentFreeModelPrice } from "./ai-assisted-qa-assessment.mjs";
 import {
   buildTutorConfig,
   buildTutorRunArgs,
@@ -123,6 +124,17 @@ export function prepareTutorTurnForSend({
     excerpt: verifiedExcerpt,
     runSummary: verifiedRun,
   });
+}
+
+export async function runPriceCheckedTutorTurn({
+  modelId,
+  verifyPrice = verifyCurrentFreeModelPrice,
+  invoke,
+}) {
+  if (typeof invoke !== "function") fail("model runner is missing");
+  const pricing = await verifyPrice(modelId);
+  if (pricing?.model_id !== modelId) fail("verified model differs from selected model");
+  return invoke();
 }
 
 export async function runTutorCli(argv = process.argv.slice(2)) {
@@ -294,48 +306,55 @@ export async function runTutorCli(argv = process.argv.slice(2)) {
         );
         continue;
       }
-      const directory = fs.mkdtempSync(path.join(os.tmpdir(), "qa-course-tutor-"));
-      try {
-        const environment = makeIsolatedEnvironment(directory, request);
-        const promptPath = path.join(directory, "request.txt");
-        fs.writeFileSync(promptPath, prepared, { mode: 0o600, flag: "wx" });
-        const version = spawnSync(cli, ["--version"], {
-          cwd: directory,
-          env: environment,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
-          timeout: 10000,
-          shell: false,
-        });
-        if (
-          version.error ||
-          version.status !== 0 ||
-          version.stdout?.trim().split(/\r?\n/).at(-1)?.replace(/^v/, "") !==
-            REQUIRED_OPEN_CODE_VERSION
-        )
-          fail("OpenCode CLI 2.0.22 is required");
-        const result = spawnSync(cli, buildTutorRunArgs({ modelId: request.modelId, promptPath }), {
-          cwd: directory,
-          env: environment,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
-          maxBuffer: 1024 * 1024,
-          timeout: 120000,
-          shell: false,
-        });
-        if (result.error || result.status !== 0) fail("model command failed; no raw logs retained");
-        const parsed = parseOpenCodeJsonEvents(result.stdout, result.status);
-        const answer = validateTutorText(
-          parsed.response,
-          "model response",
-          MAX_TUTOR_QUESTION_BYTES,
-        );
-        console.log(answer);
-        history.push({ question, answer });
-        if (history.length > 4) history.shift();
-      } finally {
-        fs.rmSync(directory, { recursive: true, force: true });
-      }
+      // Check current published free pricing after SEND and before any OpenCode subprocess.
+      const answer = await runPriceCheckedTutorTurn({
+        modelId: request.modelId,
+        invoke: () => {
+          const directory = fs.mkdtempSync(path.join(os.tmpdir(), "qa-course-tutor-"));
+          try {
+            const environment = makeIsolatedEnvironment(directory, request);
+            const promptPath = path.join(directory, "request.txt");
+            fs.writeFileSync(promptPath, prepared, { mode: 0o600, flag: "wx" });
+            const version = spawnSync(cli, ["--version"], {
+              cwd: directory,
+              env: environment,
+              encoding: "utf8",
+              stdio: ["ignore", "pipe", "pipe"],
+              timeout: 10000,
+              shell: false,
+            });
+            if (
+              version.error ||
+              version.status !== 0 ||
+              version.stdout?.trim().split(/\r?\n/).at(-1)?.replace(/^v/, "") !==
+                REQUIRED_OPEN_CODE_VERSION
+            )
+              fail("OpenCode CLI 2.0.22 is required");
+            const result = spawnSync(cli, buildTutorRunArgs({ modelId: request.modelId, promptPath }), {
+              cwd: directory,
+              env: environment,
+              encoding: "utf8",
+              stdio: ["ignore", "pipe", "pipe"],
+              maxBuffer: 1024 * 1024,
+              timeout: 120000,
+              shell: false,
+            });
+            if (result.error || result.status !== 0) fail("model command failed; no raw logs retained");
+            const parsed = parseOpenCodeJsonEvents(result.stdout, result.status);
+            const answer = validateTutorText(
+              parsed.response,
+              "model response",
+              MAX_TUTOR_QUESTION_BYTES,
+            );
+            return answer;
+          } finally {
+            fs.rmSync(directory, { recursive: true, force: true });
+          }
+        },
+      });
+      console.log(answer);
+      history.push({ question, answer });
+      if (history.length > 4) history.shift();
     }
   } finally {
     rl.close();

@@ -11,6 +11,7 @@
 - [x] 変更前HEAD `759feb37`のWeb CI全体SUCCESS、Mobile CI全体FAIL（Gradle配布ZIP timeout、native-ci/verify）を照合する。
 - [x] B案のマージ前7件・後続12件・7.2の2段階受入を既存Plan・継続手順に反映する。
 - [ ] B案の1.2、1.3、1.4と外部AI安全条件の実ゲートを検証する。
+- [ ] チューター料金ガードの回帰テストと同一HEADのCIを確認する。
 - [ ] 独立レビューと最終HEADの必須CI・Artifact・マージ判定を確認する。
 
 ## Blocked
