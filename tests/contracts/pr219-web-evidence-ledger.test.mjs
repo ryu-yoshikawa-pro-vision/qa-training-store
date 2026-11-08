@@ -307,13 +307,17 @@ describe("PR #219: Web Case実行証拠と208動作の追跡契約", () => {
 
   it("retains successful cross-role visual/axe screenshots without broad output uploads", () => {
     const workflow = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
-    const start = workflow.indexOf("      - name: Upload cross-role visual and accessibility evidence");
+    const start = workflow.indexOf(
+      "      - name: Upload cross-role visual and accessibility evidence",
+    );
     const end = workflow.indexOf("      - name: Upload Training Web artifacts on failure", start);
     expect(start).toBeGreaterThan(0);
     expect(end).toBeGreaterThan(start);
     const upload = workflow.slice(start, end);
     expect(upload).toContain("if: ${{ success() && matrix.name == 'cross-role' }}");
-    expect(upload).toContain("name: pr199-cross-role-visual-${{ github.run_id }}-${{ github.run_attempt }}");
+    expect(upload).toContain(
+      "name: pr199-cross-role-visual-${{ github.run_id }}-${{ github.run_attempt }}",
+    );
     for (const path of [
       "pr219-catalog-*.png",
       "pr219-empty-*.png",
