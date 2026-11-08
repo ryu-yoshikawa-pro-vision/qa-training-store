@@ -8168,6 +8168,36 @@
       "from": "STATE-M10-START",
       "relation": "requires",
       "to": "ART-M10-INPUT-START"
+    },
+    {
+      "from": "K-M05-11",
+      "relation": "requires",
+      "to": "K-M05-03"
+    },
+    {
+      "from": "K-M05-12",
+      "relation": "requires",
+      "to": "K-M05-03"
+    },
+    {
+      "from": "K-M05-13",
+      "relation": "requires",
+      "to": "K-M05-04"
+    },
+    {
+      "from": "K-M05-14",
+      "relation": "requires",
+      "to": "K-M05-04"
+    },
+    {
+      "from": "K-M05-15",
+      "relation": "requires",
+      "to": "K-M05-07"
+    },
+    {
+      "from": "K-M05-16",
+      "relation": "requires",
+      "to": "K-M05-09"
     }
   ],
   "source_revisions": {

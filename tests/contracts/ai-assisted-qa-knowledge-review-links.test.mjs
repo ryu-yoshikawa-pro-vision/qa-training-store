@@ -128,6 +128,22 @@ describe("AI-assisted QA knowledge and assessment references", () => {
     );
   });
 
+  it("orders M05 detailed practice after its foundational concepts", () => {
+    const prerequisites = [
+      ["K-M05-11", "K-M05-03"],
+      ["K-M05-12", "K-M05-03"],
+      ["K-M05-13", "K-M05-04"],
+      ["K-M05-14", "K-M05-04"],
+      ["K-M05-15", "K-M05-07"],
+      ["K-M05-16", "K-M05-09"],
+    ];
+
+    for (const [from, to] of prerequisites) {
+      expect(graph.edges).toContainEqual({ from, relation: "requires", to });
+    }
+    expect(graph.nodes.filter((node) => node.type === "knowledge")).toHaveLength(82);
+  });
+
   it("keeps M00 port visibility and usage limits linked to M00-04 grading", () => {
     const objective = "M00-04";
     const knowledge = "K-M00-08";
