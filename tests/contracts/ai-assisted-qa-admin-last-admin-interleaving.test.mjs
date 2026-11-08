@@ -19,7 +19,6 @@ async function tableSnapshot(database) {
   return Object.fromEntries(tables);
 }
 
-
 // A controlled interleaving, not proof that a real concurrent request has occurred.
 describe("AI-assisted QA: last-admin protection under an authorization interleaving", () => {
   it.each(["role", "suspension"])(
