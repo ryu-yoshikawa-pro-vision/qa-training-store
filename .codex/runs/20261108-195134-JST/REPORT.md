@@ -10,3 +10,10 @@
 - 横断51条件の残14件を既存の成功ジョブ・Assertionと照合し、部分根拠と残る実Run/Role/Seed/State/Platform/DB/独立判定を既存レポートへ記載。51件とも実行受入・独立レビュー未完了。959動作Caseの全数受入も未完了。
 - 第三者権利、OpenCode実CLI・Provider、M10本人Private、実モデル、画像の独立比較・スクリーンリーダー、正式Case全数・独立レビューは未受入。Mobile CIの外部Gradle/OpenSSL 504は過去ログで確認済みだが、最新HEADの原因は別途判定が必要。
 - コード変更はGitHub接続によるPRブランチのファイル更新。ローカルcheckoutがないため `scripts/new-run.sh` と `scripts/sanitize-codex-artifacts.mjs` は実行していない。`run.json`は作成・編集していない。本Runにはローカル絶対パス・秘密情報・個人情報の実データを保存していない。
+
+## 継続作業：6.7在庫・Order/Shipment
+
+- 開始HEAD `af646723e27568d018b0baf199a5d80e1687336e`、PR #199はOPEN／統合先main。統合受入Planの6.3/6.7と既存テストを確認した。製品SUT、正式仕様、既存製品テストは変更しない。
+- `tests/integration/admin-operations-use-cases.test.ts` の在庫不足・Version競合、paid→preparing→shipped→deliveredの既存実Use Caseを再利用し、専用QA契約に23テーブル前後比較、正常更新の許容テーブル境界、customerからの管理操作拒否を追加した。
+- 追加テストはWeb Dexie/IndexedDBを対象とする。Android SQLite・現場の同時実行・959 Case全数への適用を示すものではない。
+- 本記録の追加時点では新テストのCI未実行・未確定。結果は後続のRunとPRコメントで実Run/jobに基づき補完する。
