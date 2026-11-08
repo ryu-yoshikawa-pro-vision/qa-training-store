@@ -30,3 +30,10 @@
 - ADR-0004/0009と`tests/contracts/native-sqlite-transactions.test.ts`、`tests/repository-contract/native-customer-shared.test.ts`、`src/infrastructure/database/sqlite/native-customer-repositories.ts`の実行経路を確認。Node環境では`node:sqlite`で実SQLを走らせるがAndroid `expo-sqlite`の代用として正式受入へ昇格しない。
 - 新規の`tests/contracts/ai-assisted-qa-native-sqlite-rollback.test.ts`は、(1)新規Guest Cartの存在しないVariant拒否、(2)Cart Item挿入後の故障注入、(3)stale Cart/Itemと数量超過、(4)Seed途中の外部キー違反について、Native 23テーブルを全件前後比較。比較するレコード実値をログやArtifactへ書き出さない。
 - 追加時点のCIは未確定。実行時に形式・Assertion・環境差異を確認し、失敗した場合はQA契約の不備か製品不具合かを切り分ける。
+
+## 2026-11-08 B案移行（マージ判定へ集中）
+
+- ユーザー指示により、旧受入個別検証20/39（残19）、旧8作業0/8を履歴として残したまま、マージ前7条件／後続12条件と7.2残範囲へ受入期限を改定。旧44条件、本人マージ後6条件、959＋51正式Caseの未受入判定は削除・PASS化しない。
+- 更新対象：`docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md`、`docs/plans/2026-11-08_101200_pr199-continuation.md`。PR本文は同じHEADの事実・CI結果で別途更新する。
+- 固定Skillの一次許諾、未知PII／完成評価資料の配布除外、公開JS/画像/フォント権利、外部AIの実送信停止/分離、独立レビュー、最終HEADの必須Mobile CIは未受入。マージ可能とは判定しない。
+- コード・製品SUT・正式Case CSV・権利根拠は今回の文書変更で変更しない。追加QAテストの積み増しを止め、実ゲートの解消に作業を移す。
