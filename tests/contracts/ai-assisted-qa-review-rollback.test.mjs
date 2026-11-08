@@ -72,7 +72,7 @@ describe("AI-assisted QA: review lifecycle rollback across 23 Web tables", () =>
     };
   }
 
-  it("rejects undelivered and other-owned customer review operations without any DB write", async () => {
+  it("rejects non-delivered and other-owned review writes across all 23 tables", async () => {
     const customer = new CustomerReviewUseCases(dependencies());
     const paid = await database.orders.where("status").equals("paid").first();
     expect(paid).toBeDefined();
@@ -115,7 +115,11 @@ describe("AI-assisted QA: review lifecycle rollback across 23 Web tables", () =>
     database.close();
     await Dexie.delete(name);
     database = new ScenarioShopDatabase(name);
-    await loadSeedDataset(database, createScenarioDataset("reviewable-orders"), "reviewable-orders");
+    await loadSeedDataset(
+      database,
+      createScenarioDataset("reviewable-orders"),
+      "reviewable-orders",
+    );
     await database.sessions.put({
       id: "customer-session",
       userId: "user-customer-regular",
