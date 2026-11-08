@@ -17,3 +17,9 @@
 - `tests/integration/admin-operations-use-cases.test.ts` の在庫不足・Version競合、paid→preparing→shipped→deliveredの既存実Use Caseを再利用し、専用QA契約に23テーブル前後比較、正常更新の許容テーブル境界、customerからの管理操作拒否を追加した。
 - 追加テストはWeb Dexie/IndexedDBを対象とする。Android SQLite・現場の同時実行・959 Case全数への適用を示すものではない。
 - 本記録の追加時点では新テストのCI未実行・未確定。結果は後続のRunとPRコメントで実Run/jobに基づき補完する。
+
+## 継続作業：6.7 Review
+
+- `tests/integration/review-user-use-cases.test.ts` と CustomerReviewUseCases / AdminReviewUseCases の現行処理を確認し、専用QA契約でレビューの配送前拒否、他人の編集/削除拒否、Version競合、deleted終端を全23テーブル比較する。
+- 正常な作成・更新・削除および公開/非公開の更新は `reviews`、`review_status_histories`、`product_review_summaries` のみを許容して他テーブルの非変更を検査する。
+- 追加時点のCIは未確定。Web Dexie契約でありAndroid SQLiteや独立レビューへの受入拡張は行わない。
