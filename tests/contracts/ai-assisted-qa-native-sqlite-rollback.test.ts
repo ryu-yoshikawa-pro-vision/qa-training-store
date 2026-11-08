@@ -52,11 +52,16 @@ class NodeSQLiteHarness {
 
   snapshot(): Record<string, SqlRow[]> {
     const tables = this.sqlite
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      )
       .all() as { name: string }[];
     expect(tables).toHaveLength(23);
     return Object.fromEntries(
-      tables.map(({ name }) => [name, this.sqlite.prepare(`SELECT * FROM "${name}" ORDER BY rowid`).all()]),
+      tables.map(({ name }) => [
+        name,
+        this.sqlite.prepare(`SELECT * FROM "${name}" ORDER BY rowid`).all(),
+      ]),
     );
   }
 
@@ -74,7 +79,10 @@ describe("AI-assisted QA: Native customer SQLite 23-table rollback", () => {
   beforeEach(async () => {
     database = new NodeSQLiteHarness();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);
-    await seedNativeDataset(database as unknown as SQLiteDatabase, createScenarioDataset("default"));
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
     repository = new NativeCustomerSQLiteRepository(database as unknown as SQLiteDatabase);
   });
 
@@ -114,7 +122,7 @@ describe("AI-assisted QA: Native customer SQLite 23-table rollback", () => {
     expect(database.snapshot()).toEqual(before);
   });
 
-  it("keeps all tables unchanged on stale Cart, stale Item and quantity-limit errors", async () => {
+  it("keeps all tables unchanged on stale Cart, stale Item, and quantity-limit errors", async () => {
     const cart = await repository.addItem({
       guestId,
       variantId: "variant-basic-shirt-02",
