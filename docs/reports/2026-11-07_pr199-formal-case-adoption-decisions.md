@@ -172,3 +172,26 @@
 | `PR199-CASE-REQ-AC-NATIVE-002-C3` | Android 17 Suite成功、同固定HEADではiOSは独立ビルド検証のみ | 最新HEADのMobile CI、iOS実機・Simulator実Runの保証外範囲 |
 
 上記12 Caseは**既存成功Runの補助証拠**であって新たな12件の受入完了ではない。上のWeb部分証拠15件と合わせて横断Case **27/51件に少なくとも一部の実Run根拠**を紐付けたが、51件の`execution_acceptance`と`independent_review`は変更していない。実Web/Androidの同Seed・同DTO比較、セキュリティ/rollback、現HEADのMobile外部HTTP 504と独立レビューは未受入である。
+
+## 2026-11-08 横断Caseの既存Use Case・Policy実Run照合（追加10件）
+
+対象：固定PR HEAD `7cc5ef3cdb5647ac359f1ad8d2a516f56cf3841a` の[Web CI #42471513178](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178)（全体SUCCESS）。[Vitest (unit) job #128703136379](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703136379)は66テストPASS、[Vitest (integration) job #128703136446](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/42471513178/job/128703136446)は150テストPASS。ジョブログで以下の6テストファイルの成功行を直接確認した。CIはPR merge-checkoutの実行であり、branch HEADの文字列一致を根拠にせず、記載したテストのBlob/Assertionを固定HEADで確認した。既存製品テストを変更・再実装していない。
+
+下表は採用済み横断Caseの**新たな10件に、実行されたPolicy/Use Caseの部分証拠**を対応付けたもの。テストの合格はCase全条件の動的受入や独立レビューの合格ではない。
+
+| 採用済み横断Case | 直接実行されたAssertionと根拠ファイル（行） | 未確認の条件 |
+| --- | --- | --- |
+| `PR199-CASE-REQ-ROLE-RANK-C1` | `tests/unit/policies.test.ts:19–55`はregularでgold制限商品を拒否。`tests/unit/pricing.test.ts:38–58`はregularの割引0・送料判定を検証 | 画面上の価格/閲覧、Role・Seed別のAndroid実操作 |
+| `PR199-CASE-REQ-ROLE-RANK-C2` | 同Policyでplatinum/gold制限の可否、同Pricingでgold 5%・platinum 10%と送料計算を検証（`pricing.test.ts:22–58`） | 制限商品全種類、境界値・端末表示と実DB計算 |
+| `PR199-CASE-REQ-ROLE-RANK-C3` | `tests/integration/review-user-use-cases.test.ts:276–295`でrank変更→旧Checkout abandoned・Cart保持。`checkout-order-use-cases.test.ts:332–355`で新rankを注文snapshotへ反映 | 旧Checkout全API拒否、再確認の画面・金額・Session・競合と全23表 |
+| `PR199-CASE-REQ-TRANSITION-ACCOUNT` | `review-user-use-cases.test.ts:297–350`で役割変更後Session全失効・停止/withdrawn拒否を検査。`tests/unit/policies.test.ts:68–80`で許可/拒否の遷移を検査 | 同時Version競合、全拒否経路のDB/Session・Web/Android。PR追加の全23表契約は後続HEADで別途検証 |
+| `PR199-CASE-REQ-TRANSITION-CHECKOUT` | `checkout-order-use-cases.test.ts:116–135`でactive Sessionの作成/再開/Cart版不一致拒否・旧Session abandonedを実検証 | 24時間期限/expired/converted終端、競合・全DB rollbackとWeb/Android |
+| `PR199-CASE-REQ-TRANSITION-ORDER` | `checkout-order-use-cases.test.ts:277–330`で決済失敗→再試行→paidと履歴・決済試行の整合、`admin-operations-use-cases.test.ts:179–230`でpaid→preparing→shipped→deliveredと旧Version拒否 | 逆遷移・全失敗条件・各段階のDB全表・別Role/Platform |
+| `PR199-CASE-REQ-TRANSITION-SHIPMENT` | `admin-operations-use-cases.test.ts:179–230`でpending→shipped→delivered、追跡番号、配送時刻と注文Version・Historyを比較 | 失敗時のShipment/Order原子rollback、逆転/重複、全表不変 |
+| `PR199-CASE-REQ-TRANSITION-REVIEW` | `review-user-use-cases.test.ts:66–124`で本人レビューの作成/更新/削除と公開集計、`242–260`でpublished→hidden・History/集計、`157–201`で投稿拒否を検証 | hidden→published/削除終端の全組合せ、他者・競合・DB全表 |
+| `PR199-CASE-REQ-TRANSITION-CART` | `cart-use-cases.test.ts:103–143`でabandoned済みCart再利用を拒否して新Cart生成。`checkout-order-use-cases.test.ts:155–227`で注文・Payment・Inventory更新の一回性を検証 | Guest Cart統合時のabandoned、購入後consumedの直接状態比較、全競合・rollback |
+| `PR199-CASE-REQ-STATE-TERMINAL` | `tests/unit/policies.test.ts:68–80`でdiscontinued→published、deleted→published、expired→activeを拒否。`review-user-use-cases.test.ts:157–201`で削除済みReview再投稿拒否 | delivered/converted/abandonedを含む全終端のUse Case直呼び、VersionとDB/Session不変 |
+
+**進捗の境界**：従来のWeb 15件＋Native 12件に、上記の異なる10 Caseを加え、横断51条件のうち **37/51件には少なくとも一部の実行証拠が紐付く**。これは**37件PASS**や、残る14件にテストが存在しないという意味ではない。複数のCaseで同じ実Runを再利用しているが、テスト件数をCase件数へ換算していない。実装された画面・Use Case・Role/Seed/State/Platform/DBの全期待結果、既知製品FAIL、本人環境、独立レビューを満たすまでは全51件の`execution_acceptance=未受入`・`independent_review=未実施`を保持する。作業6.3と上位8作業は未完了、個別検証20/39を変更しない。
+
+**次の照合対象**：まだ部分証拠を直接結び付けていない横断14件（`STATE-BOUNDARY`、`STATE-NATIVE`、`UI-BREAKPOINT`、`UI-DESIGN`、`SCOPE-SUPPORTED-1/2/3/4/6`、`PLATFORM-NATIVE`、および他の残件）について、実CI/ArtifactとCaseの個別期待を突合する。画面幅やa11y、Nativeの主張は、Policy/Use Caseの緑だけで代用しない。
