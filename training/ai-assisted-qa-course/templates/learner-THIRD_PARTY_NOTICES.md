@@ -13,6 +13,17 @@ Web Buildの `course/shop/_expo/static/css/files/` に含まれる以下のフ�
 
 配布元パッケージ：`@fontsource/inter@5.3.0`、`@fontsource/noto-sans-jp@5.3.0`。OFL公式サイト：[OFL公式](https://openfontlicense.org/) 。
 
+## Expo RouterとReact Navigationの配布画像
+
+`course/shop/assets/expo-router/**` に含まれるPNG12件は、Expo Routerおよび同製品が含むReact Navigation Elementsの配布画像です。配布先でファイル名にBuildハッシュが付くため、下記はフォルダ・ファイル種類で対象を示します。両者の元著作権表示とMIT Licenseを保持します。MIT全文は `LICENSE` を参照してください。
+
+| 出典 | 対象画像 | 元の著作権表示 | ライセンス |
+| --- | --- | --- | --- |
+| [Expo Router](https://github.com/expo/expo/tree/main/packages/expo-router)（使用版 `expo-router@57.0.30`） | `assets/expo-router/` 直下のPNG7件 | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) | [MIT](https://github.com/expo/expo/blob/main/LICENSE) |
+| [React Navigation Elements](https://github.com/react-navigation/react-navigation/tree/main/packages/elements) | `assets/expo-router/react-navigation/elements/` のPNG5件 | Copyright (c) 2017 React Navigation Contributors | [MIT](https://github.com/react-navigation/react-navigation/blob/main/packages/elements/LICENSE) |
+
+この表示は該当する配布画像の出典を示すものであり、生成WebのJavaScript依存物すべての権利確認や、教材内の商品画像・仕様画面の素材利用権限を証明するものではありません。
+
 ## Web JavaScriptに含まれる第三者コード
 
 Web CI Run [41297580957](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41297580957)（対象HEAD `708c7be0d6cb3a97050593f48939e073ef484bca`）の生成JavaScript `course/shop/_expo/static/js/web/entry-*.js`には、次の著作権・MITライセンス表示が含まれています。実際のファイル名にはBuildごとに変わるハッシュが付くため、この通知では固定しません。原文の表示を保持し、独自著作物のMITに帰属させません。

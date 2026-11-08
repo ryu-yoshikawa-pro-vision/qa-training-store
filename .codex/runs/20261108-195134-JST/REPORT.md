@@ -44,3 +44,10 @@
 - 既存`verifyCurrentFreeModelPrice`を再利用し、毎回のSEND後、OpenCode起動前に料金を照合。失敗・モデル不一致で子プロセスを起動しない。拒否負例を専用契約に追加。
 - 公開カタログの単価0は本人の実契約/保持/請求を保証しないので、開始ガイドと学習Templateに制約を追記。実Provider接続・本人認証は未受入。
 - 同一HEADの必須CIは変更反映後に確認する。
+
+## 2026-11-08 B案：同梱PNGのMIT表示追加
+
+- `710dc127425e274549186a35826d864288d052d1` のWeb production ZIPで`assets/expo-router/**`のPNG12件を分類。Expo Router直下7件、React Navigation Elements由来5件。
+- Expo Router使用版`57.0.30`を現行`package.json`／lockfileで確認。元のExpo MIT LICENSEにCopyright (c) 2015-present 650 Industries, Inc.、React Navigation ElementsのMIT LICENSEにCopyright (c) 2017 React Navigation Contributorsがあることを取得元で確認。
+- 学習者向け`THIRD_PARTY_NOTICES.md`へ元著作権者・MIT・適用画像の範囲を追記。JS依存物の全件監査、商品画像・画面素材の一次権利は依然未確認。B案1.4をPASSに変更しない。
+- このドキュメント変更後の新HEADのCIは実証待ち。画像や製品SUTのバイト列は変更していない。
