@@ -204,7 +204,7 @@
 
 <!-- qa-context-field:start key=qa.feature_base_ref type=scalar -->
 
-（未設定）
+refs/heads/main@2a8bcf57ff091e84a8b3bf7b123568e967000d88
 
 <!-- qa-context-field:end -->
 
