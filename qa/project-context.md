@@ -1,0 +1,227 @@
+# 案件コンテキスト テンプレート
+
+このテンプレートは、`qa-workflow`と各QA Skillが参照する**案件固有の設定値**を記録するための既定形です。
+
+再利用可能なQA判断ロジックや既定の分析ルールはここへ置きません。
+
+値が不明な場合は推測せず、空欄または`UNKNOWN` / `N/A`とします。
+
+## 1. プロジェクト / 機能
+
+- プロジェクト: qa-training-store
+- 対象機能 / 変更:
+- リリース / バージョン:
+- 対象期間:
+
+## 2. 案件固有のテスト目的 / 重点
+
+- 案件固有のテスト目的:
+- 特に守るべき業務価値 / ユーザー影響:
+- 特に重点化する領域:
+
+## 3. テスト範囲
+
+- テストレベル:
+- 対象機能:
+- 対象画面:
+- 対象ユーザーロール:
+- 対象業務フロー:
+- 変更範囲:
+
+## 4. 実施環境 / 対象条件
+
+- 実施環境 / 対象条件:
+- テスト環境:
+- ロケール / 言語:
+- その他の環境制約:
+
+### 任意: Web / モバイル固有条件
+
+- ブラウザ:
+- 端末:
+- 画面幅 / ビューポート:
+- OS:
+
+### 任意: E2E / Playwright実行条件
+
+必要な場合だけ記録します。password、token、cookie、secret値そのものは記録しません。
+
+- 対象repo / workspace:
+- テスト環境URL:
+- 主たる対象origin:
+- 許可された外部origin / 外部依存:
+- 対象ブラウザ / Playwright project:
+- 認証方法:
+- 認証情報の取得方法または環境変数名:
+- 利用可能なtest user / role:
+- テストデータ・状態準備方法:
+- 共有環境 / resource policy（resource ref、workflow別isolation、外部reservationの取得条件、owner / release条件）:
+- 副作用の許可範囲 / 1回の定義 / 最大回数 / 根拠:
+- テスト対象資料成果物参照:
+- cleanup制約:
+- 証跡の保存・共有制約:
+- テスト対象version / build ID等の確認方法:
+- ローカル実行上の既知制約:
+
+## 5. 情報源の優先順位
+
+| 優先順位 | 情報源 | 役割 / 備考 |
+| -------- | ------ | ----------- |
+| 1        |        |             |
+| 2        |        |             |
+| 3        |        |             |
+| 4        |        |             |
+| 5        |        |             |
+
+## 6. 正式用語
+
+| 意味 / 概念 | 正式用語 | 情報源 / 備考 |
+| ----------- | -------- | ------------- |
+|             |          |               |
+
+## 7. 検証方法の選択
+
+案件固有の方針がある場合だけ記載します。
+
+- UI検証:
+- API検証:
+- DB検証:
+- ログ検証:
+- 内部状態検証:
+
+## 8. 非機能テスト範囲
+
+- 性能:
+- アクセシビリティ:
+- 互換性:
+- 信頼性:
+- セキュリティ:
+- ユーザビリティ:
+
+## 9. テストデータ / 状態 / 環境の既知制約
+
+設計前から分かっている準備不能・利用不可・固定制約がある場合だけ記載します。
+
+- 準備できないテストデータ:
+- 利用できないユーザー / ロール:
+- 作れない状態:
+- 利用できない環境 / 端末:
+- その他の実施制約:
+
+## 10. 進行モード
+
+選択モード:
+
+- `gated`
+- `continuous`
+- 空欄 = `qa-workflow`の既定値を使用
+
+### 任意: ゲートのグループ化
+
+- ゲート1:
+- ゲート2:
+- ゲート3:
+
+## 11. 対象外
+
+-
+
+## 12. 確定事項（決定事項の正本一覧）
+
+<!-- dprint-ignore -->
+| ID | 確定内容 | 状態 | 決定根拠 | 影響範囲 | 関係 | 関連仕様根拠ID | 置換先ID | 備考 |
+| --- | -------- | ---- | -------- | -------- | ---- | -------------- | -------- | ---- |
+
+## 13. 仮定（仮定の正本一覧）
+
+<!-- dprint-ignore -->
+| ID | 仮定 | 状態 | 理由 / 根拠 | 承認根拠 | 影響範囲 | 置換先ID | 備考 |
+| --- | ---- | ---- | ----------- | -------- | -------- | -------- | ---- |
+
+## 14. 既存QA成果物
+
+既存成果物や履歴を固定root scanする場合は、そのrootまたはdirect refを「場所」に記録し、対象範囲と鮮度 / revisionを併記します。Regression baseline / ActivityやExploration Sessionのrootを専用stable keyとして推測追加しません。workflow stateのrootは下記`qa.workflow_state_root`を使います。
+
+| 成果物 | 場所 | 範囲 | 鮮度 / バージョン | 備考 |
+| ------ | ---- | ---- | ----------------- | ---- |
+|        |      |      |                   |      |
+
+## 15. 案件固有メモ
+
+-
+
+## 16. QA artifact graphの固定rootとcurrentness項目
+
+各fieldのstable keyは表示文言・heading・行番号から独立しています。workflowが依存するfieldは、このkeyと正規化値をsnapshotへ記録します。値を未設定のまま利用できると推測しません。`qa.reservation_root`は予約保存先のroot候補であって、providerの選択やatomic conditional releaseの保証ではありません。共有resourceを使用する案件では、利用するprovider、認証されたowner、revisionとcleanup・解放方法をSection 4の環境・resource条件で決めます。未選定の場合は予約をblockし、SQLiteや旧JSONへ暗黙に作成しません。旧予約データを削除・自動移行しません。
+
+<!-- qa-context-field:start key=qa.regression_scope type=ordered_text -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.regression_policy type=scalar -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.knowledge_root type=path -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.workflow_state_root type=path -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.reservation_root type=path -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.auxiliary_testware_refs type=ordered_lines -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.feature_source_refs type=ordered_lines -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.feature_artifact_root type=path -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.feature_base_ref type=scalar -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.feature_approval_policy_ref type=scalar -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+<!-- qa-context-field:start key=qa.defect_issue_tracker_ref type=scalar -->
+
+（未設定）
+
+<!-- qa-context-field:end -->
+
+feature-analysisは情報源参照・機能一覧のroot・基準branch/revision・承認方針refのみを保持し、source全文やsecret・認証情報・機能一覧そのものをProject Contextへ複製しません。
+
+`qa.defect_issue_tracker_ref`は、欠陥候補を引き継ぐ外部Issue管理先の参照（例：`github:owner/repo`）だけを保持します。未設定の案件では外部Issue連携を行わず、`defect-management`は欠陥候補の整理・修正確認依頼までで完了できます。認証情報やIssue本文は記録しません。
+
+root pathはproject-local fixed locationにし、同じ案件内のworkflowから一意に解決できる値を記録します。secret実値は追加しません。
