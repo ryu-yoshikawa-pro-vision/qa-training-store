@@ -190,18 +190,46 @@ jobs:
           const pulls = JSON.parse(await fs.readFile(process.env.OPEN_PRS_FILE, "utf8"));
           if (!Array.isArray(pulls)) needsHuman("open_pr_list_invalid");
           if (pulls.length >= 100) needsHuman("open_pr_list_truncated");
+          const fetchPullFiles = async (pull, diagnosticPrefix) => {
+            if (!Number.isInteger(pull.number) || pull.number < 1) needsHuman(`${diagnosticPrefix}_number_invalid`);
+            if (typeof process.env.REPOSITORY !== "string") needsHuman(`${diagnosticPrefix}_repository_invalid`);
+            const repositoryParts = process.env.REPOSITORY.split("/");
+            if (repositoryParts.length !== 2 || repositoryParts.some((part) => part.length === 0)) {
+              needsHuman(`${diagnosticPrefix}_repository_invalid`);
+            }
+            const apiRoot = new URL(process.env.API_URL);
+            const apiPrefix = apiRoot.pathname.replace(/\/+$/, "");
+            const repoPath = repositoryParts.map(encodeURIComponent).join("/");
+            const endpoint = new URL(`${apiPrefix}/repos/${repoPath}/pulls/${pull.number}/files`, apiRoot.origin);
+            if (endpoint.origin !== apiRoot.origin) needsHuman(`${diagnosticPrefix}_url_invalid`);
+            const files = [];
+            let complete = false;
+            // GitHub exposes at most 3,000 files per PR; fail closed if every page is full.
+            for (let page = 1; page <= 30; page += 1) {
+              const url = new URL(endpoint);
+              url.searchParams.set("per_page", "100");
+              url.searchParams.set("page", String(page));
+              const response = await fetch(url, {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                },
+              });
+              if (!response.ok) needsHuman(`${diagnosticPrefix}_http_${response.status}`);
+              const pageFiles = await response.json();
+              if (!Array.isArray(pageFiles)) needsHuman(`${diagnosticPrefix}_invalid`);
+              files.push(...pageFiles);
+              if (pageFiles.length < 100) {
+                complete = true;
+                break;
+              }
+            }
+            if (!complete) needsHuman(`${diagnosticPrefix}_truncated`);
+            return files;
+          };
           for (const pull of pulls) {
             if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
-            const response = await fetch(pull.url + "/files?per_page=100", {
-              headers: {
-                Accept: "application/vnd.github+json",
-                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-              },
-            });
-            if (!response.ok) needsHuman(`open_pr_files_http_${response.status}`);
-            const files = await response.json();
-            if (!Array.isArray(files)) needsHuman("open_pr_files_invalid");
-            if (files.length >= 100) needsHuman("open_pr_files_truncated");
+            const files = await fetchPullFiles(pull, "open_pr_files");
             for (const file of files) {
               if (!["package.json", "pnpm-lock.yaml"].includes(file.filename)) continue;
               if (typeof file.patch !== "string") needsHuman("open_pr_patch_missing");
@@ -486,18 +514,46 @@ jobs:
             authorization.root_parent?.root_dependency,
             authorization.override?.selector,
           ].filter((term) => typeof term === "string" && term.length > 0);
+          const fetchPullFiles = async (pull, diagnosticPrefix) => {
+            if (!Number.isInteger(pull.number) || pull.number < 1) needsHuman(`${diagnosticPrefix}_number_invalid`);
+            if (typeof process.env.REPOSITORY !== "string") needsHuman(`${diagnosticPrefix}_repository_invalid`);
+            const repositoryParts = process.env.REPOSITORY.split("/");
+            if (repositoryParts.length !== 2 || repositoryParts.some((part) => part.length === 0)) {
+              needsHuman(`${diagnosticPrefix}_repository_invalid`);
+            }
+            const apiRoot = new URL(process.env.API_URL);
+            const apiPrefix = apiRoot.pathname.replace(/\/+$/, "");
+            const repoPath = repositoryParts.map(encodeURIComponent).join("/");
+            const endpoint = new URL(`${apiPrefix}/repos/${repoPath}/pulls/${pull.number}/files`, apiRoot.origin);
+            if (endpoint.origin !== apiRoot.origin) needsHuman(`${diagnosticPrefix}_url_invalid`);
+            const files = [];
+            let complete = false;
+            // GitHub exposes at most 3,000 files per PR; fail closed if every page is full.
+            for (let page = 1; page <= 30; page += 1) {
+              const url = new URL(endpoint);
+              url.searchParams.set("per_page", "100");
+              url.searchParams.set("page", String(page));
+              const response = await fetch(url, {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                },
+              });
+              if (!response.ok) needsHuman(`${diagnosticPrefix}_http_${response.status}`);
+              const pageFiles = await response.json();
+              if (!Array.isArray(pageFiles)) needsHuman(`${diagnosticPrefix}_invalid`);
+              files.push(...pageFiles);
+              if (pageFiles.length < 100) {
+                complete = true;
+                break;
+              }
+            }
+            if (!complete) needsHuman(`${diagnosticPrefix}_truncated`);
+            return files;
+          };
           for (const pull of pulls) {
             if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
-            const response = await fetch(pull.url + "/files?per_page=100", {
-              headers: {
-                Accept: "application/vnd.github+json",
-                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-              },
-            });
-            if (!response.ok) needsHuman(`related_pr_files_http_${response.status}`);
-            const files = await response.json();
-            if (!Array.isArray(files)) needsHuman("related_pr_files_invalid");
-            if (files.length >= 100) needsHuman("related_pr_files_truncated");
+            const files = await fetchPullFiles(pull, "related_pr_files");
             for (const file of files) {
               if (!["package.json", "pnpm-lock.yaml"].includes(file.filename)) continue;
               if (typeof file.patch !== "string") needsHuman("related_pr_patch_missing");
@@ -1513,18 +1569,46 @@ jobs:
           const conflictTerms = Array.isArray(auth.conflict_terms) && auth.conflict_terms.length > 0
             ? auth.conflict_terms
             : [auth.dependency];
+          const fetchPullFiles = async (pull, diagnosticPrefix) => {
+            if (!Number.isInteger(pull.number) || pull.number < 1) needsHuman(`${diagnosticPrefix}_number_invalid`);
+            if (typeof process.env.REPOSITORY !== "string") needsHuman(`${diagnosticPrefix}_repository_invalid`);
+            const repositoryParts = process.env.REPOSITORY.split("/");
+            if (repositoryParts.length !== 2 || repositoryParts.some((part) => part.length === 0)) {
+              needsHuman(`${diagnosticPrefix}_repository_invalid`);
+            }
+            const apiRoot = new URL(process.env.API_URL);
+            const apiPrefix = apiRoot.pathname.replace(/\/+$/, "");
+            const repoPath = repositoryParts.map(encodeURIComponent).join("/");
+            const endpoint = new URL(`${apiPrefix}/repos/${repoPath}/pulls/${pull.number}/files`, apiRoot.origin);
+            if (endpoint.origin !== apiRoot.origin) needsHuman(`${diagnosticPrefix}_url_invalid`);
+            const files = [];
+            let complete = false;
+            // GitHub exposes at most 3,000 files per PR; fail closed if every page is full.
+            for (let page = 1; page <= 30; page += 1) {
+              const url = new URL(endpoint);
+              url.searchParams.set("per_page", "100");
+              url.searchParams.set("page", String(page));
+              const response = await fetch(url, {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                },
+              });
+              if (!response.ok) needsHuman(`${diagnosticPrefix}_http_${response.status}`);
+              const pageFiles = await response.json();
+              if (!Array.isArray(pageFiles)) needsHuman(`${diagnosticPrefix}_invalid`);
+              files.push(...pageFiles);
+              if (pageFiles.length < 100) {
+                complete = true;
+                break;
+              }
+            }
+            if (!complete) needsHuman(`${diagnosticPrefix}_truncated`);
+            return files;
+          };
           for (const pull of pulls) {
             if (pull.base?.repo?.full_name !== process.env.REPOSITORY) continue;
-            const response = await fetch(pull.url + "/files?per_page=100", {
-              headers: {
-                Accept: "application/vnd.github+json",
-                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-              },
-            });
-            if (!response.ok) needsHuman(`publish_pr_files_http_${response.status}`);
-            const files = await response.json();
-            if (!Array.isArray(files)) needsHuman("publish_pr_files_invalid");
-            if (files.length >= 100) needsHuman("publish_pr_files_truncated");
+            const files = await fetchPullFiles(pull, "publish_pr_files");
             if (files.some((file) => ["package.json", "pnpm-lock.yaml"].includes(file.filename) && typeof file.patch !== "string")) {
               needsHuman("publish_pr_patch_missing");
             }
