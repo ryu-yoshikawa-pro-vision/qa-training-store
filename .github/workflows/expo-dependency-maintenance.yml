@@ -1,6 +1,9 @@
 name: Expo Dependency Maintenance
 
 on:
+  schedule:
+    - cron: "0 8 * * *"
+      timezone: "Asia/Tokyo"
   workflow_dispatch:
 
 permissions:
