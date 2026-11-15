@@ -8,7 +8,7 @@
 - [x] 4. pnpm 10.34.5のfrozen install、`pnpm why`、production audit、unit testsを実行する。
 - [x] 5. Prettier、text lint、Markdown lint、diff範囲を確認する。
 - [x] 6. Run Artifact sanitizerと`git diff --check`を実行する。
-- [ ] 7. 変更をcommitし、branch `security/critical-shell-quote-1.11.0-20261115`へpushする。
+- [x] 7. commit `75f280de15833b4a98a9e9f8238eb2df3b34c1e6`を作成し、branch `security/critical-shell-quote-1.11.0-20261115`へpushする。
 - [ ] 8. Preview副作用の明示承認後にPRを作成し、exact-headの必須CIを確認する。
 
 ## 完了処理の参照先
