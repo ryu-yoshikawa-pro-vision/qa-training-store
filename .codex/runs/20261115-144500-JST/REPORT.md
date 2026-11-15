@@ -78,3 +78,13 @@
   - Result: なし。
   - 親Agentの判断: なし。
 - Progress: 87.5% (7/8)
+
+## 2026-11-15 15:32 (JST)
+
+- Summary: the security-only Actions dependency proposal is available as Draft PR #224.
+- Branch / PR: `codex/t08-actions-security-only-20261115`, [PR #224](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/224), base `main` at `2a8bcf57ff091e84a8b3bf7b123568e967000d88`, initial proposal head `ca188e447196d904e560f929c200831b7c0ddc7b`.
+- Changes: GitHub Actions ecosystem only, root directory, weekly check interval, `open-pull-requests-limit: 0`, no target branch. Existing npm Renovate security-only config and the approved daily Expo workflow remain unchanged. Repository security-update settings and alert state were not changed and remain unverified.
+- Local validation: YAML syntax/semantic assertions, Prettier, Markdown lint, text lint, Run Artifact sanitizer, and `git diff --cached --check` passed. `bash scripts/verify` failed at the baseline template contract assertion; the current wording delegates CI progress criteria to `codex-implementation-harness.md`. The broader static mismatch audit is 55 assertions across five documents; only the first mismatch was observed at runtime. The separate harness repair requires approval under `AGENTS.md` §8 L2.
+- Exact-head CI for the initial proposal commit: Mobile App CI [43685414512](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/43685414512) succeeded. Web CI [43685414538](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/43685414538) failed in `tests/contracts/codex-task-native-command.test.ts`: expected `RESULT_VALUE=0`, received `RESULT_VALUE=1` (1 failed, 773 passed, 15 skipped). The same assertion failure is present on sibling PR #223 run [43609315973](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/43609315973); root cause remains unresolved and this is not treated as a pass.
+- Changes after validation: this report checkpoint is being added as a follow-up commit; exact-head CI for that follow-up is pending.
+- Blockers / next: keep PR #224 Draft; investigate the shared test failure as a separate T07 issue; resolve the local verify assertion only after the pending L2 decision; verify alerts/security-update settings and dependency recognition via an authorized read path; do not treat PR creation as completion or change repository settings.
