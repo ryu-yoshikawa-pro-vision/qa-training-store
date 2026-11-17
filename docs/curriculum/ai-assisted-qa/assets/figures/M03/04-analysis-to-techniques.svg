@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1225" height="527" viewBox="0 0 1225 527" role="img" aria-label="M02で整理したRole、State、Data、JourneyからM03の4つのテスト技法を目的に応じて選び、仕様根拠からテストケースへ進む関係図">
+<title>M02で整理したRole、State、Data、JourneyからM03の4つのテスト技法を目的に応じて選び、仕様根拠からテストケースへ進む関係図</title>
+<defs><marker id="arrowhead" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#2563EB" /></marker></defs>
+<rect x="1" y="1" width="1223" height="525" rx="20" fill="#F8FBFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="34" y="53" fill="#17324D" font-size="30" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">分析の4観点から、適切なテスト技法を選ぶ</text>
+<text x="35" y="90" fill="#52677D" font-size="21" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">M02：どの条件を調べるかを整理する</text>
+<rect x="34" y="112" width="275" height="92" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="52" y="147" fill="#17324D" font-size="24" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">Role</text>
+<text x="52" y="181" fill="#52677D" font-size="19" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">誰が使うか</text>
+<rect x="329" y="112" width="275" height="92" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="347" y="147" fill="#17324D" font-size="24" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">State</text>
+<text x="347" y="181" fill="#52677D" font-size="19" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">操作前後の状態</text>
+<rect x="624" y="112" width="275" height="92" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="642" y="147" fill="#17324D" font-size="24" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">Data</text>
+<text x="642" y="181" fill="#52677D" font-size="19" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">入力と値</text>
+<rect x="919" y="112" width="275" height="92" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="937" y="147" fill="#17324D" font-size="24" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">Journey</text>
+<text x="937" y="181" fill="#52677D" font-size="19" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">操作の順序</text>
+<path d="M610,212 L610,247" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="170" y="255" width="880" height="61" rx="14" fill="#DBF6FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="610" y="294" fill="#17324D" font-size="22" font-weight="700" text-anchor="middle" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">条件の性質に合わせて技法を選択（すべてを機械的に使わない）</text>
+<path d="M610,321 L610,346" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="34" y="355" width="275" height="99" rx="14" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="49" y="388" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">同値分割</text>
+<text x="49" y="419" fill="#52677D" font-size="16" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">同じ結果の入力をまとめる</text>
+<rect x="329" y="355" width="275" height="99" rx="14" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="344" y="388" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">境界値分析</text>
+<text x="344" y="419" fill="#52677D" font-size="16" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">上限・下限の周辺を調べる</text>
+<rect x="624" y="355" width="275" height="99" rx="14" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="639" y="388" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">デシジョンテーブル</text>
+<text x="639" y="419" fill="#52677D" font-size="16" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">条件の組合せを整理する</text>
+<rect x="919" y="355" width="275" height="99" rx="14" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="934" y="388" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">状態遷移</text>
+<text x="934" y="419" fill="#52677D" font-size="16" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">操作前後の変化を確かめる</text>
+<text x="610" y="497" fill="#17324D" font-size="21" font-weight="700" text-anchor="middle" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">根拠となる仕様（BR/AC） → テスト条件 → Case → 必要なデータの確認</text>
+</svg>

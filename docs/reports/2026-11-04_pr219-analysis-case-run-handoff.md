@@ -1,0 +1,114 @@
+# PR #219 基本分析台帳IDと実Run Caseの引継ぎ
+
+## 参照した正本・判定境界
+
+- 対象SUT＝PR #199 base `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`（`docs/plan-ai-agent-qa-curriculum-redesign`）。検証テスト＝PR #219 `work/pr199-sut-acceptance`。検証した個別RunのHEADは下表で個別に指定する。
+- 分析正本 `training/ai-assisted-qa-course/coverage/supported-behaviors.json`、blob `3143b229afd6dddad52ef7c09a9e91c5995af07f`（#219の参照版）。188操作＋20状態＝208動作、79要件。条件参照953行のCSV `docs/reports/2026-11-04_pr219-case-traceability.csv`は「採用Case件数・実Runの件数」を意味しない。
+- 分析正本の編集は#213、製品修正は#210。#210 HEAD `03bd4c8abec15c8004d0fc8c8b09e36cc0f68f79`は未マージであり、#199の成功証拠として数えない。
+- **Case単位の該当条件に限る**`PASS`、既知不具合の実証は`製品FAIL`、CIが部分キャンセルしたCaseは`未確認`、Androidは`BLOCKED`。テストの実行を示すjob successと全workflow successを区別する。
+
+## Case ID・テスト・固定Runの対応
+
+| 基本分析のBehavior ID／関連要件 | テスト内のCase／Seed・Role | 実Runの固定HEAD・job | 確認結果と不足根拠 |
+| --- | --- | --- | --- |
+| `SCREEN-BOUNDARY-FORBIDDEN-A01-01` ／ `ROLE-ACCESS`、`UI-ERROR` | `pr219-cross-role-lifecycle.spec.ts` Guest（default）、Customer（regular-member）、Operator/Admin（default）直URL4件 | `5e91b912`、[Run 41792378802・cross-role job 126449277139](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41792378802/job/126449277139) | 各Roleの画面非露出・拒否/ログイン遷移の代表4件PASS。停止staffのWeb戻りとNative文言、DB全表は未受入 |
+| 同上／`BR-AUTH-001` | 同Spec `suspended-user`、`withdrawn-user`のCheckout直URL2件 | 同上 | Checkout非露出2件PASS。停止したstaff本人のルート循環・Nativeは別条件 |
+| 同上／`BR-AUTH-002` | 同Spec `default`、gold customerが他人のOrder `order-paid`を直URLで開く1件 | 同上 | 他人Orderのnot-foundと内容非露出PASS。全注文・Review履歴の非露出は未受入 |
+| `SCREEN-ADMIN-USERS-A01-02`／`BR-ADMINUSER-001`・`AC-ADMINUSER-001` | 同Spec、admin・defaultでkeyword×Role×StatusのAND検索。別途`pr219-admin-user-acceptance.test.ts`でRank含むUse Case検索 | Web `5e91b912` Run 41792378802。Integration `9adff1e` [Run 41795950215・job 126460341746](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41795950215/job/126460341746) | 代表AND条件PASS。UIのRank検索/日付sortの仕様採否、20件超ページ、個人データログは未受入 |
+| `SCREEN-ADMIN-USER-DETAIL-A01-02` | 同Spec、operator→admin／旧Session失効。Integrationで2→1 Role変更・stale version・target Session削除 | Web `5e91b912` Run 41792378802。Integration `9adff1e` Run 41795950215 | Webのrole変更と旧Session失効PASS、隔離DBでUser/version・stale拒否を確認。actor失効競合は別行 |
+| `SCREEN-ADMIN-USER-DETAIL-A01-03` | 同Spec、adminが顧客Rank変更→再読込。IntegrationでRank/Checkoutのrollback・stale CAS | Web `5e91b912` Run 41792378802、Integration `9adff1e` Run 41795950215 | 該当操作のPASS。旧Checkout破棄後の新価格と全画面幅未実行 |
+| `SCREEN-ADMIN-USER-DETAIL-A01-04` | 同Spec、顧客停止確認→再ログイン拒否。IntegrationでSession失効・Checkout破棄/Cart不変/障害注入 | Web `5e91b912` Run 41792378802、Integration `9adff1e` Run 41795950215 | 該当条件PASS。再開後の旧Session不復活と他Role別全条件は未受入 |
+| `SCREEN-ADMIN-USER-DETAIL-A02-01` | Integration `pr219-admin-user-acceptance.test.ts`、自己role・status変更拒否。Web本人disabledテストは追加済み | Integration `9adff1e` Run 41795950215。Web新Caseは当該Run未収録 | 自己拒否/DB不変PASS。Web本人disabledの追加Caseは最新CIで確認後に確定 |
+| `SCREEN-ADMIN-USER-DETAIL-A02-02` | Integrationでwithdrawn顧客のrank/status変更拒否。Web読取専用テストは追加済み | Integration `9adff1e` Run 41795950215。Web新Caseは当該Run未収録 | 退会済み更新の拒否・DB不変PASS。Web画面は新CI未確認、withdrawn staff fixture未実行 |
+| `SCREEN-ADMIN-USER-DETAIL-A02-03` | 2→1 Role更新・自己拒否・stale CAS、actor失効競合2件 | Integration `9adff1e` Run 41795950215で2件expected fail。型安全に直した再現テスト `2cd64ea` [Run 41796764234・job 126462596786](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41796764234/job/126462596786)で2件実行 | 2→1正常系は部分PASS。**actor失効後でも別のUser更新が成功してしまう製品FAILを隔離DBで再現**。#210固定HEADでは未受入。2管理者同時停止の新Caseも新CI確認待ち |
+| `SCREEN-BOUNDARY-FORBIDDEN-A01-01` 停止staff | `pr219-forbidden-route.test.tsx`、suspended operatorの管理画面戻りリンク | `9adff1e` Run 41795950215の[Component job 126460341893](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41795950215/job/126460341893)、1件expected fail。修正テストは`2cd64ea`のComponent成功 | 停止staffでも管理リンクが出る既知問題を確認。**製品FAIL**であり、Web実画面・Nativeは未受入 |
+| `SCREEN-STOREFRONT-PRODUCT-LIST-S-empty` | 同Spec、empty-catalog無条件0件とdefaultで絞込0件・解除のWeb2件 | `9adff1e` [Run 41795950215・cross-role job 126460743631](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41795950215/job/126460743631)の**個別2Case PASS**（同job全体はfailure） | パンくず・CTAの代表条件PASS。Error画面・視覚正本・DB Snapshot未受入 |
+| `SCREEN-ADMIN-PRODUCTS-A01-02` | 同Specで商品コード×stock×statusおよび表示外選択（`default`） | `9adff1e` Run 41795950215では検索locatorがstrict modeでエラー、既知選択不具合Caseも完全な製品検証には未到達 | `TEST ERROR`。検索locator修正済み、新CI結果と多件/price/SKU0/bulk/DB照合待ち |
+| Cart/Checkout/Order/Shipment/Reviewの各Behavior ID | 既存`phase1-required.spec.ts`とVitestの既存Case。PR #219固有の全採用条件の対応表は未完成 | `5e91b912` Run 41792378802 required Chromium/Integrationのjob成功 | 既存テスト成功をCase単位の全受入に換算しない。操作前後DB・4支払・各version/境界・Native不足 |
+| Android/SQLite／全対象Behavior ID | `Mobile App CI`のMaestro/SQLite実行、実機/エミュレータ | **実Runなし**。Native CIはworkflow_dispatchのみ | `BLOCKED`：CI手動起動の権限・Android/ADB/Maestro実行環境と対応するAPK/SQLite証拠が必要 |
+
+## 証拠の欠落・採用判断・再開
+
+- 既存の`playwright.config.ts`は成功時にTrace/動画/画像を必ず保存しない。上のWeb成功Caseの証拠は**固定HEAD・jobログ・テスト内assertion**で、画像/Traceは未取得とする。失敗時のパスはそのRunにだけ紐付け、他Runへ流用しない。
+- 直接的なDB前後状態は隔離Dexieテストのassertionで確認した範囲のみ。Session ID/個人情報をGitHubコメントや成果物へ生値で転記しない。
+- 分析台帳の`test_condition`、`case_policy`、BR/AC採否の正本変更は#213で行う。上のテスト1件がひとつのBehaviorの全条件を代表するとは扱わない。未確定の953行は未受入のまま保持する。
+- 製品修正候補（actor失効後の更新・停止staffの戻りリンク・管理商品選択残留）と分析仕様判断待ち（Rank UI等）、テストロケータ不備、Android環境BLOCKEDを分離し、製品#210へ根拠を引き継ぐ。
+- Androidの機材・権限・具体的な再開方法、Web/a11y/DBの不足は`docs/reports/2026-11-04_pr219-risk-evidence-and-blockers.md`を参照する。
+
+## Web実行履歴のCase識別と要件対応（2026-11-04）
+
+- 対象：`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`。既存39実行行を変更せず、Webテスト名22種類を再実行間で追跡する`evidence_case_key`（`PR219-WEB-001`〜`PR219-WEB-022`）を追加。同じテスト名の再実行には同じキーを付け、Run/job/SHA・結果は元の行の値を維持した。
+- `evidence_case_key`はこのPRの**証拠照合キー**であり、#213が採用・確定する正式Case IDではない。元の`case_id`列はテスト名のままで、テスト名22種類と実行履歴39行を混同しない。
+- `formal_requirement_refs`は既存の208動作一覧の`behavior_id`と一致する行について、その一覧に記録済みの要件参照を転記した。6実行行は`behavior_id`欄に`BR-AUTH-001/002`という**要件ID**しかなく、対応Behaviorの確定根拠がないため、`case_mapping_status`を「要件IDのみ・Behavior ID未確定」とした。誤ったBehaviorを推定して補完していない。
+- 正式Case採否、各`condition_ref`との対応、直接未参照29横断要件の必要条件、ケース間の重複・統合は未確定。#213から採用判断と正式Case IDを受け取った後、同キーを使い固定SUT/Test SHAとRun/job/exit、Platform/Role/Seed/Clock、期待・観測、DB前後、Trace/画像/Network（実在する証拠のみ）を結び直す。
+- Web実行結果の最新の全体成功はテストSHA `83fb0325d6efc7d2a517561e52f32bfe793f5986`の[CI #41811366480](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41811366480)。この時点のPR #219 HEAD `77327824e12e2fff6cafa3ef80efcdd0b37199dd`のチェックはCodeRabbit skippedのみであり、最新HEADのWeb CI PASSとは主張しない。後続のdocs更新も別SHAとして扱う。
+- これで**タスクリスト2番・19番・20番が完了したとは判定しない**。39行のWeb実行証拠にはDB前後実物・成功時Trace/画像/Networkが不足し、Android/SQLiteはBLOCKED、Case採否は#213判断待ち。既知製品不具合の再現成功も製品適合PASSと区別する。
+
+## 208動作とWeb実行証拠の再照合・Seed Clock（2026-11-04）
+
+- Web実行証拠表（`docs/reports/2026-11-04_pr219-web-case-run-evidence.csv`）39実行行に、`seed_clock_expected_iso`と`clock_basis`を追加。対象Seedは`default`、`regular-member`、`suspended-user`、`withdrawn-user`、`checkout-resume`、`empty-catalog`、`many-products`。すべて`src/seeds/metadata.ts`の`BASE_CLOCK`と`src/seeds/scenarios.ts`の初期設定から期待時刻`2026-07-01T03:00:00.000Z`を導出したもので、**実行時のTestInfo添付データから読んだ観測値ではない**。既存の`clock`欄やRun/結果は変更していない。
+- `docs/reports/2026-11-04_pr219-behavior-case-acceptance-status.csv`の208動作へ`matched_web_evidence_case_keys`を追加。実行表の`behavior_id`が一致する**11動作・19証拠キー**だけを関連付け、197動作は空欄とした。Behavior未確定のWeb実行6行（3証拠キー、`BR-AUTH-001/002`参照）は勝手に割り当てない。
+- 変更前後のCSVを列単位で比較し、Web39行・元32列、Behavior208行・元17列はすべて不変、列数不整合0を確認。新規列は静的な照合情報であり、採用Caseの合格・動的証拠の取得を意味しない。
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`のCheckout stale-cartは、既知の戻り先不具合を再現するCaseと、7画面幅（320/390/767/768/1023/1024/1440px）・320/1024pxのaxe・Focus/Enter・画像を取得するCaseに分離した。共通セットアップのみ再利用。更新SHA `84d3a455acc831efb3b3d24c1a950a9734e8ec1e`の**実行結果は未確認**であり、当該チェックは保留。
+- タスクリスト2・13・19・20は未チェックのまま。#213の正式Case採否・条件参照、成功時Trace/画像保存、DB前後の実物、Android/SQLite、独立レビューが未完了。これらをCI旧HEAD `83fb0325`の成功で代用しない。
+
+## CI #41821726873の実証Caseと失敗原因（2026-11-04）
+
+- #199 SUT `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、実行テストHEAD `0599c516374710d4144c126a2c0c388e60c1c22c`。cross-role job `126547309356` success（27件PASS＋既存1件初回失敗・retry成功）、required Chromium job `126547309443` success（64件PASS）、accessibility Chromium job `126547309348` success（5件PASS）。
+- 新しく確認できた2つの個別Case：`PR219-WEB-023`＝Checkout stale Cartの7幅・axe・Focus/Enter（E2Eファイル321行、1回目PASS）、`PR219-WEB-024`＝停止operator旧SessionのForbidden循環（同522行、1回目PASS）と全IndexedDB表digest一致。両者とも製品不具合/未受入条件を含むため、**正式採用Caseの製品PASSではない**。
+- Web実行表は39→41履歴行、34列、既存39行は全列不変。208動作一覧は208行を維持、既存17列不変で上記2証拠キーを追記。CSV parser照合で不正列幅0を確認。これらの一意キーは正式Case IDではない。
+- ワークフローは**failure**：Code Quality job `126546893944`で`tests/component/native/pr219-forbidden-native.test.tsx`にTS2339、Native component job `126546894146`で`QuickBase64`のNative実装未ロード。修正 `895280d4769d7e8bf4d6d797d7f70884c11d3e90`にて、Native `render`のawait・Providerモックを追加したが、修正後CIの成功はまだ検証していない。
+- #213から正式Case採否が確定しておらず、直接参照なし29要件、成功時Artifact、各CaseのDB/実画面/Android・SQLiteの証拠が不足する。タスクリスト2・7・13・14・15・19・20は未チェック。
+
+## Native CI修復とDB10表Caseの追加
+
+- #219 HEAD `46ce4d917436f104a9810d9e3e18d4e5a8ce318c`のCI #41823487692では、Native Component job `126552593835`が**14 suite/65 test成功**、Code Quality job `126552594453`もsuccess。前Run #41821726873のTS2339/`QuickBase64`原因に対する修正が有効なことを確認した。**workflow全体の成功とは区別**する。
+- #219専用E2Eへ`SCREEN-CHECKOUT-CONFIRM-S-stale-cart: rejected confirmation preserves DB transaction tables`を追加。Web `regular-member` Seed（固定Clock期待値`2026-07-01T03:00:00.000Z`）、Cart数量変更でconfirm-ready Checkoutをstaleにした後、拒否画面表示だけで10表（Cart/Checkout/Order/Payment/Shipment/各History）のdigestが変わらないことをassertする。変更範囲は受入用Webテストのみ。
+- 既存のCheckout競合画面・停止staff循環についても、成功時のPlaywright添付ArtifactをCIが保持しないため、**結果の真偽だけ**を含む`PR219_CASE_EVIDENCE`ログを追加。実テーブル値・hash値・Session IDを出力しない。`c0821559ea3cc776f945893e7e45cad3cc54c807`以降の新E2EはCI未実行扱いとする。
+- 208動作・41行の過去のWeb証拠、#213の分析台帳は変更していない。採用Case確定・全件DB前後・成功時Trace/動画/画面画像保存・Android/SQLiteは保留。タスクリストのチェックは14/21のまま。
+
+## DB10表不変の固定実行証拠とCI失敗の切分け（2026-11-04）
+
+- 固定SUT `46cd014e`、テストHEAD `681e55c7105e436b045c59a65d5fdd64d5b27723`、CI #41824802868、cross-role job `126557496126`はsuccess。新規Web Caseのstale Checkout拒否前後でIndexedDB **10表（Cart/Checkout/Order/Payment/Shipment/各History）のSHA-256一致を確認**。支払ボタン・注文確認見出しの非表示も検証。ジョブログ`PR219_CASE_EVIDENCE`には`tableCount=10`と不変判定のみ記録。元データ・Session ID・ハッシュ本体は出力しない。
+- 同じジョブで停止operatorの旧SessionによるForbidden循環（全23表不変）とCheckout競合の320〜1440px/axe/Keyboardを個別PASSとして再確認。ただし誘導ループと`/checkout/payment`への誤った復帰先は**製品FAIL再現**。成功時の画像・Trace・JSON添付は永続化されていない。
+- Web実行証拠CSVに`PR219-WEB-025`を追加し、**41→42履歴行、34列**とした。旧41行・全列は変更なし。208動作一覧の`SCREEN-CHECKOUT-CONFIRM-S-stale-cart`への対応キーを更新。正式Case採否・79要件（29横断を含む）との網羅的な対応は未決定。
+- #41824802868のworkflow全体はPrettier違反でfailure。Style Quality `126556819280`の原因を専用E2Eだけに限定し、`6455a4d`の別Run #41826050155 Style Quality `126560935572`でsuccessを確認。既存cross-roleでは`getByRole("status")`が完了メッセージとLoadingに二重一致するTEST ERRORが継続。#199へ[原因と修正候補を引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6630183604)済み。所有外の既存E2Eは変更しない。
+- タスク2/7/13/14/15/19/20は残る。Android実機/SQLite、正式画像差の承認・全CaseのTrace/Network/Console/実測Clock、独立レビュー未実施をPASSにしない。
+
+## 全CI成功HEAD #41826786410と実行証拠CSVの検査（2026-11-04）
+
+- 固定SUT：PR #199 base `46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`。実行時PR #219 HEAD：`c1ff77fbfaaf56bb2292da53ab1b8f2cb3748c5e`。[CI #41826786410](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41826786410)はworkflow全体**success**。Style Quality `126563839016`、Code Quality `126563839122`、Vitest contracts `126563839436`、Component `126563839497`、Integration `126563839551`、required Chromium `126564385497`、cross-role Chromium `126564385617`、accessibility Chromium `126564385772`、`verify` `126565996833`、`validate` `126566660138`がsuccess。
+- 同じcross-role jobは**29件PASS**。新規Caseの`PR219-WEB-025`（stale Cart拒否時のIndexedDB10表不変、test line 365）について`PR219_CASE_EVIDENCE`に`tableCount=10/allTablesUnchanged=true`、`PR219-WEB-023`（Checkout conflict幅320/390/767/768/1023/1024/1440とaxe/keyboard、同413行）では`observedRecoveryPath=/checkout/payment/productAcceptance=FAIL`、`PR219-WEB-024`（停止staff旧Session、同627行）では`tablesChecked=23/allTablesUnchanged=true/observedReturnPath=/admin/productAcceptance=FAIL`を確認。**製品不具合を再現するテストの成功は製品の適合PASSとはしない**。
+- 上記3件について、同じ暫定証拠キーの**別Run履歴**をWeb実行CSVへ追記。42→45履歴行、34列、過去42行は全列不変。暫定キーは25種類のまま、208動作一覧で直接証拠を参照するのは**11動作のみ**。残る197動作は既存テストと正式Case採否の照合待ち。要件名`BR-AUTH-001/002`だけの6実行行はBehaviorへ推測で結び付けない。
+- 証拠と分析台帳の対応を継続検証する#219専用`tests/contracts/pr219-web-evidence-ledger.test.mjs`を追加（`de1c54f`）。CSV引用符・列整合、HEAD/Run/Clock根拠、同一証拠キーのBehavior不変、208動作への参照整合、要件IDだけの誤割当て、製品不具合の判定誤記を検査する。新規テストの初回Run #41830058305はStyle QualityでPrettier違反（`tests/contracts/pr219-web-evidence-ledger.test.mjs`）を検出。書式を`6ea26c4`で修正した。**修正後の契約テストとCI全体の成功はまだ未確認**。この追加テストを旧CI #41826786410で実行済みと誤記しない。
+- 最新全CI成功RunのArtifact一覧はUI Review 4サイズ・Web build等で、**cross-roleの成功時添付PNG/JSON/Trace/動画は含まれていない**。ジョブログの成功と画像の独立比較、正式Caseの全条件受入は別。実行環境にはAndroid SDK、ADB、Emulator、Maestroがなく、Android実機/SQLiteの検証は未実施。既存`docs/native/README.md`のDoctor→Prepare→Build→Install→Smoke→Test→RuntimeSuite→BoundarySuiteが実行できるWindows端末等を必要とする。
+- タスクリストの未完7項目（2、7、13、14、15、19、20）は維持。とくに2/20は全採用Caseの正式ID・Clock実測・成功時Artifact・DB/Network/Console等が不足し、#213の正式Case採否と#199の共有CIの証拠保存判断が必要。
+
+## 契約テストの固定CI成功と実測Clockログ追加（2026-11-04）
+
+- #219 `2ad05de61a89197d32d23772aacb68a3b633e04c` のCI [#41830747741](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41830747741)で、**Vitest contracts job `126577007220`がsuccess**。新規`tests/contracts/pr219-web-evidence-ledger.test.mjs`の3件も個別PASSし、CSVの列・固定Run/HEAD・証拠キーとBehavior参照・欠落値と製品不具合分類の検査が実行できた。契約全体は75ファイルpass、1098 tests pass、1 expected fail、15 skipped。
+- 同Runの**workflow全体はfailure**で、主因はStyle Quality job `126577006913`の新規契約テストPrettier違反。verify/validate failureはこのゲート失敗の派生。`cc5e008`の整形後Run #41831922016もStyle failureが残り、後続更新でcancelled。`10fb7c2`で複雑な改行を伴う式を逐次処理へリファクタリングしたが、**修正後のStyle/Contracts CI成功は未確認**。
+- `e2e/web/pr219-cross-role-lifecycle.spec.ts`の暫定証拠キー`PR219-WEB-023/024/025`に、FixtureのTestMetadataから**Reset時のClock実測**・buildSha・app/schema/seedバージョンだけを出す`PR219_RUNTIME_METADATA`ログを追加。個人情報・認証情報・Session IDは出力しない。`4327ad1`以降のCIで値が確認できるまで実測とは書かず、Web45履歴行の既存clock_basisを変更しない。
+- 14/21の未完7項目を維持。WebのCase別証拠は一部揃っているが、全採用Case・正式Case ID、Android実機SQLite、成功時Trace/画像/Networkなどの保存と独立レビューは未達。
+
+## CI #41832718832のClock実測と証拠契約・整形の修正（2026-11-04）
+
+- テストHEAD `e4a36f5c5834b7056dcff5a8b56ee10e6a840d06`、SUT（PR #199 base）`46cd014ec8e9bbeb4fb0a9aa3631c6befb9f272f`、[CI #41832718832](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41832718832)、cross-role job `126584626212` **success（29 passed）**。workflowは後続コミットにより**cancelled**、Style Quality job `126584054105`はfailure。個別ジョブとworkflowの結果を混同しない。
+- ログ`PR219_RUNTIME_METADATA`の`PR219-WEB-023` / `024` / `025`は、Reset後にTestMetadataから得た`clockObservedAtReset=2026-07-01T03:00:00.000Z`、`buildSha=f3f269aa0956b8927634a0098ef0947cb65895bc`、`appVersion=0.1.0`、`schemaVersion=1`、`seedVersion=11`を記録。`buildSha`はRuntimeメタデータ値であり、テストHEAD・SUT SHAとは別識別子。3 Caseとも期待Clockと一致。認証情報、DBレコード、Session IDをログに出していない。
+- 同ジョブの`PR219_CASE_EVIDENCE`で、`025`のIndexedDB10表不変、`023`のCheckout競合幅7/axe2・Keyboardと誤復帰`/checkout/payment`、`024`の停止operator旧Session→Forbidden戻りループとIndexedDB23表不変を確認。**Webテスト29件成功は製品適合とは別**（`023`と`024`は製品不具合の再現）。
+- Web実行履歴CSVは**45→48行、34列、暫定証拠キー25種類**。旧45行は全列不変。同Runの3履歴は固定HEADに対応する実際の開始行`025:382`、`023:431`、`024:646`へ訂正し、workflow結果も`cancelled（Style失敗、cross-role成功）`へ修正。新規RunのClock実測はこの3行にだけ反映し、過去Runの期待Clock記録を改変しない。
+- [CI #41833700883](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41833700883)のVitest contractsでは、Clock実測に対して旧`clock_basis`検査が「実測ではない／未取得」しか許容せず、`pr219-web-evidence-ledger.test.mjs:97`の1件が失敗。Style Qualityも同ファイルの1か所`byKey.get(key)?.some(...)`の改行でfailure。CI上のPrettierが生成した出力を一時診断で取得し、同一ファイルの書式を正確に修正、**一時診断は削除済み**。Clock検査は実測Runならメタデータ内`clockObservedAtReset`と期待時刻を照合し、過去Runなら未実測の区別を検証するように変更（`4b44f17`）。**修正HEADのCI成功は未確認**。
+- 208動作のうち直接証拠がつながるのは引き続き11動作。#213の正式Case ID採否、全CaseのTrace/動画/画像/Network/DB前後、Android実機・SQLite、独立レビューは未受入。専用タスクリスト14/21のまま。
+
+## 全Web Caseの実行時Console・Network件数とCI失敗原因（2026-11-04）
+
+- テストHEAD `23d70b4eed8df1dee2d7cbb08cd1c69257c04263`の[CI #41834690429](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41834690429)でStyle Quality `126590884776`、Code Quality `126590884697`、Vitest contracts `126590884302`、required Chromium `126591293104`、accessibility Chromium `126591293131`等がsuccess。証拠契約の実測Clock/Prettier修正は品質ゲートを通過した。cross-role job `126591293057`は**28 passed / 1 failed**。既存`e2e/web/cross-role-lifecycle.spec.ts:68`の週次横断Caseが初回・retry2回の計3回、完了通知とLoading双方の`role=status`によるlocator strict mode違反でfailure。workflow全体もfailure。対象既存E2Eは#219の所有外なので[#199へ再現証拠を引継ぎ](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199#issuecomment-6630183604)済み。製品SUTの不具合とは断定しない。
+- #219専用`e2e/web/pr219-cross-role-lifecycle.spec.ts`の**23 Web Case**に、`test.beforeEach`/`afterEach`から`PR219_CASE_RUN`を記録する実行証拠を追加。Case名、project、testStatus/expectedStatus/retry、シナリオ、**Case終了時Clock**とbuildSha、Console Error・pageerror・requestfailed・HTTP 5xxの**件数だけ**をジョブログに出す。成功時TestInfo添付を共有workflowが保存しない制約の下で、秘匿情報を含まない最小限の監査用事実を残す。失敗したrequestのURL、Response本文、Session ID、ユーザー情報は出力しない。ログ自体のCI成功は**未確認**。
+- `PR219_CASE_RUN`は診断の集計であり、Network/Consoleの通信内容、成功時Trace/動画/画像、DB before-afterを復元できない。既存fixtureの`scenario-metadata-console`添付と以前からの3 CaseのReset時`PR219_RUNTIME_METADATA`をそのまま維持。ここでの`clockObservedAtEnd`はReset直後の実測時刻とは区別する。**完了チェック14/21のまま**。
+
+## 29横断要件の実行証拠候補とCase ID責務（2026-11-04）
+
+- #213の分析HEAD `53d74f57cef18efc087a77f744688663b5d00d48` にある `training/ai-assisted-qa-course/coverage/supported-behaviors.json` Blob `132301c4cfe0e9886e8176157c807b70713ced98` の**直接Behavior参照がない29要件**を元に、[横断要件・実行候補台帳](./2026-11-04_pr219-cross-cutting-requirement-case-handoff.csv)を作成。各行の `test_condition`・`case_policy`・代表Behavior・既存横断契約を**分析正本からそのまま**引用。新規の期待仕様・実行権限・Case採否は創作しない。
+- #219の50実行履歴・27暫定証拠キーを確認。**同一キーが別のCase名やBehaviorを指す衝突は0件**（27キーともCase名とBehaviorが一意、Run履歴は重複可）。その27キーと29要件の代表Behavior IDだけを照合すると、**10要件にWeb証拠キー候補、19要件は直接一致候補なし**。ただし代表Behaviorの一致は**要件の採用／正式Case ID／要件に必要な全assertionの一致を証明しない**。特にUI-BREAKPOINT・UI-DESIGNなどには別の専用実行証拠がある場合でも、代表Behavior IDが異なれば自動で関連付けない。
+- **相互待ちの整理**：#213は「#219から独立Case ID・採否待ち」、#219は「#213の正式Case採否待ち」となっていた。#219では現存27キーが「1キー→1論理Case名」に収まることまで検証し、**#213に既存のPR219-WEBキーをCase IDへ採用できるかの可否を依頼**する。#213の正式なリスク・採用/非採用/併用とCase ID採番の決定を#219が独断で書き換えない。未紐付け要件の必要な実行Caseは、#213の正式選定後に既存テストと未実行条件を照合する。全29要件に新規E2Eを機械的に追加しない。
+- CSVには `formal_case_id_status=未確定` と `dynamic_acceptance=未受入` を全29行明記。新たな証拠を追加したと誤認しない。Android/SQLite・正式画面画像・Traceと成功時Artifact保存・独立レビューの未完は継続。**14/21件のチェックは維持**。

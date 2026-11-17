@@ -1,0 +1,560 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const COVERAGE_PATH = "training/ai-assisted-qa-course/coverage/supported-behaviors.json";
+const EXPECTED_ACTION_COUNTS = {
+  "SCREEN-STOREFRONT-HOME": [5, 2],
+  "SCREEN-STOREFRONT-PRODUCT-LIST": [4, 2],
+  "SCREEN-STOREFRONT-PRODUCT-DETAIL": [5, 3],
+  "SCREEN-STOREFRONT-SEARCH": [3, 2],
+  "SCREEN-STOREFRONT-CATEGORY": [1, 1],
+  "SCREEN-AUTH-LOGIN": [2, 2],
+  "SCREEN-AUTH-SIGNUP": [1, 3],
+  "SCREEN-AUTH-ACCOUNT-PROFILE": [3, 1],
+  "SCREEN-STOREFRONT-CART": [3, 3],
+  "SCREEN-CHECKOUT-ADDRESSES": [4, 1],
+  "SCREEN-CHECKOUT-ADDRESS": [2, 3],
+  "SCREEN-CHECKOUT-PAYMENT": [2, 2],
+  "SCREEN-CHECKOUT-CONFIRM": [4, 3],
+  "SCREEN-CHECKOUT-PROCESSING": [2, 3],
+  "SCREEN-CHECKOUT-COMPLETE": [3],
+  "SCREEN-CHECKOUT-FAILED": [3, 2],
+  "SCREEN-ORDERS-LIST": [2, 3],
+  "SCREEN-ORDERS-DETAIL": [3, 2],
+  "SCREEN-REVIEWS-EDITOR": [2, 2],
+  "SCREEN-ADMIN-REVIEWS": [2, 3],
+  "SCREEN-ADMIN-DASHBOARD": [2, 1],
+  "SCREEN-ADMIN-PRODUCTS": [3, 2],
+  "SCREEN-ADMIN-PRODUCT-NEW": [3, 1],
+  "SCREEN-ADMIN-PRODUCT-DETAIL": [5, 4],
+  "SCREEN-ADMIN-CATEGORIES": [4],
+  "SCREEN-ADMIN-BRANDS": [4],
+  "SCREEN-ADMIN-INVENTORIES": [4, 2],
+  "SCREEN-ADMIN-ORDERS": [2, 1],
+  "SCREEN-ADMIN-ORDER-DETAIL": [2, 1],
+  "SCREEN-ADMIN-USERS": [2, 3],
+  "SCREEN-ADMIN-USER-DETAIL": [4, 3],
+  "SCREEN-SUPPORTING-GUIDE": [2, 2],
+  "SCREEN-SUPPORTING-TERMS": [1, 1],
+  "SCREEN-SUPPORTING-PRIVACY": [1, 1],
+  "SCREEN-SUPPORTING-COMMERCE": [1, 1],
+  "SCREEN-BOUNDARY-FORBIDDEN": [1, 1],
+  "SCREEN-TEST-CONTROL": [4, 1],
+  "SCREEN-BOUNDARY-NOT-FOUND": [2, 1],
+};
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const REQUIRED_RULE_TYPES = new Set(["rule", "permission", "transition", "ui", "scope"]);
+const REQUIRED_BEHAVIOR_TYPES = new Set(["action", "state", "use_case"]);
+
+function assert(value, message) {
+  if (!value) throw new Error(message);
+}
+
+function readLines(root, sourcePath) {
+  const file = path.join(root, sourcePath);
+  assert(fs.existsSync(file), `source missing: ${sourcePath}`);
+  return fs.readFileSync(file, "utf8").split(/\r?\n/);
+}
+
+function checkSource(entry, root, allowedPaths) {
+  assert(allowedPaths.has(entry.source_path), `unlisted source: ${entry.id}`);
+  const lines = readLines(root, entry.source_path);
+  assert(
+    Number.isInteger(entry.source_line) && entry.source_line >= 1,
+    `invalid source line: ${entry.id}`,
+  );
+  const line = lines[entry.source_line - 1]?.trim();
+  assert(line, `missing source: ${entry.id}`);
+  const expected = entry.kind === "action" ? line.replace(/^[-*]\s+/, "") : line;
+  if (entry.kind === "state") {
+    assert(line.includes(`| ${entry.source_text} |`), `source changed: ${entry.id}`);
+  } else {
+    assert(entry.source_text === expected, `source changed: ${entry.id}`);
+  }
+}
+
+function verifyAuditSource(entry, root) {
+  const implementation = entry.implementation_evidence;
+  const seed = entry.seed_evidence;
+  assert(implementation && seed, `analysis evidence missing: ${entry.id}`);
+  assert(
+    implementation.path.startsWith("src/presentation/pages/") ||
+      implementation.path.startsWith("src/application/use-cases/") ||
+      implementation.path.startsWith("app/"),
+    `invalid implementation source: ${entry.id}`,
+  );
+  const validateLine = (ref, label) => {
+    assert(Number.isInteger(ref?.line) && ref.line > 0, `invalid ${label}: ${entry.id}`);
+    const actual = readLines(root, ref.path)[ref.line - 1]?.trim();
+    assert(actual === ref.signature, `changed ${label}: ${entry.id}`);
+  };
+  validateLine(implementation, "implementation");
+  assert(seed.path === "src/seeds/metadata.ts", `invalid seed source: ${entry.id}`);
+  assert(seed.transform?.path === "src/seeds/scenarios.ts", `invalid seed transform: ${entry.id}`);
+  validateLine(seed, "seed");
+  validateLine(seed.transform, "seed transform");
+}
+
+function specSources(root) {
+  const dir = path.join(root, "docs/spec/features");
+  const featureFiles = fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => `docs/spec/features/${name}`);
+  return [
+    ...featureFiles,
+    "docs/spec/product-scope.md",
+    "docs/spec/roles-and-permissions.md",
+    "docs/spec/screen-catalog.md",
+    "docs/spec/state-and-scenarios.md",
+    "docs/spec/ui-ux-contract.md",
+  ].sort();
+}
+
+function listUseCaseFiles(root) {
+  const dir = path.join(root, "src/application/use-cases");
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith("-use-cases.ts"))
+    .map((name) => `src/application/use-cases/${name}`)
+    .sort();
+}
+
+function collectSpec(root, paths) {
+  const actions = new Map();
+  const states = new Map();
+  const rules = new Map();
+  const screens = new Set();
+  for (const file of paths) {
+    const lines = readLines(root, file);
+    let screen = null;
+    let subsection = null;
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index].trim();
+      if (file === "docs/spec/screen-catalog.md") {
+        const m = line.match(/^\| `(SCREEN-[A-Z0-9-]+)`/);
+        if (m) screens.add(m[1]);
+        continue;
+      }
+      const heading = line.match(/^(#{2,6})\s+(.+)$/);
+      if (heading) {
+        if (/^#{3,4}$/.test(heading[1])) {
+          const rule = heading[2].match(/^((?:BR|AC)-[A-Z0-9-]+)\s+—/);
+          if (rule) rules.set(rule[1], `${file}:${index + 1}`);
+        }
+        if (heading[1].length === 3) {
+          screen = heading[2].match(/^(SCREEN-[A-Z0-9-]+)/)?.[1] ?? null;
+          subsection = null;
+        } else if (heading[1].length === 4) {
+          subsection = heading[2];
+        } else if (heading[1].length === 2) {
+          screen = null;
+          subsection = null;
+        }
+      }
+      if (!screen) continue;
+      const key = `${file}:${index + 1}`;
+      if (/^(機能|機能一覧)$/.test(subsection ?? "") && /^[-*]\s+/.test(line)) {
+        actions.set(key, screen);
+      }
+      if (/^(主要なUI状態|重要なUI状態)$/.test(subsection ?? "") && /^\| `[^`]+` \|/.test(line)) {
+        const slug = line.split("|")[1]?.trim().replaceAll("`", "");
+        if (slug !== "default") states.set(key, `${screen}:${slug}`);
+      }
+    }
+  }
+  return { actions, states, rules, screens };
+}
+
+function collectMethods(root, paths) {
+  const methods = new Map();
+  for (const file of paths) {
+    const lines = readLines(root, file);
+    let className = null;
+    for (let index = 0; index < lines.length; index++) {
+      const cls = lines[index].match(/^export class (\w+)/);
+      if (cls) className = cls[1];
+      const match = lines[index].match(/^  async (\w+)\(/);
+      if (!match) continue;
+      assert(className, `unclassified Use Case method: ${file}:${index + 1}`);
+      const id = `${className}.${match[1]}`;
+      assert(!methods.has(id), `duplicate public Use Case method: ${id}`);
+      methods.set(id, {
+        source_path: file,
+        source_line: index + 1,
+        signature: lines[index].trim(),
+      });
+    }
+  }
+  return methods;
+}
+
+function equalSets(actual, expected, reason) {
+  const missing = [...expected].filter((value) => !actual.has(value));
+  const extra = [...actual].filter((value) => !expected.has(value));
+  assert(!missing.length, `${reason} missing: ${missing.join(", ")}`);
+  assert(!extra.length, `${reason} unexpected: ${extra.join(", ")}`);
+}
+
+function completeAnalysis(behavior) {
+  if (behavior.analysis_status !== "analyzed") return false;
+  const required = [
+    "role",
+    "platform",
+    "scenario",
+    "data",
+    "action",
+    "expected",
+    "risk",
+    "test_condition",
+    "test_responsibility",
+    "case_policy",
+    "case_selection_reason",
+  ];
+  return (
+    required.every(
+      (field) =>
+        typeof behavior[field] === "string" &&
+        behavior[field].trim() &&
+        ![
+          "-",
+          "scopeによる",
+          "正式仕様による",
+          "基本seedと関連する商品・アカウント",
+          "正式BR/ACの入力条件",
+          "正式契約の対象データ・Role/State/Platform",
+          "不正操作、競合、データの不整合または所有権逸脱",
+          "許可条件と拒否・競合・状態境界の代表Caseを選定",
+        ].includes(behavior[field]),
+    ) &&
+    Array.isArray(behavior.requirement_refs) &&
+    behavior.requirement_refs.length > 0 &&
+    behavior.reviewed_against?.includes("implementation") &&
+    behavior.reviewed_against?.includes("specification") &&
+    behavior.reviewed_against?.includes("seed")
+  );
+}
+
+function completeRequirement(item, root, behaviorById, directlyLinkedRequirements) {
+  if (item.analysis_status !== "analyzed") return false;
+  const required = [
+    "expected",
+    "risk",
+    "test_condition",
+    "test_responsibility",
+    "case_policy",
+    "case_selection_reason",
+    "analysis_progress",
+  ];
+  if (required.some((field) => typeof item[field] !== "string" || !item[field].trim())) {
+    return false;
+  }
+  if (
+    !["specification", "implementation", "seed"].every((source) =>
+      item.reviewed_against?.includes(source),
+    )
+  ) {
+    return false;
+  }
+  const audit = item.requirement_analysis;
+  if (audit?.source?.path !== item.source_path) {
+    return false;
+  }
+  const lines = readLines(root, item.source_path);
+  let expected;
+  if (item.kind === "rule") {
+    if (audit.source.heading_line !== item.source_line) return false;
+    const paragraphs = [];
+    let expectationLine = null;
+    for (let index = item.source_line; index < lines.length; index += 1) {
+      const line = lines[index].trim();
+      if (/^#{2,6} /.test(line)) break;
+      if (!line || /^関連(?:ビジネスルール|業務ルール|BR):/.test(line)) continue;
+      if (expectationLine === null) expectationLine = index + 1;
+      paragraphs.push(line);
+    }
+    if (audit.source.expectation_line !== expectationLine) return false;
+    expected = paragraphs.join(" ");
+  } else {
+    if (audit.source.line !== item.source_line) return false;
+    expected = lines[item.source_line - 1]?.trim();
+  }
+  if (!expected || item.expected !== expected) return false;
+  const ids = audit.representative_behaviors;
+  if (!Array.isArray(ids) || ids.length === 0 || new Set(ids).size !== ids.length) {
+    return false;
+  }
+  if (
+    !Array.isArray(audit.implementation_refs) ||
+    audit.implementation_refs.length !== ids.length
+  ) {
+    return false;
+  }
+  for (const id of ids) {
+    const behavior = behaviorById.get(id);
+    const evidence = audit.implementation_refs.find((ref) => ref.behavior_id === id);
+    if (
+      !behavior ||
+      !completeAnalysis(behavior) ||
+      !evidence ||
+      evidence.path !== behavior.implementation_evidence?.path ||
+      evidence.line !== behavior.implementation_evidence?.line
+    ) {
+      return false;
+    }
+  }
+  if (!directlyLinkedRequirements.has(item.id)) {
+    const contract = audit.cross_cutting_contract;
+    if (
+      typeof contract !== "string" ||
+      !(contract.startsWith("tests/") || contract.startsWith("e2e/")) ||
+      contract.split("/").includes("..") ||
+      !fs.existsSync(path.join(root, contract)) ||
+      !audit.assignment?.includes("直接参照なし")
+    ) {
+      return false;
+    }
+  }
+  const trace = audit.sut_case_trace;
+  if (
+    trace?.source_pr !== 219 ||
+    trace.source_path !== "docs/reports/2026-11-04_pr219-case-traceability.csv" ||
+    !/^[a-f0-9]{40}$/.test(trace.source_blob_sha ?? "") ||
+    trace.acceptance_status !== "未受入" ||
+    !Array.isArray(trace.row_keys) ||
+    trace.row_keys.length !== ids.length
+  ) {
+    return false;
+  }
+  const tracedBehaviors = new Set();
+  for (const row of trace.row_keys) {
+    if (
+      !ids.includes(row.behavior_id) ||
+      tracedBehaviors.has(row.behavior_id) ||
+      !Array.isArray(row.condition_refs) ||
+      row.condition_refs.length === 0 ||
+      new Set(row.condition_refs).size !== row.condition_refs.length ||
+      !row.condition_refs.every((condition) => condition === null || /^C[0-9]+$/.test(condition))
+    ) {
+      return false;
+    }
+    tracedBehaviors.add(row.behavior_id);
+  }
+  return /未実施|未受入/.test(audit.dynamic_acceptance ?? "");
+}
+
+export function validateCoverage({ root = ROOT, data } = {}) {
+  const document = data ?? JSON.parse(fs.readFileSync(path.join(root, COVERAGE_PATH), "utf8"));
+  assert(document?.schema_version === 2, "unsupported coverage schema");
+  assert(/^[0-9a-f]{40}$/.test(document.source_commit), "invalid pinned source SHA");
+
+  const specs = specSources(root);
+  const useCases = listUseCaseFiles(root);
+  equalSets(new Set(document.source_paths), new Set(specs), "spec source inventory");
+  equalSets(new Set(document.method_source_paths), new Set(useCases), "Use Case source inventory");
+
+  const spec = collectSpec(root, specs);
+  const methods = collectMethods(root, useCases);
+  const behaviorIds = new Set();
+  const requirementIds = new Set();
+  const actionSources = new Set();
+  const stateSources = new Set();
+  const actionGroups = new Map();
+  const semanticKeys = new Set();
+  const allowedPaths = new Set([...specs, ...useCases]);
+
+  assert(Array.isArray(document.behaviors), "behaviors missing");
+  assert(Array.isArray(document.requirements), "requirements missing");
+  assert(Array.isArray(document.use_case_methods), "Use Case methods missing");
+  for (const item of document.requirements) {
+    assert(REQUIRED_RULE_TYPES.has(item.kind), `invalid requirement kind: ${item.id}`);
+    assert(!requirementIds.has(item.id), `duplicate requirement ID: ${item.id}`);
+    requirementIds.add(item.id);
+    checkSource(item, root, allowedPaths);
+  }
+  equalSets(
+    new Set(document.requirements.filter((item) => item.kind === "rule").map((item) => item.id)),
+    new Set(spec.rules.keys()),
+    "BR/AC",
+  );
+  for (const item of document.behaviors) {
+    assert(REQUIRED_BEHAVIOR_TYPES.has(item.kind), `invalid behavior kind: ${item.id}`);
+    assert(!behaviorIds.has(item.id), `duplicate behavior ID: ${item.id}`);
+    behaviorIds.add(item.id);
+    checkSource(item, root, allowedPaths);
+    verifyAuditSource(item, root);
+    if (item.use_case_evidence !== undefined) {
+      assert(Array.isArray(item.use_case_evidence), `invalid Use Case evidence: ${item.id}`);
+      const seenUseCases = new Set();
+      for (const evidence of item.use_case_evidence) {
+        const method = methods.get(evidence?.id);
+        assert(
+          method !== undefined &&
+            evidence.path === method.source_path &&
+            evidence.line === method.source_line &&
+            evidence.signature === method.signature,
+          `Use Case evidence changed: ${item.id} -> ${evidence?.id}`,
+        );
+        assert(
+          item.related_use_cases?.includes(evidence.id),
+          `Use Case evidence missing relation: ${item.id} -> ${evidence.id}`,
+        );
+        assert(!seenUseCases.has(evidence.id), `duplicate Use Case evidence: ${item.id}`);
+        seenUseCases.add(evidence.id);
+      }
+    }
+    assert(
+      ["review_required", "analyzed", "blocked"].includes(item.analysis_status),
+      `invalid analysis state: ${item.id}`,
+    );
+    for (const field of [
+      "action",
+      "expected",
+      "role",
+      "platform",
+      "risk",
+      "test_condition",
+      "test_responsibility",
+      "case_policy",
+      "case_selection_reason",
+    ]) {
+      assert(typeof item[field] === "string" && item[field].trim(), `missing ${field}: ${item.id}`);
+    }
+    for (const ref of item.requirement_refs ?? []) {
+      assert(requirementIds.has(ref), `unknown requirement reference: ${item.id} -> ${ref}`);
+    }
+    for (const id of item.related_use_cases ?? []) {
+      assert(methods.has(id), `unknown related Use Case: ${item.id} -> ${id}`);
+    }
+    if (item.role === "platform_rolesを参照") {
+      assert(
+        item.platform_roles?.web && item.platform_roles?.android,
+        `missing platform-specific role: ${item.id}`,
+      );
+    }
+    if (item.kind === "action" || item.kind === "state") {
+      assert(spec.screens.has(item.screen), `unknown screen: ${item.id}`);
+    }
+    if (item.kind === "action") {
+      const key = `${item.source_path}:${item.source_line}`;
+      actionSources.add(key);
+      actionGroups.set(key, (actionGroups.get(key) ?? 0) + 1);
+    }
+    if (item.kind === "state") {
+      stateSources.add(`${item.source_path}:${item.source_line}`);
+    }
+    const fingerprint = [
+      item.screen ?? item.source_path,
+      item.action,
+      item.role,
+      item.platform,
+      item.scenario,
+    ].join("|");
+    assert(!semanticKeys.has(fingerprint), `duplicate equivalent behavior: ${item.id}`);
+    semanticKeys.add(fingerprint);
+    if (item.analysis_status === "analyzed") {
+      assert(completeAnalysis(item), `analysis lacks verified evidence: ${item.id}`);
+      if (!item.related_use_cases?.length) {
+        assert(
+          typeof item.use_case_relation_review === "string" &&
+            item.use_case_relation_review.trim().length >= 40,
+          `missing Use Case relation review: ${item.id}`,
+        );
+      }
+    }
+  }
+  equalSets(actionSources, new Set(spec.actions.keys()), "screen actions");
+  for (const screen of spec.screens) {
+    const sourceKeys = [...spec.actions.entries()]
+      .filter(([, screenId]) => screenId === screen)
+      .map(([sourceKey]) => sourceKey);
+    const expected = EXPECTED_ACTION_COUNTS[screen];
+    assert(expected?.length === sourceKeys.length, `unclassified action groups: ${screen}`);
+    sourceKeys.forEach((key, index) => {
+      assert(
+        actionGroups.get(key) === expected[index],
+        `unclassified action subcases: ${screen} ${key}`,
+      );
+    });
+  }
+  equalSets(stateSources, new Set(spec.states.keys()), "non-default UI states");
+  const behaviorById = new Map(document.behaviors.map((item) => [item.id, item]));
+  for (const state of document.behaviors.filter((item) => item.kind === "state")) {
+    const owner = behaviorById.get(state.covered_by);
+    assert(owner?.kind === "action", `unlinked state condition: ${state.id}`);
+    assert(owner.screen === state.screen, `state condition crosses screen: ${state.id}`);
+    assert(owner.state_refs?.includes(state.id), `reverse state link missing: ${state.id}`);
+  }
+  equalSets(
+    new Set(document.use_case_methods.map((item) => item.id)),
+    new Set(methods.keys()),
+    "public Use Case methods",
+  );
+  for (const item of document.use_case_methods) {
+    const method = methods.get(item.id);
+    assert(
+      item.source_path === method?.source_path &&
+        item.source_line === method?.source_line &&
+        item.signature === method?.signature,
+      `Use Case changed: ${item.id}`,
+    );
+    assert(behaviorIds.has(item.behavior_id), `Use Case has no behavior: ${item.id}`);
+  }
+  const directlyLinkedRequirements = new Set(
+    document.behaviors.flatMap((item) => item.requirement_refs ?? []),
+  );
+  for (const item of document.requirements) {
+    if (item.analysis_status === "analyzed") {
+      assert(
+        completeRequirement(item, root, behaviorById, directlyLinkedRequirements),
+        `requirement analysis lacks verified evidence: ${item.id}`,
+      );
+    }
+  }
+  const unreviewedRequirements = document.requirements.filter(
+    (item) => !completeRequirement(item, root, behaviorById, directlyLinkedRequirements),
+  ).length;
+  const operations = document.behaviors.filter((item) => item.kind !== "state");
+  const analyzed = operations.filter(completeAnalysis).length;
+  const blocked = operations.filter((item) => item.analysis_status === "blocked").length;
+  const unreviewedStates = document.behaviors.filter(
+    (item) => item.kind === "state" && !completeAnalysis(item),
+  ).length;
+  return {
+    screens: spec.screens.size,
+    screen_actions: actionSources.size,
+    screen_action_segments: [...actionGroups.values()].reduce((a, b) => a + b, 0),
+    non_default_states: stateSources.size,
+    unreviewed_state_conditions: unreviewedStates,
+    unreviewed_requirements: unreviewedRequirements,
+    br_ac: spec.rules.size,
+    use_case_methods: methods.size,
+    supported_total: operations.length,
+    classified: operations.length,
+    basically_analyzed: analyzed,
+    requires_review: operations.length - analyzed - blocked,
+    blocked,
+    classified_rate: 100,
+    basic_analysis_rate:
+      operations.length === 0 ? 0 : Math.round((analyzed / operations.length) * 10000) / 100,
+    complete:
+      analyzed === operations.length &&
+      blocked === 0 &&
+      unreviewedStates === 0 &&
+      unreviewedRequirements === 0,
+  };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    const result = validateCoverage();
+    console.log(JSON.stringify(result, null, 2));
+    if (process.argv.includes("--require-complete") && !result.complete) process.exitCode = 1;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
+}

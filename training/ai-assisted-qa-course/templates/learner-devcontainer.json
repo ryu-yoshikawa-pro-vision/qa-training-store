@@ -1,0 +1,31 @@
+{
+  "name": "AI協働QA 学習用",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:5-24-bookworm",
+  "remoteUser": "node",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["sst-dev.opencode", "ms-playwright.playwright"]
+    }
+  },
+  "waitFor": "postCreateCommand",
+  "containerEnv": {
+    "OPENCODE_DISABLE_AUTOUPDATE": "true",
+    "HUSKY": "0"
+  },
+  "postCreateCommand": "bash -lc 'set -e; sudo corepack enable; pnpm install --frozen-lockfile; pnpm exec playwright install --with-deps chromium; sudo npm install --global @opencode/cli@2.0.22'",
+  "forwardPorts": [8082, 6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "Playwright Desktop",
+      "onAutoForward": "notify"
+    },
+    "8082": {
+      "label": "Scenario Shop (学習用)",
+      "onAutoForward": "notify"
+    }
+  }
+}

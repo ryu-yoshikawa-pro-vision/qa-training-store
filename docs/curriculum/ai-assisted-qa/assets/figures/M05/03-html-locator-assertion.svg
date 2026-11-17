@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="480" viewBox="0 0 1240 480" role="img" aria-label="説明用HTMLボタンからRoleとアクセシブル名を読み、PlaywrightのLocator、Action、Assertionで画面を検証する順序の概念図">
+<title>説明用HTMLボタンからRoleとアクセシブル名を読み、PlaywrightのLocator、Action、Assertionで画面を検証する順序の概念図</title>
+<defs><marker id="arrowhead" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#2563EB" /></marker></defs>
+<rect x="1" y="1" width="1238" height="478" rx="20" fill="#F8FBFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="34" y="54" fill="#17324D" font-size="30" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">画面の要素を見つけて、操作し、結果を確かめる</text>
+<text x="35" y="89" fill="#52677D" font-size="20" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">このHTMLは説明用の例です。実際の画面で同じ属性を持つとは限りません。</text>
+<rect x="33" y="131" width="225" height="203" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="47" y="169" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">1. HTML要素</text>
+<text x="45" y="220" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">&lt;button&gt;</text>
+<text x="45" y="250" fill="#52677D" font-size="14" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">aria-label=&quot;カートに追加&quot;</text>
+<text x="45" y="286" fill="#52677D" font-size="15" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">ボタンに表示名を付ける</text>
+<path d="M262,228 L271,228" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="273" y="131" width="225" height="203" rx="16" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="287" y="169" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">2. Roleと名前</text>
+<text x="285" y="220" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">button / カートに追加</text>
+<text x="285" y="286" fill="#52677D" font-size="15" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">要素の役割と名前を読む</text>
+<path d="M502,228 L511,228" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="513" y="131" width="225" height="203" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="527" y="169" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">3. Locator</text>
+<text x="525" y="220" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">getByRole(&quot;button&quot;,...)</text>
+<text x="525" y="286" fill="#52677D" font-size="15" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">目的のボタンを探す</text>
+<path d="M742,228 L751,228" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="753" y="131" width="225" height="203" rx="16" fill="#EEF5FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="767" y="169" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">4. Action</text>
+<text x="765" y="220" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">click()</text>
+<text x="765" y="286" fill="#52677D" font-size="15" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">指定したボタンを押す</text>
+<path d="M982,228 L991,228" fill="none" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowhead)" />
+<rect x="993" y="131" width="225" height="203" rx="16" fill="#FFFFFF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="1007" y="169" fill="#17324D" font-size="22" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">5. Assertion</text>
+<text x="1005" y="220" fill="#17324D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">toHaveText(&quot;1&quot;)</text>
+<text x="1005" y="286" fill="#52677D" font-size="15" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">数量が期待どおりか確認する</text>
+<rect x="35" y="366" width="1170" height="80" rx="14" fill="#DBF6FF" stroke="#CAD9E9" stroke-width="2"/>
+<text x="54" y="402" fill="#17324D" font-size="20" font-weight="700" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">確認する点：Locatorが存在することと、業務上の期待結果が成立することは別です。</text>
+<text x="55" y="431" fill="#52677D" font-size="18" font-weight="400" text-anchor="start" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif">画面の実際のRoleと名前、操作後の状態を独立して確認します。</text>
+</svg>

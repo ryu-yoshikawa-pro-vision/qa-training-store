@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "module_id": "M09",
+  "questions": [
+    {
+      "id": "M09-Q01",
+      "objective_ids": [
+        "M09-01"
+      ],
+      "question": "GitHub Actionsのworkflowで、job内のstepを実行する計算環境はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Trigger",
+          "meaning": "Trigger",
+          "reason": "Triggerはworkflowを起動する条件です。"
+        },
+        {
+          "value": "B",
+          "label": "Runner",
+          "meaning": "Runner",
+          "reason": "Runnerがjobのstepを実行します。"
+        },
+        {
+          "value": "C",
+          "label": "Artifact",
+          "meaning": "Artifact",
+          "reason": "Artifactは保存・共有される実行成果物です。"
+        },
+        {
+          "value": "D",
+          "label": "Check",
+          "meaning": "Check",
+          "reason": "Checkは結果を報告する状態で、計算環境ではありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#workflowを読む",
+      "knowledge_ids": [
+        "K-M09-01"
+      ]
+    },
+    {
+      "id": "M09-Q02",
+      "objective_ids": [
+        "M09-02"
+      ],
+      "question": "現在のPR HEADはdef456ですが、CI Artifact内のtarget-sha.txtにはabc123と記録されています。どう扱いますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "同じworkflow名なので、古いArtifactを現在のHEADの証拠にする",
+          "meaning": "workflow名だけで対象版を判断する",
+          "reason": "同じ名前でも別commitの実行結果かもしれません。"
+        },
+        {
+          "value": "B",
+          "label": "Artifactが取得できたので、その結果を現在のHEADに適用する",
+          "meaning": "取得できることだけで対象版を判断する",
+          "reason": "取得可能でも対象SHAが異なる場合は現在の検証になりません。"
+        },
+        {
+          "value": "C",
+          "label": "同じbranchのRunなので、SHAの違いを無視して採用する",
+          "meaning": "branch名だけで対象版を判断する",
+          "reason": "branch名は進むため、同じcommitである証明になりません。"
+        },
+        {
+          "value": "D",
+          "label": "不一致のArtifactを採用せず、現在のHEADに対応するRunを確認する",
+          "meaning": "現在のPR HEADとArtifactの対象を照合し、同じRunの由来を確認する",
+          "reason": "target-sha.txtのabc123は現在のPR HEAD def456を証明しません。同じRun由来かも確認し、現在のHEADに対応する結果がない間はPASSにせず未確認とします。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#対象shaとrunのartifactを照合する",
+      "knowledge_ids": [
+        "K-M09-02"
+      ]
+    },
+    {
+      "id": "M09-Q03",
+      "objective_ids": [
+        "M09-03"
+      ],
+      "question": "CI結果でBuild stepが失敗し、Test stepは開始されていません。最初に報告する状態はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "Build failureとし、該当step logを調査する。Testは未実行と分ける",
+          "meaning": "Build failureとし、該当step logを調査する。Testは未実行と分ける",
+          "reason": "実行済みと未実行を区別し、原因箇所へ進めます。"
+        },
+        {
+          "value": "B",
+          "label": "Test failureとしてケースの期待値を修正する",
+          "meaning": "Test failureとしてケースの期待値を修正する",
+          "reason": "Testが始まっておらず、Assertion原因とはまだ判断できません。"
+        },
+        {
+          "value": "C",
+          "label": "Test PASSと報告する",
+          "meaning": "Test PASSと報告する",
+          "reason": "未実行をPASSと読み替えてはいけません。"
+        },
+        {
+          "value": "D",
+          "label": "全workflowを再実行し、元のlogを捨てる",
+          "meaning": "全workflowを再実行し、元のlogを捨てる",
+          "reason": "原因調査に必要な最初の証拠を失う可能性があります。"
+        }
+      ],
+      "correct_value": "A",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最初の失敗箇所から結果を分類する",
+      "knowledge_ids": [
+        "K-M09-03"
+      ]
+    },
+    {
+      "id": "M09-Q04",
+      "objective_ids": [
+        "M09-04"
+      ],
+      "question": "Runnerの料金条件が不明な組織で、private repositoryのlarger runnerを使う提案が出ました。どう判断しますか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "一般に無料と考えてすぐ有効にする",
+          "meaning": "一般に無料と考えてすぐ有効にする",
+          "reason": "料金と利用条件は組織設定やrunner種別で変わり、推測できません。"
+        },
+        {
+          "value": "B",
+          "label": "料金を無視して常に最速のrunnerを選ぶ",
+          "meaning": "料金を無視して常に最速のrunnerを選ぶ",
+          "reason": "コストや権限を考慮せずに選ぶのは適切ではありません。"
+        },
+        {
+          "value": "C",
+          "label": "公式条件と組織の契約・設定を確認し、確認できるまで未決として扱う",
+          "meaning": "公式条件と組織の契約・設定を確認し、確認できるまで未決として扱う",
+          "reason": "現在の利用条件を根拠で確かめられます。"
+        },
+        {
+          "value": "D",
+          "label": "Runner設定を避ければCI料金は必ずゼロと説明する",
+          "meaning": "Runner設定を避ければCI料金は必ずゼロと説明する",
+          "reason": "他の料金条件まで含めて未確認の断定をしています。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#runner費用を確認する",
+      "knowledge_ids": [
+        "K-M09-04"
+      ]
+    },
+    {
+      "id": "M09-Q05",
+      "objective_ids": [
+        "M09-05"
+      ],
+      "question": "教材用workflowに必要な権限を設定する方針として適切なのはどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "contents: writeとdeploy secretを最初から付ける",
+          "meaning": "contents: writeとdeploy secretを最初から付ける",
+          "reason": "課題実行に不要な書込権限とSecretを増やします。"
+        },
+        {
+          "value": "B",
+          "label": "PRを操作できる管理者tokenを使う",
+          "meaning": "PRを操作できる管理者tokenを使う",
+          "reason": "テスト実行に不要な強い権限を持ち込みます。"
+        },
+        {
+          "value": "C",
+          "label": "権限を明示せず既定の全権限に任せる",
+          "meaning": "権限を明示せず既定の全権限に任せる",
+          "reason": "実行できる操作の範囲を教材で確認できません。"
+        },
+        {
+          "value": "D",
+          "label": "必要最小のcontents: readを基本とし、Secretとdeployを使わない",
+          "meaning": "必要最小のcontents: readを基本とし、Secretとdeployを使わない",
+          "reason": "課題に必要な読み取りへ限定し、公開・運用境界を守ります。"
+        }
+      ],
+      "correct_value": "D",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#最小権限を設定する",
+      "knowledge_ids": [
+        "K-M09-05"
+      ]
+    },
+    {
+      "id": "M09-Q06",
+      "objective_ids": [
+        "M09-01"
+      ],
+      "knowledge_ids": [
+        "K-M09-06"
+      ],
+      "question": "GitHub Actions workflowの`steps`を記載する場所はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "on直下",
+          "meaning": "on直下",
+          "reason": "onはworkflowのイベント条件です。"
+        },
+        {
+          "value": "B",
+          "label": "jobs内の各jobの下",
+          "meaning": "jobs内の各jobの下",
+          "reason": "stepsはjobs内の各jobに記述します。"
+        },
+        {
+          "value": "C",
+          "label": "permissions直下",
+          "meaning": "permissions直下",
+          "reason": "permissionsはGITHUB_TOKENの権限を指定するための設定です。"
+        },
+        {
+          "value": "D",
+          "label": "artifact直下",
+          "meaning": "artifact直下",
+          "reason": "Artifactというトップレベル項目でstepsを指定する構造ではありません。"
+        }
+      ],
+      "correct_value": "B",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-06"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-06"
+    },
+    {
+      "id": "M09-Q07",
+      "objective_ids": [
+        "M09-04"
+      ],
+      "knowledge_ids": [
+        "K-M09-07"
+      ],
+      "question": "CIの実行費用が懸念されるとき、最初に検討すべき要素はどれですか。",
+      "options": [
+        {
+          "value": "A",
+          "label": "全テスト無効化",
+          "meaning": "全テスト無効化",
+          "reason": "全テスト停止は未検証期間を増やす判断です。"
+        },
+        {
+          "value": "B",
+          "label": "料金を推測して放置",
+          "meaning": "料金を推測して放置",
+          "reason": "料金の推測だけでは実行可能性が判断できません。"
+        },
+        {
+          "value": "C",
+          "label": "trigger頻度・対象spec・未検証期間・課金条件",
+          "meaning": "trigger頻度・対象spec・未検証期間・課金条件",
+          "reason": "trigger頻度・対象spec・課金・未検証期間のトレードオフを確認します。"
+        },
+        {
+          "value": "D",
+          "label": "結果をPASSに固定する",
+          "meaning": "結果をPASSに固定する",
+          "reason": "結果の偽装は検証の代わりになりません。"
+        }
+      ],
+      "correct_value": "C",
+      "source_refs": [
+        "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-07"
+      ],
+      "review_path": "docs/curriculum/ai-assisted-qa/modules/M09/README.md#k-m09-07"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "module_id": "M05",
+  "state": "end",
+  "revision": "ai-assisted-qa-course-v3",
+  "source_sha": null,
+  "source_sha_resolution": "bound to the verified pinned source SHA by course-sync",
+  "public_contract": true,
+  "read_only": true,
+  "environment": ["Node.js", "pnpm", "Playwright", "loopback :8082"],
+  "expected": {
+    "required_paths": ["workspace/M05/submission.md", "workspace/M05/product-link.spec.ts"],
+    "objective_ids": ["M05-01", "M05-02", "M05-03", "M05-04", "M05-05"],
+    "phase": "P2",
+    "previous_artifact_policy": "use valid learner artifact or this module's separately identified public sample"
+  },
+  "checks": [
+    {
+      "id": "M05-END-01",
+      "mode": "read-only",
+      "condition": "required submission files and artifact identifiers exist"
+    },
+    {
+      "id": "M05-END-02",
+      "mode": "read-only",
+      "condition": "objective and specification references match this module"
+    },
+    {
+      "id": "M05-END-03",
+      "mode": "read-only",
+      "condition": "This module check validates only its own artifacts and references. P2 formal assessment is available only at terminal module M07 and does not change this module-level structural result."
+    },
+    {
+      "id": "M05-END-04",
+      "mode": "read-only",
+      "condition": "output artifact IDs, paths, contract revision and handoff contract match the next module"
+    }
+  ],
+  "references": [
+    "docs/curriculum/ai-assisted-qa/modules/M05/README.md",
+    "docs/curriculum/ai-assisted-qa/quizzes/M05.json",
+    "docs/plans/2026-10-16_qa-curriculum-ai-agent-redesign_learning-map.md"
+  ],
+  "outputs": [
+    {
+      "artifact_id": "M05-result-01",
+      "path": "workspace/M05/submission.md",
+      "revision": "M05-result-v1",
+      "contract_id": "M05-to-M06-handoff-v1"
+    },
+    {
+      "artifact_id": "M05-result-02",
+      "path": "workspace/M05/product-link.spec.ts",
+      "revision": "M05-result-v1",
+      "contract_id": "M05-to-M06-handoff-v1"
+    }
+  ],
+  "distribution": {
+    "public_source": true,
+    "includes_reference_solutions": false,
+    "includes_scoring_tests": false,
+    "includes_completed_states": false
+  },
+  "phase_assessment": {
+    "phase_id": "P2",
+    "terminal_module_id": "M07",
+    "required_objective_ids": [
+      "M05-01",
+      "M05-02",
+      "M05-03",
+      "M05-04",
+      "M05-05",
+      "M06-01",
+      "M06-02",
+      "M06-03",
+      "M06-04",
+      "M06-05",
+      "M07-01",
+      "M07-02",
+      "M07-03",
+      "M07-04",
+      "M07-05"
+    ],
+    "entry_command": "pnpm course:assess M07 --model provider/model-id",
+    "result_root": "workspace/.course-assessments/P2/attempts",
+    "mastery_status": "not_evaluated_by_course_check",
+    "required_at_terminal_module": "M07",
+    "assessment_is_terminal_only": true
+  }
+}
