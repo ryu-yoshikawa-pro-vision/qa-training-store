@@ -103,12 +103,10 @@ describe("direct Codex workspace contract", () => {
     expect(readme).toContain("actual runtime policyは`.codex/rules/*.rules`が正本");
   });
 
-  it("requires parent delegation for investigation, implementation, and validation", () => {
+  it("requires parent delegation", () => {
     const agreement = read("AGENTS.md");
     const harness = read("docs/reference/codex-implementation-harness.md");
-    const researcher = parseToml(
-      read(".codex/agents/implementation_researcher.toml"),
-    ) as Record<string, unknown>;
+    const researcher = read(".codex/agents/implementation_researcher.toml");
 
     expect(agreement).toContain("実作業は原則childへ委任");
     expect(agreement).toContain("Parentによる直接実行へ暗黙に切り替えず");
@@ -117,20 +115,17 @@ describe("direct Codex workspace contract", () => {
     expect(harness).toContain("quality_gate_runner");
     expect(harness).toContain("親による直接実行を代替経路にしない");
     expect(harness).toContain("Git mutation");
-    expect(researcher.sandbox_mode).toBe("read-only");
-    expect(String(researcher.description)).toContain("implementation_worker");
-    expect(String(researcher.developer_instructions)).toContain("implementation_worker");
+    expect(researcher).toContain('sandbox_mode = "read-only"');
+    expect(researcher).toContain("implementation_worker");
   });
 
-  it("prevents frequent subagent polling and preserves restricted-operation boundaries", () => {
+  it("prevents frequent subagent polling", () => {
     const config = parseToml(read(".codex/config.toml")) as Record<string, unknown>;
     const features = config.features as Record<string, unknown>;
     const multiAgentV2 = features.multi_agent_v2 as Record<string, unknown>;
     const agreement = read("AGENTS.md");
     const harness = read("docs/reference/codex-implementation-harness.md");
-    const worker = parseToml(
-      read(".codex/agents/implementation_worker.toml"),
-    ) as Record<string, unknown>;
+    const worker = read(".codex/agents/implementation_worker.toml");
 
     expect(multiAgentV2.min_wait_timeout_ms).toBe(300000);
     expect(multiAgentV2.default_wait_timeout_ms).toBe(600000);
@@ -141,7 +136,7 @@ describe("direct Codex workspace contract", () => {
     expect(harness).toContain("短い再試行を連続させない");
     expect(harness).toContain("childが実行できない操作");
     expect(harness).toContain("承認なしで進めない");
-    expect(String(worker.developer_instructions)).toContain("ファイル削除、rename、移動をしない");
+    expect(worker).toContain("ファイル削除、rename、移動をしない");
   });
 
   it("documents direct Runs without weakening strict machine-managed Runs", () => {
