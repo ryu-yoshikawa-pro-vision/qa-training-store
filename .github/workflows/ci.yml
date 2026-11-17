@@ -42,35 +42,6 @@ jobs:
           show-openssf-scorecard: false
           comment-summary-in-pr: never
 
-  actions-lock-bootstrap:
-    name: Actions lock bootstrap
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-
-      - name: Install gh-actions-lock
-        run: gh extension install github/gh-actions-lock --pin v0.4.1
-
-      - name: Generate and verify actions.lock
-        run: |
-          gh actions-lock --migrate-local-actions
-          gh actions-lock --verify
-
-      - name: Export generated changes for this migration
-        run: |
-          printf '%s\n' '--- ACTIONS_LOCK_DIFF_START ---'
-          git diff -- .github/workflows
-          printf '%s\n' '--- ACTIONS_LOCK_DIFF_END ---'
-          printf '%s\n' '--- ACTIONS_LOCK_FILE_START ---'
-          cat .github/workflows/actions.lock
-          printf '%s\n' '--- ACTIONS_LOCK_FILE_END ---'
-
   style-quality:
     name: Style Quality
     runs-on: ubuntu-latest
