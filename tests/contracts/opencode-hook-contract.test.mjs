@@ -73,6 +73,7 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
   it("keeps unverified shell permissions approval-gated and secrets inaccessible", () => {
     const source = fs.readFileSync(path.join(repositoryRoot, "opencode.jsonc"), "utf8");
     const config = JSON.parse(source.replace(/,(\s*[}\]])/gu, "$1"));
+    expect(config.plugins).toContain("./.opencode/plugins/git-safety.mjs");
     const rules = config.permissions;
     expect(Array.isArray(rules)).toBe(true);
     expect(rules[0]).toEqual({ action: "shell", resource: "*", effect: "ask" });
