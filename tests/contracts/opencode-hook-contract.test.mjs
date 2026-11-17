@@ -79,6 +79,8 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
     expect(rules).toContainEqual({ action: "read", resource: "*.env", effect: "deny" });
     expect(rules).toContainEqual({ action: "read", resource: "*.env.*", effect: "deny" });
     expect(rules).toContainEqual({ action: "read", resource: "*.env.example", effect: "allow" });
-    expect(rules.filter((rule) => rule.action === "shell" && rule.effect === "allow").length).toBe(6);
+    expect(rules.filter((rule) => rule.action === "shell" && rule.effect === "allow").length).toBe(
+      6,
+    );
   });
 });
