@@ -11,7 +11,7 @@
 - [x] 7. WSL2の実機でV2 Pluginロード・Hook発火を確認する（2026-11-17）。
 - [x] 8. ロード形式の不具合を修正し、契約テスト・文書を更新する。
 - [x] 9. ローカルの品質ゲートを実行する（169/169 tests、diagnose WARN=0/ERROR=0、format strict OK、lint error 0）。
-- [ ] 10. PRの最新headで必須CIを確認し、結果をPR本文に記録する。
+- [x] 10. PRの最新headで必須CIを確認し、結果をPR本文に記録する（33チェック失敗0、PR本文更新HTTP 200）。
 
 ## Discovered（発見事項）
 

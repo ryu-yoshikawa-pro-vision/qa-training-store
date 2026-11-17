@@ -28,4 +28,12 @@
   - `pnpm run format:check:strict`: All matched files use Prettier code style（契約テスト1件をPrettier修正）。
   - `pnpm run lint`: 0 errors / 63 pre-existing warnings。
 - 依存関係は `<TEMP_ROOT>/opencode/qa-deps` にWSLネイティブで導入し、worktreeの`node_modules`はそこへのシンボリックリンク（追跡対象外）。`pnpm-lock.yaml`は未変更。
-- Progress: 95% (9/10)（残り: push後のPR本文更新・最新CI確認）
+## 2026-11-18 00:45 (JST) 完了
+
+- 実装コミット: `49f82c0d8ef010dd0aa2a1e876ff52d7eb6cda60`（Plugin自動検出形式への修正）。
+- 追加コミット: `e0a26070aa335a52a95df4fd6154a29f491764ac`（Run Artifactのローカル一時パスを`<TEMP_ROOT>`へサニタイズ）。49f82c0dではartifact sanitizerがresidual pathを検出し`verify`/`validate`が失敗したが、修正後のCIで解消。
+- PR #227: open / draft、headは上記最終SHAと一致。本文に実機検証・ローカルゲート・CI結果・Expo既存問題・環境依存の注意点を記録（PATCH HTTP 200）。
+- 最終CI: 33チェックすべて完了、失敗0。Expo由来のNative Staticは旧headで失敗、最終headではNative系ジョブはトリガーされなかった。
+- Codex共通化: Git/Shell文字列判定は`.codex/hooks/pre_tool_use_policy.mjs`の`evaluateCommand()`を唯一の正本として共有。OS sandbox、承認UI、MCP/ファイル編集、Codex固有Hook/wrapper、ログイベント意味は共有対象外。
+- 残課題（環境依存・今回のコード範囲外）: グローバル`cli.json`の`autoaccept`により`ask`の対話承認は未検証。WSL linked worktreeのWindows形式`.git`ポインタによりownerRoot解決不可（G10でfail-closed）。Windows側での同等確認は未実施。
+- Progress: 100% (10/10)
