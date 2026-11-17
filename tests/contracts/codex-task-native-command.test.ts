@@ -684,7 +684,7 @@ describe("codex-task native command output and exit code contract", () => {
           "RESTORED_VERIFY_COMMAND=codex-task-verify-restore",
         );
         for (const marker of fixture.stdoutMarkers) {
-          expect(assertionOutput).toContain(marker);
+          expect(result.stdout).toContain(marker);
         }
         if (fixture.stderrMarker) {
           expect(result.stderr).toContain(fixture.stderrMarker);
