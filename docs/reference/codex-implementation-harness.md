@@ -216,6 +216,14 @@
 - 予定した委任ができない場合（custom agentの検出失敗、起動失敗、必要な権限・作業範囲の不足など）は未完了と理由を記録し、親による直接実行を代替経路にしない。修正指示が必要な場合はParentへ判断を戻す。
 - ParentのRun Artifact所有、Git mutation、PR/CIライフサイクル、委任結果の最終確認と完了承認は既存契約に従う。これらの管理上の責務は実装・調査・検証のchildへの委任とは区別する。
 
+- `implementation_worker` は、親エージェントが計画、対象ファイル、変更範囲、禁止事項を確定させた後に限り使用する。
+- `implementation_worker` は、小さく限定された実装を行うワークスペース書き込みサブエージェント（workspace-write subagent）であり、親エージェントが指定した対象ファイルのみを最小限の差分で編集する。
+- 書き込み権限を持つサブエージェント（writable subagent）は、原則として1タスクにつき1つのみ使用する。
+- `implementation_worker` による実装完了後は、親エージェントが diff、仕様上の判断、未検証の項目、検証結果を確認する。
+- `implementation_worker` は、ファイルの削除、リネーム、移動、Git 状態の変更（git mutation）、削除やリネームを含むパッチ操作、スコープ外のリファクタリングを行わない。
+- サブエージェントの開始・終了に関する機械的事実（machine fact）はフックの JSONL へ記録し、専用の構造化成果物（Structured Artifact）は作成しない。
+- サブエージェントを利用した場合は、直後の TASK 完了時または Run 完了チェックポイントの REPORT に、`Delegation`、`Result`、`Parent decision` のみを取りまとめて1度記録する。`SubagentStop` や `Stop` のイベントから最終完了や成功／失敗（success / failure）を推測してはならない。
+
 ### サブエージェントの待機
 
 - Parentは子の起動後、他の子の結果統合や重複しない判断業務を進められる。待機中の状態確認を目的として`wait_agent`、`list_agents`、`sleep`等を短時間で繰り返してはならない。
@@ -229,13 +237,6 @@
 
 - `implementation_worker`は従来どおり削除・rename・移動・Git mutationを実行しない。必要な変更がこの制約に抵触する場合、Parentは削除対象、理由、影響、既存の安全性規約で必要な承認、代替手段を評価する。
 - 権限・操作経路が確定するまでは該当変更を停止し、親自身によるコード編集や通常のworkerへの禁止操作の指示で回避しない。ユーザーによる明示的な操作承認が必要な場合は、承認なしで進めない。既存の安全性規約を緩める変更が必要なら別途L3承認とrollback planを得る。
-- `implementation_worker` は、親エージェントが計画、対象ファイル、変更範囲、禁止事項を確定させた後に限り使用する。
-- `implementation_worker` は、小さく限定された実装を行うワークスペース書き込みサブエージェント（workspace-write subagent）であり、親エージェントが指定した対象ファイルのみを最小限の差分で編集する。
-- 書き込み権限を持つサブエージェント（writable subagent）は、原則として1タスクにつき1つのみ使用する。
-- `implementation_worker` による実装完了後は、親エージェントが diff、仕様上の判断、未検証の項目、検証結果を確認する。
-- `implementation_worker` は、ファイルの削除、リネーム、移動、Git 状態の変更（git mutation）、削除やリネームを含むパッチ操作、スコープ外のリファクタリングを行わない。
-- サブエージェントの開始・終了に関する機械的事実（machine fact）はフックの JSONL へ記録し、専用の構造化成果物（Structured Artifact）は作成しない。
-- サブエージェントを利用した場合は、直後の TASK 完了時または Run 完了チェックポイントの REPORT に、`Delegation`、`Result`、`Parent decision` のみを取りまとめて1度記録する。`SubagentStop` や `Stop` のイベントから最終完了や成功／失敗（success / failure）を推測してはならない。
 
 ## 推奨フロー
 
