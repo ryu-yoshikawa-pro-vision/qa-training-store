@@ -11,7 +11,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Sanitizer event-base resolution and regression coverage are implemented. PowerShell failure A remains unclassified until an actual PowerShell runner executes the expanded contract suite."
+      "evidence": "Event別sanitizer比較元解決を実装し、UbuntuのPowerShell診断でdefault fixture自身が直接status 1を返すと確認した。POSIX fixtureと2件のCI test expectationを修正したが、修正を含む新HEADの必須CIは未実行。"
     },
     "scope_control": {
       "rating": "pass",
@@ -19,7 +19,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Focused Vitest checks, format, lint, and typecheck passed. The full contracts run was interrupted without a result, the PowerShell fixture suite could not run locally, and required PR CI is pending."
+      "evidence": "Focused Vitest 12 passed / 12 skipped、全typecheck、format strict、Node sanitizer再現はpass。PowerShell固有suiteはローカル未実施。full contractsは10分で中断され途中の既存failure summariesがあり最終結果なし。全体lintも無出力で中断。初回PR HEAD Web CI failure / Mobile CI success。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -31,19 +31,19 @@
     },
     "maintainability": {
       "rating": "warn",
-      "evidence": "The sanitizer fix retains the existing strict implementation and tests its event inputs. The PowerShell root cause remains open pending runner diagnostics."
+      "evidence": "本番PowerShell helperとsanitizer strict検査を変えず、OS依存fixtureと安全なsanitization tokenのtest期待値だけを修正した。Ubuntu/Windowsの修正後確認は次HEADのCI待ち。"
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "The schedule-equivalent comparison path has regression coverage, but the PowerShell integration and latest-head CI have not yet been observed in this environment."
+      "evidence": "初回PR HEADの実行URLとrunner診断をREPORTに記録し、schedule相当resolver testを用意した。PowerShell sanitizer suiteはローカルruntimeがなく未実施。修正後HEADのWeb/Mobile CI待ち。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "The local focused native-command suite skipped PowerShell-dependent cases because no PowerShell runtime is available. The main-branch CI failure contains no child-process or PowerShell diagnostic values.",
-      "detail": "The original exit-code mismatch cannot yet be attributed to the fixture or the shared PowerShell execution path. The newly added CI diagnostics are needed before selecting a production or fixture correction."
+      "evidence": "Web CI run 44009217508でfixtureのNode直接起動とbash直接起動がともにstatus 1 / signal null / error null。PowerShell直接起動、Invoke-NativeCommand、Invoke-VerifyCommandもscalar 1を保持し、CODEX_VERIFY_COMMANDは復元。focused local PowerShell testsはruntime不在でskip。",
+      "detail": "Ubuntuでは`/bin/echo`を別argv0のverify-default.exeへコピーしたfixture自身が1を返していたため、共通wrapperの非0保持は正しい。原因となるbinaryの具体的なargv0 dispatch理由はstderrを安全のためredactしており未確定。POSIX fixtureを決定的なshebang executableに置換したが、修正後runner結果待ち。"
     },
     {
       "category": "artifact_contract_gap",
@@ -54,8 +54,14 @@
     {
       "category": "flaky_or_env_issue",
       "severity": "low",
-      "evidence": "pnpm run verify stops in markdownlint after following dependency-store links and reporting findings in 5,357 installed dependency files. The full contracts run was interrupted after ten minutes with no completed result.",
-      "detail": "This local environment does not provide a clean full-gate result. Focused checks passed; the exact PR CI remains required."
+      "evidence": "権限昇格したpnpm run test:contractsは10分上限で中断し、codex-hook-contract 1 failure、codex-safe-run-manifest-sync 8 failures / 1 skipped、codex-text-quality 2 failuresを途中観測。全体lintとtarget eslintも無出力で中断。PowerShell runtimeなし。",
+      "detail": "これらの広いsuite failuresは最終summary未取得で原因未分類。現在の2件との因果関係は未確認で、対象外コードへの変更はしていない。新HEADのWeb CIが対象suiteを実行する。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "初回PR HEADのWindows native suiteはsanitized wrapper outputで<TEMP_ROOT>相当のtokenを観測したがtestは<REPO_ROOT>だけを要求。sanitizer PowerShell testは登録済みUSERPROFILEを<USER_HOME>へ置換するが<local-path-redacted>だけを要求した。",
+      "detail": "両方とも安全な固定tokenを限定的に受け入れる回帰testへ修正した。実fixture absolute pathとuser detailの不在、sanitizer non-zero failureは引き続き検証する。"
     }
   ],
   "improvement_candidates": []

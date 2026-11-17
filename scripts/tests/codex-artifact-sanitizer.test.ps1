@@ -649,7 +649,7 @@ File: file:///C:/Users/test-user/Documents/repo/output.txt
     Assert-CodexTest -Condition ($scheduleAfterChange.success -and $scheduleAfterChange.sha -eq $eventCleanSha) -Message 'Schedule did not resolve the first parent commit after a new artifact commit.'
     $unsafeArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $scheduleAfterChange.sha
     Assert-CodexTest -Condition ($unsafeArtifactCheck.exit_code -ne 0) -Message 'Committed absolute path was accepted after schedule base resolution.'
-    Assert-CodexContains -Text $unsafeArtifactCheck.output -Expected '<local-path-redacted>' -Message 'Committed absolute path finding did not use fixed redaction.'
+    Assert-CodexTest -Condition ($unsafeArtifactCheck.output.Contains('<USER_HOME>') -or $unsafeArtifactCheck.output.Contains('<local-path-redacted>')) -Message 'Committed absolute path finding did not use a fixed redaction token.'
     Assert-CodexTest -Condition ($unsafeArtifactCheck.output -notmatch 'test-user|C:\\Users\\|event-base-repository') -Message 'Committed artifact check exposed an absolute path or user detail.'
     $pushAfterChange = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'push' -EventBefore $eventCleanSha
     Assert-CodexTest -Condition ($pushAfterChange.success -and $pushAfterChange.sha -eq $eventCleanSha) -Message 'Push did not preserve the previous commit after a new artifact commit.'

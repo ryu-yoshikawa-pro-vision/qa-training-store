@@ -259,13 +259,36 @@ function createVerifyRuntimeFixtures() {
     fs.chmodSync(shPath, 0o755);
   }
 
-  const defaultSource =
-    process.platform === "win32"
-      ? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "hostname.exe")
-      : "/bin/echo";
   const defaultPath = path.join(root, "verify-default.exe");
-  fs.copyFileSync(defaultSource, defaultPath);
-  if (process.platform !== "win32") {
+  const defaultStdoutMarkers =
+    process.platform === "win32"
+      ? []
+      : [
+          "codex-task-verify-native-executable-stdout-1",
+          "codex-task-verify-native-executable-stdout-2",
+        ];
+  const defaultStderrMarker =
+    process.platform === "win32" ? undefined : "codex-task-verify-native-executable-stderr";
+  if (process.platform === "win32") {
+    const defaultSource = path.join(
+      process.env.SystemRoot ?? "C:\\Windows",
+      "System32",
+      "hostname.exe",
+    );
+    fs.copyFileSync(defaultSource, defaultPath);
+  } else {
+    fs.writeFileSync(
+      defaultPath,
+      [
+        "#!/bin/sh",
+        "printf '%s\\n' codex-task-verify-native-executable-stdout-1",
+        "printf '%s\\n' codex-task-verify-native-executable-stdout-2",
+        "printf '%s\\n' codex-task-verify-native-executable-stderr >&2",
+        "exit 0",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
     fs.chmodSync(defaultPath, 0o755);
   }
 
@@ -311,7 +334,8 @@ function createVerifyRuntimeFixtures() {
     {
       name: "default executable",
       commandText: defaultPath,
-      stdoutMarkers: [],
+      stdoutMarkers: defaultStdoutMarkers,
+      ...(defaultStderrMarker ? { stderrMarker: defaultStderrMarker } : {}),
       available: true,
     },
     {
@@ -691,8 +715,9 @@ describe("codex-task native command output and exit code contract", () => {
 
           if (exitCode === 0) {
             expect(fs.existsSync(fixture.outputPath)).toBe(true);
-            expect(output).toContain("<REPO_ROOT>");
+            expect(output).toMatch(/<(?:REPO_ROOT|TEMP_ROOT)>/);
             expect(output).not.toContain(fixture.root.replaceAll("\\", "/"));
+            expect(output).not.toContain(fixture.root.replaceAll("/", "\\"));
           }
         } finally {
           fs.rmSync(fixture.root, { recursive: true, force: true });

@@ -22,10 +22,14 @@
   - Web CI run `43767652826`は`event=schedule`。UbuntuとWindows両方でsanitizer unit testは成功し、`Check committed Codex artifacts`だけが`A safe base ref is required.`で失敗した。
   - 同runのPowerShellは空`EVENT_BEFORE`から`HEAD^`を選ぶ。sanitizerの`inspectCommitted()`は`^[A-Za-z0-9][A-Za-z0-9._/-]*$`を検査し、`^`を拒否する。この直接不整合は確認済み。
   - 同runの`Vitest (contracts)`は`.exe`既定fixtureの期待値0に対して、`RESULT_TYPE=System.Int32`、`RESULT_COUNT=1`、`RESULT_VALUE=1`を返した。既存CIログにNode `spawnSync`診断値はなく、ローカルでの直接起動はsandboxの`EPERM`に阻まれたため、子プロセスのstatusは未確認。環境変数復元は観測済み。失敗はmain上の既存コードで起きている。
-  - Linux fixtureは`/bin/echo`を一時`verify-default.exe`へcopyし、実行bitを付与する。共通経路は`Invoke-NativeCommand`経由。Windows固有fixtureはこのVitest suiteではskipされ、現在のCIではこのsuite自体がUbuntuのみで実行される。
+  - mainの初回CIではLinux fixtureが`/bin/echo`を一時`verify-default.exe`へcopyし、実行bitを付与していた。共通経路は`Invoke-NativeCommand`経由。L2変更前はVitest suiteがUbuntuのみで、Windows固有fixtureはskipされていた。今回Windows jobにもsuiteを追加し、初回PR HEADではdefault executable経路が成功、別のreport-token assertionが失敗した。
   - 作業環境にはLinux版`pwsh`がなく、Windows PowerShell起動もWSL sandboxのSocket制約で失敗した。したがって実プロセスのexit status、PowerShell内の`$LASTEXITCODE` / `$?`、直接実行と関数経由の差は未確定。fixtureのローカル`spawnSync`観測も`EPERM`を伴うため環境内再現とは扱わない。
   - `scripts/new-run.sh`はCRLFのままのためBash直接実行で`set: pipefail\r`となる。内容を一時streamでLF化しrootを明示してstrict Runを初期化した。tracked script自体は変更しない。
-  - global `pnpm 9.10.0`はlockfile checksum不一致でfrozen installできない。RepositoryとCIの指定版`pnpm@10.34.5`を`/tmp`内のstoreで使用し、frozen installは完了した。依存setupでesbuildとunrs-resolverのinstall scriptが無効化された。
+  - global `pnpm 9.10.0`はlockfile checksum不一致でfrozen installできない。RepositoryとCIの指定版`pnpm@10.34.5`を`<TEMP_ROOT>`内のstoreで使用し、frozen installは完了した。依存setupでesbuildとunrs-resolverのinstall scriptが無効化された。
+- PR #225の初回HEAD `1bf198f5c3e29794d5a6886705ce2da52a7613b9` のCIにより、以下を追加確認した。
+  - Ubuntuの診断ではfixtureの実行bitがあり、Node直接起動とbash直接起動の両方が`status=1`、`signal=null`、`error=null`を返した。PowerShell直接起動、`Invoke-NativeCommand`、`Invoke-VerifyCommand`も整数1を保持し、`CODEX_VERIFY_COMMAND`は復元された。従って共通wrapperのスカラー変換ではなく、コピーした`/bin/echo` fixtureがCI上で1を返すことが最初の失敗原因。stderr本文は絶対path等を避けるため診断出力でredactされ、multi-call binaryのargv0依存など、そのfixtureが1を返す具体的なOS実装理由は未確定。
+  - Windowsではdefault executableの終了コード契約は成功した。追加CI stepが検出したwrapper-report assertionはfixtureが一時directory内にあるため出力tokenが`<TEMP_ROOT>`となる実測と、`<REPO_ROOT>`のみを期待するテストの不整合だった。両方の固定tokenを許容し、fixture絶対pathが残らないことを維持する。
+  - Ubuntu/Windowsのsanitizer PowerShell testは、fixtureがUSERPROFILEとして登録したhome pathに対して`<local-path-redacted>`だけを要求するassertionで失敗。Node実体検査でも登録済みpathが`<USER_HOME>`に置換されたfindingを再現。`<USER_HOME>`または`<local-path-redacted>`を許容し、実path/user情報の不在とexit 1を検証する。
 - 前提:
   - 修正は指定branchだけに行う。既存PR #221〜#224、製品コード、他PR内容、repository設定は変更しない。
   - sanitizerの厳格なbase-ref検証、Git tree/blobの実体検査、絶対path検知は維持する。
@@ -61,11 +65,11 @@
   4. ユーザー指定の対象テストと全標準gateを実行し、差分とRun Artifactを確認する。
   5. 承認済みの専用branchへcommit/pushし、`main`向けPRを作る。CI待機はRepository標準waiterを探して使う。利用できない場合はagent pollingへ置換せず未確認として停止する。
 - 実行タスク:
-  - [ ] PowerShell native failureを再現し、fixtureと本番経路の原因を確定する。
-  - [ ] Sanitizerの全event基準決定をSHA解決へ修正する（L2承認後）。
+  - [x] PowerShell native failureを実runnerで診断し、fixture自身の終了コード1と共通wrapperの正常なscalar伝播を切り分ける。
+  - [x] Sanitizerの全event基準決定をSHA解決へ修正する（L2承認後）。
   - [ ] 必要な回帰テストを追加し、Ubuntu / Windowsの対象経路を検証する。
   - [ ] 指定gate、Run Artifact sanitization、diff scopeを検証する。
-  - [ ] 専用branchへcommit/pushし、PRと最新head CIを確認する。
+  - [ ] 修正を専用branchへpushし、PRと新しいheadのWeb / Mobile CIを確認する。
 
 ## 6. 検証方法
 
@@ -81,7 +85,7 @@
 ## 7. リスクと未解決論点
 
 - リスク: workflow変更は承認済みL2範囲に限定する。PowerShell原因が未確定のまま共通関数を変更するとhost/docker共通経路へ影響する。sandboxでは実PowerShell起動が制約される。
-- 未解決の質問: `wait_for_required_ci`は現在の接続tool一覧に見つかっていないため、CI完了待機経路は未確定。
+- CI待機: Repository標準の`wait_for_required_ci`はPR #225の初回HEADに一度使用済み。Web CIは失敗、Mobile App CIは成功。修正commitのpush後に新しいHEADで同じ標準waiterを使用する。
 
 ## 8. 成果物
 

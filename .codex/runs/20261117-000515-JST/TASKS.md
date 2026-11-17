@@ -4,13 +4,13 @@
 
 - [x] 1. 対象repository、clean worktree、指定branch、最新origin/mainを確認する。
 - [x] 2. main CIとschedule CIの失敗logを確認し、既知事実と未確定原因を分離する。
-- [ ] 3. PowerShell既定executable失敗の直接実行/helper/verify経路を切り分ける。
+- [x] 3. PowerShell既定executable失敗をrunner上で直接実行/helper/verify経路に分け、fixture自身の非0終了を確認する。
 - [x] 4. repository Planを保存し、workflow変更のL2承認を得る。
-- [ ] 5. 原因に応じてPowerShell fixtureまたは共通実装を修正する。
+- [x] 5. 失敗するOS依存fixtureを決定的な実行可能スクリプトへ置き換え、共通実装を維持する。
 - [x] 6. 承認済みevent別base SHA解決とsanitizer regressionを実装する。
 - [ ] 7. 対象test、標準gate、Run Artifact sanitizerを実行する。
 - [x] 8. scope/diffを確認しRun Artifactをfinal commit前状態に確定する。
-- [ ] 9. 指定branchへcommit/pushし、main向けPRを作成する。
+- [x] 9. 指定branchへcommit/pushし、main向けPR #225を作成する（初回HEAD、CI修正commitのpushは後続）。
 - [ ] 10. 最新PR HEADの必須CI結果を確認、またはwaiter不在のblockerを記録する。
 
 ## 完了処理の参照先
