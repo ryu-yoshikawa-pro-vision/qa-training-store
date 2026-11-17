@@ -210,7 +210,11 @@
 
 ## サブエージェントの実装フロー
 
-- 実装前の調査は、`code_researcher` / `implementation_researcher` / `test_investigator` に委譲できる。
+- コード・依存関係の調査は`code_researcher`、実装前の変更箇所・方針の調査は`implementation_researcher`、テスト・CI・回帰リスクの調査は`test_investigator`に原則として委譲する。互いに独立した読み取り専用調査は必要に応じて並列に起動する。
+- Parentは調査結果を踏まえて要件、実装方針、委任先、対象ファイル、変更範囲、禁止操作、必要な検証を決定する。調査・実装・検証コマンドの実行を直接代行せず、結果の採否、差分確認、失敗原因の解釈、次の指示を担う。
+- 実装は`implementation_worker`、Parentが確定した検証コマンドの実行は`quality_gate_runner`に原則として委譲する。複数の実装範囲は独立性を確認して分割し、書き込み担当は原則直列で実行する。childは独自の変更範囲・検証項目を追加しない。
+- 予定した委任ができない場合（custom agentの検出失敗、起動失敗、必要な権限・作業範囲の不足など）は未完了と理由を記録し、親による直接実行を代替経路にしない。修正指示が必要な場合はParentへ判断を戻す。
+- ParentのRun Artifact所有、Git mutation、PR/CIライフサイクル、委任結果の最終確認と完了承認は既存契約に従う。これらの管理上の責務は実装・調査・検証のchildへの委任とは区別する。
 - `implementation_worker` は、親エージェントが計画、対象ファイル、変更範囲、禁止事項を確定させた後に限り使用する。
 - `implementation_worker` は、小さく限定された実装を行うワークスペース書き込みサブエージェント（workspace-write subagent）であり、親エージェントが指定した対象ファイルのみを最小限の差分で編集する。
 - 書き込み権限を持つサブエージェント（writable subagent）は、原則として1タスクにつき1つのみ使用する。
