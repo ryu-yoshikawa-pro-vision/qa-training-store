@@ -67,6 +67,122 @@ function Invoke-CodexSanitizerCli {
     }
 }
 
+function Invoke-CodexGitFixture {
+    param(
+        [Parameter(Mandatory = $true)][string]$Repository,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
+    )
+
+    $output = @(& git -C $Repository @Arguments 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Git base-resolution fixture setup failed.'
+    }
+    return ($output -join "`n").Trim()
+}
+
+function Get-CodexArtifactBaseResolverScript {
+    $workflowPath = Join-Path $repoRoot '.github/workflows/ci.yml'
+    $workflow = [System.IO.File]::ReadAllText($workflowPath)
+    $stepStart = $workflow.IndexOf('      - name: Check committed Codex artifacts', [System.StringComparison]::Ordinal)
+    $runStart = $workflow.IndexOf('        run: |', $stepStart, [System.StringComparison]::Ordinal)
+    $nextJob = $workflow.IndexOf("`n  codex-hook-contract-windows:", $runStart, [System.StringComparison]::Ordinal)
+    if ($stepStart -lt 0 -or $runStart -lt 0 -or $nextJob -lt 0) {
+        throw 'Committed Codex artifact workflow step could not be read.'
+    }
+
+    $bodyStart = $runStart + '        run: |'.Length
+    $body = $workflow.Substring($bodyStart, $nextJob - $bodyStart)
+    $scriptLines = New-Object System.Collections.Generic.List[string]
+    foreach ($line in ($body -split "`n")) {
+        $normalizedLine = $line.TrimEnd("`r")
+        if ($normalizedLine.StartsWith('          ', [System.StringComparison]::Ordinal)) {
+            $scriptLines.Add($normalizedLine.Substring(10))
+        }
+        elseif ([string]::IsNullOrWhiteSpace($normalizedLine)) {
+            $scriptLines.Add('')
+        }
+        else {
+            throw 'Committed Codex artifact workflow indentation changed unexpectedly.'
+        }
+    }
+
+    $script = ($scriptLines -join "`n").Trim()
+    $invokePattern = '(?m)^node scripts/sanitize-codex-artifacts\.mjs --committed --check --base-ref \$resolvedBase\s*$'
+    if ([regex]::Matches($script, $invokePattern).Count -ne 1) {
+        throw 'Committed Codex artifact workflow invocation could not be isolated.'
+    }
+    return [regex]::Replace($script, $invokePattern, 'Write-Output "RESOLVED_BASE=$resolvedBase"')
+}
+
+function Invoke-CodexArtifactBaseResolver {
+    param(
+        [Parameter(Mandatory = $true)][string]$Script,
+        [Parameter(Mandatory = $true)][string]$Repository,
+        [Parameter(Mandatory = $true)][string]$EventName,
+        [AllowEmptyString()][string]$BaseRef = '',
+        [AllowEmptyString()][string]$EventBefore = ''
+    )
+
+    $previousLocation = Get-Location
+    $previousEnvironment = @{
+        EVENT_NAME = [Environment]::GetEnvironmentVariable('EVENT_NAME', 'Process')
+        BASE_REF = [Environment]::GetEnvironmentVariable('BASE_REF', 'Process')
+        EVENT_BEFORE = [Environment]::GetEnvironmentVariable('EVENT_BEFORE', 'Process')
+    }
+    $output = @()
+    $errorMessage = $null
+    try {
+        [Environment]::SetEnvironmentVariable('EVENT_NAME', $EventName, 'Process')
+        [Environment]::SetEnvironmentVariable('BASE_REF', $BaseRef, 'Process')
+        [Environment]::SetEnvironmentVariable('EVENT_BEFORE', $EventBefore, 'Process')
+        Push-Location -LiteralPath $Repository
+        try {
+            $output = @(& ([scriptblock]::Create($Script)) 2>&1 | ForEach-Object { [string]$_ })
+        }
+        catch {
+            $errorMessage = $_.Exception.Message
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('EVENT_NAME', $previousEnvironment.EVENT_NAME, 'Process')
+        [Environment]::SetEnvironmentVariable('BASE_REF', $previousEnvironment.BASE_REF, 'Process')
+        [Environment]::SetEnvironmentVariable('EVENT_BEFORE', $previousEnvironment.EVENT_BEFORE, 'Process')
+        Set-Location -LiteralPath $previousLocation.Path
+    }
+
+    $resolved = [regex]::Match(($output -join "`n"), '(?m)^RESOLVED_BASE=([0-9a-fA-F]{40}|[0-9a-fA-F]{64})$')
+    return [pscustomobject]@{
+        success = $resolved.Success -and [string]::IsNullOrWhiteSpace($errorMessage)
+        sha = if ($resolved.Success) { $resolved.Groups[1].Value } else { $null }
+        error = $errorMessage
+        output = ($output -join "`n")
+    }
+}
+
+function Invoke-CodexCommittedFixtureCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$Repository,
+        [Parameter(Mandatory = $true)][string]$BaseSha
+    )
+
+    $previousLocation = Get-Location
+    try {
+        Push-Location -LiteralPath $Repository
+        $output = @(& node (Join-Path $repoRoot 'scripts/sanitize-codex-artifacts.mjs') --committed --check --base-ref $BaseSha 2>&1)
+        return [pscustomobject]@{
+            exit_code = [int]$LASTEXITCODE
+            output = ($output -join "`n")
+        }
+    }
+    finally {
+        Pop-Location
+        Set-Location -LiteralPath $previousLocation.Path
+    }
+}
+
 $originalEnvironment = @{
     USERPROFILE = [Environment]::GetEnvironmentVariable('USERPROFILE', 'Process')
     HOME = [Environment]::GetEnvironmentVariable('HOME', 'Process')
@@ -465,7 +581,88 @@ File: file:///C:/Users/test-user/Documents/repo/output.txt
     }
     Assert-CodexTest -Condition $gitAbsentThrown -Message 'ChangedOnly did not fail closed when Git repository resolution was unavailable.'
 
-    Write-Output 'Codex artifact sanitizer fixture tests: PASS (45 baseline contracts + regression coverage)'
+    $baseResolverScript = Get-CodexArtifactBaseResolverScript
+    $eventGitRoot = Join-Path $fixtureRoot 'event-base-repository'
+    New-Item -ItemType Directory -Path $eventGitRoot -Force | Out-Null
+    $eventArtifactRoot = Join-Path $eventGitRoot '.codex/runs/sample'
+    New-Item -ItemType Directory -Path $eventArtifactRoot -Force | Out-Null
+    Write-CodexFixtureText -Path (Join-Path $eventArtifactRoot 'artifact.md') -Text 'baseline'
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('init', '--quiet')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('config', 'user.email', 'fixture@example.invalid')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('config', 'user.name', 'CodexFixture')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('add', '.codex/runs/sample/artifact.md')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('commit', '--quiet', '-m', 'baseline')
+    $eventBaselineSha = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('rev-parse', 'HEAD')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('update-ref', 'refs/remotes/origin/main', $eventBaselineSha)
+
+    Write-CodexFixtureText -Path (Join-Path $eventArtifactRoot 'artifact.md') -Text '<REPO_ROOT>/safe'
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('add', '.codex/runs/sample/artifact.md')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('commit', '--quiet', '-m', 'sanitized artifact')
+    $eventCleanSha = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('rev-parse', 'HEAD')
+
+    $pullRequestBase = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'pull_request' -BaseRef 'main'
+    Assert-CodexTest -Condition ($pullRequestBase.success -and $pullRequestBase.sha -eq $eventBaselineSha) -Message 'Pull request did not resolve its existing base branch to a commit SHA.'
+    $pushBase = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'push' -EventBefore $eventBaselineSha
+    Assert-CodexTest -Condition ($pushBase.success -and $pushBase.sha -eq $eventBaselineSha) -Message 'Push did not preserve github.event.before as its comparison commit.'
+    $scheduleBase = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'schedule' -EventBefore ''
+    Assert-CodexTest -Condition ($scheduleBase.success -and $scheduleBase.sha -eq $eventBaselineSha) -Message 'Schedule with an empty event-before value did not resolve its first parent.'
+    $dispatchBase = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'workflow_dispatch' -EventBefore ('0' * 40)
+    Assert-CodexTest -Condition ($dispatchBase.success -and $dispatchBase.sha -eq $eventBaselineSha) -Message 'workflow_dispatch with a zero SHA did not resolve its first parent.'
+
+    $pullRequestArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $pullRequestBase.sha
+    Assert-CodexTest -Condition ($pullRequestArtifactCheck.exit_code -eq 0) -Message 'Pull request base SHA did not run a successful committed artifact check.'
+    $pushArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $pushBase.sha
+    Assert-CodexTest -Condition ($pushArtifactCheck.exit_code -eq 0) -Message 'Push event-before SHA did not run a successful committed artifact check.'
+    $cleanArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $scheduleBase.sha
+    Assert-CodexTest -Condition ($cleanArtifactCheck.exit_code -eq 0) -Message 'Schedule-resolved SHA did not run a successful committed artifact check.'
+    $dispatchArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $dispatchBase.sha
+    Assert-CodexTest -Condition ($dispatchArtifactCheck.exit_code -eq 0) -Message 'workflow_dispatch first-parent SHA did not run a successful committed artifact check.'
+
+    foreach ($invalidPushBase in @('', ('0' * 40), 'HEAD^', ('1' * 40))) {
+        $invalidPush = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'push' -EventBefore $invalidPushBase
+        Assert-CodexTest -Condition (-not $invalidPush.success) -Message 'Push accepted an empty, zero, non-SHA, or nonexistent base commit.'
+    }
+    foreach ($invalidPullRequestBase in @('', '../main', 'main;Write-Output', 'missing-branch', '--help')) {
+        $invalidPullRequest = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'pull_request' -BaseRef $invalidPullRequestBase
+        Assert-CodexTest -Condition (-not $invalidPullRequest.success) -Message 'Pull request accepted an empty, unsafe, option-like, or nonexistent base branch.'
+    }
+    $unsupportedEvent = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'unknown_event'
+    Assert-CodexTest -Condition (-not $unsupportedEvent.success) -Message 'Unknown event was accepted for committed artifact comparison.'
+
+    $rootOnlyGitRoot = Join-Path $fixtureRoot 'root-only-repository'
+    $rootOnlyArtifactRoot = Join-Path $rootOnlyGitRoot '.codex/runs/sample'
+    New-Item -ItemType Directory -Path $rootOnlyArtifactRoot -Force | Out-Null
+    Write-CodexFixtureText -Path (Join-Path $rootOnlyArtifactRoot 'artifact.md') -Text '<REPO_ROOT>/safe'
+    $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('init', '--quiet')
+    $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('config', 'user.email', 'fixture@example.invalid')
+    $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('config', 'user.name', 'CodexFixture')
+    $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('add', '.codex/runs/sample/artifact.md')
+    $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('commit', '--quiet', '-m', 'root commit')
+    $insufficientHistory = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $rootOnlyGitRoot -EventName 'schedule'
+    Assert-CodexTest -Condition (-not $insufficientHistory.success) -Message 'Schedule accepted history without a first parent commit.'
+
+    $absoluteArtifactPath = Join-Path $eventArtifactRoot 'absolute.md'
+    Write-CodexFixtureText -Path $absoluteArtifactPath -Text 'C:\Users\test-user\Documents\repo\private'
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('add', '.codex/runs/sample/absolute.md')
+    $null = Invoke-CodexGitFixture -Repository $eventGitRoot -Arguments @('commit', '--quiet', '-m', 'unsafe artifact')
+    $scheduleAfterChange = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'schedule' -EventBefore ('0' * 40)
+    Assert-CodexTest -Condition ($scheduleAfterChange.success -and $scheduleAfterChange.sha -eq $eventCleanSha) -Message 'Schedule did not resolve the first parent commit after a new artifact commit.'
+    $unsafeArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $scheduleAfterChange.sha
+    Assert-CodexTest -Condition ($unsafeArtifactCheck.exit_code -ne 0) -Message 'Committed absolute path was accepted after schedule base resolution.'
+    Assert-CodexContains -Text $unsafeArtifactCheck.output -Expected '<local-path-redacted>' -Message 'Committed absolute path finding did not use fixed redaction.'
+    Assert-CodexTest -Condition ($unsafeArtifactCheck.output -notmatch 'test-user|C:\\Users\\|event-base-repository') -Message 'Committed artifact check exposed an absolute path or user detail.'
+    $pushAfterChange = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'push' -EventBefore $eventCleanSha
+    Assert-CodexTest -Condition ($pushAfterChange.success -and $pushAfterChange.sha -eq $eventCleanSha) -Message 'Push did not preserve the previous commit after a new artifact commit.'
+    $pushUnsafeArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $pushAfterChange.sha
+    Assert-CodexTest -Condition ($pushUnsafeArtifactCheck.exit_code -ne 0) -Message 'Push event-before SHA did not inspect and reject the committed absolute path.'
+    $pullRequestUnsafeArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $pullRequestBase.sha
+    Assert-CodexTest -Condition ($pullRequestUnsafeArtifactCheck.exit_code -ne 0) -Message 'Pull request base SHA did not inspect and reject the committed absolute path.'
+    $dispatchAfterChange = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $eventGitRoot -EventName 'workflow_dispatch' -EventBefore ''
+    Assert-CodexTest -Condition ($dispatchAfterChange.success -and $dispatchAfterChange.sha -eq $eventCleanSha) -Message 'workflow_dispatch did not resolve the first parent after a new artifact commit.'
+    $dispatchUnsafeArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $eventGitRoot -BaseSha $dispatchAfterChange.sha
+    Assert-CodexTest -Condition ($dispatchUnsafeArtifactCheck.exit_code -ne 0) -Message 'workflow_dispatch did not inspect and reject the committed absolute path.'
+
+    Write-Output 'Codex artifact sanitizer fixture tests: PASS (event base resolution and baseline contracts)'
     exit 0
 }
 finally {

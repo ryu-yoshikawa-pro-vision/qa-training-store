@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "run_id": "20261117-000515-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "artifact_contract_gap",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Sanitizer event-base resolution and regression coverage are implemented. PowerShell failure A remains unclassified until an actual PowerShell runner executes the expanded contract suite."
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Changes are limited to the approved CI workflow, related sanitizer and native-command contracts, the relevant run-artifact reference, and the required Plan and Run records."
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Focused Vitest checks, format, lint, and typecheck passed. The full contracts run was interrupted without a result, the PowerShell fixture suite could not run locally, and required PR CI is pending."
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "The approved L2 changes are limited to event-base resolution and a Windows test step. Sanitizer validation remains strict; no permission, sandbox, approval, or wrapper behavior changed."
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "The workflow now resolves a commit SHA before invoking the sanitizer, and the event matrix test executes the actual workflow PowerShell block in a temporary Git repository."
+    },
+    "maintainability": {
+      "rating": "warn",
+      "evidence": "The sanitizer fix retains the existing strict implementation and tests its event inputs. The PowerShell root cause remains open pending runner diagnostics."
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "The schedule-equivalent comparison path has regression coverage, but the PowerShell integration and latest-head CI have not yet been observed in this environment."
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "The local focused native-command suite skipped PowerShell-dependent cases because no PowerShell runtime is available. The main-branch CI failure contains no child-process or PowerShell diagnostic values.",
+      "detail": "The original exit-code mismatch cannot yet be attributed to the fixture or the shared PowerShell execution path. The newly added CI diagnostics are needed before selecting a production or fixture correction."
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "bash scripts/verify fails its template contract on literal wording checks including 'CI確認をProgressへ', 'file-changing task全体', and '作業完了後もRun Directoryを保存'. The current docs/reference/run-artifacts.md uses Japanese wording and delegates CI progress rules to docs/reference/codex-implementation-harness.md.",
+      "detail": "The verifier/reference wording drift predates this task and is outside the two CI defects. Altering the current reference to repeat legacy phrases or changing the out-of-scope verifier was not appropriate; the repository verification gate remains failed for this reason."
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "pnpm run verify stops in markdownlint after following dependency-store links and reporting findings in 5,357 installed dependency files. The full contracts run was interrupted after ten minutes with no completed result.",
+      "detail": "This local environment does not provide a clean full-gate result. Focused checks passed; the exact PR CI remains required."
+    }
+  ],
+  "improvement_candidates": []
+}

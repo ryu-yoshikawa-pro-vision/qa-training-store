@@ -15,7 +15,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { runSanitizer } from "../../scripts/lib/codex-artifact-sanitizer.mjs";
+import {
+  main as runSanitizerCli,
+  runSanitizer,
+} from "../../scripts/lib/codex-artifact-sanitizer.mjs";
 
 const root = process.cwd();
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -361,6 +364,22 @@ describe("portable Codex Run Artifact sanitizer", () => {
     }
   });
 
+  it("fails closed for unsafe, missing, or option-like committed base refs", () => {
+    const cwd = createGitFixture();
+    try {
+      const artifact = path.join(cwd, ".codex/runs/sample/changed.md");
+      writeFileSync(artifact, "<REPO_ROOT>/safe");
+      git(cwd, "add", ".codex/runs/sample/changed.md");
+      git(cwd, "commit", "-qm", "sanitized artifact");
+
+      for (const baseRef of ["", "HEAD^", "--help", "1111111111111111111111111111111111111111"]) {
+        expect(runSanitizerCli(["--committed", "--check", "--base-ref", baseRef], cwd)).toBe(1);
+      }
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it("connects staged checks, finalizers, and CI without widening artifact scope", () => {
     const hook = read(".husky/pre-commit").replace(/\r\n/g, "\n");
     expect(hook).toBe(
@@ -391,7 +410,19 @@ describe("portable Codex Run Artifact sanitizer", () => {
     expect(job).toContain("actions/setup-node");
     expect(job).toContain("node-version: 24");
     expect(job).toContain("--committed --check --base-ref");
+    expect(job).toContain("git rev-parse --verify --end-of-options");
+    expect(job).toContain('"pull_request"');
+    expect(job).toContain('"push"');
+    expect(job).toContain('"schedule"');
+    expect(job).toContain('"workflow_dispatch"');
+    expect(job).toContain("A resolvable base commit is required.");
     expect(job).not.toContain("Test-Path");
+    const windowsContracts = workflow.slice(
+      workflow.indexOf("  codex-hook-contract-windows:"),
+      workflow.indexOf("  vitest:", workflow.indexOf("  codex-hook-contract-windows:")),
+    );
+    expect(windowsContracts).toContain("Run native command contracts");
+    expect(windowsContracts).toContain("tests/contracts/codex-task-native-command.test.ts");
     const fallback = read(".github/workflows/security-dependency-fallback.yml");
     expect(fallback).toContain("node scripts/sanitize-codex-artifacts.mjs --path");
     expect(fallback).not.toContain("pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1");
