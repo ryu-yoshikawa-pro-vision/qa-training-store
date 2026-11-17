@@ -79,13 +79,40 @@ function encodePowerShell(script: string) {
   return Buffer.from(script, "utf16le").toString("base64");
 }
 
-function runVerifyProbe(commandText: string, root: string) {
+function runVerifyProbe(commandText: string, root: string, includeDiagnostics = false) {
+  const diagnostics = includeDiagnostics
+    ? `
+$probePath = Resolve-RepoPath -RepoRoot $repoRoot -Path $verifyCommand
+$probeInfo = Get-Item -LiteralPath $probePath
+[Console]::Out.WriteLine("FIXTURE_EXISTS={0}" -f (Test-Path -LiteralPath $probePath -PathType Leaf))
+[Console]::Out.WriteLine("FIXTURE_LENGTH={0}" -f $probeInfo.Length)
+[Console]::Out.WriteLine("FIXTURE_MODE={0}" -f $probeInfo.Mode)
+if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+    [Console]::Out.WriteLine("FIXTURE_EXECUTABLE=True")
+}
+else {
+    & test -x $probePath *> $null
+    [Console]::Out.WriteLine("FIXTURE_EXECUTABLE={0}" -f ($LASTEXITCODE -eq 0))
+}
+$LASTEXITCODE = 0
+& $probePath
+$directSuccess = $?
+$directExitCode = $LASTEXITCODE
+[Console]::Out.WriteLine("DIRECT_LASTEXITCODE={0}" -f $directExitCode)
+[Console]::Out.WriteLine("DIRECT_SUCCESS={0}" -f $directSuccess)
+$helperResult = Invoke-NativeCommand -Command $probePath -CommandArgs @()
+[Console]::Out.WriteLine("HELPER_TYPE={0}" -f $helperResult.GetType().FullName)
+[Console]::Out.WriteLine("HELPER_COUNT={0}" -f @($helperResult).Count)
+[Console]::Out.WriteLine("HELPER_VALUE={0}" -f $helperResult)
+`
+    : "";
   const script = `${getResolveRepoPathFunction()}
 ${getNativeCommandFunction()}
 ${getVerifyCommandFunction()}
 $repoRoot = [System.Environment]::GetEnvironmentVariable("CODEX_VERIFY_PROBE_ROOT")
 $verifyCommand = [System.Environment]::GetEnvironmentVariable("CODEX_VERIFY_PROBE_COMMAND")
 [System.Environment]::SetEnvironmentVariable("CODEX_VERIFY_COMMAND", "codex-task-verify-restore")
+${diagnostics}
 $result = Invoke-VerifyCommand -CommandText $verifyCommand -RepoRoot $repoRoot
 [Console]::Out.WriteLine("RESULT_TYPE={0}" -f $result.GetType().FullName)
 [Console]::Out.WriteLine("RESULT_COUNT={0}" -f @($result).Count)
@@ -104,6 +131,80 @@ $result = Invoke-VerifyCommand -CommandText $verifyCommand -RepoRoot $repoRoot
     },
     windowsHide: process.platform === "win32",
   });
+}
+
+function summarizeProbeOutput(value: string, root: string) {
+  const normalizedRoot = root.replaceAll("\\", "/");
+  const redacted = value
+    .replaceAll(root, "<TEMP_ROOT>")
+    .replaceAll(normalizedRoot, "<TEMP_ROOT>")
+    .replaceAll(normalizedRoot.replaceAll("/", "\\"), "<TEMP_ROOT>");
+  if (redacted.trim().length === 0) return JSON.stringify(redacted);
+  return `<non-empty output redacted; ${redacted.length} characters>`;
+}
+
+function summarizeSpawnResult(
+  result: {
+    status: number | null;
+    signal: NodeJS.Signals | null;
+    error?: Error | null;
+    stdout?: string;
+    stderr?: string;
+  },
+  root: string,
+) {
+  return {
+    status: result.status,
+    signal: result.signal,
+    error: result.error ? { code: "code" in result.error ? result.error.code : "unknown" } : null,
+    stdout: summarizeProbeOutput(result.stdout ?? "", root),
+    stderr: summarizeProbeOutput(result.stderr ?? "", root),
+  };
+}
+
+function getDefaultExecutableDiagnostics(root: string) {
+  const executablePath = path.join(root, "verify-default.exe");
+  let fixture: { exists: boolean; mode?: string; executable: boolean; error?: string };
+  try {
+    const stat = fs.statSync(executablePath);
+    fixture = {
+      exists: true,
+      mode: (stat.mode & 0o777).toString(8),
+      executable: process.platform === "win32" || (stat.mode & 0o111) !== 0,
+    };
+  } catch (error) {
+    fixture = {
+      exists: false,
+      executable: false,
+      error: error instanceof Error && "code" in error ? String(error.code) : "unknown",
+    };
+  }
+
+  const nodeDirect = spawnSync(executablePath, [], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 10_000,
+    windowsHide: process.platform === "win32",
+  });
+  const shellDirect =
+    process.platform === "win32"
+      ? spawnSync("cmd.exe", ["/d", "/c", `"${executablePath}"`], {
+          cwd: root,
+          encoding: "utf8",
+          timeout: 10_000,
+          windowsHide: true,
+        })
+      : spawnSync("bash", ["-c", 'exec "$1"', "codex-fixture", executablePath], {
+          cwd: root,
+          encoding: "utf8",
+          timeout: 10_000,
+        });
+
+  return {
+    fixture,
+    nodeDirect: summarizeSpawnResult(nodeDirect, root),
+    shellDirect: summarizeSpawnResult(shellDirect, root),
+  };
 }
 
 type VerifyRuntimeFixture = {
@@ -158,13 +259,36 @@ function createVerifyRuntimeFixtures() {
     fs.chmodSync(shPath, 0o755);
   }
 
-  const defaultSource =
-    process.platform === "win32"
-      ? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "hostname.exe")
-      : "/bin/echo";
   const defaultPath = path.join(root, "verify-default.exe");
-  fs.copyFileSync(defaultSource, defaultPath);
-  if (process.platform !== "win32") {
+  const defaultStdoutMarkers =
+    process.platform === "win32"
+      ? []
+      : [
+          "codex-task-verify-native-executable-stdout-1",
+          "codex-task-verify-native-executable-stdout-2",
+        ];
+  const defaultStderrMarker =
+    process.platform === "win32" ? undefined : "codex-task-verify-native-executable-stderr";
+  if (process.platform === "win32") {
+    const defaultSource = path.join(
+      process.env.SystemRoot ?? "C:\\Windows",
+      "System32",
+      "hostname.exe",
+    );
+    fs.copyFileSync(defaultSource, defaultPath);
+  } else {
+    fs.writeFileSync(
+      defaultPath,
+      [
+        "#!/bin/sh",
+        "printf '%s\\n' codex-task-verify-native-executable-stdout-1",
+        "printf '%s\\n' codex-task-verify-native-executable-stdout-2",
+        "printf '%s\\n' codex-task-verify-native-executable-stderr >&2",
+        "exit 0",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
     fs.chmodSync(defaultPath, 0o755);
   }
 
@@ -210,7 +334,8 @@ function createVerifyRuntimeFixtures() {
     {
       name: "default executable",
       commandText: defaultPath,
-      stdoutMarkers: [],
+      stdoutMarkers: defaultStdoutMarkers,
+      ...(defaultStderrMarker ? { stderrMarker: defaultStderrMarker } : {}),
       available: true,
     },
     {
@@ -525,14 +650,39 @@ describe("codex-task native command output and exit code contract", () => {
     it.skipIf(!powerShellAvailable || !fixture.available)(
       `returns a scalar exit code for the ${fixture.name} verify path`,
       () => {
-        const result = runVerifyProbe(fixture.commandText, verifyRuntimeFixtures.root);
+        const diagnostics =
+          fixture.name === "default executable"
+            ? getDefaultExecutableDiagnostics(verifyRuntimeFixtures.root)
+            : undefined;
+        const result = runVerifyProbe(
+          fixture.commandText,
+          verifyRuntimeFixtures.root,
+          diagnostics !== undefined,
+        );
+        const failureContext = JSON.stringify({
+          powershell: summarizeSpawnResult(result, verifyRuntimeFixtures.root),
+          powershellTrace: diagnostics
+            ? result.stdout
+                .split(/\r?\n/)
+                .filter((line) => /^(FIXTURE_|DIRECT_|HELPER_|RESULT_|RESTORED_)/.test(line))
+            : undefined,
+          directExecutions: diagnostics,
+        });
+        const assertionOutput = diagnostics
+          ? result.stdout
+              .split(/\r?\n/)
+              .filter((line) => /^(FIXTURE_|DIRECT_|HELPER_|RESULT_|RESTORED_)/.test(line))
+              .join("\n")
+          : result.stdout;
 
-        expect(result.error).toBeUndefined();
-        expect(result.status).toBe(0);
-        expect(result.stdout).toContain("RESULT_TYPE=System.Int32");
-        expect(result.stdout).toContain("RESULT_COUNT=1");
-        expect(result.stdout).toContain("RESULT_VALUE=0");
-        expect(result.stdout).toContain("RESTORED_VERIFY_COMMAND=codex-task-verify-restore");
+        expect(result.error, failureContext).toBeUndefined();
+        expect(result.status, failureContext).toBe(0);
+        expect(assertionOutput, failureContext).toContain("RESULT_TYPE=System.Int32");
+        expect(assertionOutput, failureContext).toContain("RESULT_COUNT=1");
+        expect(assertionOutput, failureContext).toContain("RESULT_VALUE=0");
+        expect(assertionOutput, failureContext).toContain(
+          "RESTORED_VERIFY_COMMAND=codex-task-verify-restore",
+        );
         for (const marker of fixture.stdoutMarkers) {
           expect(result.stdout).toContain(marker);
         }
@@ -567,6 +717,7 @@ describe("codex-task native command output and exit code contract", () => {
             expect(fs.existsSync(fixture.outputPath)).toBe(true);
             expect(output).toMatch(/<(?:REPO_ROOT|TEMP_ROOT)>/);
             expect(output).not.toContain(fixture.root.replaceAll("\\", "/"));
+            expect(output).not.toContain(fixture.root.replaceAll("/", "\\"));
           }
         } finally {
           fs.rmSync(fixture.root, { recursive: true, force: true });
