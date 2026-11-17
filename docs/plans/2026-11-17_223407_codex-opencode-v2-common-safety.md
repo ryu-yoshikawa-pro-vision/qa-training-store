@@ -19,7 +19,7 @@
 - `.codex/config.toml`は`PreToolUse`の`Bash`に対して既存Node Hookを呼ぶ。
 - `evaluateCommand(command, context?, cwd?)`は既存の判定関数としてexportされる。
 - `AGENTS.md`はCodexとOpenCodeに共通する一方、Codex固有のHook・wrapperはCodexのみに適用する。
-- OpenCode V2では`.opencode/plugins/`を自動検出し、`ctx.tool.hook("execute.before", ...)`を使う。
+- OpenCode V2の`.opencode/plugins/`自動検出は直下の`.js`と`.ts`が対象。`.mjs`は`opencode.jsonc`の`plugins`に相対パスを明示して読み込む。`ctx.tool.hook("execute.before", ...)`を使う。
 - 実行環境のOpenCode V2本体、Codexのproject trust、Windows/WSL2の実機検証には今回アクセスできない。
 - 対象外: プロダクトコード、Codex側の既存安全性ルール変更、MCP経由のGit操作制御、OSレベルのsandbox共有、ログイベントの完全互換化。
 
