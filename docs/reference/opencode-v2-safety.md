@@ -9,7 +9,7 @@ OpenCode V2の`shell`実行時に、既存のCodex用`.codex/hooks/pre_tool_use_
 - `.codex/config.toml`: Codex固有のHook定義。今回変更しない。
 - `AGENTS.md`: 両エージェントに適用する作業規約。
 
-OpenCode V2は`.opencode/plugins/`内のJavaScriptプラグインを自動検出する。Pluginは`id`と`setup`を持つデフォルトエクスポートとして定義し、追加のnpm依存を要求しない。
+OpenCode V2の`.opencode/plugins/`自動検出対象は直下の`.js`と`.ts`であり、今回の`.mjs`は対象外となる。そのためルートの`opencode.jsonc`で`plugins: ["./.opencode/plugins/git-safety.mjs"]`を明示し、モジュールの読み込みを有効化する。Pluginは`id`と`setup`を持つデフォルトエクスポートとして定義し、追加のnpm依存を要求しない。
 
 ## 権限と判定
 
