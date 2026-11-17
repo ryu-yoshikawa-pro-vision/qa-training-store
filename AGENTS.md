@@ -65,6 +65,8 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 - Codexの調査・実装・検証コマンド実行などの実作業は原則childへ委任し、Parent自身が直接代行しない。Parentは委任先、作業範囲、実行順序を決め、childからの根拠・差分・検証結果を確認して採否と次の指示を判断する。
 - 調査は読み取り専用childへ、実装は対象ファイルと変更範囲を確定して書き込み担当childへ、検証は実行コマンドを指定して検証担当childへ委任する。独立した読み取り専用調査は並列にできるが、書き込み担当は既存の直列運用と安全境界を維持する。
 - childの起動不可、委任先の利用不可、権限不足、作業範囲の未確定時は、Parentによる直接実行へ暗黙に切り替えず、未完了の実作業と理由を報告する。Parentによる最終差分確認、Run Artifact管理、Git操作、PR / CIの完了判断は既存契約に従ってParentが担う。
+- 子の実行中は短時間の反復ポーリングを行わず、完了通知を待つ。待機が必要な場合は分単位の長い`wait_agent`を使い、待機タイムアウトだけで子を失敗・中断・終了と判断しない。Codex v1 / v2ごとの待機時間と例外はimplementation harnessを参照する。
+- 削除・rename・移動など、既存のchild権限では実行できない変更はParentが直接実装する例外としない。既存の安全性規約に従って実行を停止し、必要な承認と実行経路を確認する。
 - childは独自Run Artifactを作らず、追加のsubagentを起動しない（No child subagent delegation）。詳細なRole、worker scope、validation-only境界は`.codex/agents/**`、`.codex/config.toml`、implementation harnessを参照する。
 - Codex native delegationとAndroid / Native validationは別の責務として扱う。
 
