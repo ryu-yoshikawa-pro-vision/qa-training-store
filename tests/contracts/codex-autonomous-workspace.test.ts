@@ -119,7 +119,33 @@ describe("direct Codex workspace contract", () => {
     expect(harness).toContain("Git mutation");
     expect(researcher.sandbox_mode).toBe("read-only");
     expect(String(researcher.description)).toContain("implementation_worker");
-    expect(String(researcher.developer_instructions)).toContain("implementation_worker");
+    expect(String(researcher.developer_instructions)).toContain(
+      "implementation_worker",
+    );
+  });
+
+  it("prevents frequent subagent polling and preserves restricted-operation boundaries", () => {
+    const config = parseToml(read(".codex/config.toml")) as Record<string, unknown>;
+    const features = config.features as Record<string, unknown>;
+    const multiAgentV2 = features.multi_agent_v2 as Record<string, unknown>;
+    const agreement = read("AGENTS.md");
+    const harness = read("docs/reference/codex-implementation-harness.md");
+    const worker = parseToml(
+      read(".codex/agents/implementation_worker.toml"),
+    ) as Record<string, unknown>;
+
+    expect(multiAgentV2.min_wait_timeout_ms).toBe(300000);
+    expect(multiAgentV2.default_wait_timeout_ms).toBe(600000);
+    expect(agreement).toContain("短時間の反復ポーリングを行わず");
+    expect(agreement).toContain("待機タイムアウトだけで子を失敗");
+    expect(harness).toContain("timeout_ms = 600000");
+    expect(harness).toContain("v1にはこれらのv2設定が適用されない");
+    expect(harness).toContain("短い再試行を連続させない");
+    expect(harness).toContain("childが実行できない操作");
+    expect(harness).toContain("承認なしで進めない");
+    expect(String(worker.developer_instructions)).toContain(
+      "ファイル削除、rename、移動をしない",
+    );
   });
 
   it("documents direct Runs without weakening strict machine-managed Runs", () => {
