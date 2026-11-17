@@ -63,3 +63,12 @@
 - 安全性: `implementation_worker` の削除・rename・移動・Git mutation禁止は維持する。通常のworkerで実行できない操作は親が直接代行せず、実行を停止して安全性規約に従う承認・方法を確認する。L3の権限緩和は行わない。
 - 検証: 既存の契約テストでv2待機設定と親のポーリング・例外契約を検証し、Prettierを修正する。最新PR headのWeb CIとMobile App CIを確認する。Codex実セッションの`wait_agent`・spawnの動作はランタイム確認事項として残す。
 - ロールバック: 本ブランチの待機設定2キーと文書・契約テストの追加差分のみ戻す。CIやProduct code、既存Hook、permission、sandbox、approvalを変更しない。
+
+## 11. GPT-6 Lunaへの移行（2026-11-17）
+
+- 追加依頼: 既定childモデルのGPT-5.6 LunaをGPT-6 Lunaへ変更し、レビューの未対応事項と単純化余地を確認する。
+- 公式Codexモデルカタログ: `gpt-6-luna`は`multi_agent_version = "v2"`、推論強度`max`対応。既存の`gpt-5.6-luna`はv1。Parentモデルは実行セッションの選択を維持し、子のみ`default_subagent_model`で指定する。
+- 構成: `max_threads = 4`は現行実装でv2のrootを含む5スレッドへ換算されるため維持する。`max_depth = 1`はv1専用。v2の機能フラグを無条件に強制しない。
+- 安全性: Role TOMLの`sandbox_mode`は現行のRole適用で実効sandboxを保証しない。調査Roleの編集禁止と追加subagent禁止は指示上の制約とし、実セッションの権限・差分で検証する。permission / sandbox / approvalの設定変更は行わない。
+- 検証: モデルの一致、v2待機設定、ハーネスの責務を静的契約で検証し、PRの最新HEADでWeb CI / Mobile App CIを確認する。Codex Nativeの実spawn、実効権限、待機ログは実行できない限り未検証とする。
+- 対象外: 以前のRun・Planに保存されたGPT-5.6使用履歴の書換え、別モデルへの一括移行、親のモデル固定、独自の調停機構の追加、マージ。

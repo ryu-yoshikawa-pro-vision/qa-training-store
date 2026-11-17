@@ -119,21 +119,25 @@ describe("direct Codex workspace contract", () => {
     expect(researcher).toContain("implementation_worker");
   });
 
-  it("prevents frequent subagent polling", () => {
+  it("documents GPT-6 Luna and multi-agent v2 waiting policy", () => {
     const config = parseToml(read(".codex/config.toml")) as Record<string, unknown>;
     const features = config.features as Record<string, unknown>;
     const multiAgentV2 = features.multi_agent_v2 as Record<string, unknown>;
+    const agents = config.agents as Record<string, unknown>;
     const agreement = read("AGENTS.md");
     const harness = read("docs/reference/codex-implementation-harness.md");
     const worker = read(".codex/agents/implementation_worker.toml");
 
+    expect(agents.default_subagent_model).toBe("gpt-6-luna");
+    expect(agents.default_subagent_reasoning_effort).toBe("max");
     expect(multiAgentV2.min_wait_timeout_ms).toBe(300000);
     expect(multiAgentV2.default_wait_timeout_ms).toBe(600000);
     expect(agreement).toContain("短時間の反復ポーリングを行わず");
     expect(agreement).toContain("待機タイムアウトだけで子を失敗");
     expect(harness).toContain("timeout_ms = 600000");
-    expect(harness).toContain("v1にはこれらのv2設定が適用されない");
+    expect(harness).toContain("現行モデルカタログではGPT-6 LunaはMulti-agent v2");
     expect(harness).toContain("短い再試行を連続させない");
+    expect(harness).toContain("実効sandboxと変更差分");
     expect(harness).toContain("childが実行できない操作");
     expect(harness).toContain("承認なしで進めない");
     expect(worker).toContain("ファイル削除、rename、移動をしない");

@@ -25,3 +25,13 @@
   - Result: ランタイム実行の証跡なし。
   - 親Agentの判断: 実装・静的契約と実ランタイムでの動作検証を混同しない。
 - Progress: 100% (10/10)（tracked tasksのみ。PR/CI完了判定は別）
+
+## 2026-11-17（GPT-6 Luna移行）
+
+- 概要: ユーザー指定のGPT-6 Lunaに合わせ、childの既定モデルを`gpt-5.6-luna`から`gpt-6-luna`へ変更した。Parentのモデルは設定ファイルで固定しない。
+- 根拠: openai/codexの現行`codex-rs/models-manager/models.json`でGPT-6 LunaはMulti-agent v2、`max`推論対応。現行Codexの`resolve_multi_agent_v2_config`は既存`agents.max_threads=4`をroot込み5スレッドに換算するため、設定は維持。v2の強制有効化はしない。
+- 対応: 実装ハーネスのモデル・待機・制限操作の説明を整理。Role TOMLの`sandbox_mode`が実効権限を保証しない点と`max_depth`がv1のみである点を明示。既存の禁止操作と権限は緩和せず、契約テストの名称・モデル検査を修正。Planにも追記。
+- 検証: 変更前のPR HEAD `90dd22be181cfaf1c0e3f705fb6ff7d2fb46259d` のWeb CI `44079297203`、Mobile App CI `44079296982` は成功。追加変更後のCIは新しいHEADを対象に再確認する。今回のGitHub接続ではCodex Native spawn / `wait_agent` / 実効sandboxのローカル検証は未実施。
+- 制限: 新規の監督機構・独自launcherは追加しない。従来Run/Plan中の旧モデル名は履歴であり変更しない。削除・renameは既存のRoleでは実行不能として停止・承認・実行主体の確定を要求する。
+- Subagent: このGitHub接続ではCodex Native subagentの起動は不可。実行結果を捏造せず、静的確認とCIのみ報告する。
+- Progress: 100% (12/12)（追跡対象タスク。Codex実ランタイムの受入は別）

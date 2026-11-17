@@ -28,7 +28,7 @@ inherit = "core"
 [features]
 hooks = true
 
-# v2のwait_agentで短時間の反復待機を抑止する。v1はAGENTS.mdの待機規則に従う。
+# GPT-6 Lunaはモデルカタログに従いv2を使用する。待機は長時間を既定とする。
 [features.multi_agent_v2]
 min_wait_timeout_ms = 300000
 default_wait_timeout_ms = 600000
@@ -36,7 +36,7 @@ default_wait_timeout_ms = 600000
 [agents]
 max_threads = 4
 max_depth = 1
-default_subagent_model = "gpt-5.6-luna"
+default_subagent_model = "gpt-6-luna"
 default_subagent_reasoning_effort = "max"
 
 [[hooks.PreToolUse]]
