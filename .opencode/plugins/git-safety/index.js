@@ -1,11 +1,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { evaluateCommand } from "../../.codex/hooks/pre_tool_use_policy.mjs";
+import { evaluateCommand } from "../../../.codex/hooks/pre_tool_use_policy.mjs";
 
 // Anchor the evaluation to this plugin's checkout, not to the caller-provided
 // working directory. Codex uses the owning checkout as its policy context too.
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 /**
  * Reuse the Codex Bash policy for OpenCode V2 shell execution.

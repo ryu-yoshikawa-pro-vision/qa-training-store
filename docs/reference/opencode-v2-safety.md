@@ -5,11 +5,11 @@
 OpenCode V2の`shell`実行時に、既存のCodex用`.codex/hooks/pre_tool_use_policy.mjs`の`evaluateCommand()`を呼び出す。安全性判定ロジックは同ファイルを正本とし、OpenCode固有の拒否ロジックを複製しない。
 
 - `opencode.jsonc`: OpenCode V2固有の承認設定（`permissions`）。
-- `.opencode/plugins/git-safety.mjs`: `execute.before`を受信し、共通判定へ渡す。
+- `.opencode/plugins/git-safety/index.js`: `execute.before`を受信し、共通判定へ渡す。V2の自動検出対象であるディレクトリ直下の`index.js`として配置する。
 - `.codex/config.toml`: Codex固有のHook定義。今回変更しない。
 - `AGENTS.md`: 両エージェントに適用する作業規約。
 
-OpenCode V2の`.opencode/plugins/`自動検出対象は直下の`.js`と`.ts`であり、今回の`.mjs`は対象外となる。そのためルートの`opencode.jsonc`で`plugins: ["./.opencode/plugins/git-safety.mjs"]`を明示し、モジュールの読み込みを有効化する。Pluginは`id`と`setup`を持つデフォルトエクスポートとして定義し、追加のnpm依存を要求しない。
+OpenCode V2（実機確認: v2.3.0）は`.opencode/plugins/`直下のディレクトリを自動検出し、その中の`index.js`（または`index.ts`）をエントリポイントとして読み込む。確認した限り、`.opencode/plugins/`直下の`.mjs`は自動検出対象ではない。また`opencode.jsonc`の`plugins`にファイルパスを指定すると`configured plugin path must be a directory`という警告が出て無視される（ディレクトリパスは有効だが、自動検出と重複して読み込まれる）。そのため本PRでは自動検出を利用し、`.opencode/plugins/git-safety/index.js`にPluginを配置して`plugins`設定は使用しない。Pluginは`id`と`setup`を持つデフォルトエクスポートとして定義し、追加のnpm依存を要求しない。`.codex/hooks/pre_tool_use_policy.mjs`は相対importで参照する。
 
 ## 権限と判定
 
@@ -34,19 +34,21 @@ OpenCode PluginはShell実行前の`event.input.command`を既存`evaluateComman
 ```bash
 pnpm run test:hooks
 pnpm run diagnose:hooks
-pnpm run format:check
+pnpm run format:check:strict
 pnpm run lint
 ```
 
 `test:hooks`は既存Codex契約テストにOpenCodeの登録・許可・拒否のテストを追加したもの。テストの成功は実際のOpenCodeホストにおけるHook発火の証拠ではない。
 
-OpenCode V2を導入したWSL2/Windows環境では、リポジトリを作業ディレクトリにして起動した後、次を別途確認する。
+OpenCode V2を導入したWSL2/Windows環境では、リポジトリを作業ディレクトリにして次を確認する。
 
-1. `opencode --version`でV2系列の実行ファイルであることを確認する。
-2. 公式V2 CLIのPlugin一覧取得（例: `opencode2 api get /api/plugin`）で`qa-training-store.git-safety`を確認する。
-3. Shellで`git status --short`を実行して成功することを確認する。
-4. 隔離したテスト用checkoutで、`git reset --hard HEAD`のような拒否対象を実行前に拒否することを確認する。実際の作業checkoutで危険なコマンドを直接試さない。
-5. WindowsとWSL2で同じ確認を実施し、追加のHookロードや権限の問題があれば、その環境での自動承認を有効化しない。
+1. `opencode2 --version`でV2系列（確認例: 2.3.0）であること、`node --version`がWSL側のLinux Nodeであることを確認する。
+2. `opencode2 --standalone --print-logs --log-level debug run "say hi"`を実行し、ログに`msg="loading plugin"`と`.opencode/plugins/git-safety/index.js`が出ることを確認する。`opencode2 api get /api/plugin`はセッション実行前に空を返すことがあるため、単独ではロード証拠にしない。
+3. 同じセッションでShellツールの実行前に`execute.before`が発火し、`{tool: "shell", input: {command}}`が渡ることを、隔離した一時環境で副作用のない方法（イベントの記録など）で確認する。
+4. 安全な`git status --short`が許可され、隔離した一時Gitリポジトリで`git reset --hard HEAD`のような拒否対象が実行前に`Shell safety policy denied`で停止することを確認する。実際の作業checkoutで危険なコマンドを直接試さない。
+5. `read`の`.env`拒否と`.env.example`許可、`external_directory`の`ask`を確認する。ただし実行環境のグローバル`cli.json`で`permissions: autoaccept`が有効な場合、`ask`は自動承認され対話的プロンプトは検証できない。`deny`は維持されるため、設定変更はユーザー判断に委ねる。
+6. WSLのlinked worktreeは`.git`ポインタがWindows形式のため、共通判定内の`git rev-parse`が失敗しownerRootを解決できない。この場合もG10で拒否される（fail-closed）が、ブランチ文脈を要する判定の正しい許可はWindows側またはネイティブなLinux checkoutで確認する。
+7. WindowsとWSL2で同じ確認を実施し、追加のHookロードや権限の問題があれば、その環境での自動承認を有効化しない。
 
 ## ロールバック
 

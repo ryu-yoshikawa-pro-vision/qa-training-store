@@ -32,7 +32,7 @@
 ## 4. 影響範囲
 
 - 確認済み: `.codex/config.toml`、`.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`AGENTS.md`、`package.json`、安全性・Run・Planの正本。
-- 変更: `opencode.jsonc`、`.opencode/plugins/git-safety.mjs`、OpenCode契約テスト、`package.json`のHook検証コマンド、運用文書、本計画とRun Artifact。
+- 変更: `opencode.jsonc`、`.opencode/plugins/git-safety/index.js`（V2自動検出形式。当初の`.mjs`直接指定は実機で無効だったため削除）、OpenCode契約テスト、`package.json`のHook検証コマンド、運用文書、本計画とRun Artifact。
 
 ## 5. 変更方針
 

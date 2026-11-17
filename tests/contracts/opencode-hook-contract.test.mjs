@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import plugin from "../../.opencode/plugins/git-safety.mjs";
+import plugin from "../../.opencode/plugins/git-safety/index.js";
 import { POLICY_MATRIX } from "../../.codex/hooks/pre_tool_use_policy.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -70,10 +70,21 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
     expect(() => callback({ tool: "read", input: { command: "rm sentinel.txt" } })).not.toThrow();
   });
 
+  it("uses the V2 auto-discovered plugin directory instead of an unsupported file path", () => {
+    expect(fs.existsSync(path.join(repositoryRoot, ".opencode/plugins/git-safety/index.js"))).toBe(
+      true,
+    );
+    expect(fs.existsSync(path.join(repositoryRoot, ".opencode/plugins/git-safety.mjs"))).toBe(
+      false,
+    );
+    const source = fs.readFileSync(path.join(repositoryRoot, "opencode.jsonc"), "utf8");
+    const config = JSON.parse(source.replace(/,(\s*[}\]])/gu, "$1"));
+    expect(config.plugins).toBeUndefined();
+  });
+
   it("keeps unverified shell permissions approval-gated and secrets inaccessible", () => {
     const source = fs.readFileSync(path.join(repositoryRoot, "opencode.jsonc"), "utf8");
     const config = JSON.parse(source.replace(/,(\s*[}\]])/gu, "$1"));
-    expect(config.plugins).toContain("./.opencode/plugins/git-safety.mjs");
     const rules = config.permissions;
     expect(Array.isArray(rules)).toBe(true);
     expect(rules[0]).toEqual({ action: "shell", resource: "*", effect: "ask" });
