@@ -28,6 +28,11 @@ inherit = "core"
 [features]
 hooks = true
 
+# v2のwait_agentで短時間の反復待機を抑止する。v1はAGENTS.mdの待機規則に従う。
+[features.multi_agent_v2]
+min_wait_timeout_ms = 300000
+default_wait_timeout_ms = 600000
+
 [agents]
 max_threads = 4
 max_depth = 1
