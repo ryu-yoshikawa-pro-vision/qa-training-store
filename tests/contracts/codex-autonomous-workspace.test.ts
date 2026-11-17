@@ -103,6 +103,25 @@ describe("direct Codex workspace contract", () => {
     expect(readme).toContain("actual runtime policyは`.codex/rules/*.rules`が正本");
   });
 
+  it("delegates investigation, implementation, and validation without changing parent ownership", () => {
+    const agreement = read("AGENTS.md");
+    const harness = read("docs/reference/codex-implementation-harness.md");
+    const researcher = parseToml(
+      read(".codex/agents/implementation_researcher.toml"),
+    ) as Record<string, unknown>;
+
+    expect(agreement).toContain("実作業は原則childへ委任");
+    expect(agreement).toContain("Parentによる直接実行へ暗黙に切り替えず");
+    expect(agreement).toContain("Run Artifact管理、Git操作");
+    expect(harness).toContain("原則として委譲する");
+    expect(harness).toContain("quality_gate_runner");
+    expect(harness).toContain("親による直接実行を代替経路にしない");
+    expect(harness).toContain("Git mutation");
+    expect(researcher.sandbox_mode).toBe("read-only");
+    expect(String(researcher.description)).toContain("implementation_worker");
+    expect(String(researcher.developer_instructions)).toContain("implementation_worker");
+  });
+
   it("documents direct Runs without weakening strict machine-managed Runs", () => {
     const runArtifacts = read("docs/reference/run-artifacts.md");
     const implementation = read("docs/reference/codex-implementation-harness.md");
