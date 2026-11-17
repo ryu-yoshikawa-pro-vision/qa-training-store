@@ -175,17 +175,44 @@ jobs:
           EVENT_BEFORE: ${{ github.event.before }}
         run: |
           $ErrorActionPreference = "Stop"
-          if ($env:EVENT_NAME -eq "pull_request") {
-            $base = "origin/$env:BASE_REF"
-          }
-          else {
-            $base = $env:EVENT_BEFORE
-            if ([string]::IsNullOrWhiteSpace($base) -or $base -match "^0+$") {
-              $base = "HEAD^"
+          switch ($env:EVENT_NAME) {
+            "pull_request" {
+              $baseBranch = [string]$env:BASE_REF
+              if ([string]::IsNullOrWhiteSpace($baseBranch)) {
+                throw "A pull request base branch is required."
+              }
+              & git check-ref-format "refs/heads/$baseBranch" *> $null
+              if ($LASTEXITCODE -ne 0) {
+                throw "A safe pull request base branch is required."
+              }
+              $baseCandidate = "refs/remotes/origin/$baseBranch"
+            }
+            "push" {
+              $eventBefore = [string]$env:EVENT_BEFORE
+              if ([string]::IsNullOrWhiteSpace($eventBefore) -or $eventBefore -match "^0+$") {
+                throw "A push before commit is required."
+              }
+              if ($eventBefore -notmatch "^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$") {
+                throw "A safe push before commit is required."
+              }
+              $baseCandidate = $eventBefore
+            }
+            { $_ -in @("schedule", "workflow_dispatch") } {
+              $baseCandidate = "HEAD^1"
+            }
+            default {
+              throw "Unsupported event for committed Codex artifact checks."
             }
           }
 
-          node scripts/sanitize-codex-artifacts.mjs --committed --check --base-ref $base
+          $baseOutput = @(& git rev-parse --verify --end-of-options "$baseCandidate^{commit}" 2>$null)
+          $resolveExitCode = $LASTEXITCODE
+          $resolvedBase = ($baseOutput -join "").Trim()
+          if ($resolveExitCode -ne 0 -or $resolvedBase -notmatch "^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$") {
+            throw "A resolvable base commit is required."
+          }
+
+          node scripts/sanitize-codex-artifacts.mjs --committed --check --base-ref $resolvedBase
 
   codex-hook-contract-windows:
     name: Codex Hook contract (Windows)
@@ -210,6 +237,14 @@ jobs:
 
       - name: Run focused Hook contracts
         run: pnpm run test:hooks
+
+      - name: Run native command contracts
+        run: >-
+          pnpm exec vitest run
+          tests/contracts/codex-task-native-command.test.ts
+          --no-file-parallelism
+          --maxWorkers=1
+          --testTimeout=30000
 
       - name: Diagnose Hooks offline
         run: pnpm run diagnose:hooks
