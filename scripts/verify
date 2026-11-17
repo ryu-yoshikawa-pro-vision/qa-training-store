@@ -233,20 +233,20 @@ check_template_contract() {
   contains "## Discovered" docs/reference/run-artifacts.md || return 1
   contains "## Blocked" docs/reference/run-artifacts.md || return 1
   contains "Progress: <NN>% (<done>/<total>)" docs/reference/run-artifacts.md || return 1
-  contains "CI確認をProgressへ" docs/reference/run-artifacts.md || return 1
-  contains "file-changing task全体" docs/reference/run-artifacts.md || return 1
+  contains "CI確認結果を進捗へ加算する条件" docs/reference/run-artifacts.md || return 1
+  contains "ファイル変更を伴うタスク（file-changing task）全体の完了条件" docs/reference/run-artifacts.md || return 1
   contains '### REPORT.md append-only contract' docs/reference/run-artifacts.md || return 1
   contains "## Run Artifact lifecycle" docs/reference/run-artifacts.md || return 1
-  contains "作業完了後もRun Directoryを保存" docs/reference/run-artifacts.md || return 1
-  contains "通常のcleanupや成果物整理だけを理由に削除しません" docs/reference/run-artifacts.md || return 1
-  contains '.codex/runs/`を`.gitignore`へ追加しません' docs/reference/run-artifacts.md || return 1
-  contains "作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。" docs/reference/run-artifacts.md || return 1
-  contains '過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。' docs/reference/run-artifacts.md || return 1
-  contains '.codex/runs/`を`.gitignore`へ追加しません。' docs/reference/run-artifacts.md || return 1
-  contains "同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。" docs/reference/run-artifacts.md || return 1
-  contains "同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。" docs/reference/run-artifacts.md || return 1
+  contains "作業完了後も実行ディレクトリ（Run Directory）を保持" docs/reference/run-artifacts.md || return 1
+  contains "通常のクリーンアップや成果物整理のみを理由として削除しません" docs/reference/run-artifacts.md || return 1
+  contains '.codex/runs/` を `.gitignore` に追加してはなりません' docs/reference/run-artifacts.md || return 1
+  contains "作業完了後も実行ディレクトリ（Run Directory）を保持し、調査、レビュー、修正、再発防止に活用できるよう蓄積します。" docs/reference/run-artifacts.md || return 1
+  contains '過去の実行ディレクトリや `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` は、通常のクリーンアップや成果物整理のみを理由として削除しません。' docs/reference/run-artifacts.md || return 1
+  contains '.codex/runs/` を `.gitignore` に追加してはなりません' docs/reference/run-artifacts.md || return 1
+  contains "同一の会話セッション内で同一タスクを継続する場合は、既存のアクティブなRunを再利用します。" docs/reference/run-artifacts.md || return 1
+  contains "同一の会話セッション内であっても、ユーザーが別タスクの開始を明示した場合は、新しいRunを作成できます。" docs/reference/run-artifacts.md || return 1
   ! contains "同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。" docs/reference/run-artifacts.md || return 1
-  contains "会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。" docs/reference/run-artifacts.md || return 1
+  contains "会話セッションが変わった場合は、アクティブなRunの引き継ぎが明示されていない限り、新規にRunを作成します。" docs/reference/run-artifacts.md || return 1
   contains "### Standard and temporary artifacts" docs/reference/run-artifacts.md || return 1
   contains "### Past Run changes" docs/reference/run-artifacts.md || return 1
   contains "### Run Artifact Path Sanitization" docs/reference/run-artifacts.md || return 1
@@ -259,12 +259,12 @@ check_template_contract() {
   ! contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
   contains "run-artifacts.md" docs/reference/repair-loop.md || return 1
   ! contains '### REPORT.md append-only contract' docs/reference/repair-loop.md || return 1
-  contains "## Repository file-changing task の完了契約" docs/reference/codex-implementation-harness.md || return 1
-  contains "repository working tree" docs/reference/codex-implementation-harness.md || return 1
-  contains "Git操作を明示的に禁止" docs/reference/codex-implementation-harness.md || return 1
-  contains "GitHub metadataのみ" docs/reference/codex-implementation-harness.md || return 1
-  contains "review-only" docs/reference/codex-implementation-harness.md || return 1
-  contains "plan-only" docs/reference/codex-implementation-harness.md || return 1
+  contains "## ファイル変更を伴うタスクの完了規約" docs/reference/codex-implementation-harness.md || return 1
+  contains "リポジトリファイルを変更し、コミット対象の差分を作成する" docs/reference/codex-implementation-harness.md || return 1
+  contains "Git 操作が禁止されたタスク" docs/reference/codex-implementation-harness.md || return 1
+  contains "GitHub のメタデータのみ" docs/reference/codex-implementation-harness.md || return 1
+  contains "レビューのみ" docs/reference/codex-implementation-harness.md || return 1
+  contains "計画作成のみ" docs/reference/codex-implementation-harness.md || return 1
   contains "調査のみ" docs/reference/codex-implementation-harness.md || return 1
   contains "Web CI" docs/reference/codex-implementation-harness.md || return 1
   contains "Mobile App CI" docs/reference/codex-implementation-harness.md || return 1
@@ -272,48 +272,48 @@ check_template_contract() {
   contains "branch protection" docs/reference/codex-implementation-harness.md || return 1
   contains "queued" docs/reference/codex-implementation-harness.md || return 1
   contains "in_progress" docs/reference/codex-implementation-harness.md || return 1
-  contains "最新commit" docs/reference/codex-implementation-harness.md || return 1
+  contains "最新コミット" docs/reference/codex-implementation-harness.md || return 1
   contains "失敗" docs/reference/codex-implementation-harness.md || return 1
-  contains "AgentはGitHub状態pollingを行いません。" docs/reference/codex-implementation-harness.md || return 1
-  contains "tracked Run Artifact" docs/reference/codex-implementation-harness.md || return 1
-  contains "CI確認1件" docs/reference/codex-implementation-harness.md || return 1
-  contains "checkboxによるProgress" docs/reference/codex-implementation-harness.md || return 1
-  contains "manifest field" docs/reference/codex-implementation-harness.md || return 1
+  contains "エージェントは GitHub の状態に対するポーリングを行ってはならない" docs/reference/codex-implementation-harness.md || return 1
+  contains "追跡対象の Run 成果物" docs/reference/codex-implementation-harness.md || return 1
+  contains "必須 CI 確認1件" docs/reference/codex-implementation-harness.md || return 1
+  contains "チェックボックスに基づく進捗" docs/reference/codex-implementation-harness.md || return 1
+  contains "マニフェストのフィールド" docs/reference/codex-implementation-harness.md || return 1
   contains "再確認" docs/reference/codex-implementation-harness.md || return 1
-  contains 'standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`lightweight`でもRun Artifactを残します。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。' docs/reference/codex-implementation-harness.md || return 1
+  contains 'standard` / `strict` では、`scripts/new-run.sh` または `scripts/new-run.ps1` を優先して Run を初期化する。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`lightweight` レベルであっても Run 成果物（Run Artifact）を残す。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、必要に応じて手動作成してよい。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`new-run` を使わずに手動で初期化する場合は、該当するワークフローレベルで作成すべきエージェント管理成果物に対応した既存テンプレートを元に作成する。' docs/reference/codex-implementation-harness.md || return 1
   contains '.codex/templates/PLAN.md' docs/reference/codex-implementation-harness.md || return 1
   contains '.codex/templates/TASKS.md' docs/reference/codex-implementation-harness.md || return 1
   contains '.codex/templates/REPORT.md' docs/reference/codex-implementation-harness.md || return 1
-  contains 'actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。' docs/reference/codex-implementation-harness.md || return 1
-  contains '迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。' docs/reference/codex-implementation-harness.md || return 1
-  contains 'Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。' docs/reference/codex-implementation-harness.md || return 1
-  contains 'file-changing taskでは、push後の必須CI確認1件をユーザー向けProgressの分母・分子へ加算します。' docs/reference/codex-implementation-harness.md || return 1
-  contains 'CI確認1件は`TASKS.md` checkbox、manifest field、独自schemaへ追加しません。' docs/reference/codex-implementation-harness.md || return 1
-  contains 'tracked Run Artifactはfinal commit前に保存すべき状態まで確定します。' docs/reference/codex-implementation-harness.md || return 1
-  contains 'push後CI結果を記録するだけの理由で`TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json`等を変更・再commit・再pushしません。' docs/reference/codex-implementation-harness.md || return 1
+  contains '実体の `run.json` は機械管理（machine-managed）であり、エージェントが直接作成・直接編集することはない。' docs/reference/codex-implementation-harness.md || return 1
+  contains '判断に迷う場合は `new-run` を使用し、少なくとも1件のエビデンスコマンドを残す。' docs/reference/codex-implementation-harness.md || return 1
+  contains 'ワークフローレベル一覧表の `lightweight` における `run.json` の「任意」は、Run マニフェスト自体が不要となるケースがあることを示すものであり、存在する `run.json` をエージェントが直接作成・編集してよいことを意味しない。' docs/reference/codex-implementation-harness.md || return 1
+  contains 'push 後の必須 CI 確認1件を、ユーザー向けの進捗率（Progress）の分母および分子に加算する。' docs/reference/codex-implementation-harness.md || return 1
+  contains 'この CI 確認1件は、`TASKS.md` のチェックボックス、マニフェストのフィールド、独自のスキーマには追加しない。' docs/reference/codex-implementation-harness.md || return 1
+  contains '追跡対象の Run 成果物は、最終コミット前に保存すべき状態まで確定させる。' docs/reference/codex-implementation-harness.md || return 1
+  contains 'push 後の CI 結果を記録するためだけの目的で `TASKS.md`、`REPORT.md`、`PLAN.md`、`run.json` などを変更・再コミット・再 push してはならない。' docs/reference/codex-implementation-harness.md || return 1
   contains "wait_for_required_ci" docs/reference/codex-implementation-harness.md || return 1
   contains "exact HEAD" docs/reference/codex-implementation-harness.md || return 1
-  contains "MCP CI待機中、AgentはGitHub状態pollingを行いません。" docs/reference/codex-implementation-harness.md || return 1
-  contains "waiter利用不能時はCI未確認blockerとし、Agent側のGitHub状態pollingへfallbackしません。" docs/reference/codex-implementation-harness.md || return 1
-  contains '修正後の新しいcommitと最新PR headで必須CIを再確認します。' docs/reference/codex-implementation-harness.md || return 1
-  contains "baseline" docs/reference/repair-loop.md || return 1
-  contains "current diff" docs/reference/repair-loop.md || return 1
-  contains "shared dependency" docs/reference/repair-loop.md || return 1
-  contains "test or CI contract" docs/reference/repair-loop.md || return 1
-  contains "execution environment" docs/reference/repair-loop.md || return 1
+  contains "MCP による CI 待機中、エージェントは GitHub の状態に対するポーリングを行ってはならない。" docs/reference/codex-implementation-harness.md || return 1
+  contains "待機ツール（waiter）が利用不能な場合は、CI 未確認のブロッカーとして扱い、エージェント側での GitHub 状態ポーリングへフォールバックしてはならない。" docs/reference/codex-implementation-harness.md || return 1
+  contains '修正後の新しいコミットと最新の PR head で必須 CI を再確認する。' docs/reference/codex-implementation-harness.md || return 1
+  contains "ベースライン" docs/reference/repair-loop.md || return 1
+  contains "現在の差分（diff）" docs/reference/repair-loop.md || return 1
+  contains "共有依存関係" docs/reference/repair-loop.md || return 1
+  contains "テストやCIの規約" docs/reference/repair-loop.md || return 1
+  contains "実行環境" docs/reference/repair-loop.md || return 1
   contains "safe minimal repair" docs/reference/repair-loop.md || return 1
-  contains "current loop" docs/reference/repair-loop.md || return 1
-  contains "unrelated status alone" docs/reference/repair-loop.md || return 1
+  contains "現在のループ内" docs/reference/repair-loop.md || return 1
+  contains "無関係なステータス（unrelated status）" docs/reference/repair-loop.md || return 1
   contains "unsafe" docs/reference/repair-loop.md || return 1
   contains "destructive" docs/reference/repair-loop.md || return 1
-  contains "permission" docs/reference/repair-loop.md || return 1
-  contains "credential" docs/reference/repair-loop.md || return 1
-  contains "irreversible external side effect" docs/reference/repair-loop.md || return 1
-  contains "requirement-dependent" docs/reference/repair-loop.md || return 1
-  contains "retry stop condition" docs/reference/repair-loop.md || return 1
+  contains "権限" docs/reference/repair-loop.md || return 1
+  contains "認証情報" docs/reference/repair-loop.md || return 1
+  contains "不可逆な外部副作用" docs/reference/repair-loop.md || return 1
+  contains "仕様・要件の判断" docs/reference/repair-loop.md || return 1
+  contains "リポジトリのリトライ停止条件" docs/reference/repair-loop.md || return 1
   contains "causal assessment" docs/reference/repair-loop.md || return 1
   contains "unexecuted checks" docs/reference/repair-loop.md || return 1
   contains "next action" docs/reference/repair-loop.md || return 1
@@ -445,7 +445,7 @@ check_template_contract() {
   contains "-NoRunManifest" docs/reference/run-artifacts.md || return 1
   contains "run.json.safety.network" docs/reference/run-artifacts.md || return 1
   contains 'fresh direct `codex` runtime validation' docs/reference/run-artifacts.md || return 1
-  contains "Repository / workspace内での通常interactive入口" docs/reference/codex-implementation-harness.md || return 1
+  contains "リポジトリ／ワークスペース内での通常の対話型エントリーポイント" docs/reference/codex-implementation-harness.md || return 1
   contains "--no-run-manifest" docs/reference/codex-implementation-harness.md || return 1
   contains "-NoRunManifest" docs/reference/codex-implementation-harness.md || return 1
   contains "approval_policy = \"never\"" docs/reference/codex-safety-harness.md || return 1
@@ -461,7 +461,7 @@ check_template_contract() {
   contains "checkpoint" docs/reference/run-artifacts.md || return 1
   contains "collect-run-artifacts" docs/reference/run-artifacts.md || return 1
   contains '### Interactive `codex-safe` manifest sync' docs/reference/run-artifacts.md || return 1
-  contains 'process終了や `Stop` Hookだけを理由に' docs/reference/run-artifacts.md || return 1
+  contains 'Codexプロセスの終了や `Stop` Hookの実行のみを理由として `status=completed` に変更してはなりません。' docs/reference/run-artifacts.md || return 1
   contains 'Run directory not found' scripts/codex-safe.ps1 || return 1
   contains 'manifest_sync_start' scripts/codex-safe.ps1 || return 1
   contains 'Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"' scripts/codex-safe.ps1 || return 1
@@ -537,8 +537,8 @@ check_template_contract() {
   contains "allowed_dirs" docs/reference/change-scope-policy.md || return 1
   contains "allowed_globs" docs/reference/change-scope-policy.md || return 1
   contains ".codex/runs/" docs/reference/change-scope-policy.md || return 1
-  contains "repo root" docs/reference/change-scope-policy.md || return 1
-  contains "scope check" docs/reference/change-scope-policy.md || return 1
+  contains "リポジトリルート相対" docs/reference/change-scope-policy.md || return 1
+  contains "スコープ検証" docs/reference/change-scope-policy.md || return 1
   contains "--require-clean-git" docs/reference/change-scope-policy.md || return 1
   contains "spec/change-scope-policy.json" docs/reference/change-scope-policy.md || return 1
   contains "scripts/new-run.sh" docs/reference/codex-implementation-harness.md || return 1
@@ -562,7 +562,7 @@ check_template_contract() {
   contains "stop_hook_active" .codex/hooks/log_event.mjs || return 1
   contains "evidence_refs" docs/reference/evaluation.md || return 1
   contains "evidence_refs" .codex/templates/EVALUATION.md || return 1
-  contains "Repository-side contracts" docs/reference/repair-loop.md || return 1
+  contains "## 共通の品質ゲート方針" docs/reference/repair-loop.md || return 1
   contains "allowed_files" docs/reference/repair-loop.md || return 1
   contains "unsafe" docs/reference/repair-loop.md || return 1
   ! contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1

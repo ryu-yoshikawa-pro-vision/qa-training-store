@@ -218,6 +218,18 @@ jobs:
               if (!response.ok) needsHuman(`open_pr_files_http_${response.status}`);
               const pageFiles = await response.json();
               if (!Array.isArray(pageFiles)) needsHuman("open_pr_files_invalid");
+              if (pageFiles.length > 100) needsHuman("open_pr_files_invalid");
+              for (const file of pageFiles) {
+                if (
+                  file === null ||
+                  typeof file !== "object" ||
+                  Array.isArray(file) ||
+                  typeof file.filename !== "string" ||
+                  file.filename.trim() === ""
+                ) {
+                  needsHuman("open_pr_files_invalid");
+                }
+              }
               files.push(...pageFiles);
               if (pageFiles.length < 100) {
                 complete = true;
@@ -543,6 +555,18 @@ jobs:
               if (!response.ok) needsHuman(`related_pr_files_http_${response.status}`);
               const pageFiles = await response.json();
               if (!Array.isArray(pageFiles)) needsHuman("related_pr_files_invalid");
+              if (pageFiles.length > 100) needsHuman("related_pr_files_invalid");
+              for (const file of pageFiles) {
+                if (
+                  file === null ||
+                  typeof file !== "object" ||
+                  Array.isArray(file) ||
+                  typeof file.filename !== "string" ||
+                  file.filename.trim() === ""
+                ) {
+                  needsHuman("related_pr_files_invalid");
+                }
+              }
               files.push(...pageFiles);
               if (pageFiles.length < 100) {
                 complete = true;
@@ -1599,6 +1623,18 @@ jobs:
               if (!response.ok) needsHuman(`publish_pr_files_http_${response.status}`);
               const pageFiles = await response.json();
               if (!Array.isArray(pageFiles)) needsHuman("publish_pr_files_invalid");
+              if (pageFiles.length > 100) needsHuman("publish_pr_files_invalid");
+              for (const file of pageFiles) {
+                if (
+                  file === null ||
+                  typeof file !== "object" ||
+                  Array.isArray(file) ||
+                  typeof file.filename !== "string" ||
+                  file.filename.trim() === ""
+                ) {
+                  needsHuman("publish_pr_files_invalid");
+                }
+              }
               files.push(...pageFiles);
               if (pageFiles.length < 100) {
                 complete = true;
