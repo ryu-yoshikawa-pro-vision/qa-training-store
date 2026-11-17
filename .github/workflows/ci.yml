@@ -42,6 +42,82 @@ jobs:
           show-openssf-scorecard: false
           comment-summary-in-pr: never
 
+  actions-lock-bootstrap:
+    name: Actions lock bootstrap
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install gh-actions-lock
+        run: gh extension install github/gh-actions-lock --pin v0.4.1
+
+      - name: Prepare exact release tags in the disposable runner checkout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          mappings = {
+              'actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0': 'actions/cache@v5.0.0',
+              'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8': 'actions/checkout@v5.0.0',
+              'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294': 'actions/dependency-review-action@v5.0.0',
+              'actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131': 'actions/download-artifact@v7.0.0',
+              'actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961': 'actions/setup-java@v5.7.0',
+              'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020': 'actions/setup-node@v4.4.0',
+              'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444': 'actions/setup-node@v5.0.0',
+              'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f': 'actions/upload-artifact@v6.0.0',
+              'cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0': 'cloudflare/wrangler-action@v4.0.0',
+              'gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580': 'gradle/actions/setup-gradle@v5.0.0',
+              'pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a': 'pnpm/action-setup@v4.4.0',
+          }
+          pattern = re.compile(r'(?m)^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^ \t#]+)')
+          counts = {source: 0 for source in mappings}
+          expected = {
+              'actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0': 1,
+              'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8': 29,
+              'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294': 1,
+              'actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131': 16,
+              'actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961': 2,
+              'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020': 1,
+              'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444': 23,
+              'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f': 21,
+              'cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0': 2,
+              'gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580': 1,
+              'pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a': 24,
+          }
+          for path in sorted(Path('.github/workflows').glob('*.yml')):
+              content = path.read_text()
+              def replace_ref(match):
+                  source = match.group(2)
+                  if source not in mappings:
+                      return match.group(0)
+                  counts[source] += 1
+                  return match.group(1) + mappings[source]
+              path.write_text(pattern.sub(replace_ref, content))
+          if counts != expected:
+              raise SystemExit(f"Unexpected SHA reference inventory: {counts}")
+          print(f"Prepared {sum(counts.values())} remote Action uses refs at their existing release versions.")
+          PY
+
+      - name: Generate and verify actions.lock
+        run: |
+          gh actions-lock
+          gh actions-lock --verify
+
+      - name: Export generated workflow diff and lockfile
+        run: |
+          printf '%s\n' '--- ACTIONS_LOCK_DIFF_START ---'
+          git diff -- .github/workflows
+          printf '%s\n' '--- ACTIONS_LOCK_DIFF_END ---'
+          printf '%s\n' '--- ACTIONS_LOCK_FILE_START ---'
+          cat .github/workflows/actions.lock
+          printf '%s\n' '--- ACTIONS_LOCK_FILE_END ---'
   style-quality:
     name: Style Quality
     runs-on: ubuntu-latest
