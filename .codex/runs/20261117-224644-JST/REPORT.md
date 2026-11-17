@@ -66,3 +66,11 @@
 - Markdown lint: repository package scriptはWindows virtual-store symlink先node_modules内の依存READMEを走査してfailure。直接対象Planは0 issue。次にtracked Markdown file listを明示し、dependency storeを含めず確認する。
 - 次: 一時bootstrap jobとPlan/Runをstageし、commit前検証後に既存PR branchへpushする。
 - 進捗: 12% (1/8)
+
+## 2026-11-18 00:03 JST
+
+- 概要: tracked Markdown全体を依存symlinkを含めずにlintし、476ファイル・0 issueを確認した。
+- 検証: `git ls-files -z -- '*.md' | xargs -0 -r ./node_modules/.bin/markdownlint-cli2 --no-globs` 成功。以前の `pnpm run lint:markdown` の失敗はWindows virtual-store symlink先を走査した環境起因で、tracked Markdownの結果とは分けて記録する。
+- Git状態: ローカルPR branchは `fd9dca79`、remote PR headはpush前確認時点で `1a796f1b`。ローカルはremoteより2 commit先行している。PR #224はopen/draft、base `main`。
+- 次: Runを再sanitizeしてcheckpointをcommitし、最新fetch後にPR branchへfast-forward pushする。その後、特定のbootstrap jobから公式CLI生成物を取得する。
+- 進捗: 12% (1/8)

@@ -19,7 +19,7 @@
 - 3件のjobs.<id>.usesは同一repository内のreusable workflow呼出しで、外部action参照ではない。呼出し自体は変えず、各workflow内の外部Actionをlockする。
 - workflow refsは7ファイルすべてYAML parse成功。現在の作業treeでは121 remote uses（既存120＋一時bootstrap checkout 1）、3 local calls。bootstrap変換scriptを一時copy上で実行し、121件をversion tagへ変換後に再parseできた。
 - PrettierはworkflowとPlan/Runを通過。Run sanitizerは3ファイル、残存検出0。
-- pnpm run lint:markdownは9,381ファイルを走査し、5,357個のnode_modules外へ解決されるpnpm virtual-store symlink先の依存ファイルで148,689件を検出した。Windows virtual-store symlinkがnode_modules ignoreを迂回した環境起因。新Plan単体のmarkdownlintは0 issue。tracked Markdown全体をsymlink storeを除いて再確認する。
+- pnpm run lint:markdownは9,381ファイルを走査し、5,357個のnode_modules外へ解決されるpnpm virtual-store symlink先の依存ファイルで148,689件を検出した。Windows virtual-store symlinkがnode_modules ignoreを迂回した環境起因。新Plan単体のmarkdownlintは0 issue。tracked Markdown全体を明示したmarkdownlint-cli2は476ファイル、0 issue。
 - wait_for_required_ciは有効tool一覧にない。Repository harnessにより、最終headのCI pollingへ代替してはならない。
 
 ## Blocked
