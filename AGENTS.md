@@ -1,6 +1,6 @@
 # Repository Agent Working Agreement
 
-Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / wrapper / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。
+Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / wrapper / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。例外として、OpenCode V2は`.codex/hooks/pre_tool_use_policy.mjs`の`evaluateCommand()`を共通の安全性判定関数として利用する。OpenCode側の設定と検証範囲は[`docs/reference/opencode-v2-safety.md`](docs/reference/opencode-v2-safety.md)を参照する。
 
 ## 1. 基本原則と常駐契約
 
