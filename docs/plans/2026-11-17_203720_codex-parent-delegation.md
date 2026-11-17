@@ -55,3 +55,11 @@
 
 - L2: ユーザーの実装依頼を承認根拠とする。L3の権限変更は行わない。
 - Rollback: 本ブランチの差分のみをPRから戻す。mainには直接変更しない。
+
+## 10. レビュー指摘への追記（2026-11-17）
+
+- 追加依頼: PR #226 のレビュー指摘を同一ブランチで修正し、サブエージェント実行中の短時間ポーリングを避ける。
+- 追加変更: `AGENTS.md` と実装ハーネスに待機・例外規則を明文化する。`.codex/config.toml` の `[features.multi_agent_v2]` に `min_wait_timeout_ms = 300000` と `default_wait_timeout_ms = 600000` を指定する。v1では親の明示的な長時間待機指示を使用する。
+- 安全性: `implementation_worker` の削除・rename・移動・Git mutation禁止は維持する。通常のworkerで実行できない操作は親が直接代行せず、実行を停止して安全性規約に従う承認・方法を確認する。L3の権限緩和は行わない。
+- 検証: 既存の契約テストでv2待機設定と親のポーリング・例外契約を検証し、Prettierを修正する。最新PR headのWeb CIとMobile App CIを確認する。Codex実セッションの`wait_agent`・spawnの動作はランタイム確認事項として残す。
+- ロールバック: 本ブランチの待機設定2キーと文書・契約テストの追加差分のみ戻す。CIやProduct code、既存Hook、permission、sandbox、approvalを変更しない。
