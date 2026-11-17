@@ -38,7 +38,7 @@ jobs:
     outputs:
       native_changed: ${{ steps.paths.outputs.native_changed }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -116,13 +116,13 @@ jobs:
     if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -169,25 +169,25 @@ jobs:
       needs.android-production-build.result == 'success'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Download Automation Release APK
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: native-android-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-bundle-guard/automation
       - name: Download Production-validation Release APK
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: native-android-production-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-bundle-guard/production
@@ -210,10 +210,10 @@ jobs:
     env:
       ANDROID_API_LEVEL: "34"
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         if: ${{ inputs.capture_spec_visuals == true }}
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -221,7 +221,7 @@ jobs:
         if: ${{ inputs.capture_spec_visuals == true }}
         shell: bash
         run: pnpm install --frozen-lockfile --ignore-scripts
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      - uses: actions/setup-java@v5.7.0 # v5.7.0
         with:
           distribution: temurin
           java-version: "17"
@@ -364,7 +364,7 @@ jobs:
             echo "Pixel Launcher package is absent; continuing without launcher stabilization."
           fi
       - name: Cache pinned Maestro CLI
-        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+        uses: actions/cache@v5.0.0 # v5.0.0
         with:
           path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}
           key: maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}-${{ env.MAESTRO_CACHE_SCHEMA }}
@@ -440,7 +440,7 @@ jobs:
         run: bash scripts/native/android-ci-visual-profile.sh
       - name: Download Automation Release APK
         if: ${{ !cancelled() && needs.android-automation-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: native-android-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-apk
@@ -570,7 +570,7 @@ jobs:
         run: bash scripts/native/android-ci-visual-capture.sh
       - name: Upload Android Screen Catalog raw visuals
         if: ${{ always() && steps.android_visual_capture.outcome != 'skipped' }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: native-android-screen-catalog-visuals-${{ github.run_id }}
           path: ${{ runner.temp }}/spec-visuals
@@ -944,7 +944,7 @@ jobs:
             --junit-output "$RUNNER_TEMP/maestro-training-baseline.xml"
       - name: Download Production-validation Release APK
         if: ${{ !cancelled() && needs.android-production-build.result == 'success' && needs.production-bundle-guard.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: native-android-production-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-production-apk
@@ -994,7 +994,7 @@ jobs:
         env:
           NATIVE_ANDROID_JOB_STATUS: ${{ job.status }}
         run: bash scripts/native/android-ci-runtime-evidence.sh
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@v6.0.0 # v6.0.0
         if: always()
         with:
           name: native-android-runtime-evidence-${{ github.run_id }}

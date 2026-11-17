@@ -70,7 +70,7 @@
 ## 7. リスクと未解決論点
 
 - リスク:
-  - 公式GitHub docsではlockfile runtime enforcementにGitHub plan / policy条件がある。現在のrepository／organization設定を確認できない場合、lockfileがCIで検証できてもrunner実行への強制は未確認として報告する。
+  - 公式GitHub docsではonboard済みworkflowがlock commitを実行する一方、lockfile機能の対象はGitHub Enterprise Cloudとされる。対象repositoryのhost／planが機能を利用できるかは未確認である。Require lockfile policyは全workflowへのcoverageを必須化する別設定なので、repository／organizationへの適用状態も未確認として報告する。`gh actions-lock --verify`成功だけをtarget repositoryでのruntime適用証明として扱わない。
   - Dependabotのsecurity PRがなく、自動同期を実証できない場合は未検証とする。
   - ローカルshellからGitHubへDNS解決できず、ローカルCLI導入もできない。公式CLIの生成・検証がPR runnerで実行できない場合は成功と扱わない。
   - `wait_for_required_ci` toolが利用可能なtool一覧にない。Repository harness上、代替pollingは禁止されているため、最新head CI待機ができなければ明示的な未達として残す。

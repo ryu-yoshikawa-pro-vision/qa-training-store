@@ -74,3 +74,43 @@
 - Git状態: ローカルPR branchは `fd9dca79`、remote PR headはpush前確認時点で `1a796f1b`。ローカルはremoteより2 commit先行している。PR #224はopen/draft、base `main`。
 - 次: Runを再sanitizeしてcheckpointをcommitし、最新fetch後にPR branchへfast-forward pushする。その後、特定のbootstrap jobから公式CLI生成物を取得する。
 - 進捗: 12% (1/8)
+
+## 2026-11-18 00:18 JST
+
+- 概要: PR runner上の公式`gh-actions-lock` v0.4.1で7 workflowのlockを生成し、`gh actions-lock --verify`まで成功した。generated lockは11 Action dependencyのref、commit SHA、repository identityを記録する。
+- 根拠: PR head `5c4bda1bdbe93d392b85b164c475f2943237a555`のWeb CI run `44110756738`にある`Actions lock bootstrap` job `134135368535`がsuccess。生成結果のcommitは以前確認した公式release tagと一致し、pnpm v4.4.0、Gradle v5.0.0を維持した。
+- 変更: `.github/workflows/actions.lock`へrunner生成物を反映し、121件のstep-level remote Action usesを同一release tagへ移行した。3件のlocal reusable workflow呼出し、Dependabot設定、Cloudflare Preview条件は維持。CIのbootstrapをread-only `actions-lock` verify jobへ置き換え、`verify`の必須結果へ接続した。
+- security-only実証: 実際のDependabot security update PRによる自動同期は未確認。GitHubのRequire lockfile runtime policyも設定状態を変更せず未確認。
+- 残余リスク: runnerのCLIは`cross-browser-smoke.yml`のPlaywright container imageがdigest固定でないwarningを出した。container imageはActions lock対象外のため変更していない。
+- 次: focused contracts、YAML/format、Repository verify、tracked Markdown lint、lock coverage、security boundariesを検証する。最新headのWeb/Mobile CI確認は`wait_for_required_ci`が使える場合のみ行う。
+- 進捗: 25% (2/8)
+
+## 2026-11-18 00:56 JST
+
+- Summary: PR #224のlockfile、CI job、契約テスト、運用文書をレビューし、ローカル検証結果を記録した。既存Actionのversion変更はなく、Dependabot設定も差分なし。
+- Tag mapping evidence: GitHub APIで既存11 SHAと公式release tagを照合した。全120既存参照は同じ既存versionの完全なrelease tagへ移行し、下表の11 Actionだけをlockする。
+
+| Action | 既存参照SHA | 検証済みrelease tag | lockfileの実行commit |
+|---|---|---|---|
+| `actions/cache` | `a7833574556fa59680c1b7cb190c1735db73ebf0` | `v5.0.0` | `a7833574556fa59680c1b7cb190c1735db73ebf0` |
+| `actions/checkout` | `08c6903cd8c0fde910a37f88322edcfb5dd907a8` | `v5.0.0` | `08c6903cd8c0fde910a37f88322edcfb5dd907a8` |
+| `actions/dependency-review-action` | `a1d282b36b6f3519aa1f3fc636f609c47dddb294` | `v5.0.0` | `a1d282b36b6f3519aa1f3fc636f609c47dddb294` |
+| `actions/download-artifact` | `37930b1c2abaa49bbe596cd826c3c89aef350131` | `v7.0.0` | `37930b1c2abaa49bbe596cd826c3c89aef350131` |
+| `actions/setup-java` | `b6effb05e454b25005698d916606bdc6ffcbf961` | `v5.7.0` | `b6effb05e454b25005698d916606bdc6ffcbf961` |
+| `actions/setup-node` | `49933ea5288caeca8642d1e84afbd3f7d6820020` | `v4.4.0` | `49933ea5288caeca8642d1e84afbd3f7d6820020` |
+| `actions/setup-node` | `a0853c24544627f65ddf259abe73b1d18a591444` | `v5.0.0` | `a0853c24544627f65ddf259abe73b1d18a591444` |
+| `actions/upload-artifact` | `b7c566a772e6b6bfb58ed0dc250532a479d7789f` | `v6.0.0` | `b7c566a772e6b6bfb58ed0dc250532a479d7789f` |
+| `cloudflare/wrangler-action` | `ebbaa1584979971c8614a24965b4405ff95890e0` | `v4.0.0` | `ebbaa1584979971c8614a24965b4405ff95890e0` |
+| `gradle/actions/setup-gradle` | `f236b35da9d031e13b1005234ebe4392ed54c580` | `v5.0.0` | `4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2` |
+| `pnpm/action-setup` | `a15d269cd4658e1107c09f1fabf4cbd7bd1f308a` | `v4.4.0` | `fc06bc1257f339d1d5d8b3a19a8cae5388b55320` |
+
+- 変更: `.github/workflows/actions.lock`はrunnerのGitHub公式`gh-actions-lock` v0.4.1が生成した。`.github/workflows/ci.yml`のread-only `actions-lock` jobで`gh actions-lock --verify`を実行し、集約`verify`の必須結果にした。Dependabot weekly / `open-pull-requests-limit: 0`、Cloudflare Secret条件、Preview除外、checkout credential保護、`training/github-actions/`のSHA固定は維持した。
+- Tag判断: 9件は既存SHAとtag先commitが一致する。pnpm v4.4.0とGradle v5.0.0の既存SHAは署名済みannotated tag object SHAであり、tag objectは既存SHAと一致する一方、lockfileはそれぞれのrelease commit `fc06bc1257f339d1d5d8b3a19a8cae5388b55320`と`4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2`を記録する。ユーザーは同じ既存version tagへの移行を承認した。
+- 検証: `pnpm exec vitest run tests/contracts/ci-workflow.test.ts tests/contracts/native-ci-workflow.test.ts tests/contracts/expo-dependency-maintenance-workflow.test.ts`は54/54成功。対象3ファイルのESLintは無警告で成功、`pnpm run typecheck`成功、変更対象のPrettier check成功、7 workflow／Dependabot YAML parseと121 remote uses／3 local refs／11 lock entries coverage check成功。変更Markdown 8 files lint成功、Run sanitizerは3 files・0 finding、`git diff --check`成功。公式runnerでのCLI生成と`gh actions-lock --verify`成功は中間head `5c4bda1bdbe93d392b85b164c475f2943237a555`での結果であり、最終headのWeb CI/Mobile CI成功とは扱わない。
+- その他検証: `pnpm run lint`は0 error・65 warningsで完了した。変更したtest fileの2 warningsを取り除き、修正後の対象ESLintは0 warning。`pnpm run security:check`はsandbox内のtsx IPC pipeで`EPERM`となりchecker起動前に失敗したため、同一scriptを`node --experimental-strip-types scripts/security-static-check.ts`で実行し236 runtime filesと394 credential-scan filesを成功確認した。`pnpm run lint:markdown`はWSLのpnpm virtual-store symlinkが`node_modules` ignoreを迂回して依存文書を走査し失敗した。tracked Markdown全体はsymlinkを含めない明示file listで前回476 files・0 issueを確認し、今回の変更8 filesも個別lint成功。
+- Repository verify: `bash scripts/verify`は3回とも`FAIL: template contract files`。確認できた古い正確な文言assertion 2件をRun artifacts文書の意味を保って修正した後も同じstageで失敗し、3回目の停止条件に達した。修正後の残るassertionは個別特定できておらず、repair-loopの有界上限に従って再実行・追加修正を停止した。これは文書の現在の正本への委譲と`scripts/verify`の語句依存assertion間のdriftで、Actions workflow契約テストとは別の未解決validation mismatch。
+- 残余risk: 実際のDependabot security-only PRによるlockfile自動同期は未検証。GitHub公式仕様はonboard済みworkflowがlock commitを実行すると説明するが、対象repositoryがGitHub Enterprise Cloudの機能対象か、全workflowへのcoverageを必須化するRequire lockfile policy状態は未確認。GitHubのDependabot Security Updates設定も変更・確認していない。`cross-browser-smoke.yml`のPlaywright container imageはdigest pinされず、Action lockの対象外でCLI warningが残る。
+- CI / PR: 最新headの必須Web CI・Mobile App CIは未確認。`wait_for_required_ci` toolが利用一覧になく、Repository harnessによりpollingへ代替しない。PR #224はDraft/openのまま維持し、最終branch commit/push後に本文へ現在headのCI未確認状態と残余riskを記録する。
+- Documentation / code consistency: 実装workflowと更新契約テストのsecurity条件に相違は見つからなかった。別途、`scripts/verify`の古い文言assertionと現行run-artifacts正本の記述差を上記の通り記録した。
+- Next: final diff review後、許可されたPR branchへ通常commit/pushし、PR本文を日本語で更新する。merge／close、mainへのpush、設定・権限変更はしない。
+- 進捗: 67% (6/9、必須CI 1件を含む)

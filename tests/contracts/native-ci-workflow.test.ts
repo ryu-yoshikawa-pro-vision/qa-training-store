@@ -250,12 +250,12 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).not.toContain("--rerun-tasks");
 
     for (const action of [
-      "actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8",
-      "pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a",
-      "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
-      "actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
-      "gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580",
-      "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+      "actions/checkout@v",
+      "pnpm/action-setup@v",
+      "actions/setup-node@v",
+      "actions/setup-java@v",
+      "gradle/actions/setup-gradle@v",
+      "actions/upload-artifact@v",
     ]) {
       expect(androidBuildWorkflow).toContain(action);
     }

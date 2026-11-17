@@ -11,8 +11,8 @@ Codexハーネス（Codex harness）で生成・参照される成果物（artif
 - `TASKS.md` の `## Now` および `## Discovered` にあるチェックボックス付きタスクの合計を、基本進捗（Progress）の分母とします。
 - `## Blocked` のチェックボックスは基本進捗の分母に含めません。
 - 基本表記は `Progress: <NN>% (<done>/<total>)` とします。
-- この基本進捗は、最終コミット（final commit）前に完了できる追跡対象タスク（tracked task）の進捗を示します。ファイル変更を伴うタスク（file-changing task）全体の完了条件や、プッシュ後のCI完了判定とは切り離して扱います。
-- CI確認結果を進捗へ加算する条件、加算対象外とするタスク種別、およびCI状態の扱いについては、`docs/reference/codex-implementation-harness.md` を正本とします。本ドキュメントではCI加算条件の重複定義を行いません。
+ この基本進捗は、最終コミット（final commit）前に完了できる追跡対象タスク（tracked task）の進捗を示します。file-changing task全体の完了条件や、push後のCI完了判定とは切り離して扱います。
+- 「CI確認をProgressへ加算する」条件、加算対象外とするタスク種別、およびCI状態の扱いについては、`docs/reference/codex-implementation-harness.md` を正本とします。本ドキュメントではCI加算条件の重複定義を行いません。
 
 ## Run Artifact lifecycle
 
