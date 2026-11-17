@@ -638,8 +638,43 @@ File: file:///C:/Users/test-user/Documents/repo/output.txt
     $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('config', 'user.name', 'CodexFixture')
     $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('add', '.codex/runs/sample/artifact.md')
     $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('commit', '--quiet', '-m', 'root commit')
+    $rootOnlySha = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('rev-parse', 'HEAD')
+    $null = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('tag', 'origin/main', $rootOnlySha)
+    $tagOnlyShortBase = Invoke-CodexGitFixture -Repository $rootOnlyGitRoot -Arguments @('rev-parse', '--verify', '--end-of-options', 'origin/main^{commit}')
+    Assert-CodexTest -Condition ($tagOnlyShortBase -eq $rootOnlySha) -Message 'The tag-only fixture did not make the ambiguous short ref resolvable.'
+    $missingTrackingBase = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $rootOnlyGitRoot -EventName 'pull_request' -BaseRef 'main'
+    Assert-CodexTest -Condition (-not $missingTrackingBase.success) -Message 'Pull request accepted a same-named tag when the remote-tracking branch was missing.'
     $insufficientHistory = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $rootOnlyGitRoot -EventName 'schedule'
     Assert-CodexTest -Condition (-not $insufficientHistory.success) -Message 'Schedule accepted history without a first parent commit.'
+
+    $collisionGitRoot = Join-Path $fixtureRoot 'ref-collision-repository'
+    $collisionArtifactRoot = Join-Path $collisionGitRoot '.codex/runs/sample'
+    New-Item -ItemType Directory -Path $collisionArtifactRoot -Force | Out-Null
+    Write-CodexFixtureText -Path (Join-Path $collisionArtifactRoot 'artifact.md') -Text '<REPO_ROOT>/safe'
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('init', '--quiet')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('config', 'user.email', 'fixture@example.invalid')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('config', 'user.name', 'CodexFixture')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('add', '.codex/runs/sample/artifact.md')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('commit', '--quiet', '-m', 'baseline')
+    $collisionBaselineSha = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('rev-parse', 'HEAD')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('update-ref', 'refs/remotes/origin/main', $collisionBaselineSha)
+    Write-CodexFixtureText -Path (Join-Path $collisionArtifactRoot 'artifact.md') -Text 'C:\Users\test-user\Documents\repo\private'
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('add', '.codex/runs/sample/artifact.md')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('commit', '--quiet', '-m', 'unsafe artifact')
+    $collisionHeadSha = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('rev-parse', 'HEAD')
+    $null = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('tag', 'origin/main', $collisionHeadSha)
+
+    $ambiguousShortBase = Invoke-CodexGitFixture -Repository $collisionGitRoot -Arguments @('rev-parse', '--verify', '--end-of-options', 'origin/main^{commit}')
+    Assert-CodexTest -Condition ($ambiguousShortBase -eq $collisionHeadSha) -Message 'The collision fixture did not resolve the ambiguous short ref to the same-named tag.'
+    $ambiguousBaseCheck = Invoke-CodexCommittedFixtureCheck -Repository $collisionGitRoot -BaseSha $ambiguousShortBase
+    Assert-CodexTest -Condition ($ambiguousBaseCheck.exit_code -eq 0) -Message 'The collision fixture no longer demonstrates the sanitizer miss from the tag-selected empty range.'
+
+    $collisionPullRequestBase = Invoke-CodexArtifactBaseResolver -Script $baseResolverScript -Repository $collisionGitRoot -EventName 'pull_request' -BaseRef 'main'
+    Assert-CodexTest -Condition ($collisionPullRequestBase.success -and $collisionPullRequestBase.sha -eq $collisionBaselineSha) -Message 'Pull request did not resolve the fully qualified remote-tracking branch in a tag-collision fixture.'
+    $collisionArtifactCheck = Invoke-CodexCommittedFixtureCheck -Repository $collisionGitRoot -BaseSha $collisionPullRequestBase.sha
+    Assert-CodexTest -Condition ($collisionArtifactCheck.exit_code -ne 0) -Message 'The pull request sanitizer did not inspect and reject the unsafe artifact when a same-named tag existed.'
+    Assert-CodexTest -Condition ($collisionArtifactCheck.output.Contains('<USER_HOME>') -or $collisionArtifactCheck.output.Contains('<local-path-redacted>')) -Message 'The tag-collision finding did not use a fixed path-redaction token.'
+    Assert-CodexTest -Condition ($collisionArtifactCheck.output -notmatch 'test-user|C:\\Users\\|ref-collision-repository') -Message 'The tag-collision sanitizer output exposed a user detail or raw absolute path.'
 
     $absoluteArtifactPath = Join-Path $eventArtifactRoot 'absolute.md'
     Write-CodexFixtureText -Path $absoluteArtifactPath -Text 'C:\Users\test-user\Documents\repo\private'

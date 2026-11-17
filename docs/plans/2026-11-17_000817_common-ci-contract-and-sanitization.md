@@ -97,3 +97,13 @@
 - 調査開始時のmain/branch HEAD: `2a8bcf57ff091e84a8b3bf7b123568e967000d88`。
 - Run ID: `20261117-000515-JST`。
 - L2承認を受領したためworkflow修正を実施する。PowerShell診断は原因を切り分けるまで継続する。
+
+## 10. PR #225 レビュー修復計画（2026-11-17）
+
+- 指摘: PRイベントの候補`origin/<base>`は短縮参照名であり、`refs/tags/origin/<base>`が同時に存在すると、`git rev-parse`がリモート追跡ブランチではなくタグを解決し得る。
+- 仕様確認: Git公式`gitrevisions`は曖昧な短縮名の解決順で`refs/tags/<name>`を`refs/remotes/<name>`より先に列挙する。sanitizer jobは固定版`actions/checkout` v5.0.0を`fetch-depth: 0`で実行し、checkout公式READMEはこの設定が全branchとtagを取得すると説明している。したがってCI上で衝突fixtureの状態は成立し得る。
+- 調査根拠: 一時Git repositoryで`refs/remotes/origin/main`をCommit A、`refs/tags/origin/main`をCommit Bへ設定したところ、短縮名はB、`refs/remotes/origin/main`はAへ解決した。危険な成果物を含むBをHEADにすると、Bを比較元にした実サニタイザーはexit 0、Aを比較元にすると成果物を検出してexit 1となった。タグだけのfixtureでは短縮名が解決し、完全修飾したremote-tracking refは解決に失敗した。
+- L2承認: 既存の明示承認は、同じworkflow内で全イベント候補を実在commit SHAへfail-closed解決する処理を対象としている。今回の変更はその承認範囲内でPR候補を完全修飾し、イベント処理構造・権限・実行stepは追加変更しない。
+- 許可ファイル: `.github/workflows/ci.yml`、`scripts/tests/codex-artifact-sanitizer.test.ps1`、必要時のみ`tests/contracts/codex-artifact-sanitization.test.ts`、このPlan、既存Run Artifact。
+- 実装: `origin/<base>`を`refs/remotes/origin/<base>`へ変更し、既存の空値・branch-format・rev-parse・commit SHA検証とfail-closed動作を保つ。実workflowから抽出する既存PowerShell fixtureに、同名タグ衝突でunsafe artifactが実際に拒否されるケース、remote-tracking branchなしで同名タグのみが存在しても拒否されるケースを追加する。
+- 検証: PowerShell sanitizer suiteとfocused Vitest、既存の標準gateを実行する。PowerShellがローカルで利用できない場合は未実施として記録し、最新PR HEADのUbuntu/Windows CI結果で補完する。PR #225のみ更新し、main・他PR・repository設定は変更せず、mergeしない。

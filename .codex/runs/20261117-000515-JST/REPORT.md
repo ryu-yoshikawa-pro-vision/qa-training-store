@@ -104,6 +104,32 @@
 - CI / 次作業: PR #225初回HEAD `1bf198f5c3e29794d5a6886705ce2da52a7613b9` Web CI [run 44009217508](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44009217508) FAIL、Mobile App CI [run 44009217560](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44009217560) PASS。Run waiterは利用済み。修正commit、PR本文の最新結果更新、新HEADの標準waiter確認が残る。schedule実行自体は行っていない。
 - Progress: 80% (8/10)
 
+## 2026-11-17 16:38 (JST)
+
+- Summary: PR #225のレビュー指摘を再現し、PRイベントの比較元を完全修飾remote-tracking refへ修正した。同名タグが検査範囲を空にし、unsafe artifactを見逃す経路を実サニタイザーで確認した。
+- Evidence: Git公式`gitrevisions`の短縮名解決順は`refs/tags/<name>`が`refs/remotes/<name>`より先。対象workflowのsanitizer jobは`actions/checkout` v5.0.0、`fetch-depth: 0`であり、公式checkout READMEによると全branch/tagを取得する。GitHub MCPでPR #225はOpen・未merge・base `main`、head `a70422e8c1b5c94f75fbe0066d89656b06b7da11`と確認し、fetch後のlocal/remote tracking refも同SHA。
+- Repro: 一時Git repoでremote-tracking mainをCommit A、同名tagを危険なCommit Bへ向けた。`origin/main`はB、`refs/remotes/origin/main`はAを返し、実サニタイザーはB...HEADでexit 0、A...HEADではunsafe artifactを検出してexit 1。ログにraw pathはなかった。remote-tracking refなしでtagだけを置いたfixtureでも短縮名は解決し、完全修飾refは失敗した。
+- Changes: `.github/workflows/ci.yml`のPR candidateを`refs/remotes/origin/$baseBranch`へ変更。`scripts/tests/codex-artifact-sanitizer.test.ps1`へ同名tagによる実検査漏れ再現とtag-only fail-closedを追加し、`tests/contracts/codex-artifact-sanitization.test.ts`へ完全修飾refのworkflow assertionを追加。既存のbranch format、`rev-parse --verify --end-of-options`、commit SHA検証、sanitizer object/path検査は維持。
+- L2 / Repair loop: 既存の明示承認は、同じresolverで各event候補をcommit SHAへ解決するworkflow変更を許可しており、今回のPR候補名前空間修正はその範囲内。permission、sandbox、approval、wrapper動作の変更なし。iteration 1、finding `must_fix`、allowed filesはworkflow・対象契約test・既存Plan/Runのみ。decisionは`continue`、最新HEAD CI待ち。
+- Validation: `pnpm run format:check:strict` PASS、`pnpm run typecheck` PASS、対象TypeScriptの単独ESLint PASS、workflow文字列contractのfocused Vitest 1 passed / 10 skipped PASS、`git diff --check` PASS。focused sanitizer Vitestは300秒で中断し6件PASS、PowerShell互換test 1件skip、後続Git index fixtureの最終結果なし。Node `execFileSync`にstdinを渡した`cat`と`git update-index --index-info`がEOF待ちでETIMEDOUTになる環境挙動を再現し、同じGit index入力をBash pipelineで流すとPASS。`pnpm run test:contracts`は300秒で無出力のまま時間切れ。ローカル`pwsh`未導入のためPowerShell suite未実行。
+- Quality gate residuals: `pnpm run lint`は300秒無出力で時間切れ、対象TypeScript単独ESLintはPASS。`bash scripts/verify`は既存のtemplate literal契約不一致でFAIL（PASS=0 / FAIL=1 / SKIP=3）。`pnpm run verify`はMarkdown lintが9,379 filesを走査中に300秒で時間切れ。Plan単独markdownlintも同じdefault glob走査で中断。validator/reference driftは前回と同じで今回は修正していない。
+- Scope: sanitizer本体、push/schedule/workflow_dispatch処理、PowerShell実行関数、製品コード、他PR、repository設定は未変更。
+- Progress: 69% (11/16)。残りはRun/評価artifact最終化、commit/push、PR本文更新、最新HEAD CI確認。
+
+## 2026-11-17 16:46 (JST)
+
+- Summary: ローカル検証結果と残差をRunへ記録し、evaluation schema・Run/Plan artifact sanitizerを通過した。Run manifest collectorをstrictで実行した。
+- Validation: `python3 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20261117-000515-JST/evaluation.json` PASS。Run artifact sanitizerは4 files / 0 findings、repository Plan sanitizerは1 file / 0 findings。`python3 scripts/collect-run-artifacts.py --run-id 20261117-000515-JST --refresh-git-changed-files --strict` PASS。ローカルPowerShell suite未実施、focused/full Vitest、lint、verifyの未完了結果は直前checkpointに記録済み。
+- 判断: Run task 7と14は検証実行・実行可否・結果記録を完了したためchecked。これは未完了testをPASS扱いする意味ではない。PR head CI確認はcommit/push後にのみ完了する。
+- Progress: 81% (13/16)。Next: 最終diff / staged quality checks、commit/push、PR本文更新、最新HEADのWeb CIとMobile App CI確認。
+
+## 2026-11-17 16:50 (JST)
+
+- Summary: commit前staged checksを完了した。対象7ファイル以外はstageされていない。
+- Validation: `pnpm run quality:staged` PASS（staged Prettier/ESLint）、`node scripts/sanitize-codex-artifacts.mjs --staged --check` PASS（3 files / 0 findings）、`git diff --cached --check` PASS。`pnpm run security:check`は通常sandboxでUnix socket作成EPERM、同一のread-only gateを許可実行環境で再実行しPASS（236 runtime files / 393 credential-scan files）。
+- Decision: workflow/test/Plan/Run diffを個別確認し、指定PR branchのみへ通常commit/pushする準備が整った。force push、merge、remote設定変更なし。
+- Progress: 81% (13/16)。Next: commit/push、PR本文更新、最新HEADのWeb CIとMobile App CIを標準waiterで確認。
+
 
 ## 2026-11-17 13:09 (JST)
 

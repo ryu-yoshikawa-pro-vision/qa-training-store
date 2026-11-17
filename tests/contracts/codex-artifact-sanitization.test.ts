@@ -412,6 +412,7 @@ describe("portable Codex Run Artifact sanitizer", () => {
     expect(job).toContain("--committed --check --base-ref");
     expect(job).toContain("git rev-parse --verify --end-of-options");
     expect(job).toContain('"pull_request"');
+    expect(job).toContain('$baseCandidate = "refs/remotes/origin/$baseBranch"');
     expect(job).toContain('"push"');
     expect(job).toContain('"schedule"');
     expect(job).toContain('"workflow_dispatch"');

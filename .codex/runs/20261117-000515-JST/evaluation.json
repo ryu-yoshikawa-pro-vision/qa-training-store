@@ -11,31 +11,31 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Event別sanitizer比較元解決を実装し、UbuntuのPowerShell診断でdefault fixture自身が直接status 1を返すと確認した。POSIX fixtureと2件のCI test expectationを修正したが、修正を含む新HEADの必須CIは未実行。"
+      "evidence": "PR #225の比較元をrefs/remotes/origin/<base>へ完全修飾し、同名tag衝突とtag-only状態を実workflow resolver fixtureで検査する回帰testを追加。実サニタイザーの衝突再現では短縮tag基準がexit 0、remote-tracking基準がunsafe artifactを検出してexit 1。最新HEAD CI待ち。"
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "Changes are limited to the approved CI workflow, related sanitizer and native-command contracts, the relevant run-artifact reference, and the required Plan and Run records."
+      "evidence": "変更は承認済みworkflow resolverのPR参照名、対象PowerShell/TypeScript契約test、Plan/Run Artifactに限定。sanitizer本体、他event、製品、他PR、repository設定は未変更。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Focused Vitest 12 passed / 12 skipped、全typecheck、format strict、Node sanitizer再現はpass。PowerShell固有suiteはローカル未実施。full contractsは10分で中断され途中の既存failure summariesがあり最終結果なし。全体lintも無出力で中断。初回PR HEAD Web CI failure / Mobile CI success。"
+      "evidence": "format:check:strict、typecheck、対象TypeScript ESLint、workflow assertion focused Vitest、quality:staged、staged sanitizer、staged diff check、許可実行環境でのsecurity:checkはPASS。synthetic Git collisionで実サニタイザーのmissとfail-closed動作を確認。PowerShell suiteはローカルruntimeなし。focused sanitizer/full contractsはNode child stdin EOFの環境挙動で完了せず、全体lint/verifyも時間上限または既存verify契約不一致。CI未確認。"
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "The approved L2 changes are limited to event-base resolution and a Windows test step. Sanitizer validation remains strict; no permission, sandbox, approval, or wrapper behavior changed."
+      "evidence": "既存L2承認のevent resolver候補SHA解決範囲内でPR candidateを完全修飾した。L3 permission/sandbox/approval/wrapper変更なし。sanitizerのfail-closed・Git object・path検査を維持。"
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "The workflow now resolves a commit SHA before invoking the sanitizer, and the event matrix test executes the actual workflow PowerShell block in a temporary Git repository."
+      "evidence": "既存PowerShell fixtureが実workflow blockを抽出し、同名tagをHEADへ向けた状態でresolver SHAと実サニタイザーの危険成果物検出を確認する。tag-onlyでtracking refなしの場合の失敗も検査する。"
     },
     "maintainability": {
       "rating": "warn",
-      "evidence": "本番PowerShell helperとsanitizer strict検査を変えず、OS依存fixtureと安全なsanitization tokenのtest期待値だけを修正した。Ubuntu/Windowsの修正後確認は次HEADのCI待ち。"
+      "evidence": "workflow候補文字列を1箇所だけ完全修飾し、汎用ref resolverや設定を追加しない。関連PowerShell回帰suiteはUbuntu/Windows CI待ち。"
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "初回PR HEADの実行URLとrunner診断をREPORTに記録し、schedule相当resolver testを用意した。PowerShell sanitizer suiteはローカルruntimeがなく未実施。修正後HEADのWeb/Mobile CI待ち。"
+      "evidence": "Git公式仕様とactions/checkout fetch-depth 0を確認。隔離repoで短縮refがtagを選び実サニタイザーがunsafe artifactを見逃す条件、完全修飾refとtag-only拒否の結果を再現。PowerShellのCI結果は未取得。"
     }
   },
   "findings": [
@@ -62,6 +62,18 @@
       "severity": "low",
       "evidence": "初回PR HEADのWindows native suiteはsanitized wrapper outputで<TEMP_ROOT>相当のtokenを観測したがtestは<REPO_ROOT>だけを要求。sanitizer PowerShell testは登録済みUSERPROFILEを<USER_HOME>へ置換するが<local-path-redacted>だけを要求した。",
       "detail": "両方とも安全な固定tokenを限定的に受け入れる回帰testへ修正した。実fixture absolute pathとuser detailの不在、sanitizer non-zero failureは引き続き検証する。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Git短縮名の解決順でrefs/tags/origin/mainがrefs/remotes/origin/mainより先となる衝突fixtureにより、origin/main...HEADが空になり、実サニタイザーがunsafe artifactに対してexit 0となった。",
+      "detail": "PR候補をrefs/remotes/origin/<base>へ変更し、tag collisionで実サニタイザーがunsafe artifactを拒否する回帰testを追加。最新PR HEADのUbuntu/Windows CIで最終確認待ち。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "ローカルNode 24でstdin付きexecFileSyncの子catとgit update-index --index-infoがEOFを受け取らずETIMEDOUTとなり、focused sanitizer Vitestと全contractsが時間制限。Bashから同じGit index入力は成功。PowerShell runtimeも未導入。",
+      "detail": "現在のローカル検証環境に起因する未完了。修正コードの問題とは因果未確定。Ubuntu/Windows PR CIの対象job結果で区別する。"
     }
   ],
   "improvement_candidates": []

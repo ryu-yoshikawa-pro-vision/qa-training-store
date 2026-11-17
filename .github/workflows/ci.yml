@@ -185,7 +185,7 @@ jobs:
               if ($LASTEXITCODE -ne 0) {
                 throw "A safe pull request base branch is required."
               }
-              $baseCandidate = "origin/$baseBranch"
+              $baseCandidate = "refs/remotes/origin/$baseBranch"
             }
             "push" {
               $eventBefore = [string]$env:EVENT_BEFORE
