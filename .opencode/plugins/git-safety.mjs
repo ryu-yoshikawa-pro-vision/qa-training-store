@@ -20,8 +20,13 @@ function enforceShellSafety(event) {
   if (event.tool !== "shell" && event.tool !== "bash") return;
 
   const input = event.input;
-  if (!input || typeof input !== "object" || Array.isArray(input) ||
-      typeof input.command !== "string" || input.command.trim().length === 0) {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input) ||
+    typeof input.command !== "string" ||
+    input.command.trim().length === 0
+  ) {
     throw new Error("Shell safety policy: missing or invalid command input.");
   }
 
