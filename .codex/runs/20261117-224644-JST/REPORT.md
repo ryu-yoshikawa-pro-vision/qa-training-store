@@ -114,3 +114,12 @@
 - Documentation / code consistency: 実装workflowと更新契約テストのsecurity条件に相違は見つからなかった。別途、`scripts/verify`の古い文言assertionと現行run-artifacts正本の記述差を上記の通り記録した。
 - Next: final diff review後、許可されたPR branchへ通常commit/pushし、PR本文を日本語で更新する。merge／close、mainへのpush、設定・権限変更はしない。
 - 進捗: 67% (6/9、必須CI 1件を含む)
+
+## 2026-11-18 01:03 JST
+
+- Summary: 18ファイルを対象branch上のlocal commit `953782c7c42be2cd6de3706eee42c9de52aa8498`へまとめた。commit hookの`quality:staged`も成功した。
+- 検証: hook内のstaged Prettier／ESLint、`pnpm run security:check`（236 runtime files、394 credential-scan files）、staged Run sanitizer（2 files、0 findings）が成功した。前checkpointに記録した直接実行のtsx IPC `EPERM`はsandboxからの個別起動時の結果であり、このhook実行は通過した。
+- Git状態: local HEADは`953782c7c42be2cd6de3706eee42c9de52aa8498`、確認時点のremote PR branchは親commit `5c4bda1bdbe93d392b85b164c475f2943237a555`。このcheckpoint時点ではpush前で、working treeはclean。
+- 未完了: push後の最新head Web CI／Mobile App CIは必須waiter不在で待機できない。`scripts/verify`は既に有界停止し、Dependabot security PR同期とtarget repositoryのlockfile feature適格性も未確認。最終CI結果とこれらの残余riskをPR本文に記載してからDraft/openの状態を維持する。
+- 次: fetchとPR metadataでhead/stateを再確認し、通常fast-forwardで既存PR branchだけへpushする。その後PR本文を更新する。merge／close／force push／main push／設定変更は禁止。
+- 進捗: 67% (6/9、必須CI 1件を含む)
