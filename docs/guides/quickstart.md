@@ -3,11 +3,11 @@
 ## 新規コンシューマーリポジトリへの導入
 
 1. `template/` の内容を対象リポジトリのルートへコピーする。
-2. `scripts/init-project.*` を実行し、`.codex/runs/`、`docs/adr/`、`docs/history/`、`docs/plans/`、`docs/reports/` などの初期ディレクトリを作成する。
+2. `scripts/init-project.*` を実行し、`runs/`、`docs/adr/`、`docs/history/`、`docs/plans/`、`docs/reports/` などの初期ディレクトリを作成する。既存の`.codex/runs/`はpreserved legacy/historyとして残す。
 3. `AGENTS.md` を確認する。
 4. `docs/PROJECT_CONTEXT.md` を対象プロジェクトの内容に合わせて更新する。
 5. `bash scripts/verify` または `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1` を実行し、最低限のセットアップが完了していることを確認する。
-6. 初回のリクエストでは `scripts/new-run.sh` または `scripts/new-run.ps1` を実行し、`.codex/runs/<run_id>/` を初期化する。
+6. 初回のリクエストでは `scripts/new-run.sh` または `scripts/new-run.ps1` を実行し、`runs/<run_id>/` を初期化する。
    - 通常の直接実行（direct `codex`）による lightweight／standard Run はマニフェストなしとする。
    - Bash: `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
    - PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
@@ -31,7 +31,7 @@
 2. ソースリポジトリの `CHANGELOG.md` と `MIGRATION.md` を確認する。
 3. コンシューマーリポジトリ側で更新用ブランチを作成する。
 4. テンプレートの差分を一時ディレクトリへ同期し、内容を確認する。
-5. `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`.codex/runs/` は機械的に上書きしない。
+5. `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`runs/`、`.codex/runs/` は機械的に上書きしない。
 6. 必要なテンプレートの差分のみを反映する。
 7. `bash scripts/verify` または PowerShell 版の verify スクリプトを実行する。
 8. プルリクエスト（PR）で差分を確認し、プロジェクト固有の運用ルール、品質ゲート、安全制約が損なわれていないかをレビューする。

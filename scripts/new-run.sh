@@ -30,7 +30,6 @@ workflow_level="standard"
 preset="safe"
 no_plan=0
 no_run_manifest=0
-force=0
 
 generate_run_id() {
   TZ=Asia/Tokyo date +%Y%m%d-%H%M%S-JST
@@ -73,7 +72,6 @@ parse_args() {
         shift
         ;;
       --force)
-        force=1
         shift
         ;;
       -h|--help)
@@ -136,16 +134,84 @@ case "$preset" in
     ;;
 esac
 
-runs_root="$repo_root/.codex/runs"
-if (( force )); then
-  mkdir -p "$runs_root"
-else
-  mkdir -p "$runs_root"
+runs_root="$repo_root/runs"
+legacy_runs_root="$repo_root/.codex/runs"
+run_root="$runs_root/$run_id"
+legacy_run_root="$legacy_runs_root/$run_id"
+
+validate_runs_root() {
+  local canonical_runs_root
+
+  if [[ -L "$runs_root" ]]; then
+    echo "Run root must not be a symlink or reparse point: runs" >&2
+    exit 1
+  fi
+  if [[ ! -d "$runs_root" ]]; then
+    echo "Run root must be a directory: runs" >&2
+    exit 1
+  fi
+
+  canonical_runs_root="$(cd -P -- "$runs_root" && pwd -P)"
+  if [[ "$canonical_runs_root" != "$repo_root/runs" ]]; then
+    echo "Run root must resolve directly to the repository's runs directory: runs" >&2
+    exit 1
+  fi
+}
+
+path_entry_exists() {
+  [[ -e "$1" || -L "$1" ]]
+}
+
+# --force is retained for compatibility, but an existing ID is never overwritten.
+if [[ -e "$runs_root" || -L "$runs_root" ]]; then
+  validate_runs_root
+  if path_entry_exists "$run_root"; then
+    echo "Run directory already exists and will not be overwritten: runs/$run_id" >&2
+    exit 1
+  fi
 fi
 
-run_root="$runs_root/$run_id"
-if ! mkdir "$run_root"; then
-  echo "Run directory already exists and will not be overwritten: .codex/runs/$run_id" >&2
+if path_entry_exists "$legacy_run_root"; then
+  echo "Run ID already exists in the legacy root and will not be overwritten: .codex/runs/$run_id" >&2
+  exit 1
+fi
+
+for template in \
+  "$repo_root/.codex/templates/TASKS.md" \
+  "$repo_root/.codex/templates/REPORT.md"; do
+  if [[ ! -f "$template" ]]; then
+    echo "Required run template is missing: ${template#"$repo_root/"}" >&2
+    exit 1
+  fi
+done
+if (( ! no_plan )) && [[ ! -f "$repo_root/.codex/templates/PLAN.md" ]]; then
+  echo "Required run template is missing: .codex/templates/PLAN.md" >&2
+  exit 1
+fi
+if (( ! no_run_manifest )) && [[ ! -f "$repo_root/.codex/templates/RUN_MANIFEST.json" ]]; then
+  echo "Required run template is missing: .codex/templates/RUN_MANIFEST.json" >&2
+  exit 1
+fi
+
+if [[ ! -e "$runs_root" && ! -L "$runs_root" ]]; then
+  if ! mkdir -- "$runs_root"; then
+    echo "Unable to create the repository runs directory safely: runs" >&2
+    exit 1
+  fi
+fi
+validate_runs_root
+
+if path_entry_exists "$run_root"; then
+  echo "Run directory already exists and will not be overwritten: runs/$run_id" >&2
+  exit 1
+fi
+if path_entry_exists "$legacy_run_root"; then
+  echo "Run ID already exists in the legacy root and will not be overwritten: .codex/runs/$run_id" >&2
+  exit 1
+fi
+
+if ! mkdir -- "$run_root"; then
+  echo "Run directory already exists and will not be overwritten: runs/$run_id" >&2
   exit 1
 fi
 cp "$repo_root/.codex/templates/TASKS.md" "$run_root/TASKS.md"
@@ -157,4 +223,4 @@ if (( ! no_run_manifest )); then
   render_run_manifest "$repo_root/.codex/templates/RUN_MANIFEST.json" "$run_root/run.json"
 fi
 
-printf 'Initialized run: .codex/runs/%s\n' "$run_id"
+printf 'Initialized run: runs/%s\n' "$run_id"

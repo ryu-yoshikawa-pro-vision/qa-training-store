@@ -25,16 +25,16 @@
 - 削除されたファイル（deleted files）を `changed_files` に含めます。
 - 名前が変更されたファイル（renamed files）は、変更前の旧パスと変更後の新パスの双方を評価対象とします。
 - コピーされたファイル（copied files）は、コピー先を新規ファイルとして扱います。
-- `.codex/runs/` 配下に生成された実行成果物は、スコープ検証の対象外とします。
-- `.codex/runs/` 配下の生成成果物は、`changed_files` に混入させません。
-- ただし、`.codex/runs/` 配下の成果物はマニフェストに記録してよいものとします。
+- `runs/` とpreserved legacy/historyの`.codex/runs/`配下に生成された実行成果物は、スコープ検証の対象外とします。
+- 両Run root配下の生成成果物は、`changed_files` に混入させません。
+- Run Artifact自体のパスは、マニフェストに記録してよいものとします。
 - `changed_files` は、リポジトリ相対のPOSIXパスの配列として `run.json` に記録します。
 
 ## Clean Gitの前提条件
 
 - `--require-clean-git` は、Codex実行前におけるソースの未コミット変更（dirty状態）を検出します。
 - 追跡対象の変更、追加、未追跡、削除、名前変更、コピーを、未コミットのソース変更（dirty source changes）として扱います。
-- `.codex/runs/` は生成成果物として、クリーンなGit状態の判定から除外します。
+- `runs/` と`.codex/runs/`は生成成果物として、クリーンなGit状態の判定から除外します。
 - dirty状態（未コミットの変更が存在する状態）の場合は、Codexを実行しません。
 - dirty状態による失敗（dirty failure）時には、Codex実行前から存在していたソースの変更（pre-existing source changes）を `changed_files` に記録してよいものとします。
 
@@ -43,7 +43,7 @@
 - `allowed_files` は「変更を許可するファイルの上限」を表します。
 - 完全一致で評価します。
 - `allowed_files` に含まれないソースファイルの変更は、スコープ違反（scope violation）として扱います。
-- `.codex/runs/` 配下の生成成果物はスコープ検証の対象外に設定できますが、ソースの変更と混同しないようにします。
+- `runs/` と`.codex/runs/`配下の生成成果物はスコープ検証の対象外に設定できますが、ソースの変更と混同しないようにします。
 
 ## 許可するディレクトリ
 
@@ -78,7 +78,7 @@
 - `expected_changed_files` に指定されたファイルが変更されていない場合のデフォルト動作は `fail` です。
 - `expected_changed_files` は、`allowed_files` / `allowed_dirs` / `allowed_globs` を統合した許可スコープ（allowed scope）の部分集合（subset）であることが望ましいです。
   - カタログ上のキー名は `must_be_subset_of_allowed_scope` です。
-- `--require-evaluation` や `--require-clean-git` を併用した場合でも、`.codex/runs/` 配下の生成成果物はソーススコープに混入させません。
+- `--require-evaluation` や `--require-clean-git` を併用した場合でも、両Run root配下の生成成果物はソーススコープに混入させません。
 
 ### expected_missingの動作
 

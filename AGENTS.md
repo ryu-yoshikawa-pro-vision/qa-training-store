@@ -30,12 +30,12 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 
 - Product / architecture / repository contextが変更判断に必要な場合: `docs/PROJECT_CONTEXT.md`。
 - 対象領域の既存設計判断を変更・依存する場合: `docs/adr/`。
-- active Runの継続、過去Runのevidence、Run運用やProgress詳細が必要な場合: `.codex/runs/`、[`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md)、[`docs/reference/codex-implementation-harness.md`](docs/reference/codex-implementation-harness.md)。
+- active Runの継続、過去Runのevidence、Run運用やProgress詳細が必要な場合: `runs/`、保存済みのlegacy/historyである`.codex/runs/`、[`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md)、[`docs/reference/codex-implementation-harness.md`](docs/reference/codex-implementation-harness.md)。
 - Safety Harness詳細、破壊的操作、`docs/reports/`作成判断が必要な場合: [`docs/reference/codex-safety-harness.md`](docs/reference/codex-safety-harness.md)。
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
 - 人間向け文章の言語・表現を判断する場合: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)。
 
-このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
+このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。実体の`run.json`はmachine-managedとし、Git管理するRun Artifactはcommit前にsanitizerとcredential/security scanを通す。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。`.codex/runs/**`はpreserved legacy/historyとして扱い、移動・削除・書換えを行わない。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
 ## 4. 品質ゲートとrepairの高レベル契約
 

@@ -6,6 +6,7 @@
 ├─ PLANS.md
 ├─ CODE_REVIEW.md
 ├─ .codex/
+├─ runs/
 ├─ .agents/
 ├─ docs/
 └─ scripts/
@@ -13,7 +14,8 @@
 
 ## 補足
 
-- `.codex/runs/` と `.codex/logs/` は、実行に伴って追加される。
+- `runs/` は新規Run Artifactのcanonical rootであり、実行に伴って追加される。`.codex/runs/` はpreserved legacy/historyとして残し、移動・削除・書換えない。
+- `.codex/logs/` は、実行に伴って追加される。
 - `.agents/skills/*/references/` は、タスク固有のワークフローの詳細手順。
 - `docs/reference/` は、人間が参照するための補助文書。
 - `docs/plans/` は、計画書の保存先。

@@ -1,10 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
+  closeSync,
   copyFileSync,
   existsSync,
   mkdtempSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -39,6 +41,21 @@ function git(cwd: string, ...args: string[]) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
+}
+
+function updateIndexInfo(cwd: string, input: string) {
+  const inputPath = path.join(cwd, ".index-info.stdin.txt");
+  writeFileSync(inputPath, input, "utf8");
+  const inputFd = openSync(inputPath, "r");
+  try {
+    execFileSync("git", ["update-index", "--index-info"], {
+      cwd,
+      stdio: [inputFd, "ignore", "pipe"],
+      timeout: 30_000,
+    });
+  } finally {
+    closeSync(inputFd);
+  }
 }
 
 function createGitFixture() {
@@ -134,6 +151,7 @@ function runShellWrapper(
     cwd: fixture.cwd,
     encoding: "utf8",
     env,
+    stdio: ["ignore", "pipe", "pipe"],
     timeout: 60_000,
     windowsHide: process.platform === "win32",
   });
@@ -299,6 +317,95 @@ describe("portable Codex Run Artifact sanitizer", () => {
     }
   });
 
+  it("checks Run-root stage-0 and committed blobs without changing the index or worktree", () => {
+    const cwd = createGitFixture();
+    try {
+      const relativePath = "runs/20261118-000001-JST/reports/artifact.md";
+      const file = path.join(cwd, relativePath);
+      const stagedText = `local=${cwd.replaceAll("\\", "/")}/private\n`;
+      const worktreeText = "local=<REPO_ROOT>/private\n";
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, stagedText, "utf8");
+      git(cwd, "add", relativePath);
+      writeFileSync(file, worktreeText, "utf8");
+
+      const stagedBlobBefore = git(cwd, "show", `:${relativePath}`);
+      const staged = runSanitizer(["--staged", "--check"], cwd);
+      expect(staged.exitCode).toBe(1);
+      expect(staged.output).not.toContain(cwd);
+      expect(git(cwd, "show", `:${relativePath}`)).toBe(stagedBlobBefore);
+      expect(stagedBlobBefore).toBe(stagedText.trim());
+      expect(readFileSync(file, "utf8")).toBe(worktreeText);
+
+      git(cwd, "commit", "-qm", "Run artifact");
+      const committedBlobBefore = git(cwd, "show", `HEAD:${relativePath}`);
+      const committed = runSanitizer(["--committed", "--check", "--base-ref", "base"], cwd);
+      expect(committed.exitCode).toBe(1);
+      expect(committed.output).not.toContain(cwd);
+      expect(git(cwd, "show", `HEAD:${relativePath}`)).toBe(committedBlobBefore);
+      expect(committedBlobBefore).toBe(stagedText.trim());
+      expect(readFileSync(file, "utf8")).toBe(worktreeText);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects Run-root symlink, gitlink, and unmerged index entries", () => {
+    const symlinkFixture = createGitFixture();
+    try {
+      const file = "runs/20261118-000002-JST/reports/symlink.md";
+      const object = git(symlinkFixture, "hash-object", "-w", "--stdin");
+      execFileSync("git", ["update-index", "--add", "--cacheinfo", `120000,${object},${file}`], {
+        cwd: symlinkFixture,
+        stdio: "ignore",
+      });
+      const staged = runSanitizer(["--staged", "--check"], symlinkFixture);
+      expect(staged.exitCode).toBe(1);
+      expect(staged.output).toContain("unsupported Git object mode");
+    } finally {
+      rmSync(symlinkFixture, { recursive: true, force: true });
+    }
+
+    const gitlinkFixture = createGitFixture();
+    try {
+      const file = "runs/20261118-000003-JST/reports/gitlink.md";
+      const object = git(gitlinkFixture, "rev-parse", "HEAD");
+      execFileSync("git", ["update-index", "--add", "--cacheinfo", `160000,${object},${file}`], {
+        cwd: gitlinkFixture,
+        stdio: "ignore",
+      });
+      git(gitlinkFixture, "commit", "-qm", "gitlink artifact");
+      const committed = runSanitizer(
+        ["--committed", "--check", "--base-ref", "base"],
+        gitlinkFixture,
+      );
+      expect(committed.exitCode).toBe(1);
+      expect(committed.output).toContain("unsupported Git object mode");
+    } finally {
+      rmSync(gitlinkFixture, { recursive: true, force: true });
+    }
+
+    const unmergedFixture = createGitFixture();
+    try {
+      const file = "runs/20261118-000004-JST/reports/unmerged.md";
+      const object = git(unmergedFixture, "hash-object", "-w", "--stdin");
+      updateIndexInfo(
+        unmergedFixture,
+        [
+          `100644 ${object} 1\t${file}`,
+          `100644 ${object} 2\t${file}`,
+          `100644 ${object} 3\t${file}`,
+          "",
+        ].join("\n"),
+      );
+      const staged = runSanitizer(["--staged", "--check"], unmergedFixture);
+      expect(staged.exitCode).toBe(1);
+      expect(staged.output).toContain("unmerged Git index entry");
+    } finally {
+      rmSync(unmergedFixture, { recursive: true, force: true });
+    }
+  });
+
   it("rejects staged symlinks and inspects committed HEAD blobs", () => {
     const cwd = createGitFixture();
     try {
@@ -330,16 +437,15 @@ describe("portable Codex Run Artifact sanitizer", () => {
     try {
       const file = ".codex/runs/sample/baseline.md";
       const object = git(unmerged, "hash-object", "-w", "--stdin");
-      execFileSync("git", ["update-index", "--index-info"], {
-        cwd: unmerged,
-        input: [
+      updateIndexInfo(
+        unmerged,
+        [
           `100644 ${object} 1\t${file}`,
           `100644 ${object} 2\t${file}`,
           `100644 ${object} 3\t${file}`,
           "",
         ].join("\n"),
-        stdio: ["pipe", "ignore", "pipe"],
-      });
+      );
       const staged = runSanitizer(["--staged", "--check"], unmerged);
       expect(staged.exitCode).toBe(1);
       expect(staged.output).toContain("unmerged Git index entry");
@@ -465,6 +571,7 @@ describe("portable Codex Run Artifact sanitizer", () => {
       const withRun = createShellWrapperFixture();
       try {
         const runId = "20990101-000000-JST";
+        mkdirSync(path.join(withRun.cwd, "runs", runId), { recursive: true });
         const result = runShellWrapper(withRun, [
           "--skip-preflight",
           "--run-id",
@@ -476,8 +583,8 @@ describe("portable Codex Run Artifact sanitizer", () => {
           "safe prompt",
         ]);
         expect(result.error).toBeUndefined();
-        expect(result.status).toBe(0);
-        const runRoot = path.join(withRun.cwd, ".codex", "runs", runId);
+        expect(result.status, result.stderr).toBe(0);
+        const runRoot = path.join(withRun.cwd, "runs", runId);
         const artifactPath = path.join(
           runRoot,
           "artifacts",

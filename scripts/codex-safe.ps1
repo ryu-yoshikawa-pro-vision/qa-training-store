@@ -44,6 +44,73 @@ function Test-IsPathUnderRoot {
         ($fullPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar) -eq $fullRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar))
 }
 
+function Get-PathItemOrNull {
+    param([Parameter(Mandatory = $true)][string]$LiteralPath)
+
+    try {
+        return (Get-Item -LiteralPath $LiteralPath -Force -ErrorAction Stop)
+    }
+    catch {
+        if ($_.CategoryInfo.Category -eq [System.Management.Automation.ErrorCategory]::ObjectNotFound) {
+            return $null
+        }
+        throw "Unable to inspect path '$LiteralPath': $($_.Exception.Message)"
+    }
+}
+
+function Assert-RunLocalOutputPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$RunRoot,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][ValidateSet("Directory", "File")][string]$ExpectedKind
+    )
+
+    $runRootFull = [System.IO.Path]::GetFullPath($RunRoot).TrimEnd('\', '/')
+    $pathFull = [System.IO.Path]::GetFullPath($Path)
+    if ([System.StringComparer]::OrdinalIgnoreCase.Equals($pathFull, $runRootFull)) {
+        throw "Run-local output path is not a file or subdirectory: $pathFull"
+    }
+    $prefix = $runRootFull + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $pathFull.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return
+    }
+
+    $relativePath = $pathFull.Substring($prefix.Length)
+    $segments = @($relativePath -split '[\\/]' | Where-Object { $_.Length -gt 0 })
+    if ($segments.Count -eq 0) {
+        throw "Run-local output path is not a file or subdirectory: $relativePath"
+    }
+
+    $currentPath = $runRootFull
+    for ($index = 0; $index -lt $segments.Count; $index++) {
+        $currentPath = Join-Path $currentPath $segments[$index]
+        $item = Get-PathItemOrNull -LiteralPath $currentPath
+        if ($null -eq $item) {
+            break
+        }
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Run-local output path must not contain a symlink or reparse point: $relativePath"
+        }
+
+        $isFinalSegment = $index -eq ($segments.Count - 1)
+        if (-not $isFinalSegment -and -not $item.PSIsContainer) {
+            throw "Run-local output path has a non-directory parent: $relativePath"
+        }
+        if ($isFinalSegment -and $ExpectedKind -eq "Directory" -and -not $item.PSIsContainer) {
+            throw "Run-local output path must be a directory: $relativePath"
+        }
+        if ($isFinalSegment -and $ExpectedKind -eq "File" -and $item.PSIsContainer) {
+            throw "Run-local output path must be a file: $relativePath"
+        }
+
+        $expectedPath = [System.IO.Path]::GetFullPath($currentPath)
+        $resolvedPath = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $currentPath).Path)
+        if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedPath, $expectedPath)) {
+            throw "Run-local output path resolves outside runs/<id>: $relativePath"
+        }
+    }
+}
+
 function Assert-RunId {
     param([string]$RunId)
 
@@ -55,6 +122,65 @@ function Assert-RunId {
     }
 }
 
+function Assert-RunLocation {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$RunId
+    )
+
+    $runsRoot = Join-Path $RepoRoot "runs"
+    $expectedRunsRoot = [System.IO.Path]::GetFullPath($runsRoot)
+    $runsRootItem = Get-Item -LiteralPath $runsRoot -Force -ErrorAction SilentlyContinue
+    if ($null -eq $runsRootItem -or -not $runsRootItem.PSIsContainer) {
+        throw "Run root is missing or unsafe: runs"
+    }
+    if (($runsRootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Run root must not be a reparse point: runs"
+    }
+    $resolvedRunsRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $runsRoot).Path)
+    if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedRunsRoot, $expectedRunsRoot)) {
+        throw "Run root resolves outside the repository runs directory: runs"
+    }
+
+    $runRoot = Join-Path $runsRoot $RunId
+    $runRootItem = Get-Item -LiteralPath $runRoot -Force -ErrorAction SilentlyContinue
+    if ($null -eq $runRootItem -or -not $runRootItem.PSIsContainer) {
+        throw "Run directory not found or unsafe: runs/$RunId"
+    }
+    if (($runRootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Run directory must not be a reparse point: runs/$RunId"
+    }
+    $expectedRunRoot = [System.IO.Path]::GetFullPath($runRoot)
+    $resolvedRunRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $runRoot).Path)
+    if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedRunRoot, $expectedRunRoot)) {
+        throw "Run directory resolves outside its runs/<id> path: runs/$RunId"
+    }
+
+    $legacyRunRoot = Join-Path $RepoRoot (Join-Path ".codex" (Join-Path "runs" $RunId))
+    $legacyRunItem = Get-PathItemOrNull -LiteralPath $legacyRunRoot
+    if ($null -ne $legacyRunItem) {
+        throw "Ambiguous Run ID exists in both runs/$RunId and .codex/runs/$RunId"
+    }
+
+    foreach ($name in @("run.json", "evaluation.json")) {
+        $candidate = Join-Path $runRoot $name
+        $candidateItem = Get-Item -LiteralPath $candidate -Force -ErrorAction SilentlyContinue
+        if ($null -eq $candidateItem) {
+            continue
+        }
+        if (($candidateItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0 -or $candidateItem.PSIsContainer) {
+            throw "Run-local path is unsafe: runs/$RunId/$name"
+        }
+        $expectedPath = [System.IO.Path]::GetFullPath($candidate)
+        $resolvedPath = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $candidate).Path)
+        if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedPath, $expectedPath)) {
+            throw "Run-local path resolves outside runs/<id>: runs/$RunId/$name"
+        }
+    }
+
+    return $runRoot
+}
+
 function Get-DefaultLogPath {
     param(
         [string]$RepoRoot,
@@ -63,7 +189,7 @@ function Get-DefaultLogPath {
 
     $logsDir = Join-Path $RepoRoot ".codex\\logs"
     if (-not [string]::IsNullOrWhiteSpace($RunId)) {
-        $logsDir = Join-Path $RepoRoot (Join-Path ".codex\\runs" (Join-Path $RunId "logs"))
+        $logsDir = Join-Path $RepoRoot (Join-Path "runs" (Join-Path $RunId "logs"))
     }
     if (-not (Test-Path $logsDir)) {
         New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
@@ -431,9 +557,18 @@ $runRoot = $null
 $manifestPath = $null
 $manifestExists = $false
 if (-not [string]::IsNullOrWhiteSpace($RunId)) {
-    $runRoot = Join-Path $repoRoot (Join-Path ".codex\runs" $RunId)
-    if (-not (Test-Path -LiteralPath $runRoot -PathType Container)) {
-        throw "Run directory not found: .codex/runs/$RunId"
+    $runRoot = Assert-RunLocation -RepoRoot $repoRoot -RunId $RunId
+    foreach ($name in @("logs", "artifacts", "reports")) {
+        Assert-RunLocalOutputPath -RunRoot $runRoot -Path (Join-Path $runRoot $name) -ExpectedKind "Directory"
+    }
+    if (-not $NoLog.IsPresent) {
+        $runLogPath = if ([string]::IsNullOrWhiteSpace($LogPath)) {
+            Join-Path (Join-Path $runRoot "logs") ("codex-safe-" + (Get-Date).ToString("yyyyMMdd") + ".jsonl")
+        }
+        else {
+            $LogPath
+        }
+        Assert-RunLocalOutputPath -RunRoot $runRoot -Path $runLogPath -ExpectedKind "File"
     }
     $manifestPath = Join-Path $runRoot "run.json"
     $manifestExists = Test-Path -LiteralPath $manifestPath -PathType Leaf
@@ -563,7 +698,7 @@ if ($manifestExists) {
     }
     $collectorPath = Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"
     try {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $collectorPath -RunId $RunId -RefreshGitChangedFiles
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $collectorPath -RunId $RunId -RunsRoot (Join-Path $repoRoot "runs") -ManifestPath $manifestPath -RefreshGitChangedFiles
         $collectorExit = $LASTEXITCODE
     }
     catch {

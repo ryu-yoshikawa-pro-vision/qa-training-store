@@ -4,6 +4,8 @@ import copy
 import json
 import os
 from pathlib import Path
+import re
+import stat
 import subprocess
 
 
@@ -33,6 +35,83 @@ def normalize_repo_path(value):
     if not isinstance(value, str):
         return value
     return value.replace("\\", "/")
+
+
+def assert_no_reparse_components(path: Path, description: str):
+    absolute_path = Path(os.path.abspath(path))
+    current = Path(absolute_path.anchor)
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    for part in absolute_path.parts[1:]:
+        current = current / part
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(metadata.st_mode) or getattr(metadata, "st_file_attributes", 0) & reparse_flag:
+            raise ValueError(f"{description} must not contain a symlink or reparse point: {current}")
+
+
+def resolve_run_paths(repo_root: Path, args):
+    if not re.fullmatch(r"\d{8}-\d{6}-JST", args.run_id):
+        raise ValueError("--run-id must match YYYYMMDD-HHMMSS-JST")
+
+    canonical_repo_root = repo_root.resolve(strict=True)
+    expected_runs_root = canonical_repo_root / "runs"
+    runs_root = Path(args.runs_root) if args.runs_root else expected_runs_root
+    if not runs_root.is_absolute():
+        runs_root = canonical_repo_root / runs_root
+    runs_root = Path(os.path.abspath(runs_root))
+    assert_no_reparse_components(runs_root, "Run root")
+    if runs_root.resolve(strict=False) != expected_runs_root:
+        raise ValueError("--runs-root must resolve to the repository's direct runs directory")
+    if not runs_root.is_dir():
+        raise ValueError(f"Run root does not exist: {runs_root}")
+
+    run_root = runs_root / args.run_id
+    assert_no_reparse_components(run_root, "Run directory")
+    if not run_root.is_dir():
+        raise ValueError(f"Run directory does not exist: runs/{args.run_id}")
+    canonical_run_root = run_root.resolve(strict=True)
+    if canonical_run_root != expected_runs_root / args.run_id:
+        raise ValueError("Run directory must resolve directly under runs/<id>")
+
+    legacy_run_root = canonical_repo_root / ".codex" / "runs" / args.run_id
+    try:
+        legacy_run_root.lstat()
+    except FileNotFoundError:
+        pass
+    else:
+        raise ValueError(
+            f"Ambiguous Run ID exists in both runs/{args.run_id} and .codex/runs/{args.run_id}"
+        )
+
+    manifest_path = Path(args.manifest_path) if args.manifest_path else run_root / "run.json"
+    if not manifest_path.is_absolute():
+        manifest_path = canonical_repo_root / manifest_path
+    manifest_path = Path(os.path.abspath(manifest_path))
+    assert_no_reparse_components(manifest_path, "Manifest path")
+    try:
+        manifest_path.relative_to(canonical_run_root)
+    except ValueError as exc:
+        raise ValueError("--manifest-path must remain inside the selected runs/<id> directory") from exc
+    if manifest_path == canonical_run_root or (manifest_path.exists() and not manifest_path.is_file()):
+        raise ValueError("--manifest-path must identify a file inside runs/<id>")
+
+    base_manifest_path = None
+    if args.base_manifest:
+        base_manifest_path = Path(args.base_manifest)
+        if not base_manifest_path.is_absolute():
+            base_manifest_path = canonical_repo_root / base_manifest_path
+        base_manifest_path = Path(os.path.abspath(base_manifest_path))
+        assert_no_reparse_components(base_manifest_path, "Base manifest path")
+        if base_manifest_path == manifest_path or (
+            base_manifest_path.exists()
+            and manifest_path.exists()
+            and os.path.samefile(base_manifest_path, manifest_path)
+        ):
+            raise ValueError("--base-manifest must not be the output manifest path")
+
+    return canonical_repo_root, expected_runs_root, canonical_run_root, manifest_path, base_manifest_path
 
 
 def unique_list(values):
@@ -75,7 +154,12 @@ def collect_git_changed_files(repo_root: Path):
             if not raw_path:
                 continue
             normalized = normalize_repo_path(os.fsdecode(raw_path))
-            if normalized == ".codex/runs" or normalized.startswith(".codex/runs/"):
+            if (
+                normalized == ".codex/runs"
+                or normalized.startswith(".codex/runs/")
+                or normalized == "runs"
+                or normalized.startswith("runs/")
+            ):
                 continue
             changed_files.append(normalized)
 
@@ -146,9 +230,22 @@ def merge_validation_status(base_status: str, commands, warnings):
 
 def collect_report_paths(repo_root: Path, run_root: Path):
     reports_dir = run_root / "reports"
+    assert_no_reparse_components(reports_dir, "Run report directory")
     if not reports_dir.exists():
         return []
-    return [repo_relative(repo_root, path) for path in sorted(reports_dir.glob("*.report.json"))]
+    if not reports_dir.is_dir():
+        raise ValueError(f"Run report path is not a directory: {reports_dir}")
+    report_paths = []
+    for path in sorted(reports_dir.glob("*.report.json")):
+        assert_no_reparse_components(path, "Run report path")
+        try:
+            path.resolve(strict=True).relative_to(run_root)
+        except ValueError as exc:
+            raise ValueError(f"Run report path resolves outside runs/<id>: {path}") from exc
+        if not path.is_file():
+            raise ValueError(f"Run report path resolves outside runs/<id>: {path}")
+        report_paths.append(repo_relative(repo_root, path))
+    return report_paths
 
 
 def load_manifest_candidate(path: Path):
@@ -221,21 +318,13 @@ def merge_manifests(default_data, existing_data, base_data):
 def main():
     args = parse_args()
     repo_root = repo_root_from_script()
-    runs_root = Path(args.runs_root) if args.runs_root else (repo_root / ".codex" / "runs")
-    if not runs_root.is_absolute():
-        runs_root = repo_root / runs_root
-    run_root = runs_root / args.run_id
-    manifest_path = Path(args.manifest_path) if args.manifest_path else (run_root / "run.json")
-    if not manifest_path.is_absolute():
-        manifest_path = repo_root / manifest_path
+    try:
+        repo_root, _runs_root, run_root, manifest_path, base_manifest_path = resolve_run_paths(repo_root, args)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
 
     default_data = default_manifest(repo_root, args.run_id)
     existing_data = load_manifest_candidate(manifest_path)
-    base_manifest_path = None
-    if args.base_manifest:
-        base_manifest_path = Path(args.base_manifest)
-        if not base_manifest_path.is_absolute():
-            base_manifest_path = repo_root / base_manifest_path
     base_data = load_manifest_candidate(base_manifest_path) if base_manifest_path else None
     manifest = merge_manifests(default_data, existing_data, base_data)
     manifest["run_id"] = args.run_id
@@ -265,9 +354,15 @@ def main():
     manifest["safety"] = safety
 
     evaluation_path = run_root / "evaluation.json"
+    try:
+        assert_no_reparse_components(evaluation_path, "Run evaluation path")
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     evaluation_present = evaluation_path.exists()
+    manifest["evaluation_path"] = repo_relative(repo_root, evaluation_path) if evaluation_present else None
     if evaluation_present:
-        manifest["evaluation_path"] = manifest.get("evaluation_path") or repo_relative(repo_root, evaluation_path)
+        if not evaluation_path.is_file():
+            raise SystemExit(f"Run evaluation path is not a file: {evaluation_path}")
         try:
             evaluation = load_json(evaluation_path)
         except (OSError, json.JSONDecodeError) as exc:
@@ -301,6 +396,10 @@ def main():
                     artifact_summary[key] = copy.deepcopy(value)
     manifest["artifact_summary"] = artifact_summary
 
+    try:
+        assert_no_reparse_components(manifest_path.parent, "Manifest parent path")
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
 

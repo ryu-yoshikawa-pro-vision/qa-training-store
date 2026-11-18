@@ -1,4 +1,10 @@
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import {
+  execFileSync,
+  spawn,
+  spawnSync,
+  type SpawnSyncOptionsWithStringEncoding,
+  type SpawnSyncReturns,
+} from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -25,6 +31,18 @@ type HookResult = {
   status: number;
   stdout: string;
   stderr: string;
+};
+
+type CapturedSpawnResult = Omit<SpawnSyncReturns<string>, "stdout" | "stderr"> & {
+  stdout: string;
+  stderr: string;
+};
+
+type FileStdioCapture = {
+  stdio: [number, number, number];
+  closeParentDescriptors: () => void;
+  read: (encoding: BufferEncoding) => { stdout: string; stderr: string };
+  cleanup: () => void;
 };
 
 type PolicyDecision = { id: string; reason: string } | null;
@@ -123,6 +141,113 @@ function ownerRootAnchor(command: string, root = getPolicyFixtureRoot()) {
   return `Set-Location -LiteralPath '${escapedRoot}' -ErrorAction Stop; ${command}`;
 }
 
+function createFileStdioCapture(
+  input: NonNullable<SpawnSyncOptionsWithStringEncoding["input"]> = "",
+): FileStdioCapture {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-hook-stdio-"));
+  const stdinPath = path.join(tempRoot, "stdin");
+  const stdoutPath = path.join(tempRoot, "stdout");
+  const stderrPath = path.join(tempRoot, "stderr");
+  const fileDescriptors: number[] = [];
+  let cleaned = false;
+
+  const closeParentDescriptors = () => {
+    for (const fd of fileDescriptors.splice(0)) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // Best-effort close before reading or removing the temporary files.
+      }
+    }
+  };
+
+  const cleanup = () => {
+    closeParentDescriptors();
+    if (!cleaned) {
+      cleaned = true;
+      fs.rmSync(tempRoot, { force: true, recursive: true });
+    }
+  };
+
+  try {
+    fs.writeFileSync(stdinPath, input);
+    fileDescriptors.push(fs.openSync(stdinPath, "r"));
+    fileDescriptors.push(fs.openSync(stdoutPath, "w"));
+    fileDescriptors.push(fs.openSync(stderrPath, "w"));
+
+    return {
+      stdio: [fileDescriptors[0]!, fileDescriptors[1]!, fileDescriptors[2]!],
+      closeParentDescriptors,
+      read: (encoding) => {
+        closeParentDescriptors();
+        return {
+          stdout: fs.readFileSync(stdoutPath, encoding),
+          stderr: fs.readFileSync(stderrPath, encoding),
+        };
+      },
+      cleanup,
+    };
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+}
+
+function runWithCapturedFileStdio(
+  command: string,
+  args: string[],
+  options: SpawnSyncOptionsWithStringEncoding,
+): CapturedSpawnResult {
+  if (process.platform === "win32") {
+    const result = spawnSync(command, args, options);
+    return {
+      ...result,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
+  }
+
+  const capture = createFileStdioCapture(options.input ?? "");
+  try {
+    const { input: _input, ...spawnOptions } = options;
+    const result = spawnSync(command, args, {
+      ...spawnOptions,
+      stdio: capture.stdio,
+    });
+    const { stdout, stderr } = capture.read(options.encoding);
+
+    return {
+      ...result,
+      stdout,
+      stderr,
+    };
+  } finally {
+    capture.cleanup();
+  }
+}
+
+function execFileSyncWithCapturedFileStdio(
+  command: string,
+  args: string[],
+  options: SpawnSyncOptionsWithStringEncoding,
+) {
+  if (process.platform === "win32") return execFileSync(command, args, options);
+
+  const result = runWithCapturedFileStdio(command, args, options);
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    const error = new Error(`Command failed: ${command} ${args.join(" ")}`);
+    Object.assign(error, {
+      status: result.status,
+      signal: result.signal,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    });
+    throw error;
+  }
+  return result.stdout;
+}
+
 // CI trusts its checkout root, not temporary Git fixtures; scope fixture trust to an isolated Git home.
 function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv = process.env) {
   isolatedGitHome ??= fs.mkdtempSync(path.join(os.tmpdir(), "codex hook git home-"));
@@ -143,7 +268,7 @@ function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv =
     execFileSync("git", ["config", "--global", "--add", "safe.directory", canonicalRoot], {
       cwd: root,
       env,
-      stdio: "pipe",
+      stdio: "ignore",
     });
     isolatedGitRoots.add(canonicalRoot);
   }
@@ -151,7 +276,7 @@ function createIsolatedGitEnvironment(root: string, baseEnv: NodeJS.ProcessEnv =
 }
 
 function runNodeHook(payload: string, cwd = getPolicyFixtureRoot(), timeout = 30_000): HookResult {
-  const result = spawnSync(process.execPath, [hookPath], {
+  const result = runWithCapturedFileStdio(process.execPath, [hookPath], {
     cwd,
     encoding: "utf8",
     env: createIsolatedGitEnvironment(cwd),
@@ -170,7 +295,7 @@ function runWindowsLauncher(
   payload: string,
   env: NodeJS.ProcessEnv = process.env,
 ): HookResult {
-  const result = spawnSync(
+  const result = runWithCapturedFileStdio(
     "powershell.exe",
     ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", launcherPath],
     {
@@ -215,7 +340,7 @@ function runNodeHookWithExplicitContexts(
     ...process.env,
     CODEX_POLICY_CONTEXT_CASES: JSON.stringify(preparedCases),
   };
-  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+  const result = runWithCapturedFileStdio(process.execPath, ["--input-type=module", "-e", script], {
     cwd,
     encoding: "utf8",
     env: createIsolatedGitEnvironment(cwd, baseEnv),
@@ -234,7 +359,7 @@ function makeGitFixture(copyHook = true) {
   if (copyHook) {
     fs.copyFileSync(hookPath, path.join(root, ".codex", "hooks", path.basename(hookPath)));
   }
-  execFileSync("git", ["init", "--quiet", root], { stdio: "pipe", env: process.env });
+  execFileSync("git", ["init", "--quiet", root], { stdio: "ignore", env: process.env });
   return root;
 }
 
@@ -245,7 +370,7 @@ function removeFixture(root: string) {
 function setFixtureBranch(root: string, branch: string) {
   execFileSync("git", ["symbolic-ref", "HEAD", `refs/heads/${branch}`], {
     cwd: root,
-    stdio: "pipe",
+    stdio: "ignore",
   });
 }
 
@@ -645,7 +770,10 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       expect(result.stderr).toBe("");
     } else {
       const command = `function git() { printf called > '${marker.replaceAll("'", "'\\''")}'; }; cd -- '${missingRoot.replaceAll("'", "'\\''")}' && git status`;
-      const result = spawnSync("bash", ["-c", command], { cwd: root, encoding: "utf8" });
+      const result = runWithCapturedFileStdio("bash", ["-c", command], {
+        cwd: root,
+        encoding: "utf8",
+      });
       expect(result.status).not.toBe(0);
     }
     expect(fs.existsSync(marker)).toBe(false);
@@ -679,7 +807,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       GIT_CONFIG_KEY_0: "safe.directory",
       GIT_CONFIG_VALUE_0: "*",
     };
-    const result = spawnSync(process.execPath, [hookPath], {
+    const result = runWithCapturedFileStdio(process.execPath, [hookPath], {
       cwd: root,
       encoding: "utf8",
       env,
@@ -701,7 +829,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
 
   it("executes every common-policy representative from the Hook matrix", () => {
     const matrix = JSON.parse(
-      execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {
+      execFileSyncWithCapturedFileStdio(process.execPath, [hookPath, "--print-policy-matrix"], {
         cwd: repoRoot,
         encoding: "utf8",
       }),
@@ -1110,7 +1238,7 @@ function runLoggingHook(
   cwd = repoRoot,
   hook = loggingHookPath,
 ): HookResult {
-  const result = spawnSync(process.execPath, [hook, expectedEvent], {
+  const result = runWithCapturedFileStdio(process.execPath, [hook, expectedEvent], {
     cwd,
     encoding: "utf8",
     input: payload,
@@ -1129,27 +1257,77 @@ function runLoggingHookAsync(
   cwd = repoRoot,
   hook = loggingHookPath,
 ) {
-  return new Promise<HookResult>((resolve) => {
-    const child = spawn(process.execPath, [hook, expectedEvent], {
-      cwd,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
+  if (process.platform === "win32") {
+    return new Promise<HookResult>((resolve) => {
+      const child = spawn(process.execPath, [hook, expectedEvent], {
+        cwd,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      let stdout = "";
+      let stderr = "";
 
-    child.stdout.on("data", (chunk: Buffer | string) => {
-      stdout += chunk.toString();
+      child.stdout.on("data", (chunk: Buffer | string) => {
+        stdout += chunk.toString();
+      });
+      child.stderr.on("data", (chunk: Buffer | string) => {
+        stderr += chunk.toString();
+      });
+      child.once("error", (error) => {
+        resolve({ status: -1, stdout, stderr: `${stderr}\n${error.message}` });
+      });
+      child.once("close", (status) => {
+        resolve({ status: status ?? -1, stdout, stderr });
+      });
+      child.stdin.end(payload);
     });
-    child.stderr.on("data", (chunk: Buffer | string) => {
-      stderr += chunk.toString();
-    });
-    child.once("error", (error) => {
-      resolve({ status: -1, stdout, stderr: `${stderr}\n${error.message}` });
-    });
-    child.once("close", (status) => {
-      resolve({ status: status ?? -1, stdout, stderr });
-    });
-    child.stdin.end(payload);
+  }
+
+  return new Promise<HookResult>((resolve) => {
+    try {
+      const capture = createFileStdioCapture(payload);
+      let child: ReturnType<typeof spawn>;
+      try {
+        child = spawn(process.execPath, [hook, expectedEvent], {
+          cwd,
+          stdio: capture.stdio,
+          timeout: 30_000,
+          killSignal: "SIGKILL",
+        });
+      } catch (error) {
+        capture.cleanup();
+        throw error;
+      }
+
+      capture.closeParentDescriptors();
+      let spawnError: Error | undefined;
+      child.once("error", (error) => {
+        spawnError = error;
+      });
+      child.once("close", (status) => {
+        let stdout = "";
+        let stderr = "";
+        let captureError: unknown;
+        try {
+          ({ stdout, stderr } = capture.read("utf8"));
+        } catch (error) {
+          captureError = error;
+        } finally {
+          capture.cleanup();
+        }
+        for (const error of [captureError, spawnError]) {
+          if (error) {
+            stderr += `\n${error instanceof Error ? error.message : String(error)}`;
+          }
+        }
+        resolve({ status: spawnError || status === null ? -1 : status, stdout, stderr });
+      });
+    } catch (error) {
+      resolve({
+        status: -1,
+        stdout: "",
+        stderr: error instanceof Error ? error.message : String(error),
+      });
+    }
   });
 }
 
@@ -1213,7 +1391,7 @@ function runConfiguredLoggingHook(
     return runConfiguredWindowsCommand(command, payload, cwd);
   }
 
-  const result = spawnSync("sh", ["-c", command], {
+  const result = runWithCapturedFileStdio("sh", ["-c", command], {
     cwd,
     encoding: "utf8",
     input: payload,
@@ -2453,29 +2631,32 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
     const source = makeGitFixture();
     const remote = fs.mkdtempSync(path.join(os.tmpdir(), "codex hook bare remote-"));
     try {
-      execFileSync("git", ["init", "--bare", "--quiet", remote], { stdio: "pipe" });
-      execFileSync("git", ["config", "user.name", "Hook Contract"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["init", "--bare", "--quiet", remote], { stdio: "ignore" });
+      execFileSync("git", ["config", "user.name", "Hook Contract"], {
+        cwd: source,
+        stdio: "ignore",
+      });
       execFileSync("git", ["config", "user.email", "hook@example.invalid"], {
         cwd: source,
-        stdio: "pipe",
+        stdio: "ignore",
       });
       fs.writeFileSync(path.join(source, "tracked.txt"), "feature\n");
-      execFileSync("git", ["add", "tracked.txt"], { cwd: source, stdio: "pipe" });
-      execFileSync("git", ["commit", "-qm", "feature"], { cwd: source, stdio: "pipe" });
-      execFileSync("git", ["branch", "-M", "feature/safe"], { cwd: source, stdio: "pipe" });
-      execFileSync("git", ["tag", "-a", "v1", "-m", "annotated"], { cwd: source, stdio: "pipe" });
-      execFileSync("git", ["remote", "add", "origin", remote], { cwd: source, stdio: "pipe" });
-      execFileSync("git", ["config", "push.followTags", "true"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["add", "tracked.txt"], { cwd: source, stdio: "ignore" });
+      execFileSync("git", ["commit", "-qm", "feature"], { cwd: source, stdio: "ignore" });
+      execFileSync("git", ["branch", "-M", "feature/safe"], { cwd: source, stdio: "ignore" });
+      execFileSync("git", ["tag", "-a", "v1", "-m", "annotated"], { cwd: source, stdio: "ignore" });
+      execFileSync("git", ["remote", "add", "origin", remote], { cwd: source, stdio: "ignore" });
+      execFileSync("git", ["config", "push.followTags", "true"], { cwd: source, stdio: "ignore" });
       execFileSync("git", ["push", "--quiet", "origin", "feature/safe"], {
         cwd: source,
-        stdio: "pipe",
+        stdio: "ignore",
       });
       expect(() =>
         execFileSync(
           "git",
           ["--git-dir", remote, "show-ref", "--verify", "--quiet", "refs/tags/v1"],
           {
-            stdio: "pipe",
+            stdio: "ignore",
           },
         ),
       ).not.toThrow();
@@ -2495,7 +2676,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       const deniedEvaluation = (JSON.parse(denied.stdout) as ContextualEvaluation[])[0];
       expect(deniedEvaluation?.decision?.reason).toContain("push.followTags");
 
-      execFileSync("git", ["config", "push.followTags", "false"], { cwd: source, stdio: "pipe" });
+      execFileSync("git", ["config", "push.followTags", "false"], { cwd: source, stdio: "ignore" });
       const allowed = runNodeHookWithExplicitContexts(
         [{ id: "explicit-only-push", expected: "allow", command, context }],
         source,
@@ -2514,23 +2695,23 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
 
       execFileSync("git", ["config", "push.recurseSubmodules", "on-demand"], {
         cwd: source,
-        stdio: "pipe",
+        stdio: "ignore",
       });
       expect(evaluateRisk("recursive-submodule-push")?.reason).toContain(
         "recursive submodule push effects",
       );
       execFileSync("git", ["config", "push.recurseSubmodules", "false"], {
         cwd: source,
-        stdio: "pipe",
+        stdio: "ignore",
       });
       execFileSync("git", ["config", "remote.origin.mirror", "true"], {
         cwd: source,
-        stdio: "pipe",
+        stdio: "ignore",
       });
       expect(evaluateRisk("mirror-push")?.reason).toContain("mirror remote configuration");
       execFileSync("git", ["config", "--unset", "remote.origin.mirror"], {
         cwd: source,
-        stdio: "pipe",
+        stdio: "ignore",
       });
       const followTagsOption = ownerRootAnchor(
         "git push --follow-tags origin feature/safe",
@@ -3118,10 +3299,14 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       });
       process.stdout.write(JSON.stringify(decision));
     `;
-    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    });
+    const result = runWithCapturedFileStdio(
+      process.execPath,
+      ["--input-type=module", "-e", script],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+      },
+    );
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
@@ -3139,10 +3324,14 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       "});",
       "process.stdout.write(JSON.stringify(decision));",
     ].join("\n");
-    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    });
+    const result = runWithCapturedFileStdio(
+      process.execPath,
+      ["--input-type=module", "-e", script],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+      },
+    );
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
@@ -3192,7 +3381,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
 
   it("keeps explicit matrix contexts aligned with their allow and deny decisions", () => {
     const matrix = JSON.parse(
-      execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {
+      execFileSyncWithCapturedFileStdio(process.execPath, [hookPath, "--print-policy-matrix"], {
         cwd: repoRoot,
         encoding: "utf8",
       }),

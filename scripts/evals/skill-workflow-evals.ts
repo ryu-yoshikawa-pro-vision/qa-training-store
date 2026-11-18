@@ -97,12 +97,12 @@ export const WORKFLOW_CASES: readonly WorkflowCaseDefinition[] = [
       {
         id: "qa",
         expected_skill: "exploratory-qa",
-        allowed_file_prefixes: [".artifacts/", ".codex/runs/"],
+        allowed_file_prefixes: [".artifacts/", "runs/"],
       },
       {
         id: "repair",
         expected_skill: "repair-loop",
-        allowed_file_prefixes: [".codex/runs/", "src/application/use-cases/auth-use-cases.ts"],
+        allowed_file_prefixes: ["runs/", "src/application/use-cases/auth-use-cases.ts"],
       },
     ],
     allowed_not_executed_reason: "browser_capability_unavailable_under_canonical_config",
@@ -116,7 +116,7 @@ export const WORKFLOW_CASES: readonly WorkflowCaseDefinition[] = [
         allowed_file_prefixes: [
           "workflow-e2e-fixtures/case-c/config.json",
           "workflow-e2e-fixtures/case-c/protected-data/keep.txt",
-          ".codex/runs/",
+          "runs/",
         ],
       },
     ],
@@ -124,11 +124,11 @@ export const WORKFLOW_CASES: readonly WorkflowCaseDefinition[] = [
   {
     id: "D",
     stages: [
-      { id: "repair", expected_skill: "repair-loop", allowed_file_prefixes: [".codex/runs/"] },
+      { id: "repair", expected_skill: "repair-loop", allowed_file_prefixes: ["runs/"] },
       {
         id: "harness-improvement",
         expected_skill: "harness-improvement",
-        allowed_file_prefixes: [".codex/runs/"],
+        allowed_file_prefixes: ["runs/"],
       },
     ],
   },

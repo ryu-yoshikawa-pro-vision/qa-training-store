@@ -31,6 +31,7 @@ const TOKEN_PRIORITIES = Object.freeze([
 ]);
 const TEXT_EXTENSIONS = new Set([".md", ".json", ".jsonl", ".txt"]);
 const ARTIFACT_PREFIXES = Object.freeze([
+  "runs/",
   ".codex/runs/",
   ".codex/artifacts/",
   ".codex/reports/",
@@ -609,6 +610,7 @@ function inspectStaged(root, context, stats, findings) {
     ".codex/artifacts",
     ".codex/reports",
     ".codex/logs",
+    "runs",
   ]);
   const entries = parseIndexEntries(runGit(["ls-files", "--stage", "-z"], root));
   for (const filePath of paths) {
@@ -671,6 +673,7 @@ function inspectCommitted(root, baseRef, context, stats, findings) {
     ".codex/artifacts",
     ".codex/reports",
     ".codex/logs",
+    "runs",
   ]);
   for (const filePath of paths) {
     const records = nulSeparated(runGit(["ls-tree", "-z", "HEAD", "--", filePath], root));

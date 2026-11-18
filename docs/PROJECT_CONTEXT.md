@@ -10,7 +10,7 @@
 - 人間向け文書の言語と表現は [`WRITING_STANDARDS.md`](WRITING_STANDARDS.md) を正本とする。
 - 計画依頼では package-local [`feature-plan template`](../.agents/skills/feature-plan/assets/plan-template.md) をベースに計画書を作り、Repositoryの保存契約に従って `docs/plans/` へ保存する。
 - `docs/reports/` は durable な調査・監査・検証結果だけに使う。review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録では作らない。
-- run の進捗と実行ログは `.codex/runs/<run_id>/REPORT.md` と `.codex/runs/<run_id>/logs/` に残す。
+- 新規Runの進捗と実行ログは `runs/<run_id>/REPORT.md` と `runs/<run_id>/logs/` に残す。`.codex/runs/**`はpreserved legacy/historyであり、移動・削除・書換えない。Run ArtifactはParentが管理し、childは作成・更新しない。`run.json`はmachine-managedとする。
 - 通常のinteractive作業はRepository内からdirect `codex`を起動する。project defaultは`workspace-write`／`approval_policy = "never"`／workspace network access enabledであり、execpolicy `prompt`は自動拒否される。
 - safe wrapperはnetwork falseを明示し、local例外操作・recoveryにはon-request approvalを提供する。高影響network例外はapprovalとnetwork sandbox昇格のread-only runtime確認後に限る。`auto-net`は明示利用する既存presetとして維持する。
 - shell / PowerShell / git command によるファイル削除は禁止する。direct workspace-writeの`apply_patch`で通常編集・新規作成は可能だが、削除・rename・moveには明示された対象とレビュー可能な理由、または必要性・影響・migration理由の確認が必要。
@@ -22,6 +22,8 @@
 ## ディレクトリ構成
 
 - `.codex/templates/`: PLAN / TASKS / REPORT の run テンプレート
+- `runs/`: 新規Run Artifactのcanonical root
+- `.codex/runs/`: preserved legacy/history。新規Runの作成・更新先やcleanup対象にしない
 - `.codex/agents/`: project-scoped custom agents
 - `.codex/rules/`: execpolicy ルール
 - `.agents/skills/`: repo-local の planning / review workflow と references
@@ -30,6 +32,12 @@
 - `docs/reference/`: operator / maintainer 向け補助資料
 - `scripts/`: `codex-safe` / `codex-task` / `codex-sandbox` と verify
 - `codex-project.toml`: template 適用後の project metadata
+
+## Run Artifact root migration（2026-11-18）
+
+- 新規Runは`runs/<run_id>/`に作成し、`scripts/new-run.sh`／`scripts/new-run.ps1`を標準入口とする。`.codex/templates/`は維持する。
+- `.codex/runs/**`はpreserved legacy/historyとして変更せずに保持し、新rootとの同一ID fallbackや移行を行わない。詳細は[`run-artifacts.md`](reference/run-artifacts.md)を参照する。
+- `.artifacts/agentic-qa/**`のscoring/evidence契約は引き続き維持する。
 
 ## Codex direct interactive default（2026-09-25）
 

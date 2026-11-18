@@ -5,7 +5,6 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 artifacts_dir="$repo_root/.codex/artifacts"
 reports_dir="$repo_root/.codex/reports"
 logs_dir="$repo_root/.codex/logs"
-mkdir -p "$artifacts_dir" "$reports_dir" "$logs_dir"
 
 preset="safe"
 runtime="host"
@@ -28,6 +27,8 @@ explicit_log_path=""
 explicit_output_file=0
 explicit_report_path=0
 run_id=""
+run_id_requested=0
+run_location_validated=0
 run_root=""
 evaluation_file_path=""
 cwd_for_report="$repo_root"
@@ -226,6 +227,205 @@ validate_run_id() {
   if [[ ! "$run_id" =~ ^[0-9]{8}-[0-9]{6}-JST$ ]]; then
     fail_with_status "invalid_args" "Invalid --run-id: expected YYYYMMDD-HHMMSS-JST"
   fi
+}
+
+inspect_legacy_run_candidate() {
+  local codex_dir="$repo_root/.codex"
+  local legacy_runs_root="$codex_dir/runs"
+  local canonical_legacy_root candidate
+
+  if [[ ! -e "$codex_dir" && ! -L "$codex_dir" ]]; then
+    return 1
+  fi
+  if [[ ! -d "$codex_dir" || ! -r "$codex_dir" || ! -x "$codex_dir" ]]; then
+    echo "Unable to inspect legacy Run root: .codex/runs/$run_id" >&2
+    return 2
+  fi
+  if [[ ! -e "$legacy_runs_root" && ! -L "$legacy_runs_root" ]]; then
+    return 1
+  fi
+  if [[ ! -d "$legacy_runs_root" || ! -r "$legacy_runs_root" || ! -x "$legacy_runs_root" ]]; then
+    echo "Unable to inspect legacy Run root: .codex/runs/$run_id" >&2
+    return 2
+  fi
+  if ! canonical_legacy_root="$(cd -P -- "$legacy_runs_root" && pwd -P)"; then
+    echo "Unable to resolve legacy Run root: .codex/runs/$run_id" >&2
+    return 2
+  fi
+  if ! candidate="$(find "$canonical_legacy_root" -mindepth 1 -maxdepth 1 -name "$run_id" -print -quit 2>/dev/null)"; then
+    echo "Unable to inspect legacy Run root: .codex/runs/$run_id" >&2
+    return 2
+  fi
+  [[ -n "$candidate" ]]
+}
+
+assert_run_local_directory() {
+  local path="$1"
+  local canonical_path
+
+  if [[ -L "$path" || ( -e "$path" && ! -d "$path" ) ]]; then
+    echo "Run-local directory is unsafe: ${path#"$repo_root/"}" >&2
+    return 1
+  fi
+  if [[ -d "$path" ]]; then
+    if ! canonical_path="$(cd -P -- "$path" && pwd -P)" || [[ "$canonical_path" != "$path" ]]; then
+      echo "Run-local directory resolves outside runs/<id>: ${path#"$repo_root/"}" >&2
+      return 1
+    fi
+  fi
+}
+
+lexical_absolute_path() {
+  local path="$1"
+  local segment
+  local -a segments=() raw_segments=()
+
+  path="${path//\\//}"
+  if [[ "$path" =~ ^[A-Za-z]:/ || "$path" == //?* ]]; then
+    printf '%s' "$path"
+    return 0
+  fi
+  if [[ "$path" != /* ]]; then
+    path="$(pwd -P)/$path"
+  fi
+  IFS='/' read -r -a raw_segments <<< "$path"
+  for segment in "${raw_segments[@]}"; do
+    case "$segment" in
+      ''|.) ;;
+      ..)
+        if ((${#segments[@]} > 0)); then
+          segments=("${segments[@]:0:${#segments[@]}-1}")
+        fi
+        ;;
+      *) segments+=("$segment") ;;
+    esac
+  done
+  if ((${#segments[@]} == 0)); then
+    printf '/'
+  else
+    printf '/%s' "$(IFS=/; printf '%s' "${segments[*]}")"
+  fi
+}
+
+assert_run_local_file() {
+  local repo_run_root="$1"
+  local raw_path="$2"
+  local path relative_path
+  local canonical_parent current_path part
+  local -a path_parts=() raw_path_parts=()
+
+  path="$(lexical_absolute_path "$raw_path")"
+  if [[ "$path" == "$repo_run_root" ]]; then
+    echo "Run-local output path is not a file: ${path#"$repo_root/"}" >&2
+    return 1
+  fi
+  if [[ "$path" != "$repo_run_root/"* ]]; then
+    return 0
+  fi
+  IFS='/' read -r -a raw_path_parts <<< "${raw_path//\\//}"
+  for part in "${raw_path_parts[@]}"; do
+    if [[ "$part" == ".." ]]; then
+      echo "Run-local output path contains a parent traversal: ${path#"$repo_root/"}" >&2
+      return 1
+    fi
+  done
+  relative_path="${path#"$repo_run_root"/}"
+  IFS='/' read -r -a path_parts <<< "$relative_path"
+  if ((${#path_parts[@]} == 0)); then
+    echo "Run-local output path is not a file: ${path#"$repo_root/"}" >&2
+    return 1
+  fi
+
+  current_path="$repo_run_root"
+  for part in "${path_parts[@]:0:${#path_parts[@]}-1}"; do
+    if [[ "$part" == ".." ]]; then
+      echo "Run-local output path contains a parent traversal: ${path#"$repo_root/"}" >&2
+      return 1
+    fi
+    [[ -z "$part" || "$part" == "." ]] && continue
+    current_path="$current_path/$part"
+    if [[ -L "$current_path" || ( -e "$current_path" && ! -d "$current_path" ) ]]; then
+      echo "Run-local output directory is unsafe: ${current_path#"$repo_root/"}" >&2
+      return 1
+    fi
+    if [[ -d "$current_path" ]]; then
+      if ! canonical_parent="$(cd -P -- "$current_path" && pwd -P)" || [[ "$canonical_parent" != "$current_path" ]]; then
+        echo "Run-local output directory resolves outside runs/<id>: ${current_path#"$repo_root/"}" >&2
+        return 1
+      fi
+    fi
+  done
+
+  if [[ -L "$path" || ( -e "$path" && ! -f "$path" ) ]]; then
+    echo "Run-local output file is unsafe: ${path#"$repo_root/"}" >&2
+    return 1
+  fi
+  if [[ -f "$path" ]]; then
+    if ! canonical_parent="$(cd -P -- "$(dirname "$path")" && pwd -P)" || [[ "$canonical_parent" != "$(dirname "$path")" ]]; then
+      echo "Run-local output file resolves outside runs/<id>: ${path#"$repo_root/"}" >&2
+      return 1
+    fi
+  fi
+}
+
+assert_run_location() {
+  local runs_root="$repo_root/runs"
+  local expected_run_root="$runs_root/$run_id"
+  local canonical_path
+
+  if [[ -L "$runs_root" || ! -d "$runs_root" ]]; then
+    echo "Run root is missing or unsafe: runs" >&2
+    return 1
+  fi
+  canonical_path="$(cd -P -- "$runs_root" && pwd -P)"
+  if [[ "$canonical_path" != "$repo_root/runs" ]]; then
+    echo "Run root resolves outside the repository runs directory: runs" >&2
+    return 1
+  fi
+
+  if [[ -L "$expected_run_root" || ! -d "$expected_run_root" ]]; then
+    echo "Run directory not found or unsafe: runs/$run_id" >&2
+    return 1
+  fi
+  canonical_path="$(cd -P -- "$expected_run_root" && pwd -P)"
+  if [[ "$canonical_path" != "$expected_run_root" ]]; then
+    echo "Run directory resolves outside its runs/<id> path: runs/$run_id" >&2
+    return 1
+  fi
+
+  if inspect_legacy_run_candidate; then
+    echo "Ambiguous Run ID exists in both runs/$run_id and .codex/runs/$run_id" >&2
+    return 1
+  else
+    local legacy_status=$?
+    if (( legacy_status != 1 )); then
+      return 1
+    fi
+  fi
+
+  local run_local_directory
+  for run_local_directory in "$expected_run_root/logs" "$expected_run_root/artifacts" "$expected_run_root/reports"; do
+    assert_run_local_directory "$run_local_directory" || return 1
+  done
+  if (( ! explicit_output_file )); then
+    assert_run_local_file "$expected_run_root" "$expected_run_root/artifacts/codex-task-${timestamp}.json" || return 1
+  fi
+  if (( ! explicit_report_path )); then
+    assert_run_local_file "$expected_run_root" "$expected_run_root/reports/codex-task-${timestamp}.report.json" || return 1
+  fi
+  if [[ -z "$explicit_log_path" ]]; then
+    assert_run_local_file "$expected_run_root" "$expected_run_root/logs/codex-task-${timestamp}.jsonl" || return 1
+  fi
+
+  local candidate
+  for candidate in "$expected_run_root/run.json" "$expected_run_root/evaluation.json"; do
+    if [[ -L "$candidate" || ( -e "$candidate" && ! -f "$candidate" ) ]]; then
+      echo "Run-local path is unsafe: ${candidate#"$repo_root/"}" >&2
+      return 1
+    fi
+  done
+
+  run_location_validated=1
 }
 
 normalize_repo_relative_posix_path() {
@@ -470,19 +670,15 @@ git_dirty() {
     printf 'false'
     return
   fi
-  if ! git -C "$repo_root" diff --quiet --ignore-submodules -- 2>/dev/null; then
+  local -a previous_changed_files=("${changed_files[@]}")
+  collect_changed_files
+  if ((${#changed_files[@]} > 0)); then
+    changed_files=("${previous_changed_files[@]}")
     printf 'true'
-    return
+  else
+    changed_files=("${previous_changed_files[@]}")
+    printf 'false'
   fi
-  if ! git -C "$repo_root" diff --cached --quiet --ignore-submodules -- 2>/dev/null; then
-    printf 'true'
-    return
-  fi
-  if [[ -n "$(git -C "$repo_root" ls-files --others --exclude-standard 2>/dev/null)" ]]; then
-    printf 'true'
-    return
-  fi
-  printf 'false'
 }
 
 to_repo_relative_path() {
@@ -597,8 +793,6 @@ for key in ("network", "scope_violation"):
     current_safety[key] = bool(current_safety.get(key)) or bool(existing_safety.get(key))
 current["safety"] = current_safety
 
-if current.get("evaluation_path") is None and existing.get("evaluation_path") is not None:
-    current["evaluation_path"] = existing.get("evaluation_path")
 if current.get("primary_failure_category") is None and existing.get("primary_failure_category") is not None:
     current["primary_failure_category"] = existing.get("primary_failure_category")
 if existing.get("schema_version") == 1:
@@ -622,7 +816,7 @@ PY
 
   printf '%s\n' "$manifest_json" > "$manifest_path"
   if [[ -n "$py" && -f "$repo_root/scripts/collect-run-artifacts.sh" ]]; then
-    bash "$repo_root/scripts/collect-run-artifacts.sh" --run-id "$run_id" --manifest-path "$manifest_path" >/dev/null
+    bash "$repo_root/scripts/collect-run-artifacts.sh" --run-id "$run_id" --runs-root "$repo_root/runs" --manifest-path "$manifest_path" >/dev/null
   fi
 }
 
@@ -645,7 +839,7 @@ collect_changed_files() {
     status="${entry:0:2}"
     primary="${entry:3}"
     normalized="$(normalize_repo_relative_posix_path "$primary")" || normalized=""
-    if [[ -n "$normalized" && "$normalized" != ".codex/runs" && "$normalized" != .codex/runs/* ]]; then
+    if [[ -n "$normalized" && "$normalized" != ".codex/runs" && "$normalized" != .codex/runs/* && "$normalized" != "runs" && "$normalized" != runs/* ]]; then
       changed_files+=("$normalized")
     fi
 
@@ -655,7 +849,7 @@ collect_changed_files() {
         ((i += 1))
         if [[ "$status" == *R* ]]; then
           normalized="$(normalize_repo_relative_posix_path "$secondary")" || normalized=""
-          if [[ -n "$normalized" && "$normalized" != ".codex/runs" && "$normalized" != .codex/runs/* ]]; then
+          if [[ -n "$normalized" && "$normalized" != ".codex/runs" && "$normalized" != .codex/runs/* && "$normalized" != "runs" && "$normalized" != runs/* ]]; then
             changed_files+=("$normalized")
           fi
         fi
@@ -747,7 +941,7 @@ check_clean_git_precondition() {
 create_evaluation_template_if_needed() {
   (( evaluation_template )) || return 0
 
-  evaluation_path=".codex/runs/$run_id/evaluation.json"
+  evaluation_path="runs/$run_id/evaluation.json"
   ensure_parent_dir "$evaluation_file_path"
   if [[ -f "$evaluation_file_path" ]]; then
     write_log "evaluation_template_exists" ",\"path\":\"$(json_escape "$evaluation_path")\""
@@ -878,7 +1072,7 @@ validate_required_evaluation() {
   (( require_evaluation )) || return 0
 
   local evidence category
-  local expected_repo_path=".codex/runs/$run_id/evaluation.json"
+  local expected_repo_path="runs/$run_id/evaluation.json"
 
   if [[ ! -f "$evaluation_file_path" ]]; then
     report_status="evaluation_missing"
@@ -988,6 +1182,10 @@ EOF
 fail_with_status() {
   local status="$1"
   local message="$2"
+  if (( run_id_requested && ! run_location_validated )); then
+    printf '%s\n' "$message" >&2
+    exit 1
+  fi
   report_status="$status"
   run_status="failed"
   write_log "task_failed" ",\"status\":\"$(json_escape "$status")\",\"message\":\"$(json_escape "$message")\""
@@ -1094,6 +1292,7 @@ parse_args() {
         ;;
       --run-id)
         [[ $# -ge 2 ]] || fail_with_status "invalid_args" "--run-id requires a value"
+        run_id_requested=1
         run_id="$2"
         shift 2
         ;;
@@ -1165,6 +1364,16 @@ parse_args() {
 }
 
 apply_run_paths() {
+  if [[ -n "$run_id" ]]; then
+    if [[ ! "$run_id" =~ ^[0-9]{8}-[0-9]{6}-JST$ ]]; then
+      echo "Invalid --run-id: expected YYYYMMDD-HHMMSS-JST" >&2
+      exit 2
+    fi
+    if ! assert_run_location; then
+      exit 1
+    fi
+  fi
+
   sort_unique_array allowed_files
   sort_unique_array allowed_dirs
   sort_unique_array allowed_globs
@@ -1202,14 +1411,17 @@ apply_run_paths() {
     fail_with_status "invalid_args" "--record-run-manifest requires --run-id"
   fi
 
+  if [[ -n "$explicit_log_path" ]]; then
+    log_path="$explicit_log_path"
+  fi
+
   if [[ -n "$run_id" ]]; then
-    validate_run_id
-    run_root="$repo_root/.codex/runs/$run_id"
+    run_root="$repo_root/runs/$run_id"
     local normalized_runs_root normalized_run_root
-    normalized_runs_root="$(normalized_path "$repo_root/.codex/runs")"
+    normalized_runs_root="$(normalized_path "$repo_root/runs")"
     normalized_run_root="$(normalized_path "$run_root")"
     if [[ "$normalized_run_root" != "$normalized_runs_root/"* ]]; then
-      fail_with_status "invalid_args" "Invalid --run-id path: resolved run path escapes .codex/runs"
+      fail_with_status "invalid_args" "Invalid --run-id path: resolved run path escapes runs"
     fi
     if (( ! explicit_output_file )); then
       output_file="$run_root/artifacts/codex-task-${timestamp}.json"
@@ -1224,10 +1436,9 @@ apply_run_paths() {
       manifest_path="$run_root/run.json"
     fi
     evaluation_file_path="$run_root/evaluation.json"
-  fi
-
-  if [[ -n "$explicit_log_path" ]]; then
-    log_path="$explicit_log_path"
+    assert_run_local_file "$run_root" "$output_file" || exit 1
+    assert_run_local_file "$run_root" "$report_path" || exit 1
+    assert_run_local_file "$run_root" "$log_path" || exit 1
   fi
 }
 
@@ -1544,7 +1755,16 @@ sanitize_known_outputs_on_exit() {
   exit "$original_status"
 }
 
-trap sanitize_known_outputs_on_exit EXIT
+for argument in "$@"; do
+  if [[ "$argument" == "--run-id" ]]; then
+    run_id_requested=1
+    break
+  fi
+done
 parse_args "$@"
 apply_run_paths
+if [[ -z "$run_id" ]]; then
+  mkdir -p "$artifacts_dir" "$reports_dir" "$logs_dir"
+fi
+trap sanitize_known_outputs_on_exit EXIT
 main

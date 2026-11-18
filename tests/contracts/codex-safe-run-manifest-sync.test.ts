@@ -49,14 +49,24 @@ function runGit(cwd: string, args: string[]) {
   }
 }
 
-function runPowerShell(wrapperPath: string, args: string[], cwd = repoRoot, codexPath?: string) {
+function runPowerShell(
+  wrapperPath: string,
+  args: string[],
+  cwd = repoRoot,
+  codexPath?: string,
+  envOverrides: Record<string, string> = {},
+) {
   return spawnSync(
     "powershell.exe",
     ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", wrapperPath, ...args],
     {
       cwd,
       encoding: "utf8",
-      env: codexPath ? { ...process.env, CODEX_BIN: codexPath } : process.env,
+      env: {
+        ...process.env,
+        ...(codexPath ? { CODEX_BIN: codexPath } : {}),
+        ...envOverrides,
+      },
     },
   );
 }
@@ -173,6 +183,26 @@ fi
   return fakeCodexPath;
 }
 
+function createCodexInvocationProbe(root: string) {
+  const markerPath = path.join(root, "codex-invoked.txt");
+  const bashPath = path.join(root, "codex-probe.sh");
+  fs.writeFileSync(
+    bashPath,
+    '#!/usr/bin/env bash\nprintf called > "$CODEX_INVOCATION_MARKER"\n',
+    "utf8",
+  );
+  fs.chmodSync(bashPath, 0o755);
+
+  const powerShellPath = path.join(root, "codex-probe.cmd");
+  fs.writeFileSync(
+    powerShellPath,
+    '@echo off\r\necho called> "%CODEX_INVOCATION_MARKER%"\r\nexit /b 0\r\n',
+    "utf8",
+  );
+
+  return { markerPath, bashPath, powerShellPath };
+}
+
 function hasPowerShellRuntime() {
   const result = spawnSync("powershell.exe", ["-NoProfile", "-Command", "exit 0"], {
     encoding: "utf8",
@@ -237,7 +267,7 @@ function nextRunId() {
 function createFixture(options: FixtureOptions): Fixture {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-safe-manifest-contract-"));
   const runId = nextRunId();
-  const runRoot = path.join(root, ".codex", "runs", runId);
+  const runRoot = path.join(root, "runs", runId);
   const manifestPath = path.join(runRoot, "run.json");
 
   fs.mkdirSync(path.join(root, ".codex", "rules"), { recursive: true });
@@ -317,16 +347,6 @@ function fixtureBashPath(fixture: Fixture, filePath: string) {
   return path.relative(fixture.root, filePath).replaceAll("\\", "/");
 }
 
-function missingRunId() {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const candidate = `20991231-${String(900000 + attempt).padStart(6, "0")}-JST`;
-    if (!fs.existsSync(path.join(repoRoot, ".codex", "runs", candidate))) {
-      return candidate;
-    }
-  }
-  throw new Error("Could not allocate a missing RunId for the contract test");
-}
-
 const powerShellRuntimeAvailable = hasPowerShellRuntime();
 const bashRuntimeAvailable = hasBashRuntime();
 const powerShellCodexAvailable = hasPowerShellCodex();
@@ -340,6 +360,7 @@ describe("codex-safe run manifest sync contract", () => {
 
     for (const source of [powerShell, bash]) {
       expect(source).toContain("Run directory not found");
+      expect(source).toContain("Ambiguous Run ID exists in both runs/");
       expect(source).toContain("manifest_sync_start");
       expect(source).toContain("manifest_sync_success");
       expect(source).toContain("manifest_sync_failed");
@@ -349,7 +370,11 @@ describe("codex-safe run manifest sync contract", () => {
     }
 
     expect(powerShell).toContain("-RefreshGitChangedFiles");
+    expect(powerShell).toContain('-RunsRoot (Join-Path $repoRoot "runs")');
+    expect(powerShell).toContain('foreach ($name in @("run.json", "evaluation.json"))');
     expect(bash).toContain("--refresh-git-changed-files");
+    expect(bash).toContain('--runs-root "$repo_root/runs"');
+    expect(bash).toContain('"$run_root/evaluation.json"');
     expect(powerShell).toContain('Join-Path $repoRoot "scripts\\collect-run-artifacts.ps1"');
     expect(powerShell).toContain("$collectorExit = 1");
     expect(powerShell).toContain("catch");
@@ -363,21 +388,23 @@ describe("codex-safe run manifest sync contract", () => {
   it.skipIf(!powerShellRuntimeAvailable)(
     "PowerShell: fails before creating logs or a directory for an unknown RunId",
     () => {
-      const runId = missingRunId();
-      const runPath = path.join(repoRoot, ".codex", "runs", runId);
-      const powerShell = runPowerShell(powerShellWrapperPath, [
-        "-SkipPreflight",
-        "-NoLog",
-        "-RunId",
-        runId,
-        "--version",
-      ]);
+      const fixture = createFixture({ git: false, manifest: false });
+      try {
+        const result = runPowerShell(
+          path.join(fixture.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-RunId", fixture.runId, "--version"],
+          fixture.root,
+        );
 
-      expect(powerShell.status).not.toBe(0);
-      expect(`${powerShell.stdout ?? ""}${powerShell.stderr ?? ""}`).toContain(
-        "Run directory not found",
-      );
-      expect(fs.existsSync(runPath)).toBe(false);
+        expect(result.status).not.toBe(0);
+        expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(
+          /Run directory not found|Run root is missing/,
+        );
+        expect(fs.existsSync(fixture.runRoot)).toBe(false);
+        expect(fs.existsSync(path.join(fixture.root, ".codex", "logs"))).toBe(false);
+      } finally {
+        removeFixture(fixture);
+      }
     },
     runtimeTestTimeout,
   );
@@ -385,19 +412,277 @@ describe("codex-safe run manifest sync contract", () => {
   it.skipIf(!bashRuntimeAvailable)(
     "Bash: fails before creating logs or a directory for an unknown RunId",
     () => {
-      const runId = missingRunId();
-      const runPath = path.join(repoRoot, ".codex", "runs", runId);
-      const bash = runBash(bashWrapperPath, [
-        "--skip-preflight",
-        "--no-log",
-        "--run-id",
-        runId,
-        "--version",
-      ]);
+      const fixture = createFixture({ git: false, manifest: false });
+      try {
+        const result = runBash(
+          path.join(fixture.root, "scripts", "codex-safe.sh"),
+          ["--skip-preflight", "--run-id", fixture.runId, "--version"],
+          fixture.root,
+        );
 
-      expect(bash.status).not.toBe(0);
-      expect(`${bash.stdout ?? ""}${bash.stderr ?? ""}`).toContain("Run directory not found");
-      expect(fs.existsSync(runPath)).toBe(false);
+        expect(result.status).not.toBe(0);
+        expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(
+          /Run directory not found|Run root is missing/,
+        );
+        expect(fs.existsSync(fixture.runRoot)).toBe(false);
+        expect(fs.existsSync(path.join(fixture.root, ".codex", "logs"))).toBe(false);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!powerShellRuntimeAvailable)(
+    "PowerShell: does not fall back to or update a matching legacy Run",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false });
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", fixture.runId);
+      const manifestPath = path.join(legacyRunRoot, "run.json");
+      const manifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      fs.mkdirSync(legacyRunRoot, { recursive: true });
+      fs.writeFileSync(manifestPath, manifestContents, "utf8");
+
+      try {
+        const result = runPowerShell(
+          path.join(fixture.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-RunId", fixture.runId, "--version"],
+          fixture.root,
+        );
+
+        expect(result.status).not.toBe(0);
+        expect(fs.existsSync(fixture.runRoot)).toBe(false);
+        expect(fs.readFileSync(manifestPath, "utf8")).toBe(manifestContents);
+        expect(fs.existsSync(path.join(fixture.root, ".codex", "logs"))).toBe(false);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!bashRuntimeAvailable)(
+    "Bash: does not fall back to or update a matching legacy Run",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false });
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", fixture.runId);
+      const manifestPath = path.join(legacyRunRoot, "run.json");
+      const manifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      fs.mkdirSync(legacyRunRoot, { recursive: true });
+      fs.writeFileSync(manifestPath, manifestContents, "utf8");
+
+      try {
+        const result = runBash(
+          path.join(fixture.root, "scripts", "codex-safe.sh"),
+          ["--skip-preflight", "--run-id", fixture.runId, "--version"],
+          fixture.root,
+        );
+
+        expect(result.status).not.toBe(0);
+        expect(fs.existsSync(fixture.runRoot)).toBe(false);
+        expect(fs.readFileSync(manifestPath, "utf8")).toBe(manifestContents);
+        expect(fs.existsSync(path.join(fixture.root, ".codex", "logs"))).toBe(false);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!powerShellRuntimeAvailable)(
+    "PowerShell: rejects a Run ID present in both roots before invoking Codex",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false, runDirectory: true });
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", fixture.runId);
+      const newManifestPath = path.join(fixture.runRoot, "run.json");
+      const legacyManifestPath = path.join(legacyRunRoot, "run.json");
+      const newManifestContents = '{"run_id":"new","status":"preserve"}\n';
+      const legacyManifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      fs.mkdirSync(legacyRunRoot, { recursive: true });
+      fs.writeFileSync(newManifestPath, newManifestContents, "utf8");
+      fs.writeFileSync(legacyManifestPath, legacyManifestContents, "utf8");
+      const probe = createCodexInvocationProbe(fixture.root);
+
+      try {
+        const result = runPowerShell(
+          path.join(fixture.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-RunId", fixture.runId, "--version"],
+          fixture.root,
+          probe.powerShellPath,
+          { CODEX_INVOCATION_MARKER: probe.markerPath },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Ambiguous Run ID");
+        expect(fs.existsSync(probe.markerPath)).toBe(false);
+        expect(fs.existsSync(path.join(fixture.runRoot, "logs"))).toBe(false);
+        expect(fs.readFileSync(newManifestPath, "utf8")).toBe(newManifestContents);
+        expect(fs.readFileSync(legacyManifestPath, "utf8")).toBe(legacyManifestContents);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!bashRuntimeAvailable)(
+    "Bash: rejects a Run ID present in both roots before invoking Codex",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false, runDirectory: true });
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", fixture.runId);
+      const newManifestPath = path.join(fixture.runRoot, "run.json");
+      const legacyManifestPath = path.join(legacyRunRoot, "run.json");
+      const newManifestContents = '{"run_id":"new","status":"preserve"}\n';
+      const legacyManifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      fs.mkdirSync(legacyRunRoot, { recursive: true });
+      fs.writeFileSync(newManifestPath, newManifestContents, "utf8");
+      fs.writeFileSync(legacyManifestPath, legacyManifestContents, "utf8");
+      const probe = createCodexInvocationProbe(fixture.root);
+
+      try {
+        const result = runBash(
+          path.join(fixture.root, "scripts", "codex-safe.sh"),
+          ["--skip-preflight", "--run-id", fixture.runId, "--version"],
+          fixture.root,
+          probe.bashPath,
+          { CODEX_INVOCATION_MARKER: toBashPath(probe.markerPath) },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Ambiguous Run ID");
+        expect(fs.existsSync(probe.markerPath)).toBe(false);
+        expect(fs.existsSync(path.join(fixture.runRoot, "logs"))).toBe(false);
+        expect(fs.readFileSync(newManifestPath, "utf8")).toBe(newManifestContents);
+        expect(fs.readFileSync(legacyManifestPath, "utf8")).toBe(legacyManifestContents);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!powerShellRuntimeAvailable)(
+    "PowerShell: rejects a Run-local logs reparse point before logging or invoking Codex",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false, runDirectory: true });
+      const outsideRoot = path.join(fixture.root, "outside-logs");
+      const logsPath = path.join(fixture.runRoot, "logs");
+      const sentinelPath = path.join(outsideRoot, "sentinel.txt");
+      const sentinelContents = "external sentinel remains unchanged\n";
+      fs.mkdirSync(outsideRoot, { recursive: true });
+      fs.writeFileSync(sentinelPath, sentinelContents, "utf8");
+      fs.symlinkSync(outsideRoot, logsPath, process.platform === "win32" ? "junction" : "dir");
+      const probe = createCodexInvocationProbe(fixture.root);
+
+      try {
+        const result = runPowerShell(
+          path.join(fixture.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-RunId", fixture.runId, "--version"],
+          fixture.root,
+          probe.powerShellPath,
+          { CODEX_INVOCATION_MARKER: probe.markerPath },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Run-local output path");
+        expect(fs.existsSync(probe.markerPath)).toBe(false);
+        expect(fs.readFileSync(sentinelPath, "utf8")).toBe(sentinelContents);
+        expect(fs.readdirSync(outsideRoot)).toEqual(["sentinel.txt"]);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!bashRuntimeAvailable)(
+    "Bash: rejects a Run-local logs junction before logging or invoking Codex",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false, runDirectory: true });
+      const outsideRoot = path.join(fixture.root, "outside-logs");
+      const logsPath = path.join(fixture.runRoot, "logs");
+      const sentinelPath = path.join(outsideRoot, "sentinel.txt");
+      const sentinelContents = "external sentinel remains unchanged\n";
+      fs.mkdirSync(outsideRoot, { recursive: true });
+      fs.writeFileSync(sentinelPath, sentinelContents, "utf8");
+      fs.symlinkSync(outsideRoot, logsPath, process.platform === "win32" ? "junction" : "dir");
+      const probe = createCodexInvocationProbe(fixture.root);
+
+      try {
+        const result = runBash(
+          path.join(fixture.root, "scripts", "codex-safe.sh"),
+          ["--skip-preflight", "--run-id", fixture.runId, "--version"],
+          fixture.root,
+          probe.bashPath,
+          { CODEX_INVOCATION_MARKER: toBashPath(probe.markerPath) },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Run-local directory");
+        expect(fs.existsSync(probe.markerPath)).toBe(false);
+        expect(fs.readFileSync(sentinelPath, "utf8")).toBe(sentinelContents);
+        expect(fs.readdirSync(outsideRoot)).toEqual(["sentinel.txt"]);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!powerShellRuntimeAvailable)(
+    "PowerShell: rejects a runs reparse point before logging",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false });
+      const outsideRunsRoot = path.join(fixture.root, "outside-runs");
+      fs.mkdirSync(outsideRunsRoot, { recursive: true });
+      fs.symlinkSync(outsideRunsRoot, path.join(fixture.root, "runs"), "junction");
+
+      try {
+        const result = runPowerShell(
+          path.join(fixture.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-RunId", fixture.runId, "--version"],
+          fixture.root,
+        );
+
+        expect(result.status).not.toBe(0);
+        expect(fs.existsSync(path.join(outsideRunsRoot, fixture.runId))).toBe(false);
+        expect(fs.existsSync(path.join(fixture.root, ".codex", "logs"))).toBe(false);
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!bashRuntimeAvailable)(
+    "Bash: rejects a runs symlink before logging",
+    () => {
+      const fixture = createFixture({ git: false, manifest: false });
+      const outsideRunsRoot = path.join(fixture.root, "outside-runs");
+      fs.mkdirSync(outsideRunsRoot, { recursive: true });
+      fs.symlinkSync(
+        outsideRunsRoot,
+        path.join(fixture.root, "runs"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+
+      try {
+        const result = runBash(
+          path.join(fixture.root, "scripts", "codex-safe.sh"),
+          ["--skip-preflight", "--run-id", fixture.runId, "--version"],
+          fixture.root,
+        );
+
+        expect(result.status).not.toBe(0);
+        expect(fs.existsSync(path.join(outsideRunsRoot, fixture.runId))).toBe(false);
+        expect(fs.existsSync(path.join(fixture.root, ".codex", "logs"))).toBe(false);
+      } finally {
+        removeFixture(fixture);
+      }
     },
     runtimeTestTimeout,
   );

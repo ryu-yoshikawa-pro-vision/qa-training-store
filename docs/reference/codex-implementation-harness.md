@@ -11,15 +11,17 @@
   - プロジェクトの既定値は `workspace-write` / `approval_policy = "never"` / ネットワークアクセス有効。プロンプト承認要求（`prompt`）は自動で拒否されるため、影響の大きい操作は実行しない。
 - `scripts/new-run.ps1|sh`
   - Run ディレクトリ初期化用のヘルパー。
-  - `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` を一括作成する。
-  - 通常ワークフローにおいて、実体の `.codex/runs/<run_id>/run.json` を生成する正規の経路である。エージェントが実体の `run.json` を直接作成・編集することはない。
+  - `runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` を一括作成する。既定のRun rootは`runs/`。
+  - 通常ワークフローにおいて、実体の `runs/<run_id>/run.json` を生成する正規の経路である。エージェントが実体の `run.json` を直接作成・編集することはない。
   - 既存の Run は上書きせず、`--force` / `-Force` を指定した場合でも未作成の親ディレクトリを補完する動作にとどめる。
+  - Run rootの衝突判定とpreserved legacy/historyの扱いは [`run-artifacts.md`](run-artifacts.md) を正本とする。
 - `scripts/codex-safe.ps1|sh`
   - 事前チェック（preflight）や JSONL ログの記録が必要な場合、および direct の `never` ポリシーで拒否される例外操作を明示的に承認するためのラッパー。
   - 事前チェック、危険な引数の拒否、サンドボックスおよび承認ポリシーの固定、JSONL ログ機能を提供する。
   - `safe` プリセットは workspace-write / on-request / ネットワーク無効（network false）を明示する。ローカルブランチの削除やマージ／リベースのリカバリは、ネットワーク権限の昇格なしで承認できる。ネットワークを伴う例外操作は、承認とネットワーク昇格のランタイム検証に成功した場合に限り使用する。
   - アクティブな Run に紐づく対話実行では、現在の `RunId` を `-RunId`／`--run-id` で必ず指定する。指定を省略できるのはアクティブな Run に紐づかないアドホックな実行に限られ、その場合はマニフェスト同期を行わない。
-  - RunId 指定時は、ログ生成前に既存の Run ディレクトリの存在を確認し、存在しない RunId では Codex を起動しない。既存の `run.json` がある場合に限り、Codex 終了後に絶対パスでコレクターを1度実行してマニフェストを同期する。マニフェストを持たない Run（manifest-less Run）は実行されるが、マニフェストの生成は行わない。
+  - RunId指定時は`runs/<run_id>/`を使用します。legacy rootのfallbackや旧Runの更新を含むRun rootの規則は [`run-artifacts.md`](run-artifacts.md) を正本とする。Runがない場合の起動抑止、既存マニフェストの同期、manifest-less Runの扱いは以下の通りです。
+  - ログ生成前に既存のRunディレクトリの存在を確認し、存在しないRunIdではCodexを起動しない。既存の`run.json`がある場合に限り、Codex終了後に絶対パスでコレクターを1度実行してマニフェストを同期する。マニフェストを持たないRun（manifest-less Run）は実行されるが、マニフェストの生成は行わない。
   - `--no-log`／`-NoLog` はログ記録のみを無効化し、マニフェスト同期は無効化しない。Codex の終了や `Stop` フックのみを根拠に `status=completed` へ変更してはならない。
 - `.codex/config.toml` / `.codex/hooks/log_event.mjs`
   - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop` を同一の Node ロガーへ接続する。
@@ -30,7 +32,7 @@
   - 非対話の `codex exec` 用ラッパー。
   - 実行順序は `preflight -> codex exec -> output/schema check -> verify -> report`。
   - 最終メッセージ出力（`output-last-message`）と機械可読なレポート JSON（machine-readable report JSON）を必ず残す。
-  - `--run-id` 指定時は、`.codex/runs/<run_id>/artifacts|reports|logs` に既定の出力を集約する。
+  - `--run-id` 指定時は、`runs/<run_id>/artifacts|reports|logs` に既定の出力を集約する。
 - `scripts/codex-sandbox.ps1|sh`
   - `codex-task --runtime docker-sandbox` の軽量な互換ラッパー。
   - Docker イメージと認証が明示的に設定されている場合にのみ使用する実験的パス。
@@ -49,8 +51,8 @@
 - direct `codex` を通常の対話型エントリーとする lightweight／standard Run では、`new-run` 実行時に `--no-run-manifest`／`-NoRunManifest` を指定する。`PLAN.md`、`TASKS.md`、`REPORT.md` は残すが、direct セッション用のマニフェストは追加しない。
 - `run_manifest = "recommended"` は機械管理の標準経路として維持する。strict Run では既存のライター／コレクターを使用し、Run マニフェストと評価結果（evaluation）の出力を必須とする。
 - `lightweight` レベルであっても Run 成果物（Run Artifact）を残す。
-- `lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、必要に応じて手動作成してよい。
-- `new-run` を使わずに手動で初期化する場合は、該当するワークフローレベルで作成すべきエージェント管理成果物に対応した既存テンプレートを元に作成する。
+- `lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、Parentが必要に応じて管理する。childは作成・更新せず、結果をParentへ返す。
+- `new-run` を使わずに手動で初期化する場合も、Parentが該当するワークフローレベルで作成すべき成果物に対応した既存テンプレートを元に作成する。
   - `.codex/templates/PLAN.md`
   - `.codex/templates/TASKS.md`
   - `.codex/templates/REPORT.md`
@@ -72,7 +74,7 @@
 文章品質の自動検査はCLIとCIで実施し、Codexの `UserPromptSubmit`／`PostToolUse`／`Stop` には品質Hookを登録しません。session baseline stateは作成せず、Stopによる完了ブロックも行いません。
 
 - `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree` を呼び出し、現在のワークツリーを開始時の HEAD と比較する。比較不能な場合は失敗として扱う。
-- `pnpm run lint:text:all` は同じチェッカーの `--all` モードを呼び出し、既存の `getWorkingTreeMarkdownPaths()` で列挙された現在の Markdown から、`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md` を除外した範囲を全件検査する。差分ゲートのフィンガープリント比較とは責務を分離する。
+- `pnpm run lint:text:all` は同じチェッカーの `--all` モードを呼び出し、既存の `getWorkingTreeMarkdownPaths()` で列挙された現在の Markdown から、`runs/`、preserved legacy/historyの`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md` を除外した範囲を全件検査する。差分ゲートのフィンガープリント比較とは責務を分離する。
 - `scripts/verify` および `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存の `tests/contracts/codex-hook-contract.test.ts` と文章品質規約を追加実行するためのオプトインフラグである。通常検証における strict の意味や依存条件を変更するものではない。
 - `scripts/lint-text-quality.mjs` は、リポジトリ固有のカスタムリテラル／正規表現と、`.textlintrc.json` に定義された7個の個別 textlint ルールのみを本文へ適用し、Markdown の構造チェックは `lint:markdown` に委ねる。`no-unmatched-pair` は技術文書内のインラインコードなどを誤検知するため採用しない。未確定の禁止語、置換ルール、許可リスト（allowlist）、英語混在判定は追加しない。
 - プルリクエストでは、`origin/${{ github.base_ref }}` とワークフローがチェックアウトしたマージ後の `HEAD` との merge-base を比較基準とする。push では `github.event.before`、スケジュール実行および workflow_dispatch では `HEAD^` を使用する。ローカル環境以外では、クリーンチェックアウト時の `HEAD -> worktree` 比較を CI ゲートとして使用しない。
@@ -112,17 +114,17 @@
 
 ## Run の初期化
 
-- 通常の直接対話型エントリー（lightweight／standard）では、マニフェストなしで初期化する。
+- 通常の直接対話型エントリー（lightweight／standard）では、`runs/<run_id>/`をマニフェストなしで初期化する。
 - Bash:
   - `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
 - PowerShell:
   - `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
 - `--run-id` / `-RunId` を省略した場合は、JST 現在時刻から `YYYYMMDD-HHMMSS-JST` を生成する。
 - 生成対象:
-  - `.codex/runs/<run_id>/PLAN.md`
-  - `.codex/runs/<run_id>/TASKS.md`
-  - `.codex/runs/<run_id>/REPORT.md`
-  - `.codex/runs/<run_id>/run.json`
+  - `runs/<run_id>/PLAN.md`
+  - `runs/<run_id>/TASKS.md`
+  - `runs/<run_id>/REPORT.md`
+  - `runs/<run_id>/run.json`
 - `--no-plan` / `-NoPlan` は `PLAN.md` の生成を省略する。
 - `--no-run-manifest` / `-NoRunManifest` は `run.json` の生成を省略する。
 - 既存の Run ディレクトリが存在する場合は失敗する。`--force` / `-Force` は親ディレクトリの作成を許可するのみであり、既存の Run を上書きすることはない。
@@ -158,7 +160,7 @@
 - `allowed-dirs` は指定ディレクトリ配下を許可する。末尾スラッシュの有無は同一として扱う。
 - `allowed-globs` は限定的な glob パターンを処理する。使用可能な特殊トークンは `*`、`**`、`?` のみとする。
 - スコープオプションを使用する場合は、`--run-id` と `--record-run-manifest` の指定を必須とする。
-- `.codex/runs/` 配下の生成成果物（generated artifact）は、ソースコードのスコープ対象から除外する。
+- `runs/`および`.codex/runs/`配下の生成成果物（generated artifact）は、ソースコードのスコープ対象から除外する。
 
 ### expected missing の要点
 
@@ -180,17 +182,17 @@
 - 出力ファイル（output file）:
   - `codex exec --output-last-message` の最終出力
   - 既定値: `.codex/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
-  - `--run-id` 指定時: `.codex/runs/<run_id>/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
+  - `--run-id` 指定時: `runs/<run_id>/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
 - レポート JSON（report JSON）:
   - 既定値: `.codex/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
-  - `--run-id` 指定時: `.codex/runs/<run_id>/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
+  - `--run-id` 指定時: `runs/<run_id>/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
   - 必須キーは `runtime`, `preset`, `prompt_source`, `output_file`, `output_schema`, `log_path`, `codex_exit_code`, `verify_exit_code`, `status`, `run_id`, `git_branch`, `git_dirty`, `cwd`, `mode`
 - JSONL ログ:
   - ラッパー起動、事前チェック、codex exec、スキーマチェック、検証の各イベントを追記する
   - 既定値: `.codex/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
-  - `--run-id` 指定時: `.codex/runs/<run_id>/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
+  - `--run-id` 指定時: `runs/<run_id>/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
 - Run マニフェスト（run manifest）:
-  - `--record-run-manifest` 指定時のみ `.codex/runs/<run_id>/run.json` を更新する
+  - `--record-run-manifest` 指定時のみ `runs/<run_id>/run.json` を更新する
   - 新規マニフェストはスキーマ v2 とし、レポート数、変更ファイル、バリデーション結果、ネットワーク／スコープ設定、評価結果のみをサマリーする
   - フックの JSONL はセッションスコープのまま保持し、`run.json` へ新規集約しない。既存の v1 マニフェストはレガシーフィールドの値のみを保持する
   - 対話型 `codex-safe` 終了時の同期は既存マニフェストのみに限定し、`Stop` / `SubagentStop` フックをトリガーとしない

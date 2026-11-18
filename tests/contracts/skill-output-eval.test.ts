@@ -1,9 +1,13 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { validatePlanOutput } from "../../.agents/skills/feature-plan/scripts/validate-plan-output";
 import { qaFindingsSchema, type Charter } from "../../scripts/agentic-qa/contracts";
 import { assertCoverageIntegrity } from "../../scripts/agentic-qa/coverage";
+import { sourceStatusOutsideRunArtifacts } from "../../scripts/evals/run-skill-trigger-evals";
+import { resolveWorkflowRunOutputPath } from "../../scripts/evals/run-skill-workflow-evals";
 
 const canonicalTemplate = fs.readFileSync(
   path.resolve(__dirname, "../../.agents/skills/feature-plan/assets/plan-template.md"),
@@ -203,5 +207,42 @@ describe("exploratory-qa deterministic output evaluation", () => {
     expect(() => assertCoverageIntegrity(expectedSource, actualCoverage)).toThrow(
       "coverage.items does not match the Coverage SSOT",
     );
+  });
+});
+
+describe("skill evaluation Run Artifact paths", () => {
+  it("filters both current and legacy Run trees from evaluator source changes", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-eval-source-status-"));
+    try {
+      execFileSync("git", ["init", "--quiet"], { cwd: root, stdio: "ignore" });
+      for (const relativePath of [
+        "runs/20261118-000001-JST/REPORT.md",
+        ".codex/runs/20261117-000001-JST/REPORT.md",
+        "docs/source-change.md",
+      ]) {
+        const absolutePath = path.join(root, ...relativePath.split("/"));
+        fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+        fs.writeFileSync(absolutePath, "fixture\n", "utf8");
+      }
+
+      expect(sourceStatusOutsideRunArtifacts(root)).toEqual(["docs/source-change.md"]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires workflow evaluation output under the repository runs root", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "skill-workflow-run-output-"));
+    try {
+      fs.mkdirSync(path.join(root, "runs"), { recursive: true });
+      expect(resolveWorkflowRunOutputPath(root, "runs/20261118-000001-JST/evaluation.json")).toBe(
+        path.join(root, "runs", "20261118-000001-JST", "evaluation.json"),
+      );
+      expect(() =>
+        resolveWorkflowRunOutputPath(root, ".codex/runs/20261118-000001-JST/evaluation.json"),
+      ).toThrow("--output must be a file under Evaluator runs/**");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });

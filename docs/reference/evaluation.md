@@ -160,7 +160,7 @@ pass | partial | fail | not_evaluated
       "evidence_refs": [
         {
           "kind": "validation_command",
-          "path": ".codex/runs/20260627-103240-JST/run.json",
+          "path": "runs/20260627-103240-JST/run.json",
           "selector": "$.validation.commands[0]",
           "event_id": null,
           "summary": "verify command exited with code 1"
@@ -184,7 +184,7 @@ pass | partial | fail | not_evaluated
       "evidence_refs": [
         {
           "kind": "run_manifest",
-          "path": ".codex/runs/20260627-103240-JST/run.json",
+          "path": "runs/20260627-103240-JST/run.json",
           "selector": "$.validation",
           "event_id": null,
           "summary": "validation summary recorded the verify failure"

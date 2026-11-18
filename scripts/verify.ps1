@@ -138,8 +138,8 @@ function Test-TemplateContract {
     if ($agents -notmatch [regex]::Escape("## 3.")) { throw "AGENTS.md missing conditional reference loading policy" }
     if ($agents -match [regex]::Escape("Runを使うtaskでは")) { throw "AGENTS.md still makes Run Artifact conditional" }
     foreach ($runContract in @(
-        "このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。",
-        "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。",
+        'このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。',
+        "Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。",
         'Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。'
     )) {
         if ($agents -notmatch [regex]::Escape($runContract)) { throw "AGENTS.md missing Run lifecycle contract: $runContract" }
@@ -268,12 +268,17 @@ function Test-TemplateContract {
         if ($runArtifacts -notmatch [regex]::Escape($runArtifactContract)) { throw "run-artifacts doc missing lifecycle/sanitization contract: $runArtifactContract" }
     }
     foreach ($runLifecycleContract in @(
-        '作業完了後もRun Directoryを保存し、調査、レビュー、修正、再発防止へ利用できるよう蓄積します。',
-        '同一会話セッション内で同一taskを継続する場合は、既存のactive Runを再利用します。',
-        '同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。',
-        '会話セッションが変わった場合は、active Runの引き継ぎが明示されていない限り、新しいRunを作成します。',
-        '過去のRun Directoryや`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`は、通常のcleanupや成果物整理だけを理由に削除しません。',
-        '.codex/runs/`を`.gitignore`へ追加しません。'
+        '新規Run Artifactのcanonical rootはリポジトリ直下の`runs/<run_id>/`です。',
+        '作業完了後も実行ディレクトリ（Run Directory）を保持し、調査、レビュー、修正、再発防止に活用できるよう蓄積します。',
+        '同一の会話セッション内で同一タスクを継続する場合は、既存のアクティブなRunを再利用します。',
+        '同一の会話セッション内であっても、ユーザーが別タスクの開始を明示した場合は、新しいRunを作成できます。',
+        '会話セッションが変わった場合は、アクティブなRunの引き継ぎが明示されていない限り、新規にRunを作成します。',
+        '過去の実行ディレクトリや `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` は、通常のクリーンアップや成果物整理のみを理由として削除しません。',
+        'runs/` とpreserved legacy/historyの`.codex/runs/`を`.gitignore`に追加してはなりません。',
+        'runs/`は`.gitignore`に登録せず、credential/security scanから除外しません。',
+        'scripts/security-static-check.ts',
+        'preserved legacy/historyの`.codex/runs/**`は移動・削除・書換えを行いません。',
+        'report_policy.run_report`は`runs/<run_id>/REPORT.md`'
     )) {
         if ($runArtifacts -notmatch [regex]::Escape($runLifecycleContract)) { throw "run-artifacts doc missing semantic lifecycle contract: $runLifecycleContract" }
     }
@@ -309,8 +314,8 @@ function Test-TemplateContract {
     foreach ($workflowContract in @(
         'standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。',
         '`lightweight`でもRun Artifactを残します。',
-        '`lightweight`の`PLAN.md`／`TASKS.md`／`REPORT.md`等のAgent-managed Artifactは、必要に応じて手動作成してよいものとします。',
-        '`new-run`を使わず手動初期化する場合は、そのWorkflow Levelで作成するAgent-managed Artifactに対応する既存templateを元に作成します。',
+        '`lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、Parentが必要に応じて管理する。childは作成・更新せず、結果をParentへ返す。',
+        '`new-run` を使わずに手動で初期化する場合も、Parentが該当するワークフローレベルで作成すべき成果物に対応した既存テンプレートを元に作成する。',
         '.codex/templates/PLAN.md',
         '.codex/templates/TASKS.md',
         '.codex/templates/REPORT.md',
@@ -385,6 +390,8 @@ function Test-TemplateContract {
     if ($changeScope -notmatch [regex]::Escape("expected_missing")) { throw "change-scope doc missing expected_missing guidance" }
     if ($changeScope -notmatch [regex]::Escape("must_be_subset_of_allowed_scope")) { throw "change-scope doc missing allowed scope subset contract" }
     if ($changeScope -notmatch [regex]::Escape("--record-run-manifest")) { throw "change-scope doc missing record-run-manifest guidance" }
+    if ($changeScope -notmatch [regex]::Escape("runs/")) { throw "change-scope doc missing canonical Run root exclusion" }
+    if ($changeScope -notmatch [regex]::Escape(".codex/runs/")) { throw "change-scope doc missing preserved legacy Run root exclusion" }
     $runArtifacts = Get-Content -Raw -Encoding UTF8 docs/reference/run-artifacts.md
     if ($runArtifacts -notmatch [regex]::Escape("run.json")) { throw "run-artifacts doc missing run.json guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("changed_files")) { throw "run-artifacts doc missing changed_files guidance" }

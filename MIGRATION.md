@@ -17,7 +17,7 @@
 
 ## 削除方針
 
-このテンプレートでは、Codexがファイルやディレクトリを削除してはいけません。cleanupが必要な場合は、`.codex/runs/<run_id>/REPORT.md`の`Deletion candidates`へ候補を記録し、レビュー後にユーザーが削除します。
+このテンプレートでは、Codexがファイルやディレクトリを削除してはいけません。cleanupが必要な場合は、`runs/<run_id>/REPORT.md`の`Deletion candidates`へ候補を記録し、レビュー後にユーザーが削除します。preserved legacy/historyである`.codex/runs/**`は移動・削除・書換えの対象にしません。
 
 ## 検証
 

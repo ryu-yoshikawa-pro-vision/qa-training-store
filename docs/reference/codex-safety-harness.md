@@ -12,7 +12,7 @@
   - 危険な CLI 引数（`--dangerously-bypass-approvals-and-sandbox`, `-c/--config`, `--add-dir` など）を拒否
   - 安全側のデフォルト設定（`--sandbox`, `--ask-for-approval`）を強制付与
   - 起動前に `codex execpolicy check` を実行し、ルールのスモークテストを実施（事前検証 / preflight）
-  - JSONL ログ（既定: `.codex/logs/codex-safe-YYYYMMDD.jsonl`、`--run-id` 指定時: `.codex/runs/<run_id>/logs/codex-safe-YYYYMMDD.jsonl`）に開始・ブロック・事前検証・起動の各イベントを追記
+  - JSONL ログ（既定: `.codex/logs/codex-safe-YYYYMMDD.jsonl`、`--run-id` 指定時: `runs/<run_id>/logs/codex-safe-YYYYMMDD.jsonl`）に開始・ブロック・事前検証・起動の各イベントを追記
 - `scripts/codex-safe.sh`
   - Bash 向け Codex 起動ラッパー（PowerShell 版と同等の方針）
   - 危険な CLI 引数の拒否、`--sandbox` / `--ask-for-approval` の強制付与、事前検証を実施
@@ -318,7 +318,7 @@ pnpm run diagnose:hooks
 - `docs/reports/` は、長期保存（durable）を目的とした調査・監査・検証結果の保管場所であり、通常のレビュー回答、進捗報告、簡易な確認結果、実行（run）内ログの既定の保存先ではない。
 - レポートファイルを生成してよいケースは、ユーザーから保存の明示的な指示があった場合、タスク計画の完了条件（DoD: Definition of Done）にレポートファイルが含まれている場合、または複数情報源の調査・監査・検証結果を将来参照する必要がある場合に限られる。
 - レビューのみ（review-only）、計画のみ（plan-only）、状況報告（status update）、簡易な確認、通常の証跡コマンド実行結果、実行進捗の記録、チャット上で完結する評価などでは、`docs/reports/` にファイルを作成しない。
-- 判断に迷う場合はレポートファイルを作成せず、チャットでの回答および `.codex/runs/<run_id>/REPORT.md` への記録にとどめる。
+- 判断に迷う場合はレポートファイルを作成せず、チャットでの回答および `runs/<run_id>/REPORT.md` への記録にとどめる。Run ArtifactはParentが管理する。
 
 ## 文章品質CLIとRepository gate
 

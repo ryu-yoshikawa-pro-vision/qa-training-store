@@ -15,6 +15,40 @@ const nativeStderrMarker = "codex-task-native-stderr";
 const verifyCommandTextStdoutMarker = "codex-task-verify-command-text-stdout";
 const verifyCommandTextStderrMarker = "codex-task-verify-command-text-stderr";
 const runId = "20990101-000000-JST";
+const bashRunsInWsl =
+  process.platform === "win32" &&
+  spawnSync("bash", ["-c", "uname -s"], { encoding: "utf8" }).stdout.trim().startsWith("Linux");
+
+function toBashPath(value: string) {
+  const normalized = value.replaceAll("\\", "/");
+  const drivePath = /^([A-Za-z]):\/(.*)$/.exec(normalized);
+  if (!bashRunsInWsl || !drivePath) {
+    return normalized;
+  }
+  return `/mnt/${drivePath[1]?.toLowerCase()}/${drivePath[2]}`;
+}
+
+function createBashCodexProbe(root: string) {
+  const fakeCodexPath = path.join(root, "fake-bash-codex.sh");
+  const markerPath = path.join(root, "codex-invoked.txt");
+  fs.writeFileSync(
+    fakeCodexPath,
+    [
+      "#!/usr/bin/env bash",
+      'printf invoked > "$CODEX_INVOCATION_MARKER"',
+      "output_file=",
+      'while [ "$#" -gt 0 ]; do',
+      '  if [ "$1" = "--output-last-message" ]; then output_file=$2; shift 2; else shift; fi',
+      "done",
+      'if [ -n "$output_file" ]; then printf \'{"ok":true}\\n\' > "$output_file"; fi',
+      "exit 0",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  fs.chmodSync(fakeCodexPath, 0o755);
+  return { fakeCodexPath, markerPath };
+}
 
 function hasPowerShellRuntime() {
   const result = spawnSync(powerShellCommand, ["-NoProfile", "-Command", "exit 0"], {
@@ -515,6 +549,7 @@ function runWrapper(
     wrapperArgs.push("-RecordRunManifest");
   }
   if (options.runId !== undefined) {
+    fs.mkdirSync(path.join(fixture.root, "runs", options.runId), { recursive: true });
     wrapperArgs.push("-RunId", options.runId);
   }
   wrapperArgs.push(
@@ -549,10 +584,7 @@ function runWrapper(
   const manifest =
     options.recordRunManifest && options.runId
       ? (JSON.parse(
-          fs.readFileSync(
-            path.join(fixture.root, ".codex", "runs", options.runId, "run.json"),
-            "utf8",
-          ),
+          fs.readFileSync(path.join(fixture.root, "runs", options.runId, "run.json"), "utf8"),
         ) as {
           run_id: string;
           status: string;
@@ -567,6 +599,7 @@ function runWrapper(
 
 const powerShellAvailable = hasPowerShellRuntime();
 const verifyRuntimeFixtures = createVerifyRuntimeFixtures();
+const bashTaskRuntimeAvailable = hasCommand("bash", ["-c", "exit 0"]);
 const manifestRuntimeAvailable =
   process.platform === "win32" &&
   powerShellAvailable &&
@@ -583,6 +616,473 @@ describe("codex-task native command output and exit code contract", () => {
     expect(source.match(/\$report\.codex_exit_code = Invoke-NativeCommand/g)).toHaveLength(2);
     expect(source).toContain("$report.codex_exit_code -ne 0");
     expect(source).toContain("$script:codexTaskTerminationCode = [int]$report.codex_exit_code");
+  });
+
+  it("uses the new Run root for task artifacts and excludes both Run roots from scope scans", () => {
+    const powerShell = fs.readFileSync(taskScriptPath, "utf8");
+    const shell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), "utf8");
+
+    expect(powerShell).toContain('Join-Path (Join-Path $runRoot "artifacts")');
+    expect(powerShell).toContain('Join-Path (Join-Path $runRoot "reports")');
+    expect(powerShell).toContain('Join-Path $RepoRoot (Join-Path "runs"');
+    expect(powerShell).toContain("runs/$($State.run_id)/evaluation.json");
+    expect(powerShell).toContain("$normalized -ne '.codex/runs'");
+    expect(powerShell).toContain("$normalized.StartsWith('.codex/runs/'");
+    expect(powerShell).toContain("$normalized -ne 'runs'");
+    expect(powerShell).toContain("$normalized.StartsWith('runs/'");
+    expect(shell).toContain('output_file="$run_root/artifacts/');
+    expect(shell).toContain('report_path="$run_root/reports/');
+    expect(shell).toContain('log_path="$run_root/logs/');
+    expect(shell).toContain('evaluation_path="runs/$run_id/evaluation.json"');
+    expect(shell).toContain('"$normalized" != ".codex/runs"');
+    expect(shell).toContain('"$normalized" != .codex/runs/*');
+    expect(shell).toContain('"$normalized" != "runs"');
+    expect(shell).toContain('"$normalized" != runs/*');
+    expect(powerShell).toContain("Ambiguous Run ID exists in both runs/");
+    expect(shell).toContain("Ambiguous Run ID exists in both runs/");
+  });
+
+  it.skipIf(!bashTaskRuntimeAvailable)(
+    "Bash: rejects a missing RunId before creating logs, output, or a Run directory",
+    () => {
+      const fixture = createWrapperFixture();
+      const wrapperPath = path.join(fixture.root, "scripts", "codex-task.sh");
+      const runId = "20990101-987650-JST";
+      fs.copyFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), wrapperPath);
+
+      try {
+        const result = spawnSync("bash", [wrapperPath, "--run-id", runId, "missing-run probe"], {
+          cwd: fixture.root,
+          encoding: "utf8",
+          timeout: 30_000,
+        });
+
+        expect(result.status).not.toBe(0);
+        expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toContain(
+          "Run root is missing or unsafe",
+        );
+        expect(fs.existsSync(path.join(fixture.root, "runs", runId))).toBe(false);
+        expect(fs.existsSync(path.join(fixture.root, ".codex"))).toBe(false);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!bashTaskRuntimeAvailable)(
+    "Bash: rejects a duplicate Run ID before writing either manifest or task artifacts",
+    () => {
+      const fixture = createWrapperFixture();
+      const wrapperPath = path.join(fixture.root, "scripts", "codex-task.sh");
+      const runId = "20990101-987654-JST";
+      const runRoot = path.join(fixture.root, "runs", runId);
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", runId);
+      const newManifestPath = path.join(runRoot, "run.json");
+      const legacyManifestPath = path.join(legacyRunRoot, "run.json");
+      const newManifestContents = '{"run_id":"new","status":"preserve"}\n';
+      const legacyManifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      fs.copyFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), wrapperPath);
+      fs.mkdirSync(runRoot, { recursive: true });
+      fs.mkdirSync(legacyRunRoot, { recursive: true });
+      fs.writeFileSync(newManifestPath, newManifestContents, "utf8");
+      fs.writeFileSync(legacyManifestPath, legacyManifestContents, "utf8");
+
+      try {
+        const result = spawnSync(
+          "bash",
+          [wrapperPath, "--run-id", runId, "--record-run-manifest", "duplicate-run probe"],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+              CODEX_TEST_EXIT_CODE: "0",
+            },
+          },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Ambiguous Run ID");
+        expect(fs.readFileSync(newManifestPath, "utf8")).toBe(newManifestContents);
+        expect(fs.readFileSync(legacyManifestPath, "utf8")).toBe(legacyManifestContents);
+        expect(fs.existsSync(path.join(runRoot, "logs"))).toBe(false);
+        expect(fs.existsSync(path.join(runRoot, "artifacts"))).toBe(false);
+        expect(fs.existsSync(path.join(runRoot, "reports"))).toBe(false);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!manifestRuntimeAvailable)(
+    "rejects a missing RunId before creating logs, output, or a Run directory",
+    () => {
+      const fixture = createWrapperFixture();
+      const runId = "20990101-987651-JST";
+      try {
+        const result = spawnSync(
+          powerShellCommand,
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            fixture.wrapperPath,
+            "-SkipPreflight",
+            "-RunId",
+            runId,
+            "missing-run probe",
+          ],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_BIN: fixture.fakeCodexPath,
+              CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+              CODEX_TEST_EXIT_CODE: "0",
+            },
+            windowsHide: process.platform === "win32",
+          },
+        );
+
+        expect(result.status).not.toBe(0);
+        expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(
+          /Run directory not found|Run root is missing/,
+        );
+        expect(fs.existsSync(path.join(fixture.root, "runs", runId))).toBe(false);
+        expect(fs.existsSync(path.join(fixture.root, ".codex"))).toBe(false);
+        expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).not.toContain(nativeStdoutMarker);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!manifestRuntimeAvailable)(
+    "does not update a legacy .codex/runs Run when that ID is explicitly supplied",
+    () => {
+      const fixture = createWrapperFixture({ manifest: true });
+      const runId = "20990101-987652-JST";
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", runId);
+      const legacyManifestPath = path.join(legacyRunRoot, "run.json");
+      const legacyReportPath = path.join(legacyRunRoot, "reports", "saved.report.json");
+      const legacyEvaluationPath = path.join(legacyRunRoot, "evaluation.json");
+      const manifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      const reportContents = '{"status":"preserve-report"}\n';
+      const evaluationContents = '{"result":"preserve-evaluation"}\n';
+      fs.mkdirSync(path.dirname(legacyReportPath), { recursive: true });
+      fs.writeFileSync(legacyManifestPath, manifestContents, "utf8");
+      fs.writeFileSync(legacyReportPath, reportContents, "utf8");
+      fs.writeFileSync(legacyEvaluationPath, evaluationContents, "utf8");
+
+      try {
+        const result = spawnSync(
+          powerShellCommand,
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            fixture.wrapperPath,
+            "-SkipPreflight",
+            "-RunId",
+            runId,
+            "legacy-run probe",
+          ],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_BIN: fixture.fakeCodexPath,
+              CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+              CODEX_TEST_EXIT_CODE: "0",
+            },
+            windowsHide: process.platform === "win32",
+          },
+        );
+
+        expect(result.status).not.toBe(0);
+        expect(fs.existsSync(path.join(fixture.root, "runs", runId))).toBe(false);
+        expect(fs.readFileSync(legacyManifestPath, "utf8")).toBe(manifestContents);
+        expect(fs.readFileSync(legacyReportPath, "utf8")).toBe(reportContents);
+        expect(fs.readFileSync(legacyEvaluationPath, "utf8")).toBe(evaluationContents);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!manifestRuntimeAvailable)(
+    "rejects a Run ID present in both roots before invoking Codex or writing artifacts",
+    () => {
+      const fixture = createWrapperFixture({ manifest: true });
+      const runId = "20990101-987655-JST";
+      const runRoot = path.join(fixture.root, "runs", runId);
+      const legacyRunRoot = path.join(fixture.root, ".codex", "runs", runId);
+      const newManifestPath = path.join(runRoot, "run.json");
+      const legacyManifestPath = path.join(legacyRunRoot, "run.json");
+      const newManifestContents = '{"run_id":"new","status":"preserve"}\n';
+      const legacyManifestContents = '{"run_id":"legacy","status":"preserve"}\n';
+      fs.mkdirSync(runRoot, { recursive: true });
+      fs.mkdirSync(legacyRunRoot, { recursive: true });
+      fs.writeFileSync(newManifestPath, newManifestContents, "utf8");
+      fs.writeFileSync(legacyManifestPath, legacyManifestContents, "utf8");
+
+      try {
+        const result = spawnSync(
+          powerShellCommand,
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            fixture.wrapperPath,
+            "-SkipPreflight",
+            "-RecordRunManifest",
+            "-RunId",
+            runId,
+            "duplicate-run probe",
+          ],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_BIN: fixture.fakeCodexPath,
+              CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+              CODEX_TEST_EXIT_CODE: "0",
+            },
+            windowsHide: process.platform === "win32",
+          },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Ambiguous Run ID");
+        expect(output).not.toContain(nativeStdoutMarker);
+        expect(fs.readFileSync(newManifestPath, "utf8")).toBe(newManifestContents);
+        expect(fs.readFileSync(legacyManifestPath, "utf8")).toBe(legacyManifestContents);
+        expect(fs.existsSync(path.join(runRoot, "logs"))).toBe(false);
+        expect(fs.existsSync(path.join(runRoot, "artifacts"))).toBe(false);
+        expect(fs.existsSync(path.join(runRoot, "reports"))).toBe(false);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!powerShellAvailable)(
+    "PowerShell: rejects a Run-local artifacts reparse point before Codex can write through it",
+    () => {
+      const fixture = createWrapperFixture();
+      const runId = "20990101-987656-JST";
+      const runRoot = path.join(fixture.root, "runs", runId);
+      const outsideRoot = path.join(fixture.root, "outside-artifacts");
+      const artifactsPath = path.join(runRoot, "artifacts");
+      const sentinelPath = path.join(outsideRoot, "sentinel.txt");
+      const sentinelContents = "external sentinel remains unchanged\n";
+      fs.mkdirSync(runRoot, { recursive: true });
+      fs.mkdirSync(outsideRoot, { recursive: true });
+      fs.writeFileSync(sentinelPath, sentinelContents, "utf8");
+      fs.symlinkSync(outsideRoot, artifactsPath, process.platform === "win32" ? "junction" : "dir");
+
+      try {
+        const result = spawnSync(
+          powerShellCommand,
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            fixture.wrapperPath,
+            "-SkipPreflight",
+            "-SkipVerify",
+            "-RunId",
+            runId,
+            "artifact reparse point probe",
+          ],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_BIN: fixture.fakeCodexPath,
+              CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+              CODEX_TEST_EXIT_CODE: "0",
+            },
+            windowsHide: process.platform === "win32",
+          },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Run-local output path");
+        expect(output).not.toContain(nativeStdoutMarker);
+        expect(fs.readFileSync(sentinelPath, "utf8")).toBe(sentinelContents);
+        expect(fs.readdirSync(outsideRoot)).toEqual(["sentinel.txt"]);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!bashTaskRuntimeAvailable)(
+    "Bash: rejects a Run-local artifacts junction before Codex can write through it",
+    () => {
+      const fixture = createWrapperFixture();
+      const wrapperPath = path.join(fixture.root, "scripts", "codex-task.sh");
+      const runId = "20990101-987657-JST";
+      const runRoot = path.join(fixture.root, "runs", runId);
+      const outsideRoot = path.join(fixture.root, "outside-artifacts");
+      const artifactsPath = path.join(runRoot, "artifacts");
+      const sentinelPath = path.join(outsideRoot, "sentinel.txt");
+      const sentinelContents = "external sentinel remains unchanged\n";
+      fs.copyFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), wrapperPath);
+      fs.mkdirSync(runRoot, { recursive: true });
+      fs.mkdirSync(outsideRoot, { recursive: true });
+      fs.writeFileSync(sentinelPath, sentinelContents, "utf8");
+      fs.symlinkSync(outsideRoot, artifactsPath, process.platform === "win32" ? "junction" : "dir");
+      const probe = createBashCodexProbe(fixture.root);
+
+      try {
+        const result = spawnSync(
+          "bash",
+          [
+            toBashPath(wrapperPath),
+            "--skip-preflight",
+            "--skip-verify",
+            "--run-id",
+            runId,
+            "artifact junction probe",
+          ],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_BIN: toBashPath(probe.fakeCodexPath),
+              CODEX_INVOCATION_MARKER: toBashPath(probe.markerPath),
+            },
+          },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Run-local directory");
+        expect(fs.existsSync(probe.markerPath)).toBe(false);
+        expect(fs.readFileSync(sentinelPath, "utf8")).toBe(sentinelContents);
+        expect(fs.readdirSync(outsideRoot)).toEqual(["sentinel.txt"]);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!bashTaskRuntimeAvailable || process.platform === "win32")(
+    "Bash: rejects an explicit Run-local log symlink before Codex can write through it",
+    () => {
+      const fixture = createWrapperFixture();
+      const wrapperPath = path.join(fixture.root, "scripts", "codex-task.sh");
+      const runId = "20990101-987658-JST";
+      const runRoot = path.join(fixture.root, "runs", runId);
+      const logsPath = path.join(runRoot, "logs");
+      const outsideRoot = path.join(fixture.root, "outside-log");
+      const sentinelPath = path.join(outsideRoot, "sentinel.jsonl");
+      const explicitLogPath = path.join(logsPath, "explicit.jsonl");
+      const sentinelContents = "external sentinel remains unchanged\n";
+      fs.copyFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), wrapperPath);
+      fs.mkdirSync(logsPath, { recursive: true });
+      fs.mkdirSync(outsideRoot, { recursive: true });
+      fs.writeFileSync(sentinelPath, sentinelContents, "utf8");
+      fs.symlinkSync(sentinelPath, explicitLogPath, "file");
+      const probe = createBashCodexProbe(fixture.root);
+
+      try {
+        const result = spawnSync(
+          "bash",
+          [
+            toBashPath(wrapperPath),
+            "--skip-preflight",
+            "--skip-verify",
+            "--run-id",
+            runId,
+            "--log-path",
+            toBashPath(explicitLogPath),
+            "explicit log symlink probe",
+          ],
+          {
+            cwd: fixture.root,
+            encoding: "utf8",
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              CODEX_BIN: toBashPath(probe.fakeCodexPath),
+              CODEX_INVOCATION_MARKER: toBashPath(probe.markerPath),
+            },
+          },
+        );
+        const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+        expect(result.status).not.toBe(0);
+        expect(output).toContain("Run-local output file is unsafe");
+        expect(fs.existsSync(probe.markerPath)).toBe(false);
+        expect(fs.readFileSync(sentinelPath, "utf8")).toBe(sentinelContents);
+      } finally {
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!manifestRuntimeAvailable)("fails closed for a reparse-point runs root", () => {
+    const fixture = createWrapperFixture();
+    const runId = "20990101-987653-JST";
+    const outsideRunsRoot = path.join(fixture.root, "outside-runs");
+    fs.mkdirSync(outsideRunsRoot, { recursive: true });
+    fs.symlinkSync(outsideRunsRoot, path.join(fixture.root, "runs"), "junction");
+
+    try {
+      const result = spawnSync(
+        powerShellCommand,
+        [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          fixture.wrapperPath,
+          "-SkipPreflight",
+          "-RunId",
+          runId,
+          "symlink-run probe",
+        ],
+        {
+          cwd: fixture.root,
+          encoding: "utf8",
+          timeout: 30_000,
+          env: {
+            ...process.env,
+            CODEX_BIN: fixture.fakeCodexPath,
+            CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+            CODEX_TEST_EXIT_CODE: "0",
+          },
+          windowsHide: process.platform === "win32",
+        },
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(fs.existsSync(path.join(outsideRunsRoot, runId))).toBe(false);
+    } finally {
+      fs.rmSync(fixture.root, { recursive: true, force: true });
+    }
   });
 
   it("routes every verify form through the shared scalar-exit-code function", () => {

@@ -189,8 +189,8 @@ check_template_contract() {
   ! contains "## 0. 最初に必ず読むもの" AGENTS.md || return 1
   contains "通常taskの開始時に、root以外の文書を一律で読み込まない。" AGENTS.md || return 1
   ! contains "Runを使うtaskでは" AGENTS.md || return 1
-  contains "このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。" AGENTS.md || return 1
-  contains "active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。" AGENTS.md || return 1
+  contains 'このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。' AGENTS.md || return 1
+  contains "Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。" AGENTS.md || return 1
   contains 'Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。' AGENTS.md || return 1
   ! contains "Run作成の入口は" AGENTS.md || return 1
   contains ".agents/skills/feature-plan/SKILL.md" AGENTS.md || return 1
@@ -239,10 +239,14 @@ check_template_contract() {
   contains "## Run Artifact lifecycle" docs/reference/run-artifacts.md || return 1
   contains "作業完了後も実行ディレクトリ（Run Directory）を保持" docs/reference/run-artifacts.md || return 1
   contains "通常のクリーンアップや成果物整理のみを理由として削除しません" docs/reference/run-artifacts.md || return 1
-  contains '.codex/runs/` を `.gitignore` に追加してはなりません' docs/reference/run-artifacts.md || return 1
+  contains '新規Run Artifactのcanonical rootはリポジトリ直下の`runs/<run_id>/`です。' docs/reference/run-artifacts.md || return 1
   contains "作業完了後も実行ディレクトリ（Run Directory）を保持し、調査、レビュー、修正、再発防止に活用できるよう蓄積します。" docs/reference/run-artifacts.md || return 1
   contains '過去の実行ディレクトリや `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` は、通常のクリーンアップや成果物整理のみを理由として削除しません。' docs/reference/run-artifacts.md || return 1
-  contains '.codex/runs/` を `.gitignore` に追加してはなりません' docs/reference/run-artifacts.md || return 1
+  contains 'runs/` とpreserved legacy/historyの`.codex/runs/`を`.gitignore`に追加してはなりません。' docs/reference/run-artifacts.md || return 1
+  contains 'runs/`は`.gitignore`に登録せず、credential/security scanから除外しません。' docs/reference/run-artifacts.md || return 1
+  contains 'scripts/security-static-check.ts' docs/reference/run-artifacts.md || return 1
+  contains 'preserved legacy/historyの`.codex/runs/**`は移動・削除・書換えを行いません。' docs/reference/run-artifacts.md || return 1
+  contains 'report_policy.run_report`は`runs/<run_id>/REPORT.md`' docs/reference/run-artifacts.md || return 1
   contains "同一の会話セッション内で同一タスクを継続する場合は、既存のアクティブなRunを再利用します。" docs/reference/run-artifacts.md || return 1
   contains "同一の会話セッション内であっても、ユーザーが別タスクの開始を明示した場合は、新しいRunを作成できます。" docs/reference/run-artifacts.md || return 1
   ! contains "同一会話セッション内でも別taskを開始する場合は、新しいRunを作成します。" docs/reference/run-artifacts.md || return 1
@@ -282,8 +286,8 @@ check_template_contract() {
   contains "再確認" docs/reference/codex-implementation-harness.md || return 1
   contains 'standard` / `strict` では、`scripts/new-run.sh` または `scripts/new-run.ps1` を優先して Run を初期化する。' docs/reference/codex-implementation-harness.md || return 1
   contains '`lightweight` レベルであっても Run 成果物（Run Artifact）を残す。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、必要に応じて手動作成してよい。' docs/reference/codex-implementation-harness.md || return 1
-  contains '`new-run` を使わずに手動で初期化する場合は、該当するワークフローレベルで作成すべきエージェント管理成果物に対応した既存テンプレートを元に作成する。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、Parentが必要に応じて管理する。childは作成・更新せず、結果をParentへ返す。' docs/reference/codex-implementation-harness.md || return 1
+  contains '`new-run` を使わずに手動で初期化する場合も、Parentが該当するワークフローレベルで作成すべき成果物に対応した既存テンプレートを元に作成する。' docs/reference/codex-implementation-harness.md || return 1
   contains '.codex/templates/PLAN.md' docs/reference/codex-implementation-harness.md || return 1
   contains '.codex/templates/TASKS.md' docs/reference/codex-implementation-harness.md || return 1
   contains '.codex/templates/REPORT.md' docs/reference/codex-implementation-harness.md || return 1
@@ -536,6 +540,7 @@ check_template_contract() {
   contains "expected_changed_files" docs/reference/change-scope-policy.md || return 1
   contains "allowed_dirs" docs/reference/change-scope-policy.md || return 1
   contains "allowed_globs" docs/reference/change-scope-policy.md || return 1
+  contains "runs/" docs/reference/change-scope-policy.md || return 1
   contains ".codex/runs/" docs/reference/change-scope-policy.md || return 1
   contains "リポジトリルート相対" docs/reference/change-scope-policy.md || return 1
   contains "スコープ検証" docs/reference/change-scope-policy.md || return 1

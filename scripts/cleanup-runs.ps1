@@ -22,14 +22,28 @@ if ($ConfirmDeleteGeneratedRuns -and -not $DryRun) {
 
 $runIdPattern = '^[0-9]{8}-[0-9]{6}-JST$'
 
+function Get-PathEntry {
+    param([Parameter(Mandatory = $true)][string]$LiteralPath)
+
+    try {
+        return (Get-Item -LiteralPath $LiteralPath -Force -ErrorAction Stop)
+    }
+    catch {
+        if ($_.CategoryInfo.Category -eq [System.Management.Automation.ErrorCategory]::ObjectNotFound) {
+            return $null
+        }
+        throw
+    }
+}
+
 function Test-IsReparsePoint {
     param([Parameter(Mandatory = $true)][string]$LiteralPath)
 
-    if (-not (Test-Path -LiteralPath $LiteralPath)) {
+    $item = Get-PathEntry -LiteralPath $LiteralPath
+    if ($null -eq $item) {
         return $false
     }
 
-    $item = Get-Item -LiteralPath $LiteralPath -Force
     return (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)
 }
 
@@ -100,8 +114,13 @@ function Add-Candidate {
         [Parameter(Mandatory = $true)][string]$Path
     )
 
-    if (-not (Test-Path -LiteralPath $Path)) {
+    $pathItem = Get-PathEntry -LiteralPath $Path
+    if ($null -eq $pathItem) {
         return
+    }
+    $isReparsePoint = ($pathItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0
+    if ($Kind -eq "run_dir" -and $isReparsePoint) {
+        throw "Refusing to inspect symlink/reparse-point Run candidate: $(Get-RepoRelativePath -LiteralPath $Path)"
     }
     if (-not (Test-IsOldEnough -LiteralPath $Path)) {
         return
@@ -116,8 +135,20 @@ function Add-Candidate {
 $script:hasOlderThanDays = $PSBoundParameters.ContainsKey('OlderThanDays')
 $script:candidates = New-Object System.Collections.Generic.List[object]
 
-$runsRoot = Join-Path $repoRoot ".codex\runs"
-if (Test-Path -LiteralPath $runsRoot) {
+$runsRoot = Join-Path $repoRoot "runs"
+$runsRootItem = Get-PathEntry -LiteralPath $runsRoot
+if ($null -ne $runsRootItem) {
+    if (Test-IsReparsePoint -LiteralPath $runsRoot) {
+        throw "Refusing to inspect symlink/reparse-point runs root: runs"
+    }
+    if (-not $runsRootItem.PSIsContainer) {
+        throw "Refusing to inspect non-directory runs root: runs"
+    }
+    $expectedRunsRoot = [System.IO.Path]::GetFullPath($runsRoot)
+    $canonicalRunsRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $runsRoot).Path)
+    if (-not [string]::Equals($canonicalRunsRoot, $expectedRunsRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to inspect runs root outside its direct repository child: runs"
+    }
     Get-ChildItem -LiteralPath $runsRoot -Force | ForEach-Object {
         if ($_.Name -match $runIdPattern) {
             Add-Candidate -Kind "run_dir" -Path $_.FullName

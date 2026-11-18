@@ -17,7 +17,7 @@ Options:
 
 Notes:
   - Default behavior is preview-only. No files are deleted unless --confirm-delete-generated-runs is set.
-  - Only generated run artifacts under .codex/ are eligible.
+  - Only runs/<run_id>/ and top-level .codex/logs/*.jsonl artifacts are eligible.
 EOF
 }
 
@@ -93,6 +93,22 @@ is_reparse_point() {
   [[ "$result" == "True" ]]
 }
 
+if [[ -e "runs" || -L "runs" ]]; then
+  if is_reparse_point "runs"; then
+    echo "Refusing to inspect symlink/reparse-point runs root: runs" >&2
+    exit 1
+  fi
+  if [[ ! -d "runs" ]]; then
+    echo "Refusing to inspect non-directory runs root: runs" >&2
+    exit 1
+  fi
+  canonical_runs_root="$(cd "runs" && pwd -P)"
+  if [[ "$canonical_runs_root" != "$repo_root/runs" ]]; then
+    echo "Refusing to inspect runs root outside its direct repository child: runs" >&2
+    exit 1
+  fi
+fi
+
 get_mtime_epoch() {
   local path="$1"
   if stat -c %Y "$path" >/dev/null 2>&1; then
@@ -143,6 +159,10 @@ add_candidate() {
     return 0
   fi
   if is_reparse_point "$path"; then
+    if [[ "$kind" == "run_dir" ]]; then
+      echo "Refusing to inspect symlink/reparse-point Run candidate: $path" >&2
+      exit 1
+    fi
     candidate_kinds+=("$kind")
     candidate_paths+=("$path")
     return 0
@@ -154,13 +174,13 @@ add_candidate() {
   candidate_paths+=("$path")
 }
 
-if [[ -d ".codex/runs" ]]; then
+if [[ -d "runs" ]]; then
   while IFS= read -r -d '' entry; do
     base="$(basename "$entry")"
     if [[ "$base" =~ $run_id_regex ]]; then
       add_candidate "run_dir" "$entry"
     fi
-  done < <(find ".codex/runs" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
+  done < <(find "runs" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
 fi
 
 if [[ -d ".codex/logs" ]]; then

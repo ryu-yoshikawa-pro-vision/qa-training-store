@@ -62,6 +62,7 @@ $ErrorActionPreference = "Stop"
 $script:codexRunArtifactSanitizationExecuted = $false
 $script:codexTaskCompletedNormally = $false
 $script:codexTaskTerminationCode = 0
+$script:codexTaskRunLocationValidated = $true
 
 function Get-RepoRoot {
     param([string]$ScriptDir)
@@ -96,6 +97,73 @@ function Resolve-RepoPath {
     return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Path))
 }
 
+function Get-PathItemOrNull {
+    param([Parameter(Mandatory = $true)][string]$LiteralPath)
+
+    try {
+        return (Get-Item -LiteralPath $LiteralPath -Force -ErrorAction Stop)
+    }
+    catch {
+        if ($_.CategoryInfo.Category -eq [System.Management.Automation.ErrorCategory]::ObjectNotFound) {
+            return $null
+        }
+        throw "Unable to inspect path '$LiteralPath': $($_.Exception.Message)"
+    }
+}
+
+function Assert-RunLocalOutputPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$RunRoot,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][ValidateSet("Directory", "File")][string]$ExpectedKind
+    )
+
+    $runRootFull = [System.IO.Path]::GetFullPath($RunRoot).TrimEnd('\', '/')
+    $pathFull = [System.IO.Path]::GetFullPath($Path)
+    if ([System.StringComparer]::OrdinalIgnoreCase.Equals($pathFull, $runRootFull)) {
+        throw "Run-local output path is not a file or subdirectory: $pathFull"
+    }
+    $prefix = $runRootFull + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $pathFull.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return
+    }
+
+    $relativePath = $pathFull.Substring($prefix.Length)
+    $segments = @($relativePath -split '[\\/]' | Where-Object { $_.Length -gt 0 })
+    if ($segments.Count -eq 0) {
+        throw "Run-local output path is not a file or subdirectory: $relativePath"
+    }
+
+    $currentPath = $runRootFull
+    for ($index = 0; $index -lt $segments.Count; $index++) {
+        $currentPath = Join-Path $currentPath $segments[$index]
+        $item = Get-PathItemOrNull -LiteralPath $currentPath
+        if ($null -eq $item) {
+            break
+        }
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Run-local output path must not contain a symlink or reparse point: $relativePath"
+        }
+
+        $isFinalSegment = $index -eq ($segments.Count - 1)
+        if (-not $isFinalSegment -and -not $item.PSIsContainer) {
+            throw "Run-local output path has a non-directory parent: $relativePath"
+        }
+        if ($isFinalSegment -and $ExpectedKind -eq "Directory" -and -not $item.PSIsContainer) {
+            throw "Run-local output path must be a directory: $relativePath"
+        }
+        if ($isFinalSegment -and $ExpectedKind -eq "File" -and $item.PSIsContainer) {
+            throw "Run-local output path must be a file: $relativePath"
+        }
+
+        $expectedPath = [System.IO.Path]::GetFullPath($currentPath)
+        $resolvedPath = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $currentPath).Path)
+        if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedPath, $expectedPath)) {
+            throw "Run-local output path resolves outside runs/<id>: $relativePath"
+        }
+    }
+}
+
 function Convert-ToContainerPath {
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
@@ -120,10 +188,7 @@ function Get-DefaultLogPath {
 
     $logsDir = Join-Path $RepoRoot ".codex\\logs"
     if (-not [string]::IsNullOrWhiteSpace($RunId)) {
-        $logsDir = Join-Path $RepoRoot (Join-Path ".codex\\runs" (Join-Path $RunId "logs"))
-    }
-    if (-not (Test-Path $logsDir)) {
-        New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+        $logsDir = Join-Path $RepoRoot (Join-Path "runs" (Join-Path $RunId "logs"))
     }
     return (Join-Path $logsDir ("codex-task-" + $Timestamp + ".jsonl"))
 }
@@ -165,6 +230,69 @@ function Test-RunId {
     param([string]$RunId)
 
     return [string]::IsNullOrWhiteSpace($RunId) -or $RunId -match '^\d{8}-\d{6}-JST$'
+}
+
+function Assert-RunLocation {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$RunId
+    )
+
+    $runsRoot = Join-Path $RepoRoot "runs"
+    $runsRootItem = Get-Item -LiteralPath $runsRoot -Force -ErrorAction SilentlyContinue
+    if ($null -eq $runsRootItem -or -not $runsRootItem.PSIsContainer) {
+        throw "Run root is missing or unsafe: runs"
+    }
+    if (($runsRootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Run root must not be a reparse point: runs"
+    }
+    $expectedRunsRoot = [System.IO.Path]::GetFullPath($runsRoot)
+    $resolvedRunsRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $runsRoot).Path)
+    if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedRunsRoot, $expectedRunsRoot)) {
+        throw "Run root resolves outside the repository runs directory: runs"
+    }
+
+    $runRoot = Join-Path $runsRoot $RunId
+    $runRootItem = Get-Item -LiteralPath $runRoot -Force -ErrorAction SilentlyContinue
+    if ($null -eq $runRootItem -or -not $runRootItem.PSIsContainer) {
+        throw "Run directory not found or unsafe: runs/$RunId"
+    }
+    if (($runRootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Run directory must not be a reparse point: runs/$RunId"
+    }
+    $expectedRunRoot = [System.IO.Path]::GetFullPath($runRoot)
+    $resolvedRunRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $runRoot).Path)
+    if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedRunRoot, $expectedRunRoot)) {
+        throw "Run directory resolves outside its runs/<id> path: runs/$RunId"
+    }
+
+    $legacyRunRoot = Join-Path $RepoRoot (Join-Path ".codex" (Join-Path "runs" $RunId))
+    $legacyRunItem = Get-PathItemOrNull -LiteralPath $legacyRunRoot
+    if ($null -ne $legacyRunItem) {
+        throw "Ambiguous Run ID exists in both runs/$RunId and .codex/runs/$RunId"
+    }
+
+    foreach ($name in @("logs", "artifacts", "reports")) {
+        Assert-RunLocalOutputPath -RunRoot $runRoot -Path (Join-Path $runRoot $name) -ExpectedKind "Directory"
+    }
+
+    foreach ($name in @("run.json", "evaluation.json")) {
+        $candidate = Join-Path $runRoot $name
+        $candidateItem = Get-Item -LiteralPath $candidate -Force -ErrorAction SilentlyContinue
+        if ($null -eq $candidateItem) {
+            continue
+        }
+        if (($candidateItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0 -or $candidateItem.PSIsContainer) {
+            throw "Run-local path is unsafe: runs/$RunId/$name"
+        }
+        $expectedPath = [System.IO.Path]::GetFullPath($candidate)
+        $resolvedPath = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $candidate).Path)
+        if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedPath, $expectedPath)) {
+            throw "Run-local path resolves outside runs/<id>: runs/$RunId/$name"
+        }
+    }
+
+    return $runRoot
 }
 
 function Normalize-RepoRelativePosixPath {
@@ -391,12 +519,7 @@ function Get-GitDirty {
     try {
         & git -C $RepoRoot rev-parse --is-inside-work-tree *> $null
         if ($LASTEXITCODE -ne 0) { return $false }
-        & git -C $RepoRoot diff --quiet --ignore-submodules -- *> $null
-        if ($LASTEXITCODE -ne 0) { return $true }
-        & git -C $RepoRoot diff --cached --quiet --ignore-submodules -- *> $null
-        if ($LASTEXITCODE -ne 0) { return $true }
-        $untracked = (& git -C $RepoRoot ls-files --others --exclude-standard 2>$null)
-        return ($null -ne $untracked -and @($untracked).Count -gt 0)
+        return (@(Get-GitChangedFiles -RepoRoot $RepoRoot).Count -gt 0)
     }
     catch {
         return $false
@@ -629,9 +752,6 @@ function Write-RunManifest {
                 $manifest.safety.network = ([bool]$existingSafety.network -or [bool]$manifest.safety.network)
                 $manifest.safety.scope_violation = ([bool]$existingSafety.scope_violation -or [bool]$manifest.safety.scope_violation)
             }
-            if ($null -eq $manifest.evaluation_path -and $null -ne $existing.evaluation_path) {
-                $manifest.evaluation_path = $existing.evaluation_path
-            }
             if ($null -eq $manifest.primary_failure_category -and $null -ne $existing.primary_failure_category) {
                 $manifest.primary_failure_category = $existing.primary_failure_category
             }
@@ -673,7 +793,7 @@ function Write-RunManifest {
         throw "collect-run-artifacts.ps1 is required when -RecordRunManifest is enabled"
     }
 
-    & powershell.exe -ExecutionPolicy Bypass -File $collector -RunId $State.run_id -ManifestPath $Path | Out-Null
+    & powershell.exe -ExecutionPolicy Bypass -File $collector -RunId $State.run_id -RunsRoot (Join-Path $RepoRoot "runs") -ManifestPath $Path | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "collect-run-artifacts failed with exit code $LASTEXITCODE"
     }
@@ -767,7 +887,9 @@ function Get-GitChangedFiles {
             $normalized = Normalize-RepoRelativePosixPath -Path $primary
             if (-not [string]::IsNullOrWhiteSpace($normalized) -and
                 $normalized -ne '.codex/runs' -and
-                -not $normalized.StartsWith('.codex/runs/', [System.StringComparison]::Ordinal)) {
+                -not $normalized.StartsWith('.codex/runs/', [System.StringComparison]::Ordinal) -and
+                $normalized -ne 'runs' -and
+                -not $normalized.StartsWith('runs/', [System.StringComparison]::Ordinal)) {
                 $paths.Add($normalized)
             }
 
@@ -779,7 +901,9 @@ function Get-GitChangedFiles {
                         $normalized = Normalize-RepoRelativePosixPath -Path $secondary
                         if (-not [string]::IsNullOrWhiteSpace($normalized) -and
                             $normalized -ne '.codex/runs' -and
-                            -not $normalized.StartsWith('.codex/runs/', [System.StringComparison]::Ordinal)) {
+                            -not $normalized.StartsWith('.codex/runs/', [System.StringComparison]::Ordinal) -and
+                            $normalized -ne 'runs' -and
+                            -not $normalized.StartsWith('runs/', [System.StringComparison]::Ordinal)) {
                             $paths.Add($normalized)
                         }
                     }
@@ -902,7 +1026,7 @@ function Initialize-EvaluationTemplate {
         return
     }
 
-    $State.evaluation_path = ".codex/runs/$($State.run_id)/evaluation.json"
+    $State.evaluation_path = "runs/$($State.run_id)/evaluation.json"
     $parent = Split-Path -Parent $State.evaluation_file_path
     if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path $parent)) {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
@@ -1040,7 +1164,7 @@ function Invoke-RequiredEvaluationValidation {
         return
     }
 
-    $expectedRepoPath = ".codex/runs/$($State.run_id)/evaluation.json"
+    $expectedRepoPath = "runs/$($State.run_id)/evaluation.json"
     if (-not (Test-Path $State.evaluation_file_path)) {
         $Report.status = "evaluation_missing"
         $State.run_status = "failed"
@@ -1159,6 +1283,10 @@ function Fail-Task {
         [System.Collections.IDictionary]$Report
     )
 
+    if (-not $script:codexTaskRunLocationValidated) {
+        throw $Message
+    }
+
     $Report.status = $Status
     Write-TaskLog -Path $LogPath -Event "task_failed" -Data @{ status = $Status; message = $Message }
     Write-TaskReport -Path $ReportPath -Report $Report
@@ -1185,11 +1313,6 @@ $repoRoot = Get-RepoRoot -ScriptDir $PSScriptRoot
 $timestamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
 $artifactsDir = Join-Path $repoRoot ".codex\\artifacts"
 $reportsDir = Join-Path $repoRoot ".codex\\reports"
-foreach ($dir in @($artifactsDir, $reportsDir)) {
-    if (-not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
-}
 
 $state = [ordered]@{
     preset = "safe"
@@ -1327,6 +1450,9 @@ function Convert-ToRepoRelativePath {
     return ($relative -replace '\\', '/')
 }
 $Arguments = $normalizedArguments.ToArray()
+if ($normalizedArguments.Contains('--run-id')) {
+    $script:codexTaskRunLocationValidated = $false
+}
 
 $positionals = New-Object System.Collections.Generic.List[string]
 $i = 0
@@ -1468,6 +1594,38 @@ while ($i -lt $Arguments.Count) {
     $i++
 }
 
+if (-not [string]::IsNullOrWhiteSpace($state.run_id)) {
+    if (-not (Test-RunId -RunId $state.run_id)) {
+        Fail-Task -Status "invalid_args" -Message "Invalid --run-id: expected YYYYMMDD-HHMMSS-JST" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
+    }
+    $runRoot = Assert-RunLocation -RepoRoot $repoRoot -RunId $state.run_id
+    $state.run_root = $runRoot
+    if (-not $state.explicit_output_file) {
+        $state.output_file = Join-Path (Join-Path $runRoot "artifacts") ("codex-task-" + $timestamp + ".json")
+    }
+    if (-not $state.explicit_report_path) {
+        $state.report_path = Join-Path (Join-Path $runRoot "reports") ("codex-task-" + $timestamp + ".report.json")
+    }
+    if (-not $state.explicit_log_path) {
+        $state.log_path = Get-DefaultLogPath -RepoRoot $repoRoot -Timestamp $timestamp -RunId $state.run_id
+    }
+    if ($state.record_run_manifest) {
+        $state.manifest_path = Join-Path $runRoot "run.json"
+    }
+    $state.evaluation_file_path = Join-Path $runRoot "evaluation.json"
+    foreach ($outputPath in @($state.output_file, $state.report_path, $state.log_path)) {
+        Assert-RunLocalOutputPath -RunRoot $runRoot -Path $outputPath -ExpectedKind "File"
+    }
+    $script:codexTaskRunLocationValidated = $true
+}
+else {
+    $script:codexTaskRunLocationValidated = $true
+}
+
+$report.run_id = $state.run_id
+$report.output_file = $state.output_file
+$report.log_path = $state.log_path
+
 $state.allowed_files = @(Get-SortedUniqueStrings -Values @($state.allowed_files))
 $state.allowed_dirs = @(Get-SortedUniqueStrings -Values @($state.allowed_dirs))
 $state.allowed_globs = @(Get-SortedUniqueStrings -Values @($state.allowed_globs))
@@ -1514,31 +1672,6 @@ if ($null -ne $state.max_iterations) {
 
 if ($state.record_run_manifest -and [string]::IsNullOrWhiteSpace($state.run_id)) {
     Fail-Task -Status "invalid_args" -Message "--record-run-manifest requires --run-id" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-}
-
-if (-not [string]::IsNullOrWhiteSpace($state.run_id)) {
-    if (-not (Test-RunId -RunId $state.run_id)) {
-        Fail-Task -Status "invalid_args" -Message "Invalid --run-id: expected YYYYMMDD-HHMMSS-JST" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-    $runRoot = Join-Path $repoRoot (Join-Path ".codex\\runs" $state.run_id)
-    $state.run_root = $runRoot
-    $runsRoot = Join-Path $repoRoot ".codex\\runs"
-    if (-not (Test-IsPathUnderRoot -Path $runRoot -Root $runsRoot)) {
-        Fail-Task -Status "invalid_args" -Message "Invalid --run-id path: resolved run path escapes .codex/runs" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-    if (-not $state.explicit_output_file) {
-        $state.output_file = Join-Path (Join-Path $runRoot "artifacts") ("codex-task-" + $timestamp + ".json")
-    }
-    if (-not $state.explicit_report_path) {
-        $state.report_path = Join-Path (Join-Path $runRoot "reports") ("codex-task-" + $timestamp + ".report.json")
-    }
-    if (-not $state.explicit_log_path) {
-        $state.log_path = Get-DefaultLogPath -RepoRoot $repoRoot -Timestamp $timestamp -RunId $state.run_id
-    }
-    if ($state.record_run_manifest) {
-        $state.manifest_path = Join-Path $runRoot "run.json"
-    }
-    $state.evaluation_file_path = Join-Path $runRoot "evaluation.json"
 }
 
 $report.runtime = $state.runtime
@@ -1839,7 +1972,10 @@ if ($state.record_run_manifest) {
  exit 0
 }
 finally {
-    $sanitizationExitCode = Invoke-CodexRunArtifactSanitization -RunRoot $state.run_root -KnownPaths @($state.output_file, $state.report_path, $state.log_path, $state.manifest_path, $state.evaluation_file_path) -RepoRoot $repoRoot
+    $sanitizationExitCode = 0
+    if ($script:codexTaskRunLocationValidated) {
+        $sanitizationExitCode = Invoke-CodexRunArtifactSanitization -RunRoot $state.run_root -KnownPaths @($state.output_file, $state.report_path, $state.log_path, $state.manifest_path, $state.evaluation_file_path) -RepoRoot $repoRoot
+    }
     if ($sanitizationExitCode -ne 0 -and $script:codexTaskCompletedNormally -and [int]$script:codexTaskTerminationCode -eq 0) {
         exit 1
     }
