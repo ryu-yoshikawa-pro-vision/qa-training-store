@@ -58,7 +58,7 @@
 
 ### ローカルゲート
 
-- `pnpm run test:hooks`: 4 files / **172 tests passed**。`--testTimeout`を30秒→120秒へ調整（WSL `/mnt/c`上で`evaluateCommand()`が複数gitサブプロセスを起動し環境によって30秒超過するため。チェック件数は維持）。
+- `pnpm run test:hooks`: 4 files / **172 tests passed**。`--testTimeout`を30秒→120秒へ調整（WSLのWindowsマウント上で`evaluateCommand()`が複数gitサブプロセスを起動し環境によって30秒超過するため。チェック件数は維持）。
 - `pnpm run diagnose:hooks`: WARN=0 ERROR=0。
 - `pnpm run format:check:strict`: All matched files use Prettier code style（変更した2ファイルをPrettier修正）。
 - `pnpm run lint`: 0 errors / 63 pre-existing warnings（LINT_EXIT=0）。
