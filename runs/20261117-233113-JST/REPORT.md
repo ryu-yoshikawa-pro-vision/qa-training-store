@@ -149,3 +149,25 @@
 - Native の Jest（13 suite、64 件）、route 依存（38 routes）、EAS 設定、asset 生成（9 件、追跡ファイル差分なし）、画像 manifest は終了コード 0。Native route 検査は sandbox の tsx pipe EPERM 後に承認経路で成功した。
 - 本番設定の `pnpm run build:web` は Expo のホームへの EROFS（終了コード 7）後に一時領域の Expo キャッシュで再試行し、終了コード 0、`dist/index.html` を確認した。`pnpm run build:spec` は 22 ページ生成、終了コード 0。
 - Windows 側の HEAD、Git index、porcelain status の照合値は開始時と一致し、Windows の `node_modules` は存在した。旧 Run 履歴と machine-managed manifest の差分はなし。
+
+## 2026-11-18 20:37 (JST)
+
+- 最終 staged 品質、正式な security:check（runtime 236、機密検査 387 ファイル）、staged サニタイザー（3 ファイル、残留検出 0）は終了コード 0。通常の pre-commit hook も同じ検査を通り、修復コミット `9e063d7d56df1d41997a929a1d0a2c74d032716d` を作成した。
+- `git fetch origin` は終了コード 0。PR が open、追跡先と HEAD が期待値であることを再確認した。対象 feature branch への通常 push は HTTPS のユーザー名を取得できず終了コード 128。Linux Git の認証経路が未設定で、Windows の既存 GitHub CLI ログインは承認経路で確認した。
+- PR 本文にはローカルの修復・検証、PowerShell 保留、現在の HEAD `71e67076695df5deed96487513d4cd852f8bd45c` の Web と Mobile の失敗を記録した。修復 SHA の CI は push 後に開始されるため、waiter は未実行。Linux Git の認証が利用でき次第、同じ feature branch へ通常 push し、修復 SHA の必須 CI を確認する。
+
+## 2026-11-18 残存 CI 失敗の調査
+
+- 再開時の PR と Linux checkout の HEAD は `9e063d7d56df1d41997a929a1d0a2c74d032716d`。既存の未ステージ差分は上記の追記 1 ファイル。Web run `44299170983` は Dependency Review、Mobile run `44299171170` は Android Runtime が最初に失敗。Vitest contracts、Expo Doctor、両 Android APK ビルドは成功していた。
+- `pnpm why minimatch` と `pnpm list minimatch --depth Infinity` は終了コード 0。Expo 57.0.33 が参照する `@expo/fingerprint@0.20.16` が `^10.2.6` を追加した。SDK 57 の許容範囲に修正版を依存する fingerprint は確認できなかった。fingerprint は v11.0.5 に存在する `Minimatch` コンストラクター、`.match()`、`.pattern`、`.negate` を使うため、`@expo/fingerprint@0.20.16>minimatch` に限って既存解決済みの v11.0.5 を指定した。lockfile から v10.2.6 がなくなり、他の利用元と既存の brace-expansion override を維持した。
+- Android の失敗 artifact `14425474686` と前回成功の run `44278688991` の証拠・APK を取得した。スクリーンショットと UI hierarchy は両ビルドで `NativeDatabase.constructor` の `UnsatisfiedLinkError` と `libexpo-sqlite.so` 不足を示した。Automation の初期状態は booting のままで、対象 Deep Link の実行前に失敗した。x86_64 用 SQLite ライブラリは旧 SHA の両 APK にあり、失敗 SHA の両 APK に存在しなかった。
+- Expo SDK 57 が要求する `expo-sqlite@57.0.5` の配布 AAR は arm64-v8a のみ。57.0.4 の配布 AAR は x86_64 を含む 4 ABI で、57.0.6 は調査時点で未公開だった。Android の Expo Autolinking で SQLite のみをソースビルドに指定した。既存のビルドアーキテクチャと Maestro の期待値を維持した。
+
+## 2026-11-18 ローカル検証
+
+- `pnpm install --frozen-lockfile`（install 時は HUSKY=0）は終了コード 0。両プラットフォームの fingerprint 生成と、Android Autolinking の JSON 解決は終了コード 0。解決された source build 指定は `expo-sqlite` のみ。
+- `bash -n scripts/verify` と `bash scripts/verify` は終了コード 0。可用性確認に必須のルールを指定し、`decision_from_json` が構造化 JSON を解析するようにした。Codex が返す `matchedRules: []` を旧関数が `{` と誤っていた。承認済み WSL 経路と Linux 専用 PATH で基準・安全性判定、Bash wrapper を実行し、4 成功、0 失敗、1 スキップだった。最初の試行では PATH の限定を漏らして Windows wrapper が起動し、失敗した。正式な Windows ローカル検証は保留。
+- `format:check`、`lint:markdown`（478 ファイル）、`lint`（63 警告、0 エラー）、`typecheck`、`security:check`（runtime 236、機密検査 387 ファイル）は終了コード 0。Web 本番ビルドも終了コード 0、`dist/index.html` を確認した。
+- `expo install --check`、Native Jest（13 suite、64 件）、route 依存（38 件）、画像 manifest、EAS 設定、Native asset 生成（9 件、生成ファイル差分なし）は終了コード 0。Expo Doctor 1.17.6 は最初の React Native Directory metadata 検査で 1 件失敗し、明示的なオンライン CI 環境での再実行は 17/17 成功、終了コード 0。APK と端末での検証は GitHub Actions に委ねる。
+- `test:repository` は終了コード 0、146 成功、1 スキップ。全契約の初回実行は 2 ファイルで worker 起動タイムアウト、終了コード 1。失敗した assertion はなく、他のタスクを並行させずに再実行する。
+- 全契約の単独再実行は終了コード 0、50 ファイル、817 成功、38 スキップ、0 失敗だった。ここまでの検証は開始 HEAD `9e063d7d56df1d41997a929a1d0a2c74d032716d` と今回の作業差分を対象とした。

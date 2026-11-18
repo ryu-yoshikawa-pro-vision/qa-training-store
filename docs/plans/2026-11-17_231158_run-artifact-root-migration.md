@@ -129,3 +129,11 @@
 - 指定された Linux 品質ゲートに加え、対象契約テスト、Expo Doctor、Web ビルド、Native 検査を実行する。PowerShell はコードの静的整合性と GitHub Actions の Windows ジョブを確認し、Windows ローカル実行は保留する。
 - 変更と既存 Run 記録をサニタイズして stage し、staged 品質検査と通常の hook を通す。通常 push 後に PR HEAD、Web CI、Mobile App CI を照合し、PR 本文に結果を記録する。
 - 調査・実装は GPT-6 Luna を指定した既存の子 Role に委任する。問題時は対象コミットを通常の revert で戻し、Windows 側と Run 履歴を保持する。
+
+## 11. 残存 CI 失敗の修復
+
+- 開始時の PR HEAD は `9e063d7d56df1d41997a929a1d0a2c74d032716d`。Dependency Review と Android Runtime の最初の失敗を根拠に修復を進める。
+- Web は Expo 関連から導入された minimatch の依存経路を追い、互換更新を優先する。範囲を限定した override が必要な場合は、利用 API とビルドの互換性を確認する。
+- Android は保存済みの Runtime 証拠を取得し、両 APK の共通起動経路と直前の成功 run を比較する。ログで確認した原因に限定して修正し、既存の Maestro 条件を維持する。
+- Bash verify は CLI の引数と既存ルールを照合し、可用性確認と実行結果を検証する。Windows ローカルの PowerShell 実行は保留する。
+- Linux の指定ゲート、対象の Native 検証、staged 検査を実施する。通常の hook を通して対象ブランチへ push し、最新 SHA の Web と Mobile の成功を確認して PR 本文を更新する。

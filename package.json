@@ -98,6 +98,15 @@
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
     "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint:text && pnpm run lint:text:all && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-sqlite"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@expo/metro-runtime": "57.0.18",
     "@fontsource/inter": "^5.3.0",
@@ -176,6 +185,7 @@
       "@react-native/community-cli-plugin@0.86.2>metro": "0.84.5",
       "@react-native/community-cli-plugin@0.86.2>metro-config": "0.84.5",
       "@react-native/metro-config@0.86.1>metro-config": "0.84.5",
+      "@expo/fingerprint@0.20.16>minimatch": "11.0.5",
       "minimatch@3.1.5>brace-expansion": "1.1.21",
       "minimatch@10.2.5>brace-expansion": "5.0.12"
     },

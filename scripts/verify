@@ -73,16 +73,45 @@ run_check() {
 decision_from_json() {
   local output="$1"
   local decision
-  decision="${output##*\"decision\":\"}"
-  decision="${decision%%\"*}"
-  if [[ -n "$decision" && "$decision" != "$output" ]]; then
+  if decision="$(printf '%s' "$output" | node -e '
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  let parsed;
+  try {
+    parsed = JSON.parse(input);
+  } catch {
+    process.exitCode = 1;
+    return;
+  }
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    process.exitCode = 1;
+    return;
+  }
+
+  if (Object.hasOwn(parsed, "decision")) {
+    if (typeof parsed.decision === "string" && parsed.decision.length > 0) {
+      process.stdout.write(parsed.decision);
+    } else {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (Array.isArray(parsed.matchedRules) && parsed.matchedRules.length === 0) {
+    process.stdout.write("allow");
+    return;
+  }
+
+  process.exitCode = 1;
+});
+' 2>/dev/null)"; then
     printf '%s' "$decision"
     return 0
   fi
-  if [[ "$output" == *'"matchedRules":[]'* ]]; then
-    printf 'allow'
-    return 0
-  fi
+  echo "Unable to parse execpolicy JSON output" >&2
   return 1
 }
 
@@ -763,7 +792,7 @@ check_execpolicy_safety_contract() {
 check_codex_available() {
   command -v codex >/dev/null 2>&1 &&
     codex --version >/dev/null 2>&1 &&
-    codex execpolicy check -- git status >/dev/null 2>&1
+    codex execpolicy check --rules .codex/rules/10-readonly-allow.rules -- git status >/dev/null 2>&1
 }
 
 check_bash_wrapper_preflight() {

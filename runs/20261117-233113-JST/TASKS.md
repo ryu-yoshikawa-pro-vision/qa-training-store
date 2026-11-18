@@ -29,6 +29,10 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - [x] WSL2 の独立 checkout、Linux ツールと依存、Windows 側の状態を確認する。
 - [x] Web の Git porcelain パス契約を修正し、対象回帰テストを実行する。
 - [x] Expo SDK 57 の互換性の差分を確認し、Mobile のバージョン検査を修復する。
+- [x] Dependency Review の minimatch 指摘を修復し、依存先の互換性を確認した。
+- [x] Android Runtime の証拠と成功 run を比較し、SQLite のソースビルド設定を追加した。APK と対象フローの確認は push 後の CI で行う。
+- [x] Bash verify の可用性確認と JSON 解析を修正し、execpolicy と Bash wrapper の成功を確認した。
+- [x] 最終差分の Linux ゲートと変更範囲を確認した。最終ステージの検査を通して通常の Git 操作へ進む。
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
 - legacy `.codex/runs` のRun ID collisionは、既存ディレクトリだけでなくdangling symlinkも含めて拒否する。
