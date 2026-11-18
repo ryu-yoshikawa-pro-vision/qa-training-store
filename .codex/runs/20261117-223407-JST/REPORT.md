@@ -37,3 +37,37 @@
 - Codex共通化: Git/Shell文字列判定は`.codex/hooks/pre_tool_use_policy.mjs`の`evaluateCommand()`を唯一の正本として共有。OS sandbox、承認UI、MCP/ファイル編集、Codex固有Hook/wrapper、ログイベント意味は共有対象外。
 - 残課題（環境依存・今回のコード範囲外）: グローバル`cli.json`の`autoaccept`により`ask`の対話承認は未検証。WSL linked worktreeのWindows形式`.git`ポインタによりownerRoot解決不可（G10でfail-closed）。Windows側での同等確認は未実施。
 - Progress: 100% (10/10)
+
+## 2026-11-18 追加作業: Windows/WSL2互換性とautoaccept下の安全性
+
+### 実装
+
+- Windows側worktreeの相対参照: 独立一時Git repoでWindows gitによるworktree作成→`git worktree repair --relative-paths`→Windows/WSL2双方での認識を検証。実worktreeにも適用し、`.git`と`gitdir`を相対パス化。`extensions.relativeWorktrees`はWSL git 2.43.0が未対応のため公式`git config --unset`で削除（相対リンクは維持）。
+- 相対化の結果: WSL/Windows双方で`git status --short`、`git rev-parse --show-toplevel`、`git rev-parse --git-common-dir`、`git branch --show-current`が成功。共有Hookの文脈解決も復帰し、`git commit`は許可、`git reset --hard`はG1、`git push --force`はG7で拒否。
+- 既知制約: WSL git 2.43.0の`git worktree list --porcelain`はlinked worktreeを`prunable`と表示（基本操作とHook判定は正常、Windows側は正常）。`docs/reference/opencode-v2-safety.md`に未解決リスクとして記録。
+- autoaccept安全化: `opencode.jsonc`の組み込み`shell`を既定`deny`に変更し、6件のGit `allow`例外を削除。グローバル`autoaccept`下でも`deny`が優先され組み込み`shell`ツールが提供されないことを実機確認。
+- Plugin: `ctx.tool.transform`で`guarded_shell`（command文字列）と`guarded_git`（args配列）を追加。両者は実行前に`evaluateCommand()`を呼び、入力不正・判定例外・拒否はfail-close。判定時はcheckout rootへ明示アンカーを付け、実行cwdもroot固定。
+
+### 実機確認（OpenCode v2.3.0、隔離一時Git repo）
+
+- `loading plugin .../.opencode/plugins/git-safety/index.js`をログで確認。
+- 組み込み`shell`は未提供、`guarded_git`/`guarded_shell`がCode Modeで利用可能。
+- `guarded_git(["status","--short"])`は許可・実行成功。
+- `guarded_shell`で`git reset --hard HEAD && echo DONE`は`G1`で実行前拒否、`echo DONE`は未実行、センチネル無傷。
+- Plugin未ロード時は組み込み`shell`もガードツールも存在せず、Shell実行経路が無いことを確認（fail-close）。
+
+### ローカルゲート
+
+- `pnpm run test:hooks`: 4 files / **172 tests passed**。`--testTimeout`を30秒→120秒へ調整（WSL `/mnt/c`上で`evaluateCommand()`が複数gitサブプロセスを起動し環境によって30秒超過するため。チェック件数は維持）。
+- `pnpm run diagnose:hooks`: WARN=0 ERROR=0。
+- `pnpm run format:check:strict`: All matched files use Prettier code style（変更した2ファイルをPrettier修正）。
+- `pnpm run lint`: 0 errors / 63 pre-existing warnings（LINT_EXIT=0）。
+- `pnpm run test:contracts`: spec-agentic-qa.test.tsの2件が失敗（`creates the same mixed-tree benchmark revision` / `keeps Benchmark Revision independent from Runner Profile`）。原因は`collectWorkingTreeEntries()`が`git status --porcelain`で今回の**未コミット差分**を検知し、`working_tree_entries`が非空となってrevisionが`git:<sha>`ではなく`sha256:<digest>`になるため。コード変更による回帰ではなく、未コミット状態で実行したことによる既知の挙動。コミット後にcleanな状態で再検証し解消を確認する。
+
+### 変更ファイル
+
+- `opencode.jsonc`、`.opencode/plugins/git-safety/index.js`、`tests/contracts/opencode-hook-contract.test.mjs`、`package.json`（testTimeout）、`docs/reference/opencode-v2-safety.md`、`docs/plans/2026-11-17_223407_codex-opencode-v2-common-safety.md`、本Run Artifact。
+- `.codex/hooks/pre_tool_use_policy.mjs`、`.codex/config.toml`、Codex wrapper、製品コード、Expo/lockfile/Native CIは未変更。
+- 環境作業（非コミット）: main repoの`.git/config`から`extensions.relativeWorktrees`を削除、worktreeの`.git`と`gitdir`を相対パス化、バックアップは`<TEMP_ROOT>/opencode/git-meta-backup`へ退避。
+
+- Progress: 80% (16/20)（残り: lint/test:contracts完了、commit/push、CI/PR本文更新）

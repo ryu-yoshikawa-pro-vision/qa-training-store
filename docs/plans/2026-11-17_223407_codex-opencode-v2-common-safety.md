@@ -19,8 +19,8 @@
 - `.codex/config.toml`は`PreToolUse`の`Bash`に対して既存Node Hookを呼ぶ。
 - `evaluateCommand(command, context?, cwd?)`は既存の判定関数としてexportされる。
 - `AGENTS.md`はCodexとOpenCodeに共通する一方、Codex固有のHook・wrapperはCodexのみに適用する。
-- OpenCode V2の`.opencode/plugins/`自動検出は直下の`.js`と`.ts`が対象。`.mjs`は`opencode.jsonc`の`plugins`に相対パスを明示して読み込む。`ctx.tool.hook("execute.before", ...)`を使う。
-- 実行環境のOpenCode V2本体、Codexのproject trust、Windows/WSL2の実機検証には今回アクセスできない。
+- OpenCode V2の`.opencode/plugins/`自動検出は直下のディレクトリ直下の`index.js`（または`index.ts`）が対象。当初は`.mjs`を`plugins`に直接指定していたが、実機v2.3.0で`configured plugin path must be a directory`警告により無視されPlugin未ロードとなる**過去の失敗判断**である（現在は無効な方式）。`ctx.tool.hook("execute.before", ...)`と`ctx.tool.transform(...)`を使う。
+- OpenCode V2実機（v2.3.0）とWindows/WSL2のworktreeは本来の計画では未検証の見込みだったが、実装中にアクセス可能となり、Pluginロード・拒否動作・worktree相対参照を実機確認した（詳細はRun Artifactと`docs/reference/opencode-v2-safety.md`）。
 - 対象外: プロダクトコード、Codex側の既存安全性ルール変更、MCP経由のGit操作制御、OSレベルのsandbox共有、ログイベントの完全互換化。
 
 ## 3. 質問 / 曖昧性
@@ -37,9 +37,9 @@
 ## 5. 変更方針
 
 1. 現行Codex判定関数を直接importするV2 Pluginを追加する。シェル文字列が欠落した場合はfail-closeする。
-2. `permissions`は`shell: ask`を原則とし、Git読み取り専用だけ`allow`。機密ファイルは`deny`し、外部ディレクトリは`ask`。
-3. 同一の既存ポリシーで許可・拒否を確認する契約テストを追加する。
-4. 導入と検証手順、Codexとの差、ロールバックを文書化する。
+2. `permissions`は当初`shell: ask`を原則としていたが、グローバル`autoaccept`で`ask`が自動承認されるため、組み込み`shell`を既定`deny`へ変更した。Git読み取り専用の広い`allow`例外も削除し、実行はPluginが提供する`guarded_shell` / `guarded_git` に集約する。機密ファイルは`deny`、外部ディレクトリは`ask`。
+3. 同一の既存ポリシーで許可・拒否を確認する契約テストを追加する（ガード付きツールの実行前拒否と`deny`設定を含む）。
+4. Windows側worktreeをWSL2から使う相対参照手順と、導入・検証・ロールバックを文書化する。
 
 ## 6. 検証方法
 
