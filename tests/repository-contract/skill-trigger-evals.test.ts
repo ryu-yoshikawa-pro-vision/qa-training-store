@@ -457,10 +457,19 @@ describe("Skill Trigger Eval deterministic contract", () => {
     writeFileSync(join(evaluatorFixture, "runs", "new.json"), "{}\n", "utf8");
     writeFileSync(join(evaluatorFixture, ".codex", "runs", "new.json"), "{}\n", "utf8");
     writeFileSync(join(evaluatorFixture, "fixture.txt"), "updated source\n", "utf8");
+    const trackedSourcePath = "tracked source 日本語.txt";
+    writeFileSync(join(evaluatorFixture, trackedSourcePath), "tracked source\n", "utf8");
+    runFixtureGit(evaluatorFixture, ["add", "--", trackedSourcePath]);
+    runFixtureGit(evaluatorFixture, ["commit", "-qm", "Add tracked source path"]);
+    writeFileSync(join(evaluatorFixture, trackedSourcePath), "updated tracked source\n", "utf8");
     writeFileSync(join(evaluatorFixture, "source.ts"), "const source = true;\n", "utf8");
+    const untrackedSourcePath = "untracked source 日本語.txt";
+    writeFileSync(join(evaluatorFixture, untrackedSourcePath), "untracked source\n", "utf8");
     expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual([
-      " M fixture.txt",
-      "?? source.ts",
+      "fixture.txt",
+      trackedSourcePath,
+      "source.ts",
+      untrackedSourcePath,
     ]);
   });
 
@@ -476,7 +485,7 @@ describe("Skill Trigger Eval deterministic contract", () => {
       runFixtureGit(runArtifactToSource, ["commit", "-qm", "run artifact baseline"]);
       renameSync(runArtifactPath, sourcePathAfterMove);
       runFixtureGit(runArtifactToSource, ["add", "--all"]);
-      expect(sourceStatusOutsideRunArtifacts(runArtifactToSource)).toEqual(["A  src/a.txt"]);
+      expect(sourceStatusOutsideRunArtifacts(runArtifactToSource)).toEqual(["src/a.txt"]);
 
       const sourceToRunArtifact = createGitFixture();
       const sourcePathBeforeMove = join(sourceToRunArtifact, "src", "a.txt");
@@ -488,7 +497,7 @@ describe("Skill Trigger Eval deterministic contract", () => {
       runFixtureGit(sourceToRunArtifact, ["commit", "-qm", "source baseline"]);
       renameSync(sourcePathBeforeMove, runArtifactPathAfterMove);
       runFixtureGit(sourceToRunArtifact, ["add", "--all"]);
-      expect(sourceStatusOutsideRunArtifacts(sourceToRunArtifact)).toEqual(["D  src/a.txt"]);
+      expect(sourceStatusOutsideRunArtifacts(sourceToRunArtifact)).toEqual(["src/a.txt"]);
     }
   });
 

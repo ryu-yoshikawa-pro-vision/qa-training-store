@@ -63,3 +63,8 @@
 - 2026-11-17: 旧 `scripts/new-run.sh --run-id 20261117-231158-JST` は `.codex/runs/` へのwriteで `Read-only file system`。作成なし。エラーメッセージは既存Runと誤表示していた。
 - 2026-11-17: その後、新しい標準入口で `runs/20261117-233113-JST/` を作成し、`PLAN.md`／`TASKS.md`／`REPORT.md` とmachine-managed `run.json` が生成された。workerはRun作成・変更を行っていない。
 - 2026-11-17: 調査3 Roleの報告をParentが採否し、実装はworkerへ限定ファイル単位で直列委任する。
+
+## PR #226 の継続
+
+- [保存計画の第10節](../../docs/plans/2026-11-17_231158_run-artifact-root-migration.md#10-pr-226-の-ci-修復と-wsl2-検証) に従い、WSL2 の独立 checkout で Web と Mobile の失敗を修復する。
+- Windows 側の作業コピーを保全し、ローカル PowerShell 実行を保留する。検査、通常の Git 操作、最新 HEAD の必須 CI は今回確認する。

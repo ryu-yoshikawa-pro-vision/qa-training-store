@@ -120,3 +120,12 @@
 - 読み取り専用Native調査Role: `code_researcher`、`implementation_researcher`、`test_investigator`。3 Roleからの結果をParentが採否する。
 - 実装・検証は既存の `implementation_worker` と `quality_gate_runner` に委任する。childは追加subagentを起動せず、Run Artifactを作らず、Git mutationを行わない。
 - 既存 `.codex/runs/` は過去Runの履歴としてのみ保持する。パスが記された旧成果物を遡及修正しない。
+
+## 10. PR #226 の CI 修復と WSL2 検証
+
+- 開始時の PR HEAD と Linux checkout はともに `71e67076695df5deed96487513d4cd852f8bd45c`。既存の独立 Linux checkout と Run を引き継ぐ。Windows 側は読み取り専用で状態を確認し、既存差分と依存を保全する。
+- Web は evaluator と関連する両テストスイートの修復に限定する。Git porcelain の状態とパスを分離し、新旧 Run の除外と不正出力の拒否を維持する。追跡済み、未追跡、空白、日本語を含むパスを確認する。
+- Mobile は `main` と PR HEAD の manifest・lockfile を比較し、公式 Expo SDK 57 のバージョン検査で確認する。Expo Doctor が求める同一 SDK のパッチ更新のみ、`package.json` と `pnpm-lock.yaml` に反映する。
+- 指定された Linux 品質ゲートに加え、対象契約テスト、Expo Doctor、Web ビルド、Native 検査を実行する。PowerShell はコードの静的整合性と GitHub Actions の Windows ジョブを確認し、Windows ローカル実行は保留する。
+- 変更と既存 Run 記録をサニタイズして stage し、staged 品質検査と通常の hook を通す。通常 push 後に PR HEAD、Web CI、Mobile App CI を照合し、PR 本文に結果を記録する。
+- 調査・実装は GPT-6 Luna を指定した既存の子 Role に委任する。問題時は対象コミットを通常の revert で戻し、Windows 側と Run 履歴を保持する。

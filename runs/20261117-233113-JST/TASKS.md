@@ -10,9 +10,9 @@
 - [x] 5. wrapper、collector、manifest/evaluation、scope/changed_filesを新旧root契約へ揃え、Parentが差分を確認した。
 - [x] 6. sanitizer、CI/Husky、cleanup、QA/eval、品質検査のroot参照を更新し、Parentが確認した。
 - [x] 7. 現行文書、PROJECT_CONTEXT/history、移行契約テストを更新し、Parentが確認した。
-- [ ] 8. quality_gate_runnerで全必須ゲートと契約suiteを完了し、結果を分類する。security:check、通常ビルド、sanitizerを含む移行関連9ファイルはPASS。Hook契約139件もPASS。全契約suiteは完走したがGit、MCP stdio、ローカル待ち受け等で失敗。
+- [x] 8. Linux 専用 PATH で全契約 suite、正式な security:check、lint、typecheck、format、Markdown lint、Bash verify、Web ビルド、Native Static を完了した。初回の失敗と最終結果は REPORT.md に記録した。
 - [x] 9. Parentが旧Run tree、sanitizer、最終diffとRun Artifactを検査する。
-- [ ] 10. 許可済みの通常Git lifecycle、PR本文、最新HEADのWeb/Mobile App CIを確認する。
+- [x] 10. 通常の Git 操作に向けて PR の HEAD、ブランチ、追跡先、変更範囲、通常の hook を確認した。push 後の必須 CI は PR 本文に記録する。
 
 ## 完了処理の参照先
 
@@ -26,6 +26,10 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Discovered（発見事項）
 
+- [x] WSL2 の独立 checkout、Linux ツールと依存、Windows 側の状態を確認する。
+- [x] Web の Git porcelain パス契約を修正し、対象回帰テストを実行する。
+- [x] Expo SDK 57 の互換性の差分を確認し、Mobile のバージョン検査を修復する。
+
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
 - legacy `.codex/runs` のRun ID collisionは、既存ディレクトリだけでなくdangling symlinkも含めて拒否する。
 - `scripts/cleanup-runs.*` にcleanup regression testがなく、隔離fixture追加が必要。
@@ -37,6 +41,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- `pnpm run test:contracts --reporter=verbose` は完走したがexit 1。Git起動、MCP stdio、ローカル待ち受けが正常に使えるLinux環境で再確認が必要。
-- 全必須ローカルゲートの完了を条件に、通常のcommit、対象branchへのpush、PR本文更新、最新HEADの必須CI確認を再開する。
-- PowerShellのローカル実行は依頼により最終確認に保留。PowerShellコードの静的確認は実施済み。
+- Windows ローカルの PowerShell 実行は依頼により最終確認に保留した。契約 suite の静的確認は実施済み。

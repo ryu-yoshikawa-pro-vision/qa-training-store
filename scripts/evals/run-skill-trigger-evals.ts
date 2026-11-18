@@ -288,7 +288,8 @@ export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly
         pathPart === ".codex/runs" ||
         pathPart.startsWith(".codex/runs/")
       );
-    });
+    })
+    .map((entry) => entry.slice(3));
 }
 
 function assertTargetHasNoTriggerDataset(targetRoot: string): void {

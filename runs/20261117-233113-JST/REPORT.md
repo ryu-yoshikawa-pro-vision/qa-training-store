@@ -132,3 +132,20 @@
 
 - Parentの判断: ユーザーの指示に基づき、ローカルの全契約suiteの失敗を記録した状態で、通常のpre-commit hookを通してPR #226のブランチへ反映する。全契約suiteの未解決項目は、pushしたSHAに対するWeb CIとMobile App CIで確認する。
 - Gitの保全: 既存66ファイルのindexと未stageの修正を保持した元checkoutとは別の独立Linux checkoutを反映元とする。
+
+## 2026-11-18 20:21 (JST)
+
+- PR #226 の再開時点で GitHub、origin の追跡ブランチ、Linux checkout は `71e67076695df5deed96487513d4cd852f8bd45c`。通常の `git fetch origin` は sandbox の read-only エラー後、既存の承認経路で終了コード 0。既存 Run を使用し、実体の manifest を手編集していない。
+- WSL2 の ext4 checkout で Git 2.56.1、Node v24.22.2（Linux x64）、nvm 配下の pnpm 10.34.5 を使用。Windows ドライブの pnpm は POSIX シェルスクリプトで、Linux 側の pnpm が優先されていた。Linux の frozen install は終了コード 0。Rolldown 1.1.5 と unrs resolver 1.12.2 の Linux x64 GNU binding を実ロードした。
+- Windows 側は読み取り専用で確認した。HEAD は `3aaed9e7b1a8423b654aa97cd9991216cc18a72d`、66 staged、4 unstaged（staged と重複）、untracked なし。現在の作業ファイルは PR HEAD と 59 パスが一致し、7 パスに差分があった。相違は Run 報告、wrapper、セキュリティ検査、契約テストにあり、今回の Web と Expo 修復への取り込みは不要と判断した。
+- Web CI run `44278689259` の最初の失敗は、evaluator の Git porcelain ステータス記号が戻り値へ漏れること。状態記号を除き、新旧 Run 除外、不正レコード検査、rename 境界の検出を維持した。空白と日本語のパスをテストへ追加し、追跡済みと未追跡の出力順を回帰テストに反映した。
+- Mobile App CI run `44278688991` の最初の失敗は Expo Doctor。base `d994cea4f1b8abb58bd86992bc2e57c5722e0c0f` と PR HEAD の依存指定・lockfile は同一だった。PR の manifest スクリプト差分により Native の検査が起動し、既存のパッチ差が表面化した。オンラインの `expo install --check` は更新前に 5 件で終了コード 1。Expo 57.0.33、constants 57.0.24、linking 57.0.14、router 57.0.31、sqlite 57.0.5 と constants override に更新した。更新後の frozen install、オンライン互換性検査、Expo Doctor 1.17.6 は終了コード 0。Doctor は 17/17 件成功。
+- `pnpm run security:check` の正式入口は sandbox 内で終了コード 0。対して Node の子プロセスの既定 pipe と localhost 待ち受けで EPERM を再現した。承認経路での最初の全契約テストは Windows PowerShell を PATH から自動検出し、UNC fixture のパス解決で 15 件失敗（819 成功、21 スキップ、終了コード 1）。検証開始前の PATH 限定が漏れていたため、以降は Linux の実行ファイルに限定した PATH を使用する。Windows ローカルの正式な PowerShell 検証は保留する。
+
+## 2026-11-18 20:28 (JST)
+
+- 最終依存で対象 Vitest は 2 ファイル、48 件成功（終了コード 0）。`pnpm run test:contracts` は 50 ファイル、817 件成功、38 件スキップ（終了コード 0）。`pnpm run test:repository` は 11 ファイル、146 件成功、1 件スキップ（終了コード 0）。Windows PowerShell の実行を伴わない静的契約を確認した。
+- `pnpm run security:check`、`lint`、`typecheck`、`format:check`、`lint:markdown` は終了コード 0。セキュリティ検査は runtime 236、機密検査 329 ファイル。lint は警告 63 件。Bash の `scripts/verify` は PASS 1、SKIP 3、終了コード 0。PowerShell のほか、Codex v0.169.0 に必要な `--rules` を availability probe が渡さないため execpolicy と Bash wrapper の実行検査がスキップされた。
+- Native の Jest（13 suite、64 件）、route 依存（38 routes）、EAS 設定、asset 生成（9 件、追跡ファイル差分なし）、画像 manifest は終了コード 0。Native route 検査は sandbox の tsx pipe EPERM 後に承認経路で成功した。
+- 本番設定の `pnpm run build:web` は Expo のホームへの EROFS（終了コード 7）後に一時領域の Expo キャッシュで再試行し、終了コード 0、`dist/index.html` を確認した。`pnpm run build:spec` は 22 ページ生成、終了コード 0。
+- Windows 側の HEAD、Git index、porcelain status の照合値は開始時と一致し、Windows の `node_modules` は存在した。旧 Run 履歴と machine-managed manifest の差分はなし。

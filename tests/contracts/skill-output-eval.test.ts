@@ -218,14 +218,14 @@ describe("skill evaluation Run Artifact paths", () => {
       for (const relativePath of [
         "runs/20261118-000001-JST/REPORT.md",
         ".codex/runs/20261117-000001-JST/REPORT.md",
-        "docs/source-change.md",
+        "docs/source change 日本語.md",
       ]) {
         const absolutePath = path.join(root, ...relativePath.split("/"));
         fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
         fs.writeFileSync(absolutePath, "fixture\n", "utf8");
       }
 
-      expect(sourceStatusOutsideRunArtifacts(root)).toEqual(["docs/source-change.md"]);
+      expect(sourceStatusOutsideRunArtifacts(root)).toEqual(["docs/source change 日本語.md"]);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
