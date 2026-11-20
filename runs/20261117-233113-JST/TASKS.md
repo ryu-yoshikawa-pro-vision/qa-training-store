@@ -27,6 +27,7 @@
 - [x] 22. 指定のLinux再現・品質ゲートと関連契約テストを実行する。実行制限による失敗は原因を分類してREPORTへ記録した。
 - [x] 23. Run Artifactをsanitizeし、stage後のquality/sanitizerと最終差分を確認する。
 - [x] 24. コミット前にPRのHEAD／open状態、branch/upstream、staged差分と対象範囲を照合し、通常commit/pushとPR本文更新の前提を確認する。
+- [x] 25. Windows CIのsanitizer path casing期待値とテスト選択を修復し、対象契約とformatを再確認する。
 
 ## 完了処理の参照先
 
@@ -69,7 +70,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Progress
 
-Progress: 100% (31/31)
+Progress: 100% (32/32)
 
 ## Post-commit lifecycle
 

@@ -243,3 +243,11 @@
 - staged差分は目的に沿う30ファイル。`.codex/runs/**`、既存`.codex/reports/**`、`run.json`、依存関係manifest／lockfileに差分なし。root `logs/`はignoredでindexに含まれない。
 - PR本文には新しいroot `logs/`と`.artifacts/codex-task/`、Hook fallback、Run ID／explicit pathの維持、cleanup／sanitizer、Linux検証結果、sandbox起因の未成功ローカルsuite、PowerShellの未検証範囲を記載する準備をした。
 - Parent判断: commit前に必要なRun状態、差分、検証の記録は確定した。通常commit／push、PR本文更新、最新HEADのWeb CI／Mobile App CI確認はpost-commit lifecycleで行い、そのCI結果を記録する目的でRunを再commitしない。
+
+## 2026-11-20 Web CI Windows contract repair
+
+- 対象SHA `63900085c93113f85a2abe07909ba0c2d48cb337` の `wait_for_required_ci` は `ci_failure` を返した。Web CI run `44745213630` はfailure、Mobile App CI run `44745213721` は確認時点でin progress。Webの最初の失敗は `Codex Hook contract (Windows)` job `136318649164` の `Run native command contracts`。
+- Windows jobでは `codex-task-native-command`（24 pass / 2 skip）、`codex-safe-run-manifest-sync`（30 pass / 8 skip）、`cleanup-runs-contract`（8 pass）は成功。追加した `codex-artifact-sanitization` 全体の選択だけが4 fail / 63 pass / 10 skipだった。Windows Gitがcase-variant fixture pathを大文字表記で返し、新しいassertionの文字列比較がcase-sensitiveだったほか、同ファイルの既存fixtureがWindows上の`<TEMP_ROOT>`と`<REPO_ROOT>`の置換差、およびambient HOME由来の残留判定を含んでいた。
+- Read-only `test_investigator` は、失敗がsanitizerによる3つのruntime-only path拒否ではないことを確認した。sanitizerは対象をすべて検出していた。修復はruntime-only path assertionをcase-insensitiveにし、Windows native jobではsanitizer全体を重複実行せず、今回のroot runtime logとstaged/committed runtime-only path契約だけを名前指定で実行する。既存3契約のWindows実行は保持する。
+- Repair iteration: `must_fix`（必須Web CIのfailure）。Allowed files: `.github/workflows/ci.yml`、`tests/contracts/codex-artifact-sanitization.test.ts`、本Runの`TASKS.md`と`REPORT.md`。変更範囲はこの4ファイル。検証: `pnpm exec vitest run tests/contracts/codex-artifact-sanitization.test.ts --testNamePattern 'ignores root runtime logs|rejects staged and committed runtime-only paths' --no-file-parallelism --maxWorkers=1 --testTimeout=30000` exit 0（2 pass / 0 fail / 13 skip）; `pnpm run format:check` exit 0; `git diff --check` exit 0。Windows実行の再確認は次のGitHub Actions SHAで行う。
+- `pnpm run format:check`、Vitest対象2件、Windows test selectionの修復後も、同じSHAのMobile App CIはこの時点でin progress。したがって最新HEADの必須CI完了は未確認で、修復コミット後のWeb／Mobile両方の結果を確認する。Iteration decision: `continue`。

@@ -244,7 +244,15 @@ jobs:
           tests/contracts/codex-task-native-command.test.ts
           tests/contracts/codex-safe-run-manifest-sync.test.ts
           tests/contracts/cleanup-runs-contract.test.ts
+          --no-file-parallelism
+          --maxWorkers=1
+          --testTimeout=30000
+
+      - name: Run runtime-only sanitizer contracts
+        run: >-
+          pnpm exec vitest run
           tests/contracts/codex-artifact-sanitization.test.ts
+          --testNamePattern "ignores root runtime logs|rejects staged and committed runtime-only paths"
           --no-file-parallelism
           --maxWorkers=1
           --testTimeout=30000

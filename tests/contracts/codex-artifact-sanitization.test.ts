@@ -316,7 +316,9 @@ describe("portable Codex Run Artifact sanitizer", () => {
       expect(result.exitCode).toBe(1);
       expect(result.output).toContain("runtime-only path");
       for (const [relativePath] of runtimeFiles) {
-        expect(result.output).toContain(relativePath.replaceAll("\\", "/"));
+        expect(result.output.toLowerCase()).toContain(
+          relativePath.replaceAll("\\", "/").toLowerCase(),
+        );
       }
       expect(result.output).not.toContain(runLog);
       expect(git(staged, "ls-files", "--stage", "-z")).toBe(indexBefore);
@@ -351,7 +353,9 @@ describe("portable Codex Run Artifact sanitizer", () => {
       expect(result.exitCode).toBe(1);
       expect(result.output).toContain("runtime-only path");
       for (const [relativePath] of runtimeFiles) {
-        expect(result.output).toContain(relativePath.replaceAll("\\", "/"));
+        expect(result.output.toLowerCase()).toContain(
+          relativePath.replaceAll("\\", "/").toLowerCase(),
+        );
       }
       expect(result.output).not.toContain(runLog);
       expect(git(committed, "ls-files", "--stage", "-z")).toBe(indexBefore);
