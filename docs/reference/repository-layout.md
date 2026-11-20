@@ -7,6 +7,8 @@
 ├─ CODE_REVIEW.md
 ├─ .codex/
 ├─ runs/
+├─ logs/
+├─ .artifacts/
 ├─ .agents/
 ├─ docs/
 └─ scripts/
@@ -15,7 +17,8 @@
 ## 補足
 
 - `runs/` は新規Run Artifactのcanonical rootであり、実行に伴って追加される。`.codex/runs/` はpreserved legacy/historyとして残し、移動・削除・書換えない。
-- `.codex/logs/` は、実行に伴って追加される。
+- root `logs/` はラッパーとHookの実行で追加されるGit管理外のログ保存先。`.artifacts/codex-task/`はRun IDなしのタスク出力とレポートの保存先で、`.artifacts/`全体がGit管理外。
+- `.codex/logs/`、`.codex/artifacts/`、`.codex/reports/` はpreserved legacyデータであり、新規出力先やcleanup対象にはしない。
 - `.agents/skills/*/references/` は、タスク固有のワークフローの詳細手順。
 - `docs/reference/` は、人間が参照するための補助文書。
 - `docs/plans/` は、計画書の保存先。

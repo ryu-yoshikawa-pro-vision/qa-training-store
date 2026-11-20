@@ -182,3 +182,64 @@
 - `pnpm exec prettier --check --ignore-path /dev/null`でRunのPLAN／REPORTを個別に確認した結果はexit 1。差分外の既存項目（PLANの番号付きリスト、REPORTの過去表）にPrettier差があり、今回追加した行は指摘されなかった。全体の正式な`pnpm run format:check`はrunsを対象外としexit 0だったため、過去履歴の再整形は行わない。
 - `bash scripts/verify` はLinux専用PATHでexit 1（PASS=3／FAIL=1／SKIP=1）。最初のFAILはBash wrapper preflight前の既定ログ `.codex/logs/codex-safe-20261120.jsonl` 書込みがread-only filesystemで拒否されたこと。Windows PowerShell wrapperはPATHから除外されSKIP（未実行）。Read-only Roleは`--log-path`がwrapper単体の正式引数だが、verify内部の固定呼出しにはoverride入口がないことを確認した。補助実行もログ先を一時ディレクトリへ指定して実行したがexit 1となり、`execpolicy` JSON出力解析で`git status`の期待decisionを得られず失敗した。いずれの失敗もPASSへ置換せず、permission／sandboxとverify実装を変更していない。
 - この文書作業はドキュメントとRun Artifactに限定し、Windows PowerShellのローカル動作、Nativeビルド契約、コード、設定、CI、テスト、依存を変更しない。commit／push後のPR本文と必須CIの結果はpost-commit lifecycleで記録する。
+
+## 2026-11-20 Codex実行時生成物の保存先移行（開始・修正前証拠）
+
+- 作業開始時のPR #226、Linux checkout、origin tracking refは `9ab08cd6beb3b670e1b1f4904c72ea35bc5f16d0`。PRはopenで、作業ツリーとindexはclean。開始HEADのWeb CI run `44719650152` とMobile App CI run `44719650150` はともにsuccess。
+- 既存Run `runs/20261117-233113-JST/` を再利用し、新しい計画 `docs/plans/2026-11-20_210706_codex-runtime-write-roots.md` を保存した。既存migration plan、過去Run、`.codex/runs/**` は変更しない。
+- 修正前の `bash scripts/codex-safe.sh --preflight-only` はexit 1。最初のエラーは `.codex/logs/codex-safe-20261120.jsonl` への追記が `Read-only file system` で拒否されたこと。該当する新規ログは生成されなかった。
+- 修正前の `bash scripts/verify` はexit 1（PASS=3 / FAIL=1 / SKIP=1）。最初のFAILはBash wrapper preflightで、同じ`.codex/logs/`書込みエラー。PowerShell wrapperはLinux PATHに`powershell.exe`がなくスキップ。完了していないWindowsローカル検証をPASSとは扱わない。
+- この修正前確認ではGit差分は発生しなかった。既存`.codex/logs`、`.codex/artifacts`、`.codex/reports`、`.codex/runs`の保存物は移動・削除しない。
+- Read-only Luna Role調査で、Run IDなしの現行書込み先はcodex-safe/taskの`.codex/logs`、codex-taskの`.codex/artifacts`／`.codex/reports`、Hookの`.codex/logs`だった。Run ID指定先はすでに`runs/<run_id>/`、Hook fallbackは`.artifacts/codex-hooks/`。既存sanitizerは旧Codex pathを検査するが、新しいruntime-only pathのforce-stage拒否契約はなかった。
+- 親判断: Run IDと明示pathの既存契約、Hook形式・masking・fallback、cleanupのpreview/確認/削除安全策を保ち、root `logs/`と`.artifacts/codex-task/`をGit管理外としてstaged/committed sanitizerで保護する。実装・検証結果は完了時に追記する。
+
+## 2026-11-20 Runtime path guardの限定修復
+
+- Iteration 1 input finding（P2）: sanitizerのruntime-only prefix比較は大文字小文字を区別し、Windows filesystemで`LOGS/`、`.ARTIFACTS/CODEX-TASK/`等が別表記の同じ保存先を指す場合にstage/commit拒否を回避する可能性がある。
+- Repair plan: separator正規化後にASCII prefixをcase-insensitive比較し、通常表記・大文字／混在ケース・backslashのstaged／committed fixtureを追加する。`runs/<run_id>/logs/`の許可、index/worktree不変を確認する。
+- Allowed files: `scripts/lib/codex-artifact-sanitizer.mjs`、`tests/contracts/codex-artifact-sanitization.test.ts`。
+- Result: workerはASCII大文字小文字を区別しないprefix比較と3種のcase-variant fixtureを追加した。変更は指定2ファイルのみ。検証はquality gate runnerへ委任済みで、結果待ち。
+- Remaining delta / decision: テスト未実行のため修復成功は未確定。`continue`。同じfindingの再発や3回の同一stage失敗があればrepair workflowに従い停止する。
+
+## 2026-11-20 初回品質ゲートと限定修復 iteration 2
+
+- 対象HEAD: `9ab08cd6beb3b670e1b1f4904c72ea35bc5f16d0` と今回のworktree差分。検証担当が12コマンドをLinuxで順次実行し、5 PASS / 7 FAIL / 0 SKIPを報告した。
+- PASS: `pnpm run lint:markdown`（480 files / 0 issues）、`lint:text`（変更Markdown 9件）、`lint:text:all`（152 files）、`lint`（0 errors / 63 warnings）、`security:check`。
+- FAIL: focused contracts（168 pass / 10 fail / 45 skip）、`format:check`（sanitizerと3 test files）、`typecheck`（sanitization testの`fs`、task testの`readdirSync`参照）、`test:contracts`（661 pass / 126 fail / 74 skip）、`test:repository`（143 pass / 3 fail / 1 skip）。未定義参照とformatは今回の追加差分の欠陥。contract/repository suiteではsandboxの`spawnSync git EPERM`、localhost `listen EPERM`、MCP connection closureも観測した。
+- 修正後の`bash scripts/codex-safe.sh --preflight-only`はログ保存先の失敗を越えてexecpolicy判定まで到達したがexit 1。`scripts/verify`もPASS=3 / FAIL=1 / SKIP=1でBash wrapper preflightが失敗した。新root `logs/codex-safe-20261120.jsonl`は生成され、6 recordsのうち2件が対応する`preflight_failed`。保存先のread-onlyエラーではなく、`Unable to parse execpolicy JSON output`となった。
+- Read-only診断: Codex CLI `0.170.0`のversion/helpではPATH alias read-only warningがstderrに出る。Bash wrapperはexecpolicy stdout/stderrをmergeしてJSON parseしていたため、stderr診断がJSON入力へ混在する。execpolicyの有効なJSON出力内容自体は再実行しておらず、CLIのJSON契約変更は確認されていない。
+- 修復計画: testの未定義参照を修正し、Bash wrapperはstdoutだけをJSON判定に使ってstderr診断を表示する。コマンド非zero、欠落／不正JSONはfail-closedのまま、stderr warning fixtureを追加する。PowerShell localは実行せず、Windows CIのfocused contractsを拡張する。
+- Delegation: `quality_gate_runner`が指定12ゲートを実行。`code_researcher`はexecpolicyのstdout/stderr境界をread-only確認。`implementation_worker`は許可ファイル内で実装修正・契約test・Windows CI selectionを担当。
+- Parent decision: 未定義importとformatはmust-fix。PATH warningとJSON mergeは保存先修復後に必須preflightを阻害するため限定修復する。sandbox EPERMをコード合格や成功へ置き換えず、後続実行で同じ環境制約が続けば未解決として報告する。
+
+## 2026-11-20 修復後Linux検証
+
+- `bash scripts/codex-safe.sh --preflight-only` exit 0（3.36秒）。同じLinux sandboxでroot `logs/`への保存とexecpolicy preflightが完了した。Codex CLIはread-only PATH alias warningをstderrへ出したが、stdout JSONの判定と混同せず成功した。
+- `bash scripts/verify` exit 0（10.14秒）、PASS=4 / FAIL=0 / SKIP=1。PowerShell wrapper preflightはLinux PATHにCodexがないためskipであり、Windows PowerShell scriptは起動していない。
+- focused contractsはexit 1（43.36秒）、169 pass / 9 fail / 46 skip。6ファイル中5ファイルがpass。全failは未変更Hook diagnosticsで`spawnSync git EPERM`または子Nodeの`EPERM`。
+- `format:check` exit 0（15.48秒）、`lint:markdown` exit 0（480 files / 0 issue）、`lint:text` exit 0（変更Markdown 9件）、`lint:text:all` exit 0（152 files）、`lint` exit 0（0 error / 63 warning）、`typecheck` exit 0（App／Native test／training）、`security:check` exit 0。
+- `test:contracts` exit 1（188.42秒）、662 pass / 125 fail / 75 skip（39 files pass / 11 fail）。失敗には`spawnSync git EPERM`、localhost `listen EPERM`、MCP connection closedが含まれた。また、未変更の`security-dependency-fix-validator`契約でstderrに期待するreason codeが空となる失敗が1件あり、sandboxか実装か追加分類を依頼中。
+- `test:repository` exit 1（40.53秒）、143 pass / 3 fail / 1 skip（10 files pass / 1 fail）。3件ともlocalhost `listen EPERM`。
+- Windows CIの既存focused jobに`codex-safe-run-manifest-sync`、`cleanup-runs-contract`、`codex-artifact-sanitization`を追加し、変更対象PowerShellの実行契約をCIで検査する。Windowsローカル検証は実施していない。
+- Parent decision: root `logs/`で必要ログが生成され、元の`.codex/logs`書込み拒否は再現しなくなった。PASSとFAILを分離して維持する。未分類stderr failureを確定し、staged gatesを含む最終検証へ進む。
+
+## 2026-11-20 修復後の失敗分類
+
+- 同じLinux sandbox内で、`security-dependency-fix-validator`が期待したstderrを返さない既存契約を一時fixtureで直接再現した。`spawnSync(process.execPath, args)`は`status=1`と空のstdout/stderrに加えて`error="spawnSync .../node EPERM"`を返した。対象validatorとtestは今回変更していない。これはsandboxのNode子プロセス起動拒否であり、契約を緩めたりPASS扱いしたりせず、Windows／Linux CIで再確認する。
+- 修復後`bash scripts/codex-safe.sh --preflight-only`はexit 0、`bash scripts/verify`はexit 0（PASS=4 / FAIL=0 / SKIP=1）。root `logs/`への書き込みとexecpolicy検査が完了し、元の`.codex/logs/` read-only failureは解消した。
+- focused runtime-path contractsはexit 1（169 pass / 9 fail / 46 skip、6 files中5 pass）。失敗した`codex-hook-diagnostics`は既定pipe経由のGitまたはNode子プロセスが`EPERM`で拒否された。残る5ファイルの保存先、Run ID、明示path、cleanup、sanitizer契約は成功した。
+- `format:check`、`lint:markdown`（480 files、0 issue）、`lint:text`（変更Markdown 9件）、`lint:text:all`（152 files）、`lint`（0 error / 63 warning）、`typecheck`、`security:check`はexit 0。
+- `test:contracts`はexit 1（662 pass / 125 fail / 75 skip）、`test:repository`はexit 1（143 pass / 3 fail / 1 skip）。Git／Node spawn `EPERM`、localhost listen `EPERM`、MCP connection closureが複数失敗を説明する。contracts内の未変更security validator失敗も、上記のNode spawn `EPERM`を直接再現した。これらの実行制限を製品コードの成功・失敗へ読み替えない。
+- Parent判断: 変更対象の追加不具合は修復済み。sandboxが許す範囲の正式ゲートは成功し、残る失敗は同一環境で得た`EPERM` evidence付きで保持する。staged sanitizer／staged quality、hook、PR CIの結果で最終判定する。
+- `pnpm exec vitest run tests/contracts/codex-safe-run-manifest-sync.test.ts --no-file-parallelism --maxWorkers=1` exit 0（10 pass / 0 fail / 20 skip）。新規に追加したexecpolicy非zero時のstdout診断保持・fail-closed回帰を含む。skipはLinuxで実行しないPowerShell runtime cases。
+- Git safety Hookはrootを固定しない最初の`git add`をG10で拒否したため、stage操作は無実行だった。checkoutのliteral absolute path直後に限定した再実行がexit 0となり、レビュー済みの明示ファイルだけをstageした。
+- staged `pnpm run quality:staged` exit 0（Prettier／ESLint PASS）、`node scripts/sanitize-codex-artifacts.mjs --staged --check` exit 0（3 files、0 changes、0 replacements、0 residuals）、`git diff --cached --check` exit 0。Run sanitizerは4 files、0 changes、0 residuals。`git check-ignore -v`はroot `logs/`と`.artifacts/codex-task/`、`.artifacts/codex-hooks/`のサンプルを意図したignore規則へ解決した。
+- 最終`pnpm run lint:markdown`は480 files／0 issuesでexit 0、`pnpm run lint:text`は変更Markdown 9件でexit 0、`pnpm run lint:text:all`は152 filesでexit 0。追加差分後の`format:check`と`bash scripts/verify`もexit 0（PASS=4 / FAIL=0 / SKIP=1）。誤った補助引数を付けた`pnpm run lint:text -- --changed`はUnknown optionでexit 2となったが、正式入口2種を引数なしで再実行してPASSを確認した。
+- 最終差分後の`pnpm run typecheck` exit 0（app、native-tests、trainingの3プロジェクト）、`pnpm run security:check` exit 0（runtime 236 files、credential scan 387 files）。
+
+## 2026-11-20 commit前最終確認
+
+- `git fetch origin` exit 0。`origin/feat/codex-parent-delegation-20261117`とローカルHEADは開始時の`9ab08cd6beb3b670e1b1f4904c72ea35bc5f16d0`で一致し、PR #226もopen・同じhead branch/head SHAだった。`origin/main`は既知のPR base `d994cea4f1b8abb58bd86992bc2e57c5722e0c0f`。作業branchのupstreamは意図したorigin feature branch。
+- staged差分は目的に沿う30ファイル。`.codex/runs/**`、既存`.codex/reports/**`、`run.json`、依存関係manifest／lockfileに差分なし。root `logs/`はignoredでindexに含まれない。
+- PR本文には新しいroot `logs/`と`.artifacts/codex-task/`、Hook fallback、Run ID／explicit pathの維持、cleanup／sanitizer、Linux検証結果、sandbox起因の未成功ローカルsuite、PowerShellの未検証範囲を記載する準備をした。
+- Parent判断: commit前に必要なRun状態、差分、検証の記録は確定した。通常commit／push、PR本文更新、最新HEADのWeb CI／Mobile App CI確認はpost-commit lifecycleで行い、そのCI結果を記録する目的でRunを再commitしない。

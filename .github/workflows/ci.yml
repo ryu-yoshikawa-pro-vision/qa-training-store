@@ -242,6 +242,9 @@ jobs:
         run: >-
           pnpm exec vitest run
           tests/contracts/codex-task-native-command.test.ts
+          tests/contracts/codex-safe-run-manifest-sync.test.ts
+          tests/contracts/cleanup-runs-contract.test.ts
+          tests/contracts/codex-artifact-sanitization.test.ts
           --no-file-parallelism
           --maxWorkers=1
           --testTimeout=30000

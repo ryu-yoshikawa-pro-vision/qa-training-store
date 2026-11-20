@@ -395,7 +395,7 @@ function Test-TemplateContract {
     $runArtifacts = Get-Content -Raw -Encoding UTF8 docs/reference/run-artifacts.md
     if ($runArtifacts -notmatch [regex]::Escape("run.json")) { throw "run-artifacts doc missing run.json guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("changed_files")) { throw "run-artifacts doc missing changed_files guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape(".codex/logs/hooks-")) { throw "run-artifacts doc missing Hook JSONL guidance" }
+    if ($runArtifacts -notmatch [regex]::Escape("logs/hooks-")) { throw "run-artifacts doc missing Hook JSONL guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("checkpoint")) { throw "run-artifacts doc missing checkpoint guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("--max-iterations")) { throw "run-artifacts doc missing max-iterations guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("repair loop")) { throw "run-artifacts doc missing repair loop guidance" }

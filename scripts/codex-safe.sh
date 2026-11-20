@@ -24,7 +24,7 @@ json_escape() {
 }
 
 default_log_path() {
-  local logs_dir="$repo_root/.codex/logs"
+  local logs_dir="$repo_root/logs"
   if [[ -n "$run_id" ]]; then
     logs_dir="$repo_root/runs/$run_id/logs"
   fi
@@ -479,13 +479,19 @@ process.stdin.on("end", () => {
 
 execpolicy_decision() {
   local output
+  local exit_code
   local -a command=()
   append_command command "$codex_cmd"
-  output="$("${command[@]}" execpolicy check "${rule_args[@]}" -- "$@" 2>&1)" || {
-    echo "codex execpolicy check failed for '$*': $output" >&2
+  if output="$("${command[@]}" execpolicy check "${rule_args[@]}" -- "$@")"; then
+    decision_from_output "$output"
+  else
+    exit_code=$?
+    if [[ -n "$output" ]]; then
+      printf '%s\n' "$output" >&2
+    fi
+    echo "codex execpolicy check failed for '$*' (exit=$exit_code)" >&2
     return 1
-  }
-  decision_from_output "$output"
+  fi
 }
 
 assert_decision() {

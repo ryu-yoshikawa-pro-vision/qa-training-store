@@ -78,9 +78,6 @@ function createShellWrapperFixture() {
   const fakeBin = path.join(cwd, "fake-bin");
   mkdirSync(lib, { recursive: true });
   mkdirSync(fakeBin, { recursive: true });
-  mkdirSync(path.join(cwd, ".codex", "artifacts"), { recursive: true });
-  mkdirSync(path.join(cwd, ".codex", "reports"), { recursive: true });
-  mkdirSync(path.join(cwd, ".codex", "logs"), { recursive: true });
   copyFileSync(path.join(root, "scripts/codex-task.sh"), path.join(scripts, "codex-task.sh"));
   copyFileSync(
     path.join(root, "scripts/sanitize-codex-artifacts.mjs"),
@@ -247,6 +244,122 @@ describe("portable Codex Run Artifact sanitizer", () => {
     expect(common).toContain("Git blob checks are read-only");
     expect(common).toContain("unsupported Git object mode");
     expect(common).toContain("unmerged Git index entry");
+  });
+
+  it("ignores root runtime logs while keeping Run-local logs trackable", () => {
+    const cwd = createGitFixture();
+    try {
+      copyFileSync(path.join(root, ".gitignore"), path.join(cwd, ".gitignore"));
+      for (const relativePath of [
+        "logs/codex-task-clean.jsonl",
+        ".artifacts/codex-task/artifacts/output.json",
+        ".artifacts/codex-hooks/hooks-clean.jsonl",
+      ]) {
+        const filePath = path.join(cwd, relativePath);
+        mkdirSync(path.dirname(filePath), { recursive: true });
+        writeFileSync(filePath, "{}\n", "utf8");
+        expect(
+          spawnSync("git", ["check-ignore", "-q", "--", relativePath], {
+            cwd,
+            encoding: "utf8",
+          }).status,
+        ).toBe(0);
+      }
+
+      const runLog = "runs/20990101-000000-JST/logs/codex-task.jsonl";
+      const runLogPath = path.join(cwd, runLog);
+      mkdirSync(path.dirname(runLogPath), { recursive: true });
+      writeFileSync(runLogPath, "{}\n", "utf8");
+      expect(
+        spawnSync("git", ["check-ignore", "-q", "--", runLog], {
+          cwd,
+          encoding: "utf8",
+        }).status,
+      ).toBe(1);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects staged and committed runtime-only paths without changing the index or worktree", () => {
+    const runtimeFiles = [
+      ["LOGS/codex-task-clean.jsonl", '{"event":"clean"}\n'],
+      [".ARTIFACTS/CODEX-TASK/artifacts/output.json", '{"ok":true}\n'],
+      [".aRtIfAcTs\\CoDeX-HoOkS\\hooks-clean.jsonl", '{"event":"clean"}\n'],
+    ] as const;
+    const runLog = "runs/20990101-000000-JST/logs/codex-task.jsonl";
+    const contentPaths = [...runtimeFiles.map(([relativePath]) => relativePath), runLog];
+    const readContent = (directory: string) =>
+      contentPaths.map((relativePath) => readFileSync(path.join(directory, relativePath), "utf8"));
+
+    const staged = createGitFixture();
+    try {
+      copyFileSync(path.join(root, ".gitignore"), path.join(staged, ".gitignore"));
+      for (const [relativePath, content] of runtimeFiles) {
+        const filePath = path.join(staged, relativePath);
+        mkdirSync(path.dirname(filePath), { recursive: true });
+        writeFileSync(filePath, content, "utf8");
+        git(staged, "add", "-f", relativePath);
+      }
+      const stagedRunLogPath = path.join(staged, runLog);
+      mkdirSync(path.dirname(stagedRunLogPath), { recursive: true });
+      writeFileSync(stagedRunLogPath, '{"event":"run"}\n', "utf8");
+      git(staged, "add", runLog);
+      const indexBefore = git(staged, "ls-files", "--stage", "-z");
+      const statusBefore = git(staged, "status", "--porcelain", "--ignored", "-z");
+      const contentBefore = contentPaths.map((relativePath) =>
+        readFileSync(path.join(staged, relativePath), "utf8"),
+      );
+
+      const result = runSanitizer(["--staged", "--check"], staged);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain("runtime-only path");
+      for (const [relativePath] of runtimeFiles) {
+        expect(result.output).toContain(relativePath.replaceAll("\\", "/"));
+      }
+      expect(result.output).not.toContain(runLog);
+      expect(git(staged, "ls-files", "--stage", "-z")).toBe(indexBefore);
+      expect(git(staged, "status", "--porcelain", "--ignored", "-z")).toBe(statusBefore);
+      expect(readContent(staged)).toEqual(contentBefore);
+    } finally {
+      rmSync(staged, { recursive: true, force: true });
+    }
+
+    const committed = createGitFixture();
+    try {
+      copyFileSync(path.join(root, ".gitignore"), path.join(committed, ".gitignore"));
+      for (const [relativePath, content] of runtimeFiles) {
+        const filePath = path.join(committed, relativePath);
+        mkdirSync(path.dirname(filePath), { recursive: true });
+        writeFileSync(filePath, content, "utf8");
+        git(committed, "add", "-f", relativePath);
+      }
+      const committedRunLogPath = path.join(committed, runLog);
+      mkdirSync(path.dirname(committedRunLogPath), { recursive: true });
+      writeFileSync(committedRunLogPath, '{"event":"run"}\n', "utf8");
+      git(committed, "add", runLog);
+      git(committed, "commit", "-qm", "runtime-only outputs");
+      const indexBefore = git(committed, "ls-files", "--stage", "-z");
+      const statusBefore = git(committed, "status", "--porcelain", "--ignored", "-z");
+      const contentBefore = contentPaths.map((relativePath) =>
+        readFileSync(path.join(committed, relativePath), "utf8"),
+      );
+
+      const result = runSanitizer(["--committed", "--check", "--base-ref", "base"], committed);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain("runtime-only path");
+      for (const [relativePath] of runtimeFiles) {
+        expect(result.output).toContain(relativePath.replaceAll("\\", "/"));
+      }
+      expect(result.output).not.toContain(runLog);
+      expect(git(committed, "ls-files", "--stage", "-z")).toBe(indexBefore);
+      expect(git(committed, "status", "--porcelain", "--ignored", "-z")).toBe(statusBefore);
+      expect(readContent(committed)).toEqual(contentBefore);
+    } finally {
+      rmSync(committed, { recursive: true, force: true });
+    }
   });
 
   it("sanitizes text artifacts idempotently and preserves BOM, invalid UTF-8, and residual checks", () => {
@@ -541,6 +654,51 @@ describe("portable Codex Run Artifact sanitizer", () => {
   it.skipIf(!bashAvailable)(
     "sanitizes the Bash wrapper's known outputs for both Run and non-Run execution paths",
     () => {
+      const defaultPaths = createShellWrapperFixture();
+      try {
+        const result = runShellWrapper(defaultPaths, [
+          "--skip-preflight",
+          "--skip-verify",
+          "safe prompt",
+        ]);
+        const artifactsDirectory = path.join(
+          defaultPaths.cwd,
+          ".artifacts",
+          "codex-task",
+          "artifacts",
+        );
+        const reportsDirectory = path.join(defaultPaths.cwd, ".artifacts", "codex-task", "reports");
+        const logsDirectory = path.join(defaultPaths.cwd, "logs");
+        const artifactName = readdirSync(artifactsDirectory).find((name) =>
+          /^codex-task-.*\.json$/.test(name),
+        );
+        const reportName = readdirSync(reportsDirectory).find((name) =>
+          /^codex-task-.*\.report\.json$/.test(name),
+        );
+        const logName = readdirSync(logsDirectory).find((name) =>
+          /^codex-task-.*\.jsonl$/.test(name),
+        );
+
+        expect(result.error).toBeUndefined();
+        expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
+        expect(artifactName).toBeDefined();
+        expect(reportName).toBeDefined();
+        expect(logName).toBeDefined();
+        expect(existsSync(path.join(defaultPaths.cwd, ".codex", "artifacts"))).toBe(false);
+        expect(existsSync(path.join(defaultPaths.cwd, ".codex", "reports"))).toBe(false);
+        for (const target of [
+          path.join(artifactsDirectory, artifactName!),
+          path.join(reportsDirectory, reportName!),
+          path.join(logsDirectory, logName!),
+        ]) {
+          expect(readFileSync(target, "utf8")).not.toContain(
+            defaultPaths.cwd.replaceAll("\\", "/"),
+          );
+        }
+      } finally {
+        rmSync(defaultPaths.cwd, { recursive: true, force: true });
+      }
+
       const noRun = createShellWrapperFixture();
       try {
         const custom = path.join(noRun.cwd, "custom");

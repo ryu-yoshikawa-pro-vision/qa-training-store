@@ -490,7 +490,7 @@ check_template_contract() {
   contains "Codex direct interactive default" docs/PROJECT_CONTEXT.md || return 1
   contains "codex-task" docs/reference/run-artifacts.md || return 1
   contains "Source-of-Truth" docs/reference/run-artifacts.md || return 1
-  contains ".codex/logs/hooks-" docs/reference/run-artifacts.md || return 1
+  contains "logs/hooks-" docs/reference/run-artifacts.md || return 1
   contains "checkpoint" docs/reference/run-artifacts.md || return 1
   contains "collect-run-artifacts" docs/reference/run-artifacts.md || return 1
   contains '### Interactive `codex-safe` manifest sync' docs/reference/run-artifacts.md || return 1
@@ -518,8 +518,10 @@ check_template_contract() {
   ! contains "collect_hook_observations" scripts/collect-run-artifacts.py || return 1
   ! contains "--hook-log" scripts/collect-run-artifacts.py || return 1
   ! contains "HookLog" scripts/collect-run-artifacts.ps1 || return 1
-  contains ".codex\\logs" scripts/cleanup-runs.ps1 || return 1
-  contains ".codex/logs" scripts/cleanup-runs.sh || return 1
+  contains 'Join-Path $repoRoot "logs"' scripts/cleanup-runs.ps1 || return 1
+  contains 'find "logs"' scripts/cleanup-runs.sh || return 1
+  ! contains ".codex\\logs" scripts/cleanup-runs.ps1 || return 1
+  ! contains ".codex/logs" scripts/cleanup-runs.sh || return 1
   ! contains ".codex/observations/hooks.jsonl" scripts/cleanup-runs.ps1 || return 1
   ! contains ".codex/observations/hooks.jsonl" scripts/cleanup-runs.sh || return 1
   contains "--allowed-files" scripts/codex-task.sh || return 1
@@ -590,7 +592,7 @@ check_template_contract() {
   contains "--allowed-globs" docs/reference/codex-implementation-harness.md || return 1
   contains "--expected-missing" docs/reference/codex-implementation-harness.md || return 1
   contains "passed_with_warnings" docs/reference/codex-implementation-harness.md || return 1
-  contains ".codex/logs/hooks-" docs/reference/codex-implementation-harness.md || return 1
+  contains "logs/hooks-" docs/reference/codex-implementation-harness.md || return 1
   contains "REPORT" docs/reference/codex-implementation-harness.md || return 1
   contains "delegation" AGENTS.md || return 1
   contains "stop_hook_active" .codex/hooks/log_event.mjs || return 1

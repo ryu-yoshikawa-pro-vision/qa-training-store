@@ -11,6 +11,7 @@
 - 計画依頼では package-local [`feature-plan template`](../.agents/skills/feature-plan/assets/plan-template.md) をベースに計画書を作り、Repositoryの保存契約に従って `docs/plans/` へ保存する。
 - `docs/reports/` は durable な調査・監査・検証結果だけに使う。review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録では作らない。
 - 新規Runの進捗と実行ログは `runs/<run_id>/REPORT.md` と `runs/<run_id>/logs/` に残す。`.codex/runs/**`はpreserved legacy/historyであり、移動・削除・書換えない。Run ArtifactはParentが管理し、childは作成・更新しない。`run.json`はmachine-managedとする。
+- Run IDなしの`codex-safe`／`codex-task`とLogging Hookはroot `logs/`を使い、Run IDなしのtask output／reportは`.artifacts/codex-task/artifacts/`と`.artifacts/codex-task/reports/`を使う。これらはGit管理しない。Run ID指定時の出力先は引き続き`runs/<run_id>/{logs,artifacts,reports}/`とする。
 - 通常のinteractive作業はRepository内からdirect `codex`を起動する。project defaultは`workspace-write`／`approval_policy = "never"`／workspace network access enabledであり、execpolicy `prompt`は自動拒否される。
 - safe wrapperはnetwork falseを明示し、local例外操作・recoveryにはon-request approvalを提供する。高影響network例外はapprovalとnetwork sandbox昇格のread-only runtime確認後に限る。`auto-net`は明示利用する既存presetとして維持する。
 - shell / PowerShell / git command によるファイル削除は禁止する。direct workspace-writeの`apply_patch`で通常編集・新規作成は可能だが、削除・rename・moveには明示された対象とレビュー可能な理由、または必要性・影響・migration理由の確認が必要。
@@ -23,6 +24,8 @@
 
 - `.codex/templates/`: PLAN / TASKS / REPORT の run テンプレート
 - `runs/`: 新規Run Artifactのcanonical root
+- `logs/`: Run IDなしのCodex wrapper／Hookログ。Git管理外
+- `.artifacts/codex-task/`: Run IDなしのtask output／report。Git管理外
 - `.codex/runs/`: preserved legacy/history。新規Runの作成・更新先やcleanup対象にしない
 - `.codex/agents/`: project-scoped custom agents
 - `.codex/rules/`: execpolicy ルール
@@ -32,6 +35,13 @@
 - `docs/reference/`: operator / maintainer 向け補助資料
 - `scripts/`: `codex-safe` / `codex-task` / `codex-sandbox` と verify
 - `codex-project.toml`: template 適用後の project metadata
+
+## Runtime write root migration（2026-11-20）
+
+- Run IDを指定しない`codex-safe`と`codex-task`のイベントログおよびLogging Hookのcanonical JSONL先を、root `logs/`へ移した。`codex-task`のoutput JSONとreport JSONは`.artifacts/codex-task/artifacts/`と`.artifacts/codex-task/reports/`へ保存する。
+- Logging Hookはroot `logs/`に書けない場合、従来どおり`.artifacts/codex-hooks/`へfallbackする。record schema、credential masking、error handling、Hook configとdeny behaviorは維持する。
+- root `logs/`を`.gitignore`で無視し、staged／committed sanitizerでは`logs/**`、`.artifacts/codex-task/**`、`.artifacts/codex-hooks/**`をpath guardで拒否する。`runs/<run_id>/logs/**`はRun Artifactとして追跡できる。
+- cleanup対象は`runs/<run_id>/`とtop-level `logs/*.jsonl`に限定する。`.codex/logs/`、`.codex/artifacts/`、`.codex/reports/`、`.codex/runs/**`の既存内容はcleanup候補にせず保持する。
 
 ## Run Artifact root migration（2026-11-18）
 

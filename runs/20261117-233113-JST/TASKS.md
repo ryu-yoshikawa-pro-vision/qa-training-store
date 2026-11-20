@@ -18,6 +18,15 @@
 - [x] 13. 文書差分を自己レビューし、コード・設定・CI・テスト・依存関係に変更がないことを確認した。
 - [x] 14. 指定されたLinux文書品質ゲート、差分、Run Artifactサニタイズを実行し、結果をREPORTへ記録する。
 - [x] 15. 最終文書差分とRun Artifactをstageし、staged品質、staged sanitizer、差分検査を実行する。
+- [x] 16. Codex runtime write root移行の修正前失敗を同一Linux sandboxで再現し、差分なしを確認する。
+- [x] 17. wrapper、Hook、cleanup、sanitizer/security、関連テストと文書をread-only Roleに委任して調査する。
+- [x] 18. 追加taskの計画を新規docs planと本Runへ記録し、変更範囲を確定する。
+- [x] 19. codex-safe/taskの既定保存先を移し、Run ID・明示パス契約とexecpolicy fail-closed動作を維持する。
+- [x] 20. Hook、cleanup、root logs ignore、staged sanitizer/credential scanを新しい保存先へ揃える。
+- [x] 21. 関連contract tests・Windows CIのfocused test選択と現行運用文書を更新し、既存`.codex/`履歴とfallbackの保持を確認する。
+- [x] 22. 指定のLinux再現・品質ゲートと関連契約テストを実行する。実行制限による失敗は原因を分類してREPORTへ記録した。
+- [x] 23. Run Artifactをsanitizeし、stage後のquality/sanitizerと最終差分を確認する。
+- [x] 24. コミット前にPRのHEAD／open状態、branch/upstream、staged差分と対象範囲を照合し、通常commit/pushとPR本文更新の前提を確認する。
 
 ## 完了処理の参照先
 
@@ -39,6 +48,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - [x] Bash verify の可用性確認と JSON 解析を修正し、execpolicy と Bash wrapper の成功を確認した。
 - [x] 最終差分の Linux ゲートと変更範囲を確認した。最終ステージの検査を通して通常の Git 操作へ進む。
 
+- 調査中のsecurity dependency validator契約失敗は、同一sandboxでの直接診断がNode子プロセス起動`EPERM`を返すことを確認した。該当validator/testは未変更で、未検証のPASSへ置き換えていない。
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）。
 - legacy `.codex/runs` のRun ID collisionは、既存ディレクトリだけでなくdangling symlinkも含めて拒否する。
 - `scripts/cleanup-runs.*` にcleanup regression testがなく、隔離fixture追加が必要。
@@ -52,13 +62,14 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 - Windows PowerShellのローカル実行は本タスクの完了条件外。未検証のWindowsローカル動作はPR本文に未検証と明記する。GitHub ActionsのWindows CIは通常の必須確認に含める。
 
-## Blocked（環境制約）
+## Resolved blockers（解消済み）
 
-- `bash scripts/verify` は`.codex/logs/`がread-onlyのため`codex-safe`の既定ログを作成できず終了コード1。権限やsandboxは変更しない。既存の`--log-path`指定はverify経由で上書きできず、単体preflightも別のexecpolicy出力解析failureとなるため、代替PASSとして扱わない。
+- 修正前の`.codex/logs/` read-only失敗はroot `logs/`への移行後に解消し、`codex-safe --preflight-only`とBash `scripts/verify`が同一sandboxで成功した。
+- 全contract suiteなどに残る`spawnSync git EPERM`、localhost `listen EPERM`、MCP接続終了はsandbox実行制限として記録した。未変更の`security-dependency-fix-validator`で空stderrとなるケースは同じsandboxの直接診断で`spawnSync .../node EPERM`を再現し、validator/testの実装不具合とは扱っていない。
 
 ## Progress
 
-Progress: 100% (22/22)
+Progress: 100% (31/31)
 
 ## Post-commit lifecycle
 

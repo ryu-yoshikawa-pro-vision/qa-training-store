@@ -67,6 +67,7 @@ Codexハーネス（Codex harness）で生成・参照される成果物（artif
 - Repositoryへ追加するCodex Run Artifactは、作業完了前に`scripts/sanitize-codex-artifacts.mjs --path <path> --write --check`を実行します。PowerShell互換入口として`scripts/sanitize-codex-artifacts.ps1`も利用できます。
 - 共通実装はNode.js 24の標準libraryを使います。`codex-task.ps1`／`codex-task.sh`は終了時にRun root（ある場合）と既知のoutput／report／log／manifest／evaluationだけを`Write`→`Check`します。Run IDなしやRun root外の明示出力も対象ですが、任意directoryは再帰走査しません。
 - Huskyは`node scripts/sanitize-codex-artifacts.mjs --staged --check`で、`runs/**`、preserved legacy/historyの`.codex/runs/**`、`.codex/artifacts/**`、`.codex/reports/**`、`.codex/logs/**`のstage 0 blobを検査します。`scripts/security-static-check.ts`もRun Markdown／JSONL／JSONを含むcredential scanを実行します。追跡対象にするRun Artifactはcommit前に両検査を通し、検査はworktreeやindexを自動修正しません。修正後はsanitizeしてstageし直します。
+- Staged／committed検査は、Git管理しないruntime pathであるroot `logs/**`、`.artifacts/codex-task/**`、`.artifacts/codex-hooks/**`もpath guardで拒否します。`runs/<run_id>/logs/**`は引き続きRun Artifactとして検査・追跡できます。
 - CIは`--committed --check --base-ref <base>`で比較範囲のHEAD blobとGit modeを検査します。symlink／gitlink／unmerged entry／blob取得不能は拒否し、working treeの内容を代替入力として使いません。
 - staged stage-0 blobとcommit済みblobの両方で`runs/**`のRun Artifactを検査し、`.codex/runs/**`への既存検査も維持します。`runs/`は`.gitignore`に登録せず、credential/security scanから除外しません。
 - Markdownlint、Prettier、full Markdown/text scanでは`runs/**`を歴史Runと同様に対象外とします。この除外はRun sanitizerとcredential/security scanには適用しません。
@@ -110,7 +111,7 @@ Both are validated by schema / validator.
 - 新規マニフェストはスキーマv2に準拠し、タスク種別（task type）、ワークフローレベル（workflow level）、プリセット、ランタイム、変更ファイル一覧（changed files）、検証サマリー（validation summary）、`safety.network` / `safety.scope_violation`、評価パス（evaluation path）を保持します。
 - v2の `artifact_summary` は、`codex_task_report_count` と `evaluation_present` のみを要約対象とします。
 - v2では、`agents_used`、`hook_observations`、`subagents`、および旧observerに由来する専用の安全フィールドは生成しません。
-- Hookの低レベルな事実はRunへ自動集約せず、セッション単位の `.codex/logs/hooks-<safe-session-id>.jsonl` を参照します。
+- Hookの低レベルな事実はRunへ自動集約せず、セッション単位の `logs/hooks-<safe-session-id>.jsonl` を参照します。
 - 既存のv1マニフェストを明示的に処理する場合にのみ、既存のレガシーフィールドの値を保持します。v1からv2への自動移行（migration）や、過去のJSONに対する再走査・再集約は行いません。
 - `codex-task` レポートJSONを置き換えるものではありません。
 - `validation.commands` は単一コマンド（single command）を前提とせず、出力スキーマ検証（`output schema validation`）、検証（`verify`）、評価結果検証（`evaluation validation`）、未コミット変更チェック（`clean git check`）など、複数の観測結果を保持できます。
@@ -253,7 +254,7 @@ Both are validated by schema / validator.
 - デフォルトの動作はプレビュー表示のみ（preview-only）です。`--dry-run` または `-DryRun` の指定を省略した場合でも、実際の削除処理は実行されません。
 - 実際に削除を行うには、`--confirm-delete-generated-runs` または `-ConfirmDeleteGeneratedRuns` の明示的な指定が必要です。
 - `--older-than-days` または `-OlderThanDays` を使用して、指定日数以前の古い候補に対象を絞り込むことができます（負の値は指定できません）。
-- 削除候補は、`runs/<run_id>/` および `.codex/logs/*.jsonl` に該当する既知の自動生成成果物のみに限定されます。`.codex/runs/**`は今回のcleanup対象ではありません。
+- 削除候補は、`runs/<run_id>/` およびroot `logs/*.jsonl` に該当する既知の自動生成成果物のみに限定されます。`.codex/logs/`、`.codex/artifacts/`、`.codex/reports/`、`.codex/runs/**`はcleanup対象ではありません。
 - `run_id` の形式パターンは `YYYYMMDD-HHMMSS-JST` です。このパターンを満たさないディレクトリはクリーンアップの対象外とします。
 - シンボリックリンクやリパースポイント（reparse point）、リポジトリルート外を参照している候補は安全のため除外・拒否します。
 - クリーンアップの実行後には、処理結果のサマリーを標準出力（stdout）に表示します。
@@ -262,11 +263,11 @@ Both are validated by schema / validator.
 
 - ランナー、Codex、およびHookによって出力される低レベルなイベントログです。
 - 集計の正本ではなく、主に実行追跡やデバッグを目的として使用されます。
-- ロギング用Hookは `.codex/hooks/log_event.mjs` を通じて、書き込み可能な環境ではセッション単位の `.codex/logs/hooks-<safe-session-id>.jsonl` へ1イベント1行の形式で追記（append）します。Windowsの管理者サンドボックス環境などで `.codex` が読み取り専用として扱われる場合は、同一のレコードをGit管理対象外の `.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl` へフォールバックして書き込みます。
+- ロギング用Hookは `.codex/hooks/log_event.mjs` を通じて、書き込み可能な環境ではセッション単位のroot `logs/hooks-<safe-session-id>.jsonl` へ1イベント1行の形式で追記（append）します。Windowsの管理者サンドボックス環境などでroot `logs/` が書き込み不能の場合は、同一のレコードをGit管理対象外の `.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl` へフォールバックして書き込みます。
 - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop` といった機械的事実（machine fact）を保持します。`SubagentStop` や `Stop` の発生をもって最終的な処理終了を推測することはありません。
 - `Stop` および `SubagentStop` Hookはセッション状態の観測用であり、Runマニフェスト更新のトリガーとしては機能しません。
 - HookのJSONLログを `run.json` へ新規に集約することはなく、コレクターもHook JSONLやサブエージェント専用JSONの再走査を行いません。
-- `.codex/logs/*.jsonl` および `.artifacts/codex-hooks/*.jsonl` はGit管理対象外です。前者は既存の汎用クリーンアップ対象、後者は `.artifacts/` 配下の一時的な生エビデンス（ephemeral raw evidence）として扱い、いずれもRunマニフェストへの自動集約は行われません。
+- root `logs/*.jsonl` および `.artifacts/codex-hooks/*.jsonl` はGit管理対象外です。root `logs/` は`.gitignore`で無視し、既定の汎用クリーンアップ対象とします。`.artifacts/codex-hooks/`は`.artifacts/`配下の一時的な生エビデンス（ephemeral raw evidence）として扱い、いずれもRunマニフェストへの自動集約は行われません。
 
 ### Subagentの意味情報
 

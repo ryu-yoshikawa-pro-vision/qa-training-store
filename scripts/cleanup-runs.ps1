@@ -156,7 +156,7 @@ if ($null -ne $runsRootItem) {
     }
 }
 
-$logsRoot = Join-Path $repoRoot ".codex\logs"
+$logsRoot = Join-Path $repoRoot "logs"
 if (Test-Path -LiteralPath $logsRoot) {
     Get-ChildItem -LiteralPath $logsRoot -Force -File -Filter *.jsonl | ForEach-Object {
         Add-Candidate -Kind "top_log" -Path $_.FullName

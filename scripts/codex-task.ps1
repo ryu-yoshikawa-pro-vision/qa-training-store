@@ -186,7 +186,7 @@ function Get-DefaultLogPath {
         [string]$RunId
     )
 
-    $logsDir = Join-Path $RepoRoot ".codex\\logs"
+    $logsDir = Join-Path $RepoRoot "logs"
     if (-not [string]::IsNullOrWhiteSpace($RunId)) {
         $logsDir = Join-Path $RepoRoot (Join-Path "runs" (Join-Path $RunId "logs"))
     }
@@ -1311,8 +1311,8 @@ function Block-UnsafeArgument {
 
 $repoRoot = Get-RepoRoot -ScriptDir $PSScriptRoot
 $timestamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
-$artifactsDir = Join-Path $repoRoot ".codex\\artifacts"
-$reportsDir = Join-Path $repoRoot ".codex\\reports"
+$artifactsDir = Join-Path $repoRoot ".artifacts\\codex-task\\artifacts"
+$reportsDir = Join-Path $repoRoot ".artifacts\\codex-task\\reports"
 
 $state = [ordered]@{
     preset = "safe"

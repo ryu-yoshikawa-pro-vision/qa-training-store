@@ -187,7 +187,7 @@ function Get-DefaultLogPath {
         [string]$RunId
     )
 
-    $logsDir = Join-Path $RepoRoot ".codex\\logs"
+    $logsDir = Join-Path $RepoRoot "logs"
     if (-not [string]::IsNullOrWhiteSpace($RunId)) {
         $logsDir = Join-Path $RepoRoot (Join-Path "runs" (Join-Path $RunId "logs"))
     }

@@ -40,19 +40,28 @@ function createFixture() {
   const runRoot = path.join(repo, "runs", runId);
   const legacyRunRoot = path.join(repo, ".codex", "runs", runId);
   const invalidRunRoot = path.join(repo, "runs", "not-a-run-id");
-  const topLog = path.join(repo, ".codex", "logs", "top.jsonl");
-  const nestedLog = path.join(repo, ".codex", "logs", "nested", "nested.jsonl");
+  const topLog = path.join(repo, "logs", "top.jsonl");
+  const nestedLog = path.join(repo, "logs", "nested", "nested.jsonl");
+  const legacyLog = path.join(repo, ".codex", "logs", "top.jsonl");
+  const legacyArtifact = path.join(repo, ".codex", "artifacts", "preserved.json");
+  const legacyReport = path.join(repo, ".codex", "reports", "preserved.json");
 
   fs.mkdirSync(runRoot, { recursive: true });
   fs.mkdirSync(legacyRunRoot, { recursive: true });
   fs.mkdirSync(invalidRunRoot, { recursive: true });
   fs.mkdirSync(path.dirname(topLog), { recursive: true });
   fs.mkdirSync(path.dirname(nestedLog), { recursive: true });
+  fs.mkdirSync(path.dirname(legacyLog), { recursive: true });
+  fs.mkdirSync(path.dirname(legacyArtifact), { recursive: true });
+  fs.mkdirSync(path.dirname(legacyReport), { recursive: true });
   fs.writeFileSync(path.join(runRoot, "marker.txt"), "new Run\n", "utf8");
   fs.writeFileSync(path.join(legacyRunRoot, "marker.txt"), "legacy Run\n", "utf8");
   fs.writeFileSync(path.join(invalidRunRoot, "marker.txt"), "invalid ID\n", "utf8");
   fs.writeFileSync(topLog, "top log\n", "utf8");
   fs.writeFileSync(nestedLog, "nested log\n", "utf8");
+  fs.writeFileSync(legacyLog, "legacy log\n", "utf8");
+  fs.writeFileSync(legacyArtifact, "legacy artifact\n", "utf8");
+  fs.writeFileSync(legacyReport, "legacy report\n", "utf8");
 
   return {
     tempRoot,
@@ -63,6 +72,9 @@ function createFixture() {
     invalidRunRoot,
     topLog,
     nestedLog,
+    legacyLog,
+    legacyArtifact,
+    legacyReport,
   };
 }
 
@@ -114,7 +126,10 @@ function assertPreviewOnly(
     expect(preview.error).toBeUndefined();
     expect(preview.status, `${preview.stderr}\n${preview.stdout}`).toBe(0);
     expect(preview.stdout).toContain(`runs/${fixture.runId}`);
-    expect(preview.stdout).toContain(".codex/logs/top.jsonl");
+    expect(preview.stdout).toContain("logs/top.jsonl");
+    expect(preview.stdout).not.toContain(".codex/logs/");
+    expect(preview.stdout).not.toContain(".codex/artifacts/");
+    expect(preview.stdout).not.toContain(".codex/reports/");
     expect(preview.stdout).not.toContain(".codex/runs/");
     expect(preview.stdout).not.toContain("not-a-run-id");
     expect(fs.readFileSync(path.join(fixture.runRoot, "marker.txt"), "utf8")).toBe("new Run\n");
@@ -127,7 +142,9 @@ function assertPreviewOnly(
       "invalid ID\n",
     );
     expect(fs.readFileSync(fixture.topLog, "utf8")).toBe("top log\n");
-    expect(fs.existsSync(fixture.nestedLog)).toBe(true);
+    expect(fs.readFileSync(fixture.legacyLog, "utf8")).toBe("legacy log\n");
+    expect(fs.readFileSync(fixture.legacyArtifact, "utf8")).toBe("legacy artifact\n");
+    expect(fs.readFileSync(fixture.legacyReport, "utf8")).toBe("legacy report\n");
     expect(fs.readFileSync(fixture.nestedLog, "utf8")).toBe("nested log\n");
   } finally {
     fs.rmSync(fixture.tempRoot, { recursive: true, force: true });
@@ -148,6 +165,42 @@ describe("Run cleanup root boundary", () => {
       assertPreviewOnly(runPowerShell, "-DryRun");
     },
   );
+
+  it.skipIf(!bashAvailable)("Bash explicit cleanup preserves old .codex paths", () => {
+    const fixture = createFixture();
+    try {
+      const result = runBash(fixture.repo, ["--confirm-delete-generated-runs"]);
+      expect(result.error).toBeUndefined();
+      expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
+      expect(fs.existsSync(fixture.runRoot)).toBe(false);
+      expect(fs.existsSync(fixture.topLog)).toBe(false);
+      expect(fs.existsSync(fixture.nestedLog)).toBe(true);
+      expect(fs.existsSync(fixture.legacyRunRoot)).toBe(true);
+      expect(fs.existsSync(fixture.legacyLog)).toBe(true);
+      expect(fs.existsSync(fixture.legacyArtifact)).toBe(true);
+      expect(fs.existsSync(fixture.legacyReport)).toBe(true);
+    } finally {
+      fs.rmSync(fixture.tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(!powerShellAvailable)("PowerShell explicit cleanup preserves old .codex paths", () => {
+    const fixture = createFixture();
+    try {
+      const result = runPowerShell(fixture.repo, ["-ConfirmDeleteGeneratedRuns"]);
+      expect(result.error).toBeUndefined();
+      expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
+      expect(fs.existsSync(fixture.runRoot)).toBe(false);
+      expect(fs.existsSync(fixture.topLog)).toBe(false);
+      expect(fs.existsSync(fixture.nestedLog)).toBe(true);
+      expect(fs.existsSync(fixture.legacyRunRoot)).toBe(true);
+      expect(fs.existsSync(fixture.legacyLog)).toBe(true);
+      expect(fs.existsSync(fixture.legacyArtifact)).toBe(true);
+      expect(fs.existsSync(fixture.legacyReport)).toBe(true);
+    } finally {
+      fs.rmSync(fixture.tempRoot, { recursive: true, force: true });
+    }
+  });
 
   it.skipIf(!bashAvailable)("Bash preview refuses an external symlink Run candidate", () => {
     const fixture = createFixture();

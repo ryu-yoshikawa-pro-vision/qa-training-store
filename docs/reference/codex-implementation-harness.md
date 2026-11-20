@@ -25,14 +25,14 @@
   - `--no-log`／`-NoLog` はログ記録のみを無効化し、マニフェスト同期は無効化しない。Codex の終了や `Stop` フックのみを根拠に `status=completed` へ変更してはならない。
 - `.codex/config.toml` / `.codex/hooks/log_event.mjs`
   - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop` を同一の Node ロガーへ接続する。
-  - ロギングフックはマッチャーなし、タイムアウト10秒、リポジトリルート基準で起動し、セッション単位の `.codex/logs/hooks-<safe-session-id>.jsonl` へ保存する。10秒という設定値は、基準値5秒の2倍にあたる有界なバッファ（bounded headroom）であり、タイムアウトの無制限化を意味しない。
+  - ロギングフックはマッチャーなし、タイムアウト10秒、リポジトリルート基準で起動し、セッション単位のroot `logs/hooks-<safe-session-id>.jsonl` へ保存する。10秒という設定値は、基準値5秒の2倍にあたる有界なバッファ（bounded headroom）であり、タイムアウトの無制限化を意味しない。
   - 既存の安全性確保用 `PreToolUse` および Bash マッチャーは、独立したブロック経路として維持する。
 - プロジェクトローカルのフックを追加・変更した場合は、対話型／非対話型の実行経路にかかわらず、同一の `CODEX_HOME` で [codex-safety-harness.md](codex-safety-harness.md) のフック信頼（Hook trust）手順を確認してから使用する。フック信頼の定義元、`/hooks`、再レビュー、ランタイム境界などの詳細は同文書へ集約し、本書では重複して記載しない。
 - `scripts/codex-task.ps1|sh`
   - 非対話の `codex exec` 用ラッパー。
   - 実行順序は `preflight -> codex exec -> output/schema check -> verify -> report`。
   - 最終メッセージ出力（`output-last-message`）と機械可読なレポート JSON（machine-readable report JSON）を必ず残す。
-  - `--run-id` 指定時は、`runs/<run_id>/artifacts|reports|logs` に既定の出力を集約する。
+  - Run IDを省略した場合は出力JSONとレポートJSONを`.artifacts/codex-task/artifacts/`、イベントログをroot `logs/`へ保存する。`--run-id` 指定時は、`runs/<run_id>/artifacts|reports|logs` に既定の出力を集約する。
 - `scripts/codex-sandbox.ps1|sh`
   - `codex-task --runtime docker-sandbox` の軽量な互換ラッパー。
   - Docker イメージと認証が明示的に設定されている場合にのみ使用する実験的パス。
@@ -181,16 +181,17 @@
 
 - 出力ファイル（output file）:
   - `codex exec --output-last-message` の最終出力
-  - 既定値: `.codex/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
+  - 既定値: `.artifacts/codex-task/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
   - `--run-id` 指定時: `runs/<run_id>/artifacts/codex-task-YYYYMMDD-HHMMSS.json`
 - レポート JSON（report JSON）:
-  - 既定値: `.codex/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
+  - 既定値: `.artifacts/codex-task/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
   - `--run-id` 指定時: `runs/<run_id>/reports/codex-task-YYYYMMDD-HHMMSS.report.json`
   - 必須キーは `runtime`, `preset`, `prompt_source`, `output_file`, `output_schema`, `log_path`, `codex_exit_code`, `verify_exit_code`, `status`, `run_id`, `git_branch`, `git_dirty`, `cwd`, `mode`
 - JSONL ログ:
   - ラッパー起動、事前チェック、codex exec、スキーマチェック、検証の各イベントを追記する
-  - 既定値: `.codex/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
+  - 既定値: `logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
   - `--run-id` 指定時: `runs/<run_id>/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
+  - root `logs/`は`.gitignore`で無視し、staged／committed sanitizerのpath guardで追跡を拒否する。`runs/<run_id>/logs/`はRun Artifactとして追跡できる。
 - Run マニフェスト（run manifest）:
   - `--record-run-manifest` 指定時のみ `runs/<run_id>/run.json` を更新する
   - 新規マニフェストはスキーマ v2 とし、レポート数、変更ファイル、バリデーション結果、ネットワーク／スコープ設定、評価結果のみをサマリーする

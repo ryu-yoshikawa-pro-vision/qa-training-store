@@ -12,7 +12,7 @@
   - 危険な CLI 引数（`--dangerously-bypass-approvals-and-sandbox`, `-c/--config`, `--add-dir` など）を拒否
   - 安全側のデフォルト設定（`--sandbox`, `--ask-for-approval`）を強制付与
   - 起動前に `codex execpolicy check` を実行し、ルールのスモークテストを実施（事前検証 / preflight）
-  - JSONL ログ（既定: `.codex/logs/codex-safe-YYYYMMDD.jsonl`、`--run-id` 指定時: `runs/<run_id>/logs/codex-safe-YYYYMMDD.jsonl`）に開始・ブロック・事前検証・起動の各イベントを追記
+  - JSONL ログ（既定: root `logs/codex-safe-YYYYMMDD.jsonl`、`--run-id` 指定時: `runs/<run_id>/logs/codex-safe-YYYYMMDD.jsonl`）に開始・ブロック・事前検証・起動の各イベントを追記する。root `logs/`はGit管理外。
 - `scripts/codex-safe.sh`
   - Bash 向け Codex 起動ラッパー（PowerShell 版と同等の方針）
   - 危険な CLI 引数の拒否、`--sandbox` / `--ask-for-approval` の強制付与、事前検証を実施

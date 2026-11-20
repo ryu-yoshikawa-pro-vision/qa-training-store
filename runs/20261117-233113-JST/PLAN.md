@@ -77,3 +77,14 @@
 - 方針: Linux distro／OS versionを固定せず、WSL2 Linuxとnative Linuxを許可する。通常のGit・Codex・開発ツール・ローカル検証はLinuxで行う。Windows PowerShellのローカル検証はこのPRの完了条件外とし、Windows実装・契約・CI、およびNativeの既存CI保証とWindows／macOS向けローカル手順を維持する。
 - 検証: `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run lint:text`、`pnpm run lint:text:all`、Linux PATHでの`bash scripts/verify`。Windows PowerShellのローカル実行はしない。
 - 完了条件: 文書差分だけをcommit／通常pushし、PR本文を実績に合わせて更新する。push後の最新PR HEADでWeb CIとMobile App CIを確認する。
+
+## PR #226 Codex実行時生成物の保存先移行
+
+- ゴール: `.codex/` がread-onlyのsandboxでもCodexがログと実行結果を保存できるよう、Run IDなしのruntime writerをrepository rootまたは`.artifacts/`へ移す。
+- 対象: codex-safe/task Bash・PowerShell wrapper、Hook logger、cleanup、ignore/sanitizer/credential scan、関連契約テスト、既存Windows CI内のfocused test選択と現行運用文書。
+- 対象外: `.codex/config.toml`、hooks/rules/agents/templates本体の移動、`.codex/runs/**`を含む旧履歴の変更、sandbox/approval/permissionの変更、Windows対応の廃止、Native・依存・必須CI gateの変更。
+- 方針: Run IDなしのログはroot `logs/`、codex-task出力とレポートは`.artifacts/codex-task/`、Hookログはroot `logs/`を標準にする。既存`.artifacts/codex-hooks/` fallbackは維持。Run ID指定先と利用者の明示path指定は維持する。cleanupの既定候補は新root `logs/`へ切り替え、旧`.codex/`保存物を移動・削除しない。必須preflightが同じsandboxのCodex stderr診断でJSON parseを失敗しないよう、BashではJSON stdoutとstderr診断を分離し、execpolicyのfail-closed判断は維持する。
+- 保存計画: [Codex runtime write roots](../../docs/plans/2026-11-20_210706_codex-runtime-write-roots.md)。既存のRun-root migration planと本節の履歴は置換しない。
+- 検証: 同一sandboxで`bash scripts/codex-safe.sh --preflight-only`と`bash scripts/verify`を実行し、既定ログ生成・execpolicy・Bash wrapperを確認する。focused contracts、security、full contracts、format/lint/typecheck/repository gates、staged quality/sanitizer、PR最新HEAD CIを実行する。Windows PowerShellのローカル実行はしない。
+- 修正前の証拠: 2026-11-20の両Bashコマンドはexit 1。`.codex/logs/codex-safe-20261120.jsonl`の書込みがRead-only file systemで拒否され、`scripts/verify`はPASS=3/FAIL=1/SKIP=1。今回の実行でファイル生成・Git差分はなかった。
+- 完了条件: 指定された保存先と旧履歴保持を満たし、既定経路でsandbox書込み失敗が再現せず、必須Linux gateと最新HEADのWeb/Mobile CIが成功する。PR本文を実績で更新する。

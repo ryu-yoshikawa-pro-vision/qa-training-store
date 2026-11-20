@@ -147,6 +147,10 @@ fi
   printf ']\\n'
 } >> "$CODEX_FAKE_CALLS"
 
+if [[ "$command_text" == "git status" && -n "\${CODEX_FAKE_STDERR_WARNING:-}" ]]; then
+  printf '%s\n' "\${CODEX_FAKE_STDERR_WARNING}" >&2
+fi
+
 mode="\${CODEX_FAKE_MODE:-success}"
 if [[ "$mode" == "mismatch-second" && "$previous_calls" == 1 ]]; then
   printf '{"decision":"prompt"}'
@@ -155,6 +159,10 @@ fi
 if [[ "$mode" == "fixed-response" ]]; then
   printf '%s' "\${CODEX_FAKE_RESPONSE:-}"
   exit 0
+fi
+if [[ "$mode" == "failure-with-stdout" ]]; then
+  printf '%s' "\${CODEX_FAKE_RESPONSE:-Synthetic execpolicy stdout diagnostic}"
+  exit 23
 fi
 
 case "$command_text" in
@@ -383,7 +391,120 @@ describe("codex-safe run manifest sync contract", () => {
     expect(bash).toContain("collector_exit=$?");
     expect(powerShell).not.toContain("Stop Hook");
     expect(bash).not.toContain("Stop Hook");
+    expect(powerShell).toContain('Join-Path $RepoRoot "logs"');
+    expect(powerShell).toContain('Join-Path $RepoRoot (Join-Path "runs"');
+    expect(bash).toContain('local logs_dir="$repo_root/logs"');
+    expect(bash).toContain('logs_dir="$repo_root/runs/$run_id/logs"');
   });
+
+  it.skipIf(!bashRuntimeAvailable)(
+    "Bash: defaults to root logs without a Run ID and Run-local logs with one",
+    () => {
+      const noRun = createFixture({ git: false, manifest: false });
+      const noRunFakeCodex = createFakeCodex(noRun.root);
+      const noRunCallsPath = path.join(noRun.root, "execpolicy-calls.jsonl");
+      try {
+        const noRunResult = runBash(
+          path.join(noRun.root, "scripts", "codex-safe.sh"),
+          ["--preflight-only"],
+          noRun.root,
+          noRunFakeCodex,
+          {
+            CODEX_FAKE_CALLS: fixtureBashPath(noRun, noRunCallsPath),
+            CODEX_FAKE_STDERR_WARNING: "Codex PATH alias warning",
+          },
+        );
+        const rootLogs = path.join(noRun.root, "logs");
+        const rootLogName = fs
+          .readdirSync(rootLogs)
+          .find((name) => /^codex-safe-\d{8}\.jsonl$/.test(name));
+
+        expect(noRunResult.status, `${noRunResult.stdout}\n${noRunResult.stderr}`).toBe(0);
+        expect(noRunResult.stderr).toContain("Codex PATH alias warning");
+        expect(rootLogName).toBeDefined();
+        expect(fs.existsSync(path.join(noRun.root, ".codex", "logs"))).toBe(false);
+        expect(fs.readFileSync(path.join(rootLogs, rootLogName!), "utf8")).toContain(
+          "preflight_ok",
+        );
+      } finally {
+        removeFixture(noRun);
+      }
+
+      const withRun = createFixture({ git: false, manifest: false, runDirectory: true });
+      const withRunFakeCodex = createFakeCodex(withRun.root);
+      const withRunCallsPath = path.join(withRun.root, "execpolicy-calls.jsonl");
+      try {
+        const result = runBash(
+          path.join(withRun.root, "scripts", "codex-safe.sh"),
+          ["--preflight-only", "--run-id", withRun.runId],
+          withRun.root,
+          withRunFakeCodex,
+          { CODEX_FAKE_CALLS: fixtureBashPath(withRun, withRunCallsPath) },
+        );
+        const runLogs = path.join(withRun.runRoot, "logs");
+        const runLogName = fs
+          .readdirSync(runLogs)
+          .find((name) => /^codex-safe-\d{8}\.jsonl$/.test(name));
+
+        expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+        expect(runLogName).toBeDefined();
+        expect(fs.existsSync(path.join(withRun.root, "logs"))).toBe(false);
+      } finally {
+        removeFixture(withRun);
+      }
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!powerShellRuntimeAvailable)(
+    "PowerShell: defaults to root logs without a Run ID and Run-local logs with one",
+    () => {
+      const noRun = createFixture({ git: false, manifest: false });
+      const noRunProbe = createCodexInvocationProbe(noRun.root);
+      try {
+        const result = runPowerShell(
+          path.join(noRun.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-PreflightOnly"],
+          noRun.root,
+          noRunProbe.powerShellPath,
+          { CODEX_INVOCATION_MARKER: noRunProbe.markerPath },
+        );
+        const logs = path.join(noRun.root, "logs");
+        const logName = fs.readdirSync(logs).find((name) => /^codex-safe-\d{8}\.jsonl$/.test(name));
+
+        expect(result.status, `${result.stdout ?? ""}\n${result.stderr ?? ""}`).toBe(0);
+        expect(logName).toBeDefined();
+        expect(fs.readFileSync(path.join(logs, logName!), "utf8")).toContain("preflight_only_exit");
+        expect(fs.existsSync(path.join(noRun.root, ".codex", "logs"))).toBe(false);
+        expect(fs.existsSync(noRunProbe.markerPath)).toBe(false);
+      } finally {
+        removeFixture(noRun);
+      }
+
+      const withRun = createFixture({ git: false, manifest: false, runDirectory: true });
+      const withRunProbe = createCodexInvocationProbe(withRun.root);
+      try {
+        const result = runPowerShell(
+          path.join(withRun.root, "scripts", "codex-safe.ps1"),
+          ["-SkipPreflight", "-PreflightOnly", "-RunId", withRun.runId],
+          withRun.root,
+          withRunProbe.powerShellPath,
+          { CODEX_INVOCATION_MARKER: withRunProbe.markerPath },
+        );
+        const logs = path.join(withRun.runRoot, "logs");
+        const logName = fs.readdirSync(logs).find((name) => /^codex-safe-\d{8}\.jsonl$/.test(name));
+
+        expect(result.status, `${result.stdout ?? ""}\n${result.stderr ?? ""}`).toBe(0);
+        expect(logName).toBeDefined();
+        expect(fs.readFileSync(path.join(logs, logName!), "utf8")).toContain("preflight_only_exit");
+        expect(fs.existsSync(path.join(withRun.root, "logs"))).toBe(false);
+        expect(fs.existsSync(withRunProbe.markerPath)).toBe(false);
+      } finally {
+        removeFixture(withRun);
+      }
+    },
+    runtimeTestTimeout,
+  );
 
   it.skipIf(!powerShellRuntimeAvailable)(
     "PowerShell: fails before creating logs or a directory for an unknown RunId",
@@ -948,6 +1069,46 @@ describe("Bash codex-safe execpolicy preflight contract", () => {
       expect(result.status).not.toBe(0);
       expect(`${result.stdout}${result.stderr}`).not.toContain("Preflight OK");
       expect(calls).toHaveLength(2);
+      expect(events).toContain("preflight_failed");
+      expect(events).not.toContain("preflight_ok");
+    } finally {
+      removeFixture(fixture);
+    }
+  });
+
+  it("preserves stdout diagnostics and fails closed when execpolicy exits nonzero", () => {
+    const fixture = createFixture({ git: false, manifest: false });
+    const fakeCodexPath = createFakeCodex(fixture.root);
+    const callsPath = path.join(fixture.root, "execpolicy-calls.jsonl");
+    const logPath = path.join(fixture.root, "codex-safe-events.jsonl");
+    const callsArgument = fixtureBashPath(fixture, callsPath);
+    const logArgument = fixtureBashPath(fixture, logPath);
+    const stdoutDiagnostic = "Synthetic execpolicy stdout diagnostic";
+
+    try {
+      const result = runBash(
+        path.join(fixture.root, "scripts", "codex-safe.sh"),
+        ["--preset", "readonly", "--preflight-only", "--log-path", logArgument],
+        fixture.root,
+        fakeCodexPath,
+        {
+          CODEX_FAKE_CALLS: callsArgument,
+          CODEX_FAKE_MODE: "failure-with-stdout",
+          CODEX_FAKE_RESPONSE: stdoutDiagnostic,
+        },
+      );
+      const calls = fs.readFileSync(callsPath, "utf8").trim().split(/\r?\n/);
+      const events = fs
+        .readFileSync(logPath, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => (JSON.parse(line) as { event: string }).event);
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(stdoutDiagnostic);
+      expect(result.stderr).toContain("codex execpolicy check failed");
+      expect(`${result.stdout}${result.stderr}`).not.toContain("Preflight OK");
+      expect(calls).toHaveLength(1);
       expect(events).toContain("preflight_failed");
       expect(events).not.toContain("preflight_ok");
     } finally {

@@ -1185,7 +1185,7 @@ function loggingSafeSessionId(sessionId: string) {
 }
 
 function loggingPathFor(sessionId: string, root = repoRoot) {
-  return path.join(root, ".codex", "logs", `hooks-${loggingSafeSessionId(sessionId)}.jsonl`);
+  return path.join(root, "logs", `hooks-${loggingSafeSessionId(sessionId)}.jsonl`);
 }
 
 function loggingFallbackPathFor(sessionId: string, root = repoRoot) {
@@ -1469,12 +1469,18 @@ describe("Codex logging Hook contract", () => {
     }
   });
 
-  it("keeps Hook JSONL ignored without adding a logging-specific exception", () => {
-    const ignore = fs.readFileSync(path.join(repoRoot, ".codex", "logs", ".gitignore"), "utf8");
+  it("keeps legacy Hook JSONL and runtime log roots ignored", () => {
+    const legacyIgnore = fs.readFileSync(
+      path.join(repoRoot, ".codex", "logs", ".gitignore"),
+      "utf8",
+    );
+    const rootIgnore = fs.readFileSync(path.join(repoRoot, ".gitignore"), "utf8");
 
-    expect(ignore).toContain("*.jsonl");
-    expect(ignore).toContain("!.gitignore");
-    expect(ignore).not.toContain("hooks-");
+    expect(legacyIgnore).toContain("*.jsonl");
+    expect(legacyIgnore).toContain("!.gitignore");
+    expect(legacyIgnore).not.toContain("hooks-");
+    expect(rootIgnore).toContain("/logs/");
+    expect(rootIgnore).toContain(".artifacts/");
   });
 
   it.each(loggingEvents)("returns the fixed stdout and exit contract for %s", (event) => {
@@ -1857,7 +1863,7 @@ describe("Codex logging Hook contract", () => {
   it("falls back to the ignored workspace log path when canonical logs are unavailable", () => {
     const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "codex-logging-failure-"));
     const fixtureHook = path.join(fixture, ".codex", "hooks", "log_event.mjs");
-    const fixtureLogs = path.join(fixture, ".codex", "logs");
+    const fixtureLogs = path.join(fixture, "logs");
     const sessionId = `contract-failure-${process.pid}-${randomUUID()}`;
     const fallbackLogPath = loggingFallbackPathFor(sessionId, fixture);
     fs.mkdirSync(path.dirname(fixtureHook), { recursive: true });

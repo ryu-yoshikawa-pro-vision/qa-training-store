@@ -11,7 +11,7 @@
 - リポジトリのevaluation契約に記載されているevaluation artifactとFindingスキーマ。
 - `spec/failure-taxonomy.json`に定義されているfailure category。
 - Run manifestおよびRunの`REPORT.md`にあるチェックポイント。
-- `.codex/logs/`または該当する`.artifacts/codex-hooks/`内にあるHook JSONLログ。
+- root `logs/`または該当する`.artifacts/codex-hooks/`内にあるHook JSONLログ。
 - アクティブなワークフローから提供されるSubagentレコードとレビューコメント。
 
 ## Harnessの対象カタログ

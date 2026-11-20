@@ -597,6 +597,36 @@ function runWrapper(
   return { result, report, log, manifest, output };
 }
 
+function runWrapperWithDefaultPaths(fixture: WrapperFixture, runId?: string) {
+  const wrapperArgs = [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    fixture.wrapperPath,
+    "-SkipPreflight",
+    "-SkipVerify",
+  ];
+  if (runId) {
+    fs.mkdirSync(path.join(fixture.root, "runs", runId), { recursive: true });
+    wrapperArgs.push("-RunId", runId);
+  }
+  wrapperArgs.push("default output path contract");
+
+  return spawnSync(powerShellCommand, wrapperArgs, {
+    cwd: fixture.root,
+    encoding: "utf8",
+    timeout: process.platform === "win32" ? 60_000 : 30_000,
+    env: {
+      ...process.env,
+      CODEX_BIN: fixture.fakeCodexPath,
+      CODEX_TEST_ROOT: fixture.root.replaceAll("\\", "/"),
+      CODEX_TEST_EXIT_CODE: "0",
+    },
+    windowsHide: process.platform === "win32",
+  });
+}
+
 const powerShellAvailable = hasPowerShellRuntime();
 const verifyRuntimeFixtures = createVerifyRuntimeFixtures();
 const bashTaskRuntimeAvailable = hasCommand("bash", ["-c", "exit 0"]);
@@ -624,6 +654,9 @@ describe("codex-task native command output and exit code contract", () => {
 
     expect(powerShell).toContain('Join-Path (Join-Path $runRoot "artifacts")');
     expect(powerShell).toContain('Join-Path (Join-Path $runRoot "reports")');
+    expect(powerShell).toContain('".artifacts\\\\codex-task\\\\artifacts"');
+    expect(powerShell).toContain('".artifacts\\\\codex-task\\\\reports"');
+    expect(powerShell).toContain('Join-Path $RepoRoot "logs"');
     expect(powerShell).toContain('Join-Path $RepoRoot (Join-Path "runs"');
     expect(powerShell).toContain("runs/$($State.run_id)/evaluation.json");
     expect(powerShell).toContain("$normalized -ne '.codex/runs'");
@@ -633,6 +666,9 @@ describe("codex-task native command output and exit code contract", () => {
     expect(shell).toContain('output_file="$run_root/artifacts/');
     expect(shell).toContain('report_path="$run_root/reports/');
     expect(shell).toContain('log_path="$run_root/logs/');
+    expect(shell).toContain('artifacts_dir="$repo_root/.artifacts/codex-task/artifacts"');
+    expect(shell).toContain('reports_dir="$repo_root/.artifacts/codex-task/reports"');
+    expect(shell).toContain('logs_dir="$repo_root/logs"');
     expect(shell).toContain('evaluation_path="runs/$run_id/evaluation.json"');
     expect(shell).toContain('"$normalized" != ".codex/runs"');
     expect(shell).toContain('"$normalized" != .codex/runs/*');
@@ -641,6 +677,57 @@ describe("codex-task native command output and exit code contract", () => {
     expect(powerShell).toContain("Ambiguous Run ID exists in both runs/");
     expect(shell).toContain("Ambiguous Run ID exists in both runs/");
   });
+
+  it.skipIf(!powerShellAvailable)(
+    "PowerShell: uses runtime-only defaults without a Run ID and Run-local defaults with one",
+    () => {
+      const noRun = createWrapperFixture();
+      try {
+        const result = runWrapperWithDefaultPaths(noRun);
+        const artifactsDirectory = path.join(noRun.root, ".artifacts", "codex-task", "artifacts");
+        const reportsDirectory = path.join(noRun.root, ".artifacts", "codex-task", "reports");
+        const logsDirectory = path.join(noRun.root, "logs");
+
+        expect(result.error).toBeUndefined();
+        expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
+        expect(fs.readdirSync(artifactsDirectory)).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^codex-task-.*\.json$/)]),
+        );
+        expect(fs.readdirSync(reportsDirectory)).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^codex-task-.*\.report\.json$/)]),
+        );
+        expect(fs.readdirSync(logsDirectory)).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^codex-task-.*\.jsonl$/)]),
+        );
+        expect(fs.existsSync(path.join(noRun.root, ".codex"))).toBe(false);
+      } finally {
+        fs.rmSync(noRun.root, { recursive: true, force: true });
+      }
+
+      const withRun = createWrapperFixture();
+      const id = "20990101-123456-JST";
+      try {
+        const result = runWrapperWithDefaultPaths(withRun, id);
+        const runRoot = path.join(withRun.root, "runs", id);
+
+        expect(result.error).toBeUndefined();
+        expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
+        expect(fs.readdirSync(path.join(runRoot, "artifacts"))).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^codex-task-.*\.json$/)]),
+        );
+        expect(fs.readdirSync(path.join(runRoot, "reports"))).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^codex-task-.*\.report\.json$/)]),
+        );
+        expect(fs.readdirSync(path.join(runRoot, "logs"))).toEqual(
+          expect.arrayContaining([expect.stringMatching(/^codex-task-.*\.jsonl$/)]),
+        );
+        expect(fs.existsSync(path.join(withRun.root, "logs"))).toBe(false);
+      } finally {
+        fs.rmSync(withRun.root, { recursive: true, force: true });
+      }
+    },
+    120_000,
+  );
 
   it.skipIf(!bashTaskRuntimeAvailable)(
     "Bash: rejects a missing RunId before creating logs, output, or a Run directory",

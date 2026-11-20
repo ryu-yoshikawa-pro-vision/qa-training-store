@@ -17,7 +17,7 @@ Options:
 
 Notes:
   - Default behavior is preview-only. No files are deleted unless --confirm-delete-generated-runs is set.
-  - Only runs/<run_id>/ and top-level .codex/logs/*.jsonl artifacts are eligible.
+  - Only runs/<run_id>/ and top-level logs/*.jsonl artifacts are eligible.
 EOF
 }
 
@@ -183,10 +183,10 @@ if [[ -d "runs" ]]; then
   done < <(find "runs" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
 fi
 
-if [[ -d ".codex/logs" ]]; then
+if [[ -d "logs" ]]; then
   while IFS= read -r -d '' entry; do
     add_candidate "top_log" "$entry"
-  done < <(find ".codex/logs" -mindepth 1 -maxdepth 1 -type f -name '*.jsonl' -print0 2>/dev/null)
+  done < <(find "logs" -mindepth 1 -maxdepth 1 -type f -name '*.jsonl' -print0 2>/dev/null)
 fi
 
 echo "MODE: $(if (( preview_only )); then printf 'preview'; else printf 'delete'; fi)"

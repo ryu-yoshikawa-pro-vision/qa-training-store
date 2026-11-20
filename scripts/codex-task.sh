@@ -2,9 +2,9 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-artifacts_dir="$repo_root/.codex/artifacts"
-reports_dir="$repo_root/.codex/reports"
-logs_dir="$repo_root/.codex/logs"
+artifacts_dir="$repo_root/.artifacts/codex-task/artifacts"
+reports_dir="$repo_root/.artifacts/codex-task/reports"
+logs_dir="$repo_root/logs"
 
 preset="safe"
 runtime="host"
