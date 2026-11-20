@@ -62,8 +62,8 @@
 ## 検証レベル（tier）
 
 - 利用側リポジトリ（consumer repo）での通常確認:
-  - `bash scripts/verify`
-  - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`
+  - 本リポジトリではLinux上の `bash scripts/verify` を通常の確認入口とする。
+  - PowerShell版はWindows向け対応として保持し、通常の完了条件には含めない。Windows向け変更は既存のテスト／CI契約で確認する。
 - 配布元リポジトリ（source repo）メンテナーによる配布前確認:
   - `bash template/scripts/verify --strict-harness`
   - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`

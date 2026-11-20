@@ -68,3 +68,12 @@
 
 - [保存計画の第10節](../../docs/plans/2026-11-17_231158_run-artifact-root-migration.md#10-pr-226-の-ci-修復と-wsl2-検証) に従い、WSL2 の独立 checkout で Web と Mobile の失敗を修復する。
 - Windows 側の作業コピーを保全し、ローカル PowerShell 実行を保留する。検査、通常の Git 操作、最新 HEAD の必須 CI は今回確認する。
+
+## PR #226 Linux標準開発環境の文書化
+
+- ゴール: Linuxを本リポジトリの通常開発環境とする運用をREADMEへ記録し、関連する現行ガイドと整合させる。
+- 対象: `README.md`、`docs/reference/codex-implementation-harness.md`、既存Run成果物、PR #226本文。
+- 対象外: スクリプト、CI、テスト、依存、Nativeのビルド経路、sandbox／permission。quickstartはconsumer向け汎用手順として保持し、`AGENTS.md`と`docs/PROJECT_CONTEXT.md`は実際の矛盾がない限り変更しない。
+- 方針: Linux distro／OS versionを固定せず、WSL2 Linuxとnative Linuxを許可する。通常のGit・Codex・開発ツール・ローカル検証はLinuxで行う。Windows PowerShellのローカル検証はこのPRの完了条件外とし、Windows実装・契約・CI、およびNativeの既存CI保証とWindows／macOS向けローカル手順を維持する。
+- 検証: `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run lint:text`、`pnpm run lint:text:all`、Linux PATHでの`bash scripts/verify`。Windows PowerShellのローカル実行はしない。
+- 完了条件: 文書差分だけをcommit／通常pushし、PR本文を実績に合わせて更新する。push後の最新PR HEADでWeb CIとMobile App CIを確認する。

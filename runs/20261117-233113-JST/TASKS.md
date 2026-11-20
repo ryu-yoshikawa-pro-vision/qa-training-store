@@ -13,6 +13,11 @@
 - [x] 8. Linux 専用 PATH で全契約 suite、正式な security:check、lint、typecheck、format、Markdown lint、Bash verify、Web ビルド、Native Static を完了した。初回の失敗と最終結果は REPORT.md に記録した。
 - [x] 9. Parentが旧Run tree、sanitizer、最終diffとRun Artifactを検査する。
 - [x] 10. 通常の Git 操作に向けて PR の HEAD、ブランチ、追跡先、変更範囲、通常の hook を確認した。push 後の必須 CI は PR 本文に記録する。
+- [x] 11. 指定HEAD・PR状態・作業ツリーと既存CIを再確認し、Linux運用記述との整合性をread-only Roleへ委任して確認した。
+- [x] 12. READMEとimplementation harnessの必要最小限の文書差分を実装し、他の指定文書に実際の矛盾がないことをParentがレビューした。
+- [x] 13. 文書差分を自己レビューし、コード・設定・CI・テスト・依存関係に変更がないことを確認した。
+- [x] 14. 指定されたLinux文書品質ゲート、差分、Run Artifactサニタイズを実行し、結果をREPORTへ記録する。
+- [x] 15. 最終文書差分とRun Artifactをstageし、staged品質、staged sanitizer、差分検査を実行する。
 
 ## 完了処理の参照先
 
@@ -43,6 +48,18 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - `tests/contracts/codex-task-native-command.test.ts` のPowerShell skip条件に未定義識別子があり、typecheckで検出。workerが同ファイルの既存変数名へ置換し、隔離checkoutで再実行したtypecheckはPASS。Git indexには未反映。
 - Linux隔離checkoutでVitest 2セッションが長時間無出力のまま終了結果未取得。`test:contracts`全体にtimeoutはなく、migration contractにtimeoutなしの同期shell呼び出しがある。ソース調査で停止原因は特定できず、セッションは中断しない。
 
-## Blocked（ブロック中）
+## Deferred outside DoD（完了条件外）
 
-- Windows ローカルの PowerShell 実行は依頼により最終確認に保留した。契約 suite の静的確認は実施済み。
+- Windows PowerShellのローカル実行は本タスクの完了条件外。未検証のWindowsローカル動作はPR本文に未検証と明記する。GitHub ActionsのWindows CIは通常の必須確認に含める。
+
+## Blocked（環境制約）
+
+- `bash scripts/verify` は`.codex/logs/`がread-onlyのため`codex-safe`の既定ログを作成できず終了コード1。権限やsandboxは変更しない。既存の`--log-path`指定はverify経由で上書きできず、単体preflightも別のexecpolicy出力解析failureとなるため、代替PASSとして扱わない。
+
+## Progress
+
+Progress: 100% (22/22)
+
+## Post-commit lifecycle
+
+- 通常commit／push後のPR本文更新と最新HEADのWeb／Mobile CI確認は、implementation harnessのpost-commit lifecycleで行う。結果はPR本文と最終報告へ記録する。

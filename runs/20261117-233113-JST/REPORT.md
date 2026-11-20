@@ -171,3 +171,14 @@
 - `expo install --check`、Native Jest（13 suite、64 件）、route 依存（38 件）、画像 manifest、EAS 設定、Native asset 生成（9 件、生成ファイル差分なし）は終了コード 0。Expo Doctor 1.17.6 は最初の React Native Directory metadata 検査で 1 件失敗し、明示的なオンライン CI 環境での再実行は 17/17 成功、終了コード 0。APK と端末での検証は GitHub Actions に委ねる。
 - `test:repository` は終了コード 0、146 成功、1 スキップ。全契約の初回実行は 2 ファイルで worker 起動タイムアウト、終了コード 1。失敗した assertion はなく、他のタスクを並行させずに再実行する。
 - 全契約の単独再実行は終了コード 0、50 ファイル、817 成功、38 スキップ、0 失敗だった。ここまでの検証は開始 HEAD `9e063d7d56df1d41997a929a1d0a2c74d032716d` と今回の作業差分を対象とした。
+
+## 2026-11-20 Linux標準開発環境の文書化
+
+- 開始時のPR #226、Linux checkout、origin tracking refは `f33d0d275d6c2802e62daa2f29aef8f8979fd8e8` で一致し、PRはopen、worktree/indexはcleanだった。開始HEADのWeb CI run `44326464528` とMobile App CI run `44326466709` はともにsuccess。
+- 3つのread-only Luna Roleで既存文書の不整合と検査契約を調査した。READMEのセットアップにLinux標準、OS/distroを固定しないこと、WSL2／native Linux、Linux filesystem配置、PowerShell通常DoD除外、Windows CI／契約、Native境界を追記。implementation harnessの通常確認を本リポジトリのLinux `bash scripts/verify` に揃えた。
+- `docs/guides/quickstart.md` はconsumer汎用手順のため変更しない。`AGENTS.md`のBash／PowerShell併記はcross-shell helperの契約、`docs/PROJECT_CONTEXT.md`のWindows／macOS Native Build説明は既存Native固有経路の説明であり、今回の通常開発OS方針との矛盾ではないため維持した。ドキュメント上の実際の不整合はimplementation harnessの通常verify選択肢のみだった。
+- `pnpm run format:check` exit 0。`pnpm run lint:markdown` exit 0（478 files、0 issues）。`pnpm run lint:text` exit 0（変更Markdown 2件）。`pnpm run lint:text:all` exit 0（152 files）。`git diff --check` exit 0。
+- `node scripts/sanitize-codex-artifacts.mjs --check --path runs/20261117-233113-JST` exit 0（4 files、0 changes、0 residuals）。`pnpm run quality:staged`、`node scripts/sanitize-codex-artifacts.mjs --staged --check`（3 files、0 residuals）、`git diff --cached --check`もそれぞれexit 0。
+- `pnpm exec prettier --check --ignore-path /dev/null`でRunのPLAN／REPORTを個別に確認した結果はexit 1。差分外の既存項目（PLANの番号付きリスト、REPORTの過去表）にPrettier差があり、今回追加した行は指摘されなかった。全体の正式な`pnpm run format:check`はrunsを対象外としexit 0だったため、過去履歴の再整形は行わない。
+- `bash scripts/verify` はLinux専用PATHでexit 1（PASS=3／FAIL=1／SKIP=1）。最初のFAILはBash wrapper preflight前の既定ログ `.codex/logs/codex-safe-20261120.jsonl` 書込みがread-only filesystemで拒否されたこと。Windows PowerShell wrapperはPATHから除外されSKIP（未実行）。Read-only Roleは`--log-path`がwrapper単体の正式引数だが、verify内部の固定呼出しにはoverride入口がないことを確認した。補助実行もログ先を一時ディレクトリへ指定して実行したがexit 1となり、`execpolicy` JSON出力解析で`git status`の期待decisionを得られず失敗した。いずれの失敗もPASSへ置換せず、permission／sandboxとverify実装を変更していない。
+- この文書作業はドキュメントとRun Artifactに限定し、Windows PowerShellのローカル動作、Nativeビルド契約、コード、設定、CI、テスト、依存を変更しない。commit／push後のPR本文と必須CIの結果はpost-commit lifecycleで記録する。
