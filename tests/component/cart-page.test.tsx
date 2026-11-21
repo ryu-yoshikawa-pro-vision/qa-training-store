@@ -84,6 +84,27 @@ describe("cart page", () => {
     );
   });
 
+  it("shows the original over-limit quantity and a recovery choice", async () => {
+    const fixture = cartFixture();
+    fixture.items[0]!.quantity = 3;
+    fixture.items[0]!.maximumQuantity = 1;
+    fixture.items[0]!.issues = ["QUANTITY_LIMIT_EXCEEDED"];
+    fixture.blockingIssues = ["QUANTITY_LIMIT_EXCEEDED"];
+    cartService.getCart.mockResolvedValue(fixture);
+    render(<CartPage />);
+
+    expect(
+      await screen.findByText("現在の購入上限を超えています。数量を減らしてください。"),
+    ).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "数量" })).toHaveValue("3");
+    expect(screen.getByRole("option", { name: "3（上限超過）" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "1" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "購入手続きへ" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+
   it("renders the empty recovery route when no lines exist", async () => {
     cartService.getCart.mockResolvedValue({
       ...cartFixture(),

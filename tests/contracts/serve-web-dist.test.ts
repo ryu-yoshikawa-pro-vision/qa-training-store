@@ -320,6 +320,13 @@ describe("Static web server contract", () => {
     expect(res.body.toString("utf-8")).not.toContain("Hello");
   });
 
+  it("returns no content for an absent browser-requested favicon", async () => {
+    const res = await fetchResponse(`${baseUrl}/favicon.ico`);
+    expect(res.status).toBe(204);
+    expect(res.body.toString("utf-8")).toBe("");
+    expect(res.headers["cache-control"]).toContain("no-store");
+  });
+
   it("returns HEAD with content headers but no body", async () => {
     const res = await fetchSubresource(`${baseUrl}/app.js`, "HEAD");
     expect(res.status).toBe(200);

@@ -188,6 +188,38 @@ describe("cart application integration", () => {
     });
   });
 
+  it("blocks a stored cart line after its purchase limit is reduced without altering versions", async () => {
+    await database.sessions.add({
+      id: "regular-session",
+      userId: "user-customer-regular",
+      createdAt: "2026-07-01T03:00:00.000Z",
+    });
+    session.value = "regular-session";
+    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    await database.cart_items.update(item.id, { quantity: 2 });
+    await database.product_variants.update(item.variantId, {
+      stockQuantity: 10,
+      purchaseLimit: 5,
+    });
+    const cartUseCases = useCases([]);
+    const before = await cartUseCases.getCart();
+    expect(before.blockingIssues).not.toContain("QUANTITY_LIMIT_EXCEEDED");
+
+    await database.product_variants.update(item.variantId, { purchaseLimit: 1 });
+    const after = await cartUseCases.getCart();
+    expect(after.items.find((line) => line.itemId === item.id)).toMatchObject({
+      quantity: 2,
+      maximumQuantity: 1,
+      issues: ["QUANTITY_LIMIT_EXCEEDED"],
+    });
+    expect(after.blockingIssues).toContain("QUANTITY_LIMIT_EXCEEDED");
+    expect(after.cartVersion).toBe(before.cartVersion);
+    expect(await database.cart_items.get(item.id)).toMatchObject({
+      quantity: 2,
+      version: item.version,
+    });
+  });
+
   it("accepts a price change using every item version and touches the parent once", async () => {
     await database.sessions.add({
       id: "regular-session",
@@ -212,6 +244,40 @@ describe("cart application integration", () => {
     expect(after.items[0]).toMatchObject({
       unitEffectivePriceAtAdd: 2000,
       currentUnitEffectivePrice: 2000,
+    });
+  });
+
+  it("rejects price acceptance when the current quantity exceeds stock without changing versions", async () => {
+    await database.sessions.add({
+      id: "regular-session",
+      userId: "user-customer-regular",
+      createdAt: "2026-07-01T03:00:00.000Z",
+    });
+    session.value = "regular-session";
+    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    await database.cart_items.update(item.id, {
+      quantity: 2,
+      unitEffectivePriceAtAdd: 999,
+    });
+    await database.product_variants.update(item.variantId, { stockQuantity: 1 });
+    const cartUseCases = useCases([]);
+    const before = await cartUseCases.getCart();
+    expect(before.blockingIssues).toContain("PRICE_CHANGED");
+    await expect(
+      cartUseCases.acceptPriceChanges({
+        cartExpectedVersion: before.cartVersion,
+        itemExpectedVersions: Object.fromEntries(
+          before.items.map((cartItem) => [cartItem.itemId, cartItem.itemVersion]),
+        ),
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(await database.cart_items.get(item.id)).toMatchObject({
+      quantity: 2,
+      unitEffectivePriceAtAdd: 999,
+      version: item.version,
+    });
+    expect(await database.carts.get(before.cartId)).toMatchObject({
+      version: before.cartVersion,
     });
   });
 

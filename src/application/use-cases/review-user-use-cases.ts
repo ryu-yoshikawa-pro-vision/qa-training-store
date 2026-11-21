@@ -19,7 +19,10 @@ import type {
   UserSearchQuery,
 } from "@/application/contracts";
 import { ApplicationError, conflictError, validationError } from "@/application/errors";
-import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import {
+  assertActorStillAuthorized,
+  SessionIdentityResolver,
+} from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import { deriveCustomerReviewState } from "@/application/use-cases/customer-review-state";
@@ -395,6 +398,7 @@ export class AdminReviewUseCases {
     expectedVersion: number;
   }): Promise<AdminReviewDetailDto> {
     const actor = await this.requireStaff();
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     const current = await this.reviews.getById(input.reviewId);
     if (current === null) throw this.notFound();
     if (current.version !== input.expectedVersion) throw conflictError();
@@ -408,7 +412,8 @@ export class AdminReviewUseCases {
     const now = await this.now();
     await this.dependencies.transactionRunner.run(
       "review-change",
-      async ({ reviews, reviewSummaries }) => {
+      async ({ reviews, reviewSummaries, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
         const summary = await reviewSummaries.getById(current.productId);
         if (summary === null) throw this.notFound();
         await reviews.update(
@@ -540,11 +545,13 @@ export class AdminUserUseCases {
   }
 
   async changeMembershipRank(input: ChangeMembershipRankRequest): Promise<UserAdminDto> {
-    await this.requireAdmin();
+    const actor = await this.requireAdmin();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
-      async ({ users, checkouts }) => {
+      async ({ users, sessions, checkouts }) => {
+        await assertActorStillAuthorized(actor, actorSessionId, "admin", users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -567,10 +574,12 @@ export class AdminUserUseCases {
   async changeRole(input: ChangeOperatorAdminRoleRequest): Promise<UserAdminDto> {
     const actor = await this.requireAdmin();
     if (actor.id === input.userId) throw this.selfChange();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions }) => {
+        await assertActorStillAuthorized(actor, actorSessionId, "admin", users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (
@@ -602,10 +611,12 @@ export class AdminUserUseCases {
     if (actor.id === input.userId && input.accountStatus === "suspended") {
       throw this.selfChange();
     }
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "change-user-access",
       async ({ users, sessions, checkouts }) => {
+        await assertActorStillAuthorized(actor, actorSessionId, "admin", users, sessions);
         const current = await this.requireTarget(users.getById(input.userId));
         this.assertVersion(current, input.expectedVersion);
         if (

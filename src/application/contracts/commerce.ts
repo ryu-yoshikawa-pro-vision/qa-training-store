@@ -205,6 +205,7 @@ export type CartLineIssueCode =
   | "INACTIVE"
   | "OUT_OF_STOCK"
   | "INSUFFICIENT_STOCK"
+  | "QUANTITY_LIMIT_EXCEEDED"
   | "PRICE_CHANGED";
 
 export interface CartLineDto {

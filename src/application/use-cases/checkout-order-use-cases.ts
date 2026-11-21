@@ -122,7 +122,11 @@ export class CheckoutOrderUseCases {
         });
         if (dto.items.length === 0 || dto.blockingIssues.length > 0) {
           throw new ApplicationError({
-            code: dto.blockingIssues.includes("PRICE_CHANGED") ? "PRICE_CHANGED" : "INVALID_STATE",
+            code: dto.blockingIssues.includes("PRICE_CHANGED")
+              ? "PRICE_CHANGED"
+              : dto.blockingIssues.includes("QUANTITY_LIMIT_EXCEEDED")
+                ? "QUANTITY_LIMIT_EXCEEDED"
+                : "INVALID_STATE",
             messageKey: "checkout.cart.invalid",
             retryable: false,
           });
@@ -163,13 +167,21 @@ export class CheckoutOrderUseCases {
   async setAddress(request: SetCheckoutAddressRequest): Promise<CheckoutSession> {
     const [user, now] = await Promise.all([this.requireCustomer(), this.now()]);
     await this.assertSessionForMutation(request.checkoutSessionId, user.id, now);
-    this.validateAddressLimits(request.address);
-    return this.checkouts.setAddress({ ...request, userId: user.id, now });
+    const address = this.validateAddress(request.address);
+    return this.checkouts.setAddress({ ...request, address, userId: user.id, now });
   }
 
   async setPayment(request: SetCheckoutPaymentRequest): Promise<CheckoutSession> {
     const [user, now] = await Promise.all([this.requireCustomer(), this.now()]);
     await this.assertSessionForMutation(request.checkoutSessionId, user.id, now);
+    if (!PAYMENT_METHODS.includes(request.paymentMethodCode)) {
+      throw new ApplicationError({
+        code: "VALIDATION",
+        messageKey: "validation.form",
+        retryable: false,
+        fieldErrors: { paymentMethodCode: "validation.invalid" },
+      });
+    }
     return this.checkouts.setPayment({ ...request, userId: user.id, now });
   }
 
@@ -609,22 +621,49 @@ export class CheckoutOrderUseCases {
     return this.dependencies.clock.now();
   }
 
-  private validateAddressLimits(address: ShippingAddressSnapshot): void {
+  private validateAddress(address: ShippingAddressSnapshot): ShippingAddressSnapshot {
+    const normalized: ShippingAddressSnapshot = {
+      recipientName: address.recipientName.trim(),
+      postalCode: address.postalCode.replace(/\D/g, ""),
+      prefecture: address.prefecture.trim(),
+      city: address.city.trim(),
+      addressLine1: address.addressLine1.trim(),
+      addressLine2: address.addressLine2?.trim() || null,
+      phone: address.phone.replace(/\D/g, ""),
+    };
     const fieldErrors: Record<string, string> = {};
-    if (address.recipientName.trim().length > INPUT_LIMITS.recipientName) {
+    if (
+      normalized.recipientName.length === 0 ||
+      normalized.recipientName.length > INPUT_LIMITS.recipientName
+    ) {
       fieldErrors.recipientName = "validation.required";
     }
-    if (address.prefecture.trim().length > INPUT_LIMITS.prefecture) {
+    if (!/^(?:\d{7}|\d{3}-\d{4})$/.test(address.postalCode)) {
+      fieldErrors.postalCode = "validation.postalCode";
+    }
+    if (
+      normalized.prefecture.length === 0 ||
+      normalized.prefecture.length > INPUT_LIMITS.prefecture
+    ) {
       fieldErrors.prefecture = "validation.required";
     }
-    if (address.city.trim().length > INPUT_LIMITS.city) {
+    if (normalized.city.length === 0 || normalized.city.length > INPUT_LIMITS.city) {
       fieldErrors.city = "validation.required";
     }
-    if (address.addressLine1.trim().length > INPUT_LIMITS.addressLine1) {
+    if (
+      normalized.addressLine1.length === 0 ||
+      normalized.addressLine1.length > INPUT_LIMITS.addressLine1
+    ) {
       fieldErrors.addressLine1 = "validation.required";
     }
-    if ((address.addressLine2?.trim().length ?? 0) > INPUT_LIMITS.addressLine2) {
+    if ((normalized.addressLine2?.length ?? 0) > INPUT_LIMITS.addressLine2) {
       fieldErrors.addressLine2 = "validation.required";
+    }
+    if (
+      !/^(?:\d{10,11}|\d{2,4}-\d{1,4}-\d{3,4})$/.test(address.phone) ||
+      !/^\d{10,11}$/.test(normalized.phone)
+    ) {
+      fieldErrors.phone = "validation.phone";
     }
     if (Object.keys(fieldErrors).length > 0) {
       throw new ApplicationError({
@@ -634,6 +673,7 @@ export class CheckoutOrderUseCases {
         fieldErrors,
       });
     }
+    return normalized;
   }
 
   private cartChanged(): ApplicationError {

@@ -25,6 +25,8 @@ import {
 } from "./order-review-repositories";
 
 const SCOPE_TABLES = {
+  "admin-category-write": ["users", "sessions", "categories"],
+  "admin-brand-write": ["users", "sessions", "brands"],
   "register-and-merge-cart": [
     "users",
     "sessions",
@@ -60,6 +62,8 @@ const SCOPE_TABLES = {
     "product_images",
   ],
   "create-product-aggregate": [
+    "users",
+    "sessions",
     "categories",
     "brands",
     "products",
@@ -69,6 +73,8 @@ const SCOPE_TABLES = {
     "product_review_summaries",
   ],
   "update-product-aggregate": [
+    "users",
+    "sessions",
     "categories",
     "brands",
     "products",
@@ -77,15 +83,19 @@ const SCOPE_TABLES = {
     "inventory_histories",
   ],
   "change-product-status": [
+    "users",
+    "sessions",
     "categories",
     "brands",
     "products",
     "product_variants",
     "product_images",
   ],
-  "change-category-active-state": ["categories", "products"],
-  "change-brand-active-state": ["brands", "products"],
+  "change-category-active-state": ["users", "sessions", "categories", "products"],
+  "change-brand-active-state": ["users", "sessions", "brands", "products"],
   "delete-draft-product": [
+    "users",
+    "sessions",
     "products",
     "product_variants",
     "product_images",
@@ -95,7 +105,7 @@ const SCOPE_TABLES = {
     "order_items",
     "reviews",
   ],
-  "adjust-inventory": ["product_variants", "inventory_histories"],
+  "adjust-inventory": ["users", "sessions", "product_variants", "inventory_histories"],
   "change-user-access": ["users", "sessions", "checkout_sessions"],
   "create-order": [
     "users",
@@ -122,10 +132,16 @@ const SCOPE_TABLES = {
   ],
   "finalize-payment-failure": ["payments", "orders", "order_status_histories"],
   "retry-payment": ["payments", "orders", "order_status_histories"],
-  "start-order-preparation": ["orders", "order_status_histories", "shipments"],
-  "ship-order": ["orders", "order_status_histories", "shipments"],
-  "complete-delivery": ["orders", "order_status_histories", "shipments"],
-  "review-change": ["reviews", "review_status_histories", "product_review_summaries"],
+  "start-order-preparation": ["users", "sessions", "orders", "order_status_histories", "shipments"],
+  "ship-order": ["users", "sessions", "orders", "order_status_histories", "shipments"],
+  "complete-delivery": ["users", "sessions", "orders", "order_status_histories", "shipments"],
+  "review-change": [
+    "users",
+    "sessions",
+    "reviews",
+    "review_status_histories",
+    "product_review_summaries",
+  ],
 } as const satisfies Record<keyof TransactionScopeMap, readonly ScenarioShopTableName[]>;
 
 export class DexieApplicationTransactionRunner implements ApplicationTransactionRunner {
@@ -170,6 +186,8 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
   scope: S,
 ): Array<keyof TransactionScopeMap[S] & keyof RepositoryInstances> {
   const mapping: Record<keyof TransactionScopeMap, readonly (keyof RepositoryInstances)[]> = {
+    "admin-category-write": ["categories", "users", "sessions"],
+    "admin-brand-write": ["brands", "users", "sessions"],
     "register-and-merge-cart": ["users", "sessions", "carts", "products", "inventory"],
     "login-and-merge-cart": ["users", "sessions", "carts", "products", "inventory"],
     "cart-mutation": ["users", "carts", "products", "inventory"],
@@ -181,13 +199,22 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
       "categories",
       "brands",
       "reviewSummaries",
+      "users",
+      "sessions",
     ],
-    "update-product-aggregate": ["products", "inventory", "categories", "brands"],
-    "change-product-status": ["products", "inventory", "categories", "brands"],
-    "change-category-active-state": ["categories", "products"],
-    "change-brand-active-state": ["brands", "products"],
-    "delete-draft-product": ["products", "inventory", "reviewSummaries"],
-    "adjust-inventory": ["inventory"],
+    "update-product-aggregate": [
+      "products",
+      "inventory",
+      "categories",
+      "brands",
+      "users",
+      "sessions",
+    ],
+    "change-product-status": ["products", "inventory", "categories", "brands", "users", "sessions"],
+    "change-category-active-state": ["categories", "products", "users", "sessions"],
+    "change-brand-active-state": ["brands", "products", "users", "sessions"],
+    "delete-draft-product": ["products", "inventory", "reviewSummaries", "users", "sessions"],
+    "adjust-inventory": ["inventory", "users", "sessions"],
     "change-user-access": ["users", "sessions", "checkouts"],
     "create-order": [
       "users",
@@ -202,10 +229,10 @@ function repositoryKeysForScope<S extends keyof TransactionScopeMap>(
     "finalize-payment-success": ["orders", "payments", "inventory", "shipments"],
     "finalize-payment-failure": ["orders", "payments"],
     "retry-payment": ["orders", "payments"],
-    "start-order-preparation": ["orders", "shipments"],
-    "ship-order": ["orders", "shipments"],
-    "complete-delivery": ["orders", "shipments"],
-    "review-change": ["reviews", "reviewSummaries"],
+    "start-order-preparation": ["orders", "shipments", "users", "sessions"],
+    "ship-order": ["orders", "shipments", "users", "sessions"],
+    "complete-delivery": ["orders", "shipments", "users", "sessions"],
+    "review-change": ["reviews", "reviewSummaries", "users", "sessions"],
   };
   return [...mapping[scope]] as Array<keyof TransactionScopeMap[S] & keyof RepositoryInstances>;
 }
