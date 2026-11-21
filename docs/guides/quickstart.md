@@ -3,11 +3,11 @@
 ## 新規コンシューマーリポジトリへの導入
 
 1. `template/` の内容を対象リポジトリのルートへコピーする。
-2. `scripts/init-project.*` を実行し、`.codex/runs/`、`docs/adr/`、`docs/history/`、`docs/plans/`、`docs/reports/` などの初期ディレクトリを作成する。
+2. `scripts/init-project.*` を実行し、`runs/`、`docs/adr/`、`docs/history/`、`docs/plans/`、`docs/reports/` などの初期ディレクトリを作成する。既存の`.codex/runs/`はpreserved legacy/historyとして残す。
 3. `AGENTS.md` を確認する。
 4. `docs/PROJECT_CONTEXT.md` を対象プロジェクトの内容に合わせて更新する。
 5. `bash scripts/verify` または `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1` を実行し、最低限のセットアップが完了していることを確認する。
-6. 初回のリクエストでは `scripts/new-run.sh` または `scripts/new-run.ps1` を実行し、`.codex/runs/<run_id>/` を初期化する。
+6. 初回のリクエストでは `scripts/new-run.sh` または `scripts/new-run.ps1` を実行し、`runs/<run_id>/` を初期化する。
    - 通常の直接実行（direct `codex`）による lightweight／standard Run はマニフェストなしとする。
    - Bash: `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
    - PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
@@ -31,7 +31,7 @@
 2. ソースリポジトリの `CHANGELOG.md` と `MIGRATION.md` を確認する。
 3. コンシューマーリポジトリ側で更新用ブランチを作成する。
 4. テンプレートの差分を一時ディレクトリへ同期し、内容を確認する。
-5. `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`.codex/runs/` は機械的に上書きしない。
+5. `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`runs/`、`.codex/runs/` は機械的に上書きしない。
 6. 必要なテンプレートの差分のみを反映する。
 7. `bash scripts/verify` または PowerShell 版の verify スクリプトを実行する。
 8. プルリクエスト（PR）で差分を確認し、プロジェクト固有の運用ルール、品質ゲート、安全制約が損なわれていないかをレビューする。
@@ -40,12 +40,10 @@
 
 | 作業内容 | 推奨モード |
 | --- | --- |
-| ドキュメント確認、PRレビュー、静的調査 | `readonly` または direct `codex` |
+| ドキュメント確認、PRレビュー、静的調査 | direct `codex`（必要に応じてread-only agentへ委任） |
 | 通常の対話型実装・ドキュメント更新 | リポジトリ内からの direct `codex` |
-| ローカルブランチの削除、マージ／リベースのリカバリなどの明示的な例外作業 | `codex-safe safe` による都度（on-request）承認 |
-| 影響の大きい GitHub CLI などのネットワーク例外 | `codex-safe safe`（承認およびネットワークサンドボックスへの昇格に関するランタイム確認が完了した場合のみ） |
-| 非対話の strict 実装、機械管理されたエビデンス収集 | `codex-task --run-id <run_id> --record-run-manifest` |
+| strict Run、機械管理されたエビデンス収集 | direct `codex` と既存Run collectorの明示実行 |
 | git add / commit / push | ファイル変更タスク（file-changing task）の Git ライフサイクル規約に従う（ユーザーによって Git 操作が禁止されていない場合） |
 | 削除、rename、git rm | 原則として実行しない。明示的に指定された対象のみ、Safety／Git safety 規約に従って実行する |
 
-通常の direct `codex` は、`workspace-write`、`approval_policy = "never"`、およびネットワークアクセスが有効（network access enabled）の状態で動作する。execpolicy の `prompt` オペレーションは、承認プロンプトを表示せずに自動で拒否される。`auto-net` は削除せず、必要に応じて明示的に指定する既存のラッパープリセットとして維持する。
+通常はリポジトリのルートから `codex` を直接起動します。具体的なshellやhostの運用は各consumerのポリシーに従ってください。`.codex/config.toml` の値は `workspace-write`、`approval_policy = "never"`、network access enabledです。project config/rulesはproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。

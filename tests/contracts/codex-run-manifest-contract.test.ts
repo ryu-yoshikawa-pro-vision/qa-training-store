@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,6 +7,55 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(process.cwd());
 const collectorPath = path.join(repoRoot, "scripts", "collect-run-artifacts.py");
+let runCounter = 0;
+
+function nextRunId() {
+  runCounter += 1;
+  return `20261117-${String(runCounter).padStart(6, "0")}-JST`;
+}
+
+function copyCollectorToFixture(tempRoot: string) {
+  const scriptsRoot = path.join(tempRoot, "scripts");
+  const fixtureCollectorPath = path.join(scriptsRoot, "collect-run-artifacts.py");
+  const fixtureValidatorPath = path.join(scriptsRoot, "validate-output-schema.py");
+  const templatesRoot = path.join(tempRoot, ".codex", "templates");
+  fs.mkdirSync(scriptsRoot, { recursive: true });
+  fs.mkdirSync(templatesRoot, { recursive: true });
+  fs.copyFileSync(collectorPath, fixtureCollectorPath);
+  fs.copyFileSync(
+    path.join(repoRoot, "scripts", "validate-output-schema.py"),
+    fixtureValidatorPath,
+  );
+  fs.copyFileSync(
+    path.join(repoRoot, ".codex", "templates", "evaluation.schema.json"),
+    path.join(templatesRoot, "evaluation.schema.json"),
+  );
+  return fixtureCollectorPath;
+}
+
+function validEvaluation(runId: string) {
+  const dimensions = Object.fromEntries(
+    [
+      "task_completion",
+      "scope_control",
+      "validation_confidence",
+      "safety_compliance",
+      "reviewability",
+      "maintainability",
+      "reproducibility",
+    ].map((name) => [name, { rating: "pass", evidence: "Valid contract fixture evidence" }]),
+  );
+  return {
+    schema_version: 1,
+    run_id: runId,
+    result: "pass",
+    primary_failure_category: null,
+    failure_categories: [],
+    dimensions,
+    findings: [],
+    improvement_candidates: [],
+  };
+}
 
 type Manifest = {
   [key: string]: unknown;
@@ -22,14 +70,27 @@ function runCollector(
   includeLegacyFiles = false,
   baseManifest?: Record<string, unknown>,
   refreshGitChangedFiles = false,
+  includeEvaluation = false,
+  strict = false,
+  expectFailure = false,
+  evaluationContents?: string | ((runId: string) => string),
 ) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-contract-"));
-  const runId = `contract-${randomUUID()}`;
-  const runRoot = path.join(tempRoot, runId);
+  const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
+  const runId = nextRunId();
+  const runsRoot = path.join(tempRoot, "runs");
+  const runRoot = path.join(runsRoot, runId);
   const manifestPath = path.join(runRoot, "run.json");
   const baseManifestPath = path.join(tempRoot, "base-manifest.json");
   fs.mkdirSync(runRoot, { recursive: true });
   fs.writeFileSync(manifestPath, `${JSON.stringify(existingManifest)}\n`, "utf8");
+  if (includeEvaluation) {
+    const contents =
+      typeof evaluationContents === "function"
+        ? evaluationContents(runId)
+        : (evaluationContents ?? `${JSON.stringify(validEvaluation(runId))}\n`);
+    fs.writeFileSync(path.join(runRoot, "evaluation.json"), contents, "utf8");
+  }
   if (baseManifest) {
     fs.writeFileSync(baseManifestPath, `${JSON.stringify(baseManifest)}\n`, "utf8");
   }
@@ -55,11 +116,11 @@ function runCollector(
 
   try {
     const args = [
-      collectorPath,
+      fixtureCollectorPath,
       "--run-id",
       runId,
       "--runs-root",
-      tempRoot,
+      runsRoot,
       "--manifest-path",
       manifestPath,
     ];
@@ -69,11 +130,14 @@ function runCollector(
     if (refreshGitChangedFiles) {
       args.push("--refresh-git-changed-files");
     }
+    if (strict) {
+      args.push("--strict");
+    }
     const result = spawnSync(process.platform === "win32" ? "python" : "python3", args, {
-      cwd: repoRoot,
+      cwd: tempRoot,
       encoding: "utf8",
     });
-    expect(result.status, result.stderr).toBe(0);
+    expect(result.status, result.stderr).toBe(expectFailure ? 1 : 0);
     return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Manifest;
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -90,14 +154,15 @@ function runGit(cwd: string, args: string[]) {
 function runCollectorInTemporaryGitRepository() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-git-contract-"));
   const temporaryCollectorPath = path.join(tempRoot, "scripts", "collect-run-artifacts.py");
-  const runId = `contract-${randomUUID()}`;
-  const runRoot = path.join(tempRoot, ".codex", "runs", runId);
+  const runId = nextRunId();
+  const runRoot = path.join(tempRoot, "runs", runId);
   const manifestPath = path.join(runRoot, "run.json");
   const stagedPath = "staged 日本語 file.txt";
   const unstagedPath = "unstaged 日本語 file.txt";
   const duplicatePath = "duplicate file.txt";
   const untrackedPath = "untracked 日本語 file.txt";
-  const ignoredRunPath = path.join(".codex", "runs", "observed", "ignored file.txt");
+  const ignoredLegacyRunPath = path.join(".codex", "runs", "observed", "ignored file.txt");
+  const ignoredRunPath = path.join("runs", "observed", "ignored file.txt");
 
   fs.mkdirSync(path.dirname(temporaryCollectorPath), { recursive: true });
   fs.copyFileSync(collectorPath, temporaryCollectorPath);
@@ -122,6 +187,8 @@ function runCollectorInTemporaryGitRepository() {
   fs.writeFileSync(path.join(tempRoot, unstagedPath), "unstaged\n", "utf8");
   fs.writeFileSync(path.join(tempRoot, duplicatePath), "duplicate\n", "utf8");
   fs.writeFileSync(path.join(tempRoot, untrackedPath), "untracked\n", "utf8");
+  fs.mkdirSync(path.dirname(path.join(tempRoot, ignoredLegacyRunPath)), { recursive: true });
+  fs.writeFileSync(path.join(tempRoot, ignoredLegacyRunPath), "legacy-generated\n", "utf8");
   fs.mkdirSync(path.dirname(path.join(tempRoot, ignoredRunPath)), { recursive: true });
   fs.writeFileSync(path.join(tempRoot, ignoredRunPath), "generated\n", "utf8");
   fs.mkdirSync(runRoot, { recursive: true });
@@ -131,7 +198,13 @@ function runCollectorInTemporaryGitRepository() {
       schema_version: 2,
       run_id: runId,
       status: "running",
-      changed_files: ["existing.txt", ".codex/runs/legacy/old.json", stagedPath, duplicatePath],
+      changed_files: [
+        "existing.txt",
+        ".codex/runs/legacy/old.json",
+        "runs/legacy/new.json",
+        stagedPath,
+        duplicatePath,
+      ],
       validation: { status: "not_run", commands: [], warnings: [] },
     })}\n`,
     "utf8",
@@ -155,8 +228,8 @@ function runCollectorInTemporaryGitRepository() {
 function runCollectorWithoutGit() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-git-failure-"));
   const temporaryCollectorPath = path.join(tempRoot, "scripts", "collect-run-artifacts.py");
-  const runId = `contract-${randomUUID()}`;
-  const manifestPath = path.join(tempRoot, runId, "run.json");
+  const runId = nextRunId();
+  const manifestPath = path.join(tempRoot, "runs", runId, "run.json");
   fs.mkdirSync(path.dirname(temporaryCollectorPath), { recursive: true });
   fs.copyFileSync(collectorPath, temporaryCollectorPath);
   fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
@@ -185,6 +258,254 @@ function runCollectorWithoutGit() {
 }
 
 describe("run manifest v2 contract", () => {
+  it("defaults both collector wrappers to the repository runs directory", () => {
+    const shellWrapper = fs.readFileSync(
+      path.join(repoRoot, "scripts", "collect-run-artifacts.sh"),
+      "utf8",
+    );
+    const powerShellWrapper = fs.readFileSync(
+      path.join(repoRoot, "scripts", "collect-run-artifacts.ps1"),
+      "utf8",
+    );
+    const collector = fs.readFileSync(collectorPath, "utf8");
+
+    expect(shellWrapper).toContain('--runs-root "$script_dir/../runs"');
+    expect(powerShellWrapper).toContain('Join-Path $PSScriptRoot "..\\runs"');
+    expect(collector).toContain('expected_runs_root = canonical_repo_root / "runs"');
+  });
+
+  it("rejects external RunsRoot and manifest paths without changing the saved manifest", () => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-path-contract-"));
+    const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
+    const runId = nextRunId();
+    const runsRoot = path.join(tempRoot, "runs");
+    const runRoot = path.join(runsRoot, runId);
+    const manifestPath = path.join(runRoot, "run.json");
+    const outsideRoot = path.join(tempRoot, "outside");
+    const outsideManifestPath = path.join(outsideRoot, "run.json");
+    const manifestContents = `${JSON.stringify({ run_id: runId, status: "preserve" })}\n`;
+    fs.mkdirSync(runRoot, { recursive: true });
+    fs.mkdirSync(outsideRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, manifestContents, "utf8");
+    fs.writeFileSync(outsideManifestPath, "outside manifest stays untouched\n", "utf8");
+
+    try {
+      const command = process.platform === "win32" ? "python" : "python3";
+      const outsideRootResult = spawnSync(
+        command,
+        [
+          fixtureCollectorPath,
+          "--run-id",
+          runId,
+          "--runs-root",
+          outsideRoot,
+          "--manifest-path",
+          manifestPath,
+        ],
+        { cwd: tempRoot, encoding: "utf8" },
+      );
+      expect(outsideRootResult.status).not.toBe(0);
+      expect(fs.readFileSync(manifestPath, "utf8")).toBe(manifestContents);
+
+      const outsideManifestResult = spawnSync(
+        command,
+        [
+          fixtureCollectorPath,
+          "--run-id",
+          runId,
+          "--runs-root",
+          runsRoot,
+          "--manifest-path",
+          outsideManifestPath,
+        ],
+        { cwd: tempRoot, encoding: "utf8" },
+      );
+      expect(outsideManifestResult.status).not.toBe(0);
+      expect(fs.readFileSync(outsideManifestPath, "utf8")).toBe(
+        "outside manifest stays untouched\n",
+      );
+      expect(fs.readFileSync(manifestPath, "utf8")).toBe(manifestContents);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("reads a relative base manifest outside the repository without modifying it", () => {
+    const tempRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "codex-manifest-external-base-contract-"),
+    );
+    const fixtureRoot = path.join(tempRoot, "repository");
+    const fixtureCollectorPath = copyCollectorToFixture(fixtureRoot);
+    const runId = nextRunId();
+    const runRoot = path.join(fixtureRoot, "runs", runId);
+    const manifestPath = path.join(runRoot, "run.json");
+    const baseManifestPath = path.join(tempRoot, "base-manifest.json");
+    const baseManifestContents = `${JSON.stringify({
+      schema_version: 2,
+      run_id: runId,
+      status: "from-external-base",
+      changed_files: ["base.txt"],
+      validation: { status: "not_run", commands: [], warnings: [] },
+    })}\n`;
+    fs.mkdirSync(runRoot, { recursive: true });
+    fs.writeFileSync(baseManifestPath, baseManifestContents, "utf8");
+
+    try {
+      const result = spawnSync(
+        process.platform === "win32" ? "python" : "python3",
+        [
+          fixtureCollectorPath,
+          "--run-id",
+          runId,
+          "--runs-root",
+          path.join(fixtureRoot, "runs"),
+          "--manifest-path",
+          manifestPath,
+          "--base-manifest",
+          "../base-manifest.json",
+        ],
+        { cwd: fixtureRoot, encoding: "utf8" },
+      );
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(JSON.parse(fs.readFileSync(manifestPath, "utf8"))).toMatchObject({
+        run_id: runId,
+        status: "from-external-base",
+        changed_files: ["base.txt"],
+      });
+      expect(fs.readFileSync(baseManifestPath, "utf8")).toBe(baseManifestContents);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a reparse-point RunsRoot before updating the Run manifest", () => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-reparse-contract-"));
+    const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
+    const runId = nextRunId();
+    const runsRoot = path.join(tempRoot, "runs");
+    const outsideRoot = path.join(tempRoot, "outside-runs");
+    const outsideRunRoot = path.join(outsideRoot, runId);
+    const manifestPath = path.join(outsideRunRoot, "run.json");
+    const manifestContents = `${JSON.stringify({ run_id: runId, status: "preserve" })}\n`;
+    fs.mkdirSync(outsideRunRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, manifestContents, "utf8");
+    fs.symlinkSync(outsideRoot, runsRoot, process.platform === "win32" ? "junction" : "dir");
+
+    try {
+      const result = spawnSync(
+        process.platform === "win32" ? "python" : "python3",
+        [
+          fixtureCollectorPath,
+          "--run-id",
+          runId,
+          "--runs-root",
+          runsRoot,
+          "--manifest-path",
+          manifestPath,
+        ],
+        { cwd: tempRoot, encoding: "utf8" },
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(fs.readFileSync(manifestPath, "utf8")).toBe(manifestContents);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a duplicate Run ID across new and legacy roots before changing either manifest", () => {
+    const tempRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "codex-manifest-duplicate-run-contract-"),
+    );
+    const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
+    const runId = nextRunId();
+    const runsRoot = path.join(tempRoot, "runs");
+    const newRunRoot = path.join(runsRoot, runId);
+    const legacyRunRoot = path.join(tempRoot, ".codex", "runs", runId);
+    const newManifestPath = path.join(newRunRoot, "run.json");
+    const legacyManifestPath = path.join(legacyRunRoot, "run.json");
+    const newManifestContents = '{"run_id":"new","status":"preserve-new"}\n';
+    const legacyManifestContents = '{"run_id":"legacy","status":"preserve-legacy"}\n';
+    fs.mkdirSync(newRunRoot, { recursive: true });
+    fs.mkdirSync(legacyRunRoot, { recursive: true });
+    fs.writeFileSync(newManifestPath, newManifestContents, "utf8");
+    fs.writeFileSync(legacyManifestPath, legacyManifestContents, "utf8");
+
+    try {
+      const result = spawnSync(
+        process.platform === "win32" ? "python" : "python3",
+        [
+          fixtureCollectorPath,
+          "--run-id",
+          runId,
+          "--runs-root",
+          runsRoot,
+          "--manifest-path",
+          newManifestPath,
+        ],
+        { cwd: tempRoot, encoding: "utf8" },
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("Ambiguous Run ID");
+      expect(fs.readFileSync(newManifestPath, "utf8")).toBe(newManifestContents);
+      expect(fs.readFileSync(legacyManifestPath, "utf8")).toBe(legacyManifestContents);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a reparse-point evaluation path without changing the Run manifest", () => {
+    const tempRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "codex-manifest-evaluation-link-contract-"),
+    );
+    const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
+    const runId = nextRunId();
+    const runsRoot = path.join(tempRoot, "runs");
+    const runRoot = path.join(runsRoot, runId);
+    const manifestPath = path.join(runRoot, "run.json");
+    const evaluationPath = path.join(runRoot, "evaluation.json");
+    const outsideEvaluationRoot = path.join(tempRoot, "outside-evaluation");
+    const outsideEvaluationPath = path.join(outsideEvaluationRoot, "evaluation.json");
+    const manifestContents = `${JSON.stringify({ run_id: runId, status: "preserve" })}\n`;
+    const evaluationContents = '{"run_id":"outside","result":"preserve"}\n';
+    fs.mkdirSync(runRoot, { recursive: true });
+    fs.mkdirSync(outsideEvaluationRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, manifestContents, "utf8");
+    fs.writeFileSync(outsideEvaluationPath, evaluationContents, "utf8");
+    fs.symlinkSync(
+      outsideEvaluationRoot,
+      evaluationPath,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+
+    try {
+      const result = spawnSync(
+        process.platform === "win32" ? "python" : "python3",
+        [
+          fixtureCollectorPath,
+          "--run-id",
+          runId,
+          "--runs-root",
+          runsRoot,
+          "--manifest-path",
+          manifestPath,
+        ],
+        { cwd: tempRoot, encoding: "utf8" },
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        "Run evaluation path must not contain a symlink or reparse point",
+      );
+      expect(fs.readFileSync(manifestPath, "utf8")).toBe(manifestContents);
+      expect(fs.readFileSync(outsideEvaluationPath, "utf8")).toBe(evaluationContents);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("does not re-inject removed fields while processing an existing v2 manifest", () => {
     const manifest = runCollector({
       schema_version: 2,
@@ -331,31 +652,224 @@ describe("run manifest v2 contract", () => {
     expect(manifest.validation.warnings).toEqual([]);
   });
 
-  it("keeps every manifest writer on the v2 shape for new runs", () => {
+  it("initializes new Runs from the manifest template and refreshes them through the collector", () => {
     const template = JSON.parse(
       fs.readFileSync(path.join(repoRoot, ".codex", "templates", "RUN_MANIFEST.json"), "utf8"),
     ) as Manifest;
-    const powershell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.ps1"), "utf8");
-    const shell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), "utf8");
+    const newRunShell = fs.readFileSync(path.join(repoRoot, "scripts", "new-run.sh"), "utf8");
+    const newRunPowerShell = fs.readFileSync(path.join(repoRoot, "scripts", "new-run.ps1"), "utf8");
+    const collector = fs.readFileSync(collectorPath, "utf8");
+    const collectorShell = fs.readFileSync(
+      path.join(repoRoot, "scripts", "collect-run-artifacts.sh"),
+      "utf8",
+    );
+    const collectorPowerShell = fs.readFileSync(
+      path.join(repoRoot, "scripts", "collect-run-artifacts.ps1"),
+      "utf8",
+    );
 
     expect(template.schema_version).toBe(2);
+    expect(template).not.toHaveProperty("preset");
     expect(template).not.toHaveProperty("agents_used");
     expect(template).not.toHaveProperty("hook_observations");
     expect(template).not.toHaveProperty("subagents");
-    expect(powershell).toContain("schema_version = 2");
-    expect(shell).toContain('"schema_version": 2');
-    expect(powershell).toContain("$existingIsV1");
-    expect(shell).toContain('existing.get("schema_version") == 1');
+    expect(newRunShell).toContain(
+      'render_run_manifest "$repo_root/.codex/templates/RUN_MANIFEST.json" "$run_root/run.json"',
+    );
+    expect(newRunShell).toContain("if (( ! no_run_manifest )); then");
+    expect(newRunPowerShell).toContain('Join-Path $runRoot "run.json"');
+    expect(newRunPowerShell).toContain('"RUN_MANIFEST.json"');
+    expect(collectorShell).toContain("collect-run-artifacts.py");
+    expect(collectorPowerShell).toContain("collect-run-artifacts.py");
+    expect(collector).toContain("manifest_path.write_text(json.dumps(manifest");
+    expect(collector).toContain(
+      'existing_is_v1 = isinstance(existing_data, dict) and existing_data.get("schema_version") == 1',
+    );
+    expect(collector).toContain(
+      'base_is_v1 = isinstance(base_data, dict) and base_data.get("schema_version") == 1',
+    );
+
+    const fallbackManifest = runCollector({
+      schema_version: 2,
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+    expect(fallbackManifest).not.toHaveProperty("preset");
+  });
+
+  it("preserves preset only as compatibility metadata when refreshing an existing manifest", () => {
+    const manifest = runCollector({
+      schema_version: 2,
+      preset: "auto-net",
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+
+    expect(manifest.preset).toBe("auto-net");
+  });
+
+  it("writes a warning manifest and exits nonzero when strict collection lacks evaluation.json", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      false,
+      true,
+      true,
+    );
+
+    expect(manifest.artifact_summary.evaluation_present).toBe(false);
+    expect(manifest.validation.status).toBe("passed_with_warnings");
+    expect(manifest.validation.warnings).toContainEqual(
+      expect.objectContaining({
+        type: "evaluation_missing",
+        path: `runs/${String(manifest.run_id)}/evaluation.json`,
+      }),
+    );
+  });
+
+  it("passes strict collection when evaluation.json matches the Run", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+      true,
+    );
+
+    expect(manifest.artifact_summary.evaluation_present).toBe(true);
+    expect(manifest.validation.warnings).toEqual([]);
+  });
+
+  it("does not import primary_failure_category from a schema-invalid strict evaluation", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        primary_failure_category: null,
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+      true,
+      true,
+      (runId) =>
+        `${JSON.stringify({
+          ...validEvaluation(runId),
+          result: "invalid-result",
+          primary_failure_category: "artifact_contract_gap",
+        })}\n`,
+    );
+
+    expect(manifest.primary_failure_category).toBeNull();
+    expect(manifest.validation.warnings).toContainEqual(
+      expect.objectContaining({ type: "evaluation_schema_invalid" }),
+    );
+  });
+
+  it.each([
+    {
+      name: "malformed JSON",
+      warningType: "evaluation_invalid_json",
+      contents: "{ invalid json\n",
+    },
+    {
+      name: "mismatched Run ID",
+      warningType: "evaluation_run_id_mismatch",
+      contents: (runId: string) => `${JSON.stringify(validEvaluation(`${runId}-other`))}\n`,
+    },
+    {
+      name: "non-object JSON",
+      warningType: "evaluation_not_object",
+      contents: "[]\n",
+    },
+    {
+      name: "schema-invalid object",
+      warningType: "evaluation_schema_invalid",
+      contents: (runId: string) => `${JSON.stringify({ schema_version: 1, run_id: runId })}\n`,
+    },
+  ])("writes the manifest and fails strict collection for $name", ({ warningType, contents }) => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+      true,
+      true,
+      contents,
+    );
+
+    expect(manifest.validation.status).toBe("passed_with_warnings");
+    expect(manifest.validation.warnings).toContainEqual(
+      expect.objectContaining({
+        type: warningType,
+        path: `runs/${String(manifest.run_id)}/evaluation.json`,
+      }),
+    );
+  });
+
+  it("allows non-strict collection without evaluation.json", () => {
+    const manifest = runCollector({
+      schema_version: 2,
+      workflow_level: "standard",
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+
+    expect(manifest.artifact_summary.evaluation_present).toBe(false);
+    expect(manifest.validation.warnings).toEqual([]);
   });
 
   it("keeps the existing changed_files list when refresh is not requested", () => {
     const manifest = runCollector({
       schema_version: 2,
-      changed_files: ["existing.txt", ".codex/runs/legacy/old.json"],
+      changed_files: ["existing.txt", ".codex/runs/legacy/old.json", "runs/legacy/new.json"],
       validation: { status: "not_run", commands: [], warnings: [] },
     });
 
-    expect(manifest.changed_files).toEqual(["existing.txt", ".codex/runs/legacy/old.json"]);
+    expect(manifest.changed_files).toEqual([
+      "existing.txt",
+      ".codex/runs/legacy/old.json",
+      "runs/legacy/new.json",
+    ]);
+  });
+
+  it("points evaluation_path at the new run root and clears stale paths when absent", () => {
+    const withEvaluation = runCollector(
+      {
+        schema_version: 2,
+        evaluation_path: ".codex/runs/legacy/evaluation.json",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+    );
+    expect(withEvaluation.evaluation_path).toBe(
+      `runs/${String(withEvaluation.run_id)}/evaluation.json`,
+    );
+
+    const withoutEvaluation = runCollector({
+      schema_version: 2,
+      evaluation_path: ".codex/runs/legacy/evaluation.json",
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+    expect(withoutEvaluation.evaluation_path).toBeNull();
   });
 
   it("unions tracked and untracked Git paths while preserving existing paths", () => {
@@ -364,6 +878,7 @@ describe("run manifest v2 contract", () => {
     const expectedPaths = [
       "existing.txt",
       ".codex/runs/legacy/old.json",
+      "runs/legacy/new.json",
       "staged 日本語 file.txt",
       "unstaged 日本語 file.txt",
       "duplicate file.txt",
@@ -374,6 +889,7 @@ describe("run manifest v2 contract", () => {
       expect(changedFiles.filter((value) => value === expectedPath)).toHaveLength(1);
     }
     expect(changedFiles).not.toContain(".codex/runs/observed/ignored file.txt");
+    expect(changedFiles).not.toContain("runs/observed/ignored file.txt");
     expect(manifest.status).toBe("running");
   });
 

@@ -16,7 +16,7 @@
 
 ## リポジトリの実行モード契約
 
-- Normalモード: 対象の実行回（Run）における `.codex/runs/<run_id>/qa-charter.json` を入力とし、ソース作業ツリー（Source Working Tree）は読み取り専用（Readonly）として扱います。証拠（Evidence）は `.codex/runs/<run_id>/` および `.artifacts/` へ保存します。
+- Normalモード: 対象の実行回（Run）における `runs/<run_id>/qa-charter.json` を入力とし、ソース作業ツリー（Source Working Tree）は読み取り専用（Readonly）として扱います。チャーターと確定した `qa-findings.json` は `runs/<run_id>/` に、raw evidenceは `.artifacts/` に保存します。Run Artifactの作成・更新はParentが管理します。
 - Gray-box Scenario Shopマッピング: シナリオ（Scenario）およびシード（Seed）の許可リスト（allowlist）は、`src/seeds/metadata.ts` の `SCENARIO_METADATA` と型定義を正本として参照し、一覧をこの文書へ複製しません。実データの生成は `src/seeds/scenarios.ts`、リセットおよびテスト制御（Reset / Test Control）は `src/test-controls/` が具体的な実装です。機械契約の `allowed_runtime_controls` は `seed_reset`、`clock`、`payment_delay`、`deep_link`、`app_restart` を受け付け、DOM、アクセシビリティ（Accessibility）、コンソール（Console）、絞り込みログ（Narrow Log）などの観察証拠（Observation Evidence）は `evidenceTypeSchema` へバインドします。ランタイム機能（Runtime capability）は、本リポジトリのPlaywright-MCP / Maestro-MCPまたは同等の機能マッピングを使用します。
 - Black-box Scoredモード: `training/agentic-qa/challenges/<challenge-id>/challenge.json`、受講者向け安全バンドル（learner-safe Bundle）、ランブック（Runbook）、ハッシュ検証済みの `training/agentic-qa/skills/scored-v1.md` スナップショット、カノニカルランナー入力（Canonical Runner Input）、ソース非含有の準備済み検証対象（Source-free Prepared Target）のみを、ランナーから参照可能な境界（Runner-visible boundary）へ渡します。新規のCoding Agentセッション（Fresh Coding Agent Session）、信頼されたセッション識別情報（trusted session identity）、ツールの完全隔離（Tool Isolation）、信頼された実際のツールスコープ（trusted Actual Tool Scope）が必要です。ランナーは `.agents/skills/**`、`QA_AGENT.md`、ソースコード、正解（Answer Key）、パッチ（Patch）、過去の実行成果物（prior run artifact）を読み取りません。
 

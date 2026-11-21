@@ -6,7 +6,7 @@
 
 - 必ず更新用ブランチを作成してから作業を進める。
 - 作業前にまず `CHANGELOG.md` と `MIGRATION.md` を確認する。
-- `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`.codex/runs/` は機械的に上書きしない。
+- `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`runs/`、`.codex/runs/` は機械的に上書きしない。`runs/`はconsumerのRun Artifactを保持し、`.codex/runs/`はpreserved legacy/historyとして保持する。
 - source（テンプレート元）リポジトリ側で、事前に `plan-consumer-update` を実行する。
 - 既存のリポジトリに直接同期する前に、必ず `--plan-only` またはドライラン（dry-run）を実行する。
 - 不安がある場合は、一時ディレクトリに同期して差分を手動で反映する。
@@ -21,7 +21,7 @@
 6. consumer 固有のファイルを除外しながら差分を確認する。
 7. 必要なテンプレートの差分のみを consumer リポジトリへ反映する。
 8. `bash scripts/verify` または PowerShell 版の verify を実行する。
-9. 必要に応じて `cleanup-runs` をドライラン（dry-run）で実行し、過去の実行で生成された成果物（generated run artifact）の整理候補を確認する。
+9. Run Artifactは保持します。新規Runの初期化には `scripts/new-run.*` を使用し、既存manifestの機械更新が必要な場合は直接 `codex` の終了後に `scripts/collect-run-artifacts.*` を明示実行します。
 10. プルリクエスト（PR）を作成し、差分をレビューする。
 
 ## 更新計画の出力
@@ -122,7 +122,8 @@ powershell -ExecutionPolicy Bypass -File path\to\codex-templates\tools\sync-temp
 | `docs/adr/` | consumer リポジトリ固有の設計判断履歴（ADR）であるため |
 | `docs/plans/` | consumer リポジトリ固有の計画履歴であるため |
 | `docs/reports/` | consumer リポジトリ固有の調査・検証履歴であるため |
-| `.codex/runs/` | 過去の実行ログや作業履歴であるため |
+| `runs/` | 新しい実行ログ、作業履歴、機械管理マニフェストを含むconsumer固有のRun Artifactであるため |
+| `.codex/runs/` | preserved legacy/historyの実行ログや作業履歴であるため |
 | `docs/history/` | consumer リポジトリ固有の変更履歴であるため |
 | 認証情報や環境設定 | テンプレートの管理対象外であるため |
 

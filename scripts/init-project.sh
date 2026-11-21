@@ -39,8 +39,30 @@ repo_root="$(cd "$script_dir/.." && pwd -P)"
 
 cd "$repo_root"
 
+runs_root="$repo_root/runs"
+if [[ -L "$runs_root" ]]; then
+  echo "Run root must not be a symlink or reparse point: runs" >&2
+  exit 1
+fi
+if [[ -e "$runs_root" ]]; then
+  if [[ ! -d "$runs_root" ]]; then
+    echo "Run root must be a directory: runs" >&2
+    exit 1
+  fi
+else
+  if ! mkdir -- "$runs_root"; then
+    echo "Unable to create the repository runs directory safely: runs" >&2
+    exit 1
+  fi
+fi
+runs_root_real="$(cd -P -- "$runs_root" && pwd -P)"
+if [[ "$runs_root_real" != "$repo_root/runs" ]]; then
+  echo "Run root must resolve directly to the repository's runs directory: runs" >&2
+  exit 1
+fi
+
 for dir in \
-  ".codex/runs" \
+  "runs" \
   "docs/adr" \
   "docs/history" \
   "docs/plans" \
@@ -49,7 +71,7 @@ for dir in \
 done
 
 for keep in \
-  ".codex/runs/.gitkeep" \
+  "runs/.gitkeep" \
   "docs/adr/.gitkeep" \
   "docs/history/.gitkeep" \
   "docs/plans/.gitkeep" \

@@ -885,9 +885,10 @@ describe("Security dependency fallback workflow", () => {
     expect(workflow).toContain("steps.upload_prepared.outputs.artifact-id");
     expect(workflow).toContain("steps.upload_validated.outputs.artifact-id");
     expect((workflow.match(/artifact-ids:/g) ?? []).length).toBeGreaterThanOrEqual(6);
-    expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/PLAN.md");
-    expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/TASKS.md");
-    expect(workflow).toContain(".codex/runs/${{ steps.create_run.outputs.run_id }}/REPORT.md");
+    expect(workflow).toContain("runs/${{ steps.create_run.outputs.run_id }}/PLAN.md");
+    expect(workflow).toContain("runs/${{ steps.create_run.outputs.run_id }}/TASKS.md");
+    expect(workflow).toContain("runs/${{ steps.create_run.outputs.run_id }}/REPORT.md");
+    expect(workflow).not.toContain(".codex/runs/");
     expect(workflow).toContain("validated-fix.json");
     expect(workflow).toContain("conflict_terms");
   });

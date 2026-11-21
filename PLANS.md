@@ -12,7 +12,7 @@
 
 ## Active Runとの接続
 
-- 実行中のRunでは`.codex/runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`を作業管理に使う。
+- 実行中のRunでは`runs/<run_id>/PLAN.md`、`TASKS.md`、`REPORT.md`を作業管理に使う。Run Artifactの作成・更新はParentが管理し、childは行わない。
 - リポジトリ向けの保存計画とRun固有の作業artifactは別物として扱う。
 - 同一会話の同一taskではactive Runを再利用する。
 - 別task・別会話を含むRun切替条件は `docs/reference/run-artifacts.md` を正本とする。

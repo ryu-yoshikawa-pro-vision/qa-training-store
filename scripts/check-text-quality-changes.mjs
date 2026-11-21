@@ -15,6 +15,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 const scriptDirectory = path.dirname(scriptPath);
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const FULL_SCAN_EXCLUDED_PREFIXES = Object.freeze([
+  "runs/",
   ".codex/runs/",
   "docs/plans/",
   "docs/reports/",
@@ -43,6 +44,16 @@ function normalizeGitPath(value) {
 
 function isMarkdownPath(value) {
   return /\.md$/iu.test(value);
+}
+
+function isHistoricalRunPath(value) {
+  const normalized = normalizeGitPath(value);
+  return (
+    normalized === "runs" ||
+    normalized.startsWith("runs/") ||
+    normalized === ".codex/runs" ||
+    normalized.startsWith(".codex/runs/")
+  );
 }
 
 function runGit(args, cwd) {
@@ -181,7 +192,7 @@ function unique(values) {
 }
 
 function addRecordPath(paths, value) {
-  if (value !== undefined && isMarkdownPath(value)) {
+  if (value !== undefined && isMarkdownPath(value) && !isHistoricalRunPath(value)) {
     paths.add(value);
   }
 }
@@ -193,6 +204,9 @@ function getGitRenameMappings(records) {
       continue;
     }
     if (!isMarkdownPath(record.newPath) || !isMarkdownPath(record.oldPath)) {
+      continue;
+    }
+    if (isHistoricalRunPath(record.oldPath) || isHistoricalRunPath(record.newPath)) {
       continue;
     }
     if (mappings.has(record.newPath) || [...mappings.values()].includes(record.oldPath)) {
@@ -226,8 +240,12 @@ function getDeletedBaselinePaths(records, renameMappings) {
     } else if (
       record.status === "R" &&
       record.oldPath !== undefined &&
+      record.newPath !== undefined &&
       isMarkdownPath(record.oldPath)
     ) {
+      if (isHistoricalRunPath(record.oldPath) || isHistoricalRunPath(record.newPath)) {
+        continue;
+      }
       if (![...renameMappings.values()].includes(record.oldPath)) {
         paths.add(record.oldPath);
       }
@@ -319,10 +337,12 @@ async function buildChangedFilePairs({ root, baseRef, workingTree, rules }) {
     baseRef: workingTree ? baseRef : baselineRef,
     workingTree,
   });
-  const baselinePaths = getCommitMarkdownPaths(root, baselineRef);
+  const baselinePaths = getCommitMarkdownPaths(root, baselineRef).filter(
+    (filePath) => !isHistoricalRunPath(filePath),
+  );
   const currentPaths = workingTree
-    ? getWorkingTreeMarkdownPaths(root)
-    : getCommitMarkdownPaths(root, "HEAD");
+    ? getWorkingTreeMarkdownPaths(root).filter((filePath) => !isHistoricalRunPath(filePath))
+    : getCommitMarkdownPaths(root, "HEAD").filter((filePath) => !isHistoricalRunPath(filePath));
   const gitRenameMappings = getGitRenameMappings(records);
   const identityMappings = resolveExactMoveMappings({
     root,

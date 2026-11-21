@@ -9,8 +9,29 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $repoRoot
 
+$runsRoot = Join-Path $repoRoot "runs"
+$expectedRunsRoot = [System.IO.Path]::GetFullPath($runsRoot)
+$runsRootItem = Get-Item -LiteralPath $runsRoot -Force -ErrorAction SilentlyContinue
+if ($null -ne $runsRootItem) {
+    if (($runsRootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Run root must not be a symlink, junction, or reparse point: runs"
+    }
+    if (-not $runsRootItem.PSIsContainer) {
+        throw "Run root must be a directory: runs"
+    }
+
+    $resolvedRunsRoot = (Resolve-Path -LiteralPath $runsRoot -ErrorAction Stop).Path
+    $resolvedRunsRoot = [System.IO.Path]::GetFullPath($resolvedRunsRoot)
+    if (-not [System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedRunsRoot, $expectedRunsRoot)) {
+        throw "Run root must resolve directly to the repository's runs directory: runs"
+    }
+}
+else {
+    New-Item -ItemType Directory -Path $runsRoot -ErrorAction Stop | Out-Null
+}
+
 $directories = @(
-    ".codex\runs",
+    "runs",
     "docs\adr",
     "docs\history",
     "docs\plans",
@@ -24,7 +45,7 @@ foreach ($dir in $directories) {
 }
 
 $keepFiles = @(
-    ".codex\runs\.gitkeep",
+    "runs\.gitkeep",
     "docs\adr\.gitkeep",
     "docs\history\.gitkeep",
     "docs\plans\.gitkeep",
