@@ -9,8 +9,8 @@
 - [x] 5. 修正を含む最新製品HEADのNative CI component/Maestro/buildを確認し、visual/device未実施の範囲を正確に分類する（`e3a9d130`のMobile CI success、17 Maestro flow pass）。
 - [x] 6. 確定した不具合をbounded repair-loopで修正し、影響範囲の静的検査・targeted contract test・独立再レビューを完了する（full Maestro CIはtask 5で確認）。
 - [x] 7. Follow-up/REPORTをCI evidence・残受入事項で更新し、sanitizer/security/Git差分を最終確認する（format・security・sanitizer・diff check PASS）。
-- [ ] 8. CI修復を対象PR branchへ通常commit/pushし、更新後のPR HEADでrequired CIを取得する。
-- [ ] 9. 仕様判断・未実施項目・PR merge前判定を報告する（PR mergeはしない）。
+- [x] 8. 受入記録を対象PR branchへ通常commit/pushし、更新後のPR HEAD `f22ca7b0`でrequired CIを取得する（Web/Mobile success）。
+- [x] 9. 仕様判断・未実施項目・PR merge前判定をPR本文と最終報告へ記録する（PR mergeはしない）。
 
 ## Discovered
 

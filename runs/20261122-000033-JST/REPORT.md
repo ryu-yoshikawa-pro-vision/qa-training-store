@@ -175,3 +175,13 @@
 - GitHub/CI: PR #210はOpen/unmergedで、現PR headと`origin/product/scenario-shop-maintenance`はいずれも`e3a9d130dd2ab9f79e6399f3df055e70465a18ce`。このheadのWeb CI #44931433280は27 success / 2 skipped、Mobile App CI #44931433660は10/10 success。通常push前にPR本文へ対象headの結果と残受入事項を追記し、更新後HEADのrequired CIを再取得する。
 - 残件: Checkout税額独立明細方針のユーザー判断待ち。Android canonical visual referenceは2行目field未反映、実機・iOS runtime未実施。PRの最終merge可否はこれらが解消・承認されるまで保留。
 - Progress: 78% (7/9)
+
+## 2026-11-22 04:00 (JST) - 最新HEADのCI・PR受入判定
+
+- Summary: 受入記録の通常commit/pushを行い、最新PR HEADのWeb CI・Mobile App CIを`wait_for_required_ci`で取得。修復後コードの独立レビュー・CIは完了したが、PR merge前の製品仕様/端末受入は条件付きで未完了。
+- Git: branch `product/scenario-shop-maintenance`、HEAD `f22ca7b0065f47411661b6e3b4b8e62a2111b9fb`、親 `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`。remote pushはfast-forward、既存Hookは有効。worktree clean、未解決conflict 0件、MERGE_HEADなし。
+- CI: expected/observed HEAD一致。Web CI [#44935568922](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44935568922) success: 27 jobs success、2 skip（Extended E2E mobile-chromium、deploy-production）。Chromium required/cross-role/accessibility/mobile-boundary、Vitest unit/integration/component/repository/contracts、build、verify、validate、UI Review success。Mobile App CI [#44935569071](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44935569071) success: 10/10 jobs。Native Static、Android automation/production-validation builds、iOS automation/production-validation Simulator builds、Production Bundle Guard、Native verify、Android Runtime/Maestro success。Maestro job `136946219603`は17 flows success。Screen Catalog visual capture stepsはskip。
+- Review: backend/UI独立read-only reviewersは修復後の追加findingなし。GitHub review thread 0件。修復対象のE2E・Maestro assertionは維持。
+- 仕様・受入: Nativeの未保存住所直接入力はユーザー承認済みで仕様へ反映。Webは登録済み住所選択。Checkout tax-line policyは別途ユーザー判断待ち。任意住所2行目が反映されたAndroid canonical screenshot/visual comparison、物理Android・iOS runtimeは未実施。ローカルWSL Chromiumはhost library不足で起動せず、指定E2Eの最新HEAD証拠はWeb CIから取得。
+- 結論: 最新HEAD CI successとコードレビューの結果をPR本文へ記録した。現時点では未決tax policyと視覚/実機受入が残るためmergeを推奨しない。PR #210はOpen/unmergedであり、PR merge・main変更は行っていない。
+- Progress: 100% (9/9)
