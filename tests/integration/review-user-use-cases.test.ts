@@ -474,4 +474,113 @@ describe("review and user administration integration", () => {
     expect(await database.product_review_summaries.get(published.productId)).toEqual(beforeSummary);
     expect(await database.review_status_histories.toArray()).toEqual(beforeHistory);
   });
+
+  it.each([
+    ["create", "session deletion", "AUTHENTICATION_REQUIRED"],
+    ["update", "session deletion", "AUTHENTICATION_REQUIRED"],
+    ["delete", "session deletion", "AUTHENTICATION_REQUIRED"],
+    ["create", "suspension", "ACCOUNT_SUSPENDED"],
+    ["update", "suspension", "ACCOUNT_SUSPENDED"],
+    ["delete", "suspension", "ACCOUNT_SUSPENDED"],
+    ["create", "role change", "PERMISSION_DENIED"],
+    ["update", "role change", "PERMISSION_DENIED"],
+    ["delete", "role change", "PERMISSION_DENIED"],
+  ] as const)(
+    "does not %s a review after customer %s immediately before its write transaction",
+    async (operation, revocation, expectedCode) => {
+      database = new ScenarioShopDatabase(
+        `customer-review-${operation}-${revocation}-${crypto.randomUUID()}`,
+      );
+      await loadSeedDataset(
+        database,
+        createScenarioDataset("reviewable-orders"),
+        "reviewable-orders",
+      );
+      const session = await signIn(database, "user-customer-regular");
+      const normalUseCases = new CustomerReviewUseCases(dependencies(database, session));
+      const delivered = await database.orders.where("status").equals("delivered").first();
+      expect(delivered).toBeDefined();
+      const items = await database.order_items.where("orderId").equals(delivered!.id).toArray();
+      let reviewableItem: (typeof items)[number] | undefined;
+      for (const item of items) {
+        if ((await database.reviews.where("orderItemId").equals(item.id).first()) === undefined) {
+          reviewableItem = item;
+          break;
+        }
+      }
+      expect(reviewableItem).toBeDefined();
+      let reviewId: string | null = null;
+      let expectedVersion = 0;
+      if (operation !== "create") {
+        const created = await normalUseCases.create({
+          orderItemId: reviewableItem!.id,
+          rating: 3,
+          title: "事前レビュー",
+          body: "更新・削除の競合検証用です。",
+        });
+        reviewId = created.reviewId;
+        expectedVersion = created.version;
+      }
+
+      const beforeReviews = await database.reviews.toArray();
+      const beforeHistory = await database.review_status_histories.toArray();
+      const beforeSummary = await database.product_review_summaries.get(reviewableItem!.productId);
+      const beforeItem = await database.order_items.get(reviewableItem!.id);
+      const runner = new DexieApplicationTransactionRunner(database);
+      const transactionRunner: ApplicationTransactionRunner = {
+        async run(scope, work) {
+          if (scope === "review-change") {
+            await database.transaction("rw", database.users, database.sessions, async () => {
+              const user = (await database.users.get("user-customer-regular"))!;
+              if (revocation === "session deletion") {
+                await database.sessions.where("userId").equals(user.id).delete();
+              } else if (revocation === "suspension") {
+                await database.users.put({
+                  ...user,
+                  accountStatus: "suspended",
+                  version: user.version + 1,
+                });
+              } else {
+                await database.users.put({
+                  ...user,
+                  role: "operator",
+                  version: user.version + 1,
+                });
+              }
+            });
+          }
+          return runner.run(scope, work);
+        },
+      };
+      const racingUseCases = new CustomerReviewUseCases({
+        ...dependencies(database, session),
+        transactionRunner,
+      });
+      const attempt =
+        operation === "create"
+          ? racingUseCases.create({
+              orderItemId: reviewableItem!.id,
+              rating: 4,
+              title: "競合レビュー",
+              body: "権限が失効した後の変更は拒否される必要があります。",
+            })
+          : operation === "update"
+            ? racingUseCases.update({
+                reviewId: reviewId!,
+                rating: 5,
+                title: "競合更新",
+                body: "権限が失効した後の変更は拒否される必要があります。",
+                expectedVersion,
+              })
+            : racingUseCases.delete({ reviewId: reviewId!, expectedVersion });
+
+      await expect(attempt).rejects.toMatchObject({ code: expectedCode });
+      expect(await database.reviews.toArray()).toEqual(beforeReviews);
+      expect(await database.review_status_histories.toArray()).toEqual(beforeHistory);
+      expect(await database.product_review_summaries.get(reviewableItem!.productId)).toEqual(
+        beforeSummary,
+      );
+      expect(await database.order_items.get(reviewableItem!.id)).toEqual(beforeItem);
+    },
+  );
 });

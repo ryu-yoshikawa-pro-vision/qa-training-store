@@ -108,6 +108,7 @@ export class CustomerReviewUseCases {
 
   async create(request: CreateReviewRequest): Promise<ReviewResultDto> {
     const actor = await this.requireCustomer();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const eligibility = await this.getEligibility(request.orderItemId);
     if (!eligibility.eligible || eligibility.existingReview !== null) {
       throw new ApplicationError({
@@ -122,7 +123,8 @@ export class CustomerReviewUseCases {
     const values = this.validate(request);
     const result = await this.dependencies.transactionRunner.run(
       "review-change",
-      async ({ reviews, reviewSummaries }) => {
+      async ({ reviews, reviewSummaries, users, sessions }) => {
+        await assertActorStillAuthorized(actor, actorSessionId, "customer", users, sessions);
         if ((await reviews.findByOrderItem(request.orderItemId)) !== null) {
           throw conflictError("reviews.alreadyExists");
         }
@@ -165,6 +167,7 @@ export class CustomerReviewUseCases {
 
   async update(request: UpdateReviewRequest): Promise<ReviewResultDto> {
     const actor = await this.requireCustomer();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const current = await this.requireOwned(request.reviewId, actor.id);
     if (current.status === "deleted") throw this.notEligible();
     if (current.version !== request.expectedVersion) throw conflictError();
@@ -172,7 +175,8 @@ export class CustomerReviewUseCases {
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "review-change",
-      async ({ reviews, reviewSummaries }) => {
+      async ({ reviews, reviewSummaries, users, sessions }) => {
+        await assertActorStillAuthorized(actor, actorSessionId, "customer", users, sessions);
         const summary = await this.requireSummary(
           current.productId,
           reviewSummaries.getById.bind(reviewSummaries),
@@ -195,6 +199,7 @@ export class CustomerReviewUseCases {
 
   async delete(request: DeleteReviewRequest): Promise<ReviewResultDto> {
     const actor = await this.requireCustomer();
+    const actorSessionId = await this.dependencies.currentSessionStore.getSessionId();
     const current = await this.requireOwned(request.reviewId, actor.id);
     if (current.status === "deleted" || !canTransitionReview(current.status, "deleted")) {
       throw this.notEligible();
@@ -203,7 +208,8 @@ export class CustomerReviewUseCases {
     const now = await this.now();
     const updated = await this.dependencies.transactionRunner.run(
       "review-change",
-      async ({ reviews, reviewSummaries }) => {
+      async ({ reviews, reviewSummaries, users, sessions }) => {
+        await assertActorStillAuthorized(actor, actorSessionId, "customer", users, sessions);
         const summary = await this.requireSummary(
           current.productId,
           reviewSummaries.getById.bind(reviewSummaries),

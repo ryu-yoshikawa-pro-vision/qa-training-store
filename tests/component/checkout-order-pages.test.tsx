@@ -239,6 +239,7 @@ describe("checkout and order pages", () => {
   it("selects a registered address and advances with a snapshot", async () => {
     render(<CheckoutAddressPage />);
     expect(await screen.findByRole("heading", { name: "配送先を選択" })).toBeVisible();
+    expect(await screen.findByText("新しい購入手続きを開始しました。")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "この配送先を使用" }));
     await waitFor(() =>
       expect(checkout.setAddress).toHaveBeenCalledWith({

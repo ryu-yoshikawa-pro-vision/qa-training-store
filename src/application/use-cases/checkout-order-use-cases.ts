@@ -343,6 +343,14 @@ export class CheckoutOrderUseCases {
 
   async retryPayment(request: RetryPaymentRequest): Promise<OrderProcessingDto> {
     const [user, now] = await Promise.all([this.requireCustomer(), this.now()]);
+    if (!PAYMENT_METHODS.includes(request.methodCode)) {
+      throw new ApplicationError({
+        code: "VALIDATION",
+        messageKey: "validation.form",
+        retryable: false,
+        fieldErrors: { paymentMethodCode: "validation.invalid" },
+      });
+    }
     return this.dependencies.transactionRunner.run(
       "retry-payment",
       async ({ orders, payments }) => {

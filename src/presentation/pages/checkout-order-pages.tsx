@@ -152,13 +152,12 @@ function CheckoutAddressContent() {
   );
   useEffect(() => {
     const checkout = state.value?.checkout;
-    if (
-      checkout === undefined ||
-      (checkout.result !== "resumed" && checkout.result !== "replaced") ||
-      !claimCheckoutNotice(checkout.session.id, checkout.result)
-    ) {
+    if (checkout === undefined) return;
+    if (checkout.result === "created") {
+      setLifecycleNotice("新しい購入手続きを開始しました。");
       return;
     }
+    if (!claimCheckoutNotice(checkout.session.id, checkout.result)) return;
     setLifecycleNotice(
       checkout.result === "resumed"
         ? "以前の購入手続きを再開しました。"

@@ -714,9 +714,11 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
     null,
   );
   const [message, setMessage] = useState<string | null>(null);
+  const [recoveryAction, setRecoveryAction] = useState<"address" | "cart" | null>(null);
   const load = useCallback(() => {
     if (services === null) return;
     setMessage(null);
+    setRecoveryAction(null);
     void services.checkout
       .getActive(requiredStep)
       .then((active) => {
@@ -730,6 +732,18 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
             params: { returnTo: CHECKOUT_RETURN_PATHS[requiredStep] },
           });
           return;
+        }
+        if (requiredStep === "payment" && caught instanceof ApplicationError) {
+          if (caught.code === "CHECKOUT_STEP_INCOMPLETE") {
+            setMessage(asPurchaseError(caught).message);
+            setRecoveryAction("address");
+            return;
+          }
+          if (caught.code === "CART_VERSION_CHANGED") {
+            setMessage(asPurchaseError(caught).message);
+            setRecoveryAction("cart");
+            return;
+          }
         }
         const recoverableCheckoutError =
           caught instanceof ApplicationError &&
@@ -761,6 +775,7 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
     setSession,
     message,
     setMessage,
+    recoveryAction,
     reload: load,
   };
 }
@@ -893,6 +908,13 @@ export function NativeCheckoutAddressScreen() {
           testID="native-checkout-line1"
         />
         <PurchaseTextInput
+          value={address.addressLine2 ?? ""}
+          onChangeText={(value) => setAddress({ ...address, addressLine2: value || null })}
+          placeholder="建物名・部屋番号（任意）"
+          maxLength={INPUT_LIMITS.addressLine2}
+          testID="native-checkout-line2"
+        />
+        <PurchaseTextInput
           value={address.phone}
           onChangeText={(value) => setAddress({ ...address, phone: value })}
           placeholder="電話番号"
@@ -961,6 +983,22 @@ export function NativeCheckoutPaymentScreen() {
           testID="native-checkout-payment-next"
         />
       </View>
+      {state.recoveryAction === "address" && (
+        <NativeButton
+          label="配送先からやり直す"
+          variant="secondary"
+          onPress={() => router.replace("/checkout/address")}
+          testID="native-checkout-payment-recover-address"
+        />
+      )}
+      {state.recoveryAction === "cart" && (
+        <NativeButton
+          label="カートを確認する"
+          variant="secondary"
+          onPress={() => router.replace("/cart")}
+          testID="native-checkout-payment-review-cart"
+        />
+      )}
       <ErrorMessage message={state.message} />
     </ScrollView>
   );
@@ -1047,9 +1085,15 @@ export function NativeCheckoutConfirmScreen() {
           <Text style={styles.body}>
             〒{confirmation.address.postalCode} {confirmation.address.prefecture}
             {confirmation.address.city}
-            {confirmation.address.addressLine1}
-            {confirmation.address.addressLine2 ?? ""}
           </Text>
+          <Text style={styles.body} testID="native-checkout-confirm-address-line1">
+            {confirmation.address.addressLine1}
+          </Text>
+          {confirmation.address.addressLine2 !== null && (
+            <Text style={styles.body} testID="native-checkout-confirm-address-line2">
+              {confirmation.address.addressLine2}
+            </Text>
+          )}
           <Text style={styles.body}>
             支払方法：{nativePaymentMethodLabel(confirmation.paymentMethodCode)}
           </Text>
@@ -1563,5 +1607,59 @@ export function NativeReviewScreen() {
 }
 
 function asPurchaseError(caught: unknown): Error {
-  return caught instanceof Error ? caught : new Error(String(caught));
+  if (!(caught instanceof ApplicationError)) {
+    return new Error("予期しないエラーが発生しました。問題が続く場合は、もう一度お試しください。");
+  }
+  switch (caught.code) {
+    case "AUTHENTICATION_REQUIRED":
+      return new Error("ログインしてください。");
+    case "ACCOUNT_SUSPENDED":
+      return new Error("このアカウントは利用停止中です。管理者へ確認してください。");
+    case "ACCOUNT_WITHDRAWN":
+      return new Error("このアカウントは退会済みです。");
+    case "PERMISSION_DENIED":
+      return new Error("この操作を行う権限がありません。");
+    case "VALIDATION":
+      return new Error(
+        Object.keys(caught.fieldErrors ?? {}).some((field) =>
+          [
+            "recipientName",
+            "postalCode",
+            "prefecture",
+            "city",
+            "addressLine1",
+            "addressLine2",
+            "phone",
+          ].includes(field),
+        )
+          ? "配送先の入力内容を確認してください。"
+          : "入力内容を確認してください。",
+      );
+    case "CHECKOUT_STEP_INCOMPLETE":
+      return new Error(
+        caught.messageKey === "checkout.address.required"
+          ? "先に配送先を保存してください。"
+          : "購入手続きの前のステップを完了してください。",
+      );
+    case "CART_VERSION_CHANGED":
+      return new Error("カートの内容が更新されました。カートを確認してください。");
+    case "PRICE_CHANGED":
+      return new Error("商品の価格が変更されました。カートで内容を確認してください。");
+    case "INSUFFICIENT_STOCK":
+      return new Error("在庫が不足しています。カートで数量を確認してください。");
+    case "QUANTITY_LIMIT_EXCEEDED":
+      return new Error("購入数量が上限を超えています。カートで数量を確認してください。");
+    case "INVALID_STATE":
+      return new Error("カートの内容を確認して、購入手続きをやり直してください。");
+    case "CHECKOUT_EXPIRED":
+      return new Error("購入手続きの有効期限が切れました。配送先からやり直してください。");
+    case "STORAGE_READ_FAILED":
+      return new Error("端末から保存データを読み込めませんでした。設定を確認してください。");
+    case "STORAGE_WRITE_FAILED":
+      return new Error("端末へ保存できませんでした。設定を確認してください。");
+    case "CONFLICT":
+      return new Error("ほかの操作で情報が更新されました。画面を再読み込みしてください。");
+    default:
+      return new Error("処理を完了できませんでした。入力内容や接続を確認してください。");
+  }
 }

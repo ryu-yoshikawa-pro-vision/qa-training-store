@@ -673,55 +673,72 @@ export class DexieCheckoutSessionRepository implements CheckoutSessionRepository
   }
 
   async setAddress(command: SetCheckoutAddressCommand): Promise<CheckoutSession> {
-    const current = requireEntity(
-      await this.db.checkout_sessions.get(command.checkoutSessionId),
-      "errors.checkout.notFound",
-    );
-    if (current.userId !== command.userId || current.status !== "active") {
-      throw new ApplicationError({
-        code: "PERMISSION_DENIED",
-        messageKey: "errors.forbidden",
-        retryable: false,
-      });
-    }
-    assertExpectedVersion(current.version, command.checkoutExpectedVersion);
-    const updated = {
-      ...current,
-      addressSnapshot: command.address,
-      unlockedStep: "payment" as const,
-      updatedAt: command.now,
-      version: current.version + 1,
-    };
-    await this.db.checkout_sessions.put(updated);
-    return updated;
+    return this.db.transaction("rw", this.db.checkout_sessions, this.db.carts, async () => {
+      const current = requireEntity(
+        await this.db.checkout_sessions.get(command.checkoutSessionId),
+        "errors.checkout.notFound",
+      );
+      if (current.userId !== command.userId || current.status !== "active") {
+        throw new ApplicationError({
+          code: "PERMISSION_DENIED",
+          messageKey: "errors.forbidden",
+          retryable: false,
+        });
+      }
+      assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      await this.assertCurrentCartVersion(current);
+      const updated = {
+        ...current,
+        addressSnapshot: command.address,
+        unlockedStep: "payment" as const,
+        updatedAt: command.now,
+        version: current.version + 1,
+      };
+      await this.db.checkout_sessions.put(updated);
+      return updated;
+    });
   }
 
   async setPayment(command: SetCheckoutPaymentCommand): Promise<CheckoutSession> {
-    const current = requireEntity(
-      await this.db.checkout_sessions.get(command.checkoutSessionId),
-      "errors.checkout.notFound",
-    );
-    if (
-      current.userId !== command.userId ||
-      current.status !== "active" ||
-      current.addressSnapshot === null
-    ) {
+    return this.db.transaction("rw", this.db.checkout_sessions, this.db.carts, async () => {
+      const current = requireEntity(
+        await this.db.checkout_sessions.get(command.checkoutSessionId),
+        "errors.checkout.notFound",
+      );
+      if (
+        current.userId !== command.userId ||
+        current.status !== "active" ||
+        current.addressSnapshot === null
+      ) {
+        throw new ApplicationError({
+          code: "CHECKOUT_STEP_INCOMPLETE",
+          messageKey: "checkout.address.required",
+          retryable: false,
+        });
+      }
+      assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      await this.assertCurrentCartVersion(current);
+      const updated = {
+        ...current,
+        paymentMethodCode: command.paymentMethodCode,
+        unlockedStep: "confirm" as const,
+        updatedAt: command.now,
+        version: current.version + 1,
+      };
+      await this.db.checkout_sessions.put(updated);
+      return updated;
+    });
+  }
+
+  private async assertCurrentCartVersion(session: CheckoutSession): Promise<void> {
+    const cart = await this.db.carts.get(session.cartId);
+    if (cart === undefined || cart.version !== session.cartVersion) {
       throw new ApplicationError({
-        code: "CHECKOUT_STEP_INCOMPLETE",
-        messageKey: "checkout.address.required",
+        code: "CART_VERSION_CHANGED",
+        messageKey: "checkout.cart.changed",
         retryable: false,
       });
     }
-    assertExpectedVersion(current.version, command.checkoutExpectedVersion);
-    const updated = {
-      ...current,
-      paymentMethodCode: command.paymentMethodCode,
-      unlockedStep: "confirm" as const,
-      updatedAt: command.now,
-      version: current.version + 1,
-    };
-    await this.db.checkout_sessions.put(updated);
-    return updated;
   }
 
   async getConfirmation(

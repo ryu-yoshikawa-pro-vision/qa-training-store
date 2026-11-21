@@ -21,7 +21,7 @@ export function toCurrentUserDto(user: User): CurrentUserDto {
 export async function assertActorStillAuthorized(
   actor: User,
   sessionId: string | null,
-  requiredRole: "admin" | "staff",
+  requiredRole: "admin" | "staff" | "customer",
   users: UserRepository,
   sessions: SessionRepository,
 ): Promise<void> {
@@ -52,11 +52,18 @@ export async function assertActorStillAuthorized(
   const permitted =
     requiredRole === "admin"
       ? current.role === "admin"
-      : current.role === "admin" || current.role === "operator";
+      : requiredRole === "staff"
+        ? current.role === "admin" || current.role === "operator"
+        : current.role === "customer";
   if (!permitted) {
     throw new ApplicationError({
       code: "PERMISSION_DENIED",
-      messageKey: requiredRole === "admin" ? "admin.adminOnly" : "admin.staffOnly",
+      messageKey:
+        requiredRole === "admin"
+          ? "admin.adminOnly"
+          : requiredRole === "staff"
+            ? "admin.staffOnly"
+            : "reviews.customerOnly",
       retryable: false,
     });
   }

@@ -320,6 +320,83 @@ describe("checkout and customer order application integration", () => {
     }
   });
 
+  it.each(["address", "payment"] as const)(
+    "rejects a Cart version change immediately before the %s repository save",
+    async (step) => {
+      const cart = await database.carts
+        .where("[userId+status]")
+        .equals(["user-customer-regular", "active"])
+        .first();
+      const started = await useCases.start({ cartVersion: cart!.version });
+      const sessionBeforeSave =
+        step === "payment"
+          ? await useCases.setAddress({
+              checkoutSessionId: started.session.id,
+              checkoutExpectedVersion: started.session.version,
+              address,
+            })
+          : started.session;
+      const beforeSession = await database.checkout_sessions.get(started.session.id);
+      const ordersBefore = await database.orders.toArray();
+      const paymentsBefore = await database.payments.toArray();
+      const orderHistoryBefore = await database.order_status_histories.toArray();
+      const inventoryHistoryBefore = await database.inventory_histories.toArray();
+      const variantsBefore = await database.product_variants.toArray();
+      const repositories = createDexieApplicationRepositories(database);
+      const targetCheckouts = repositories.checkouts;
+      const racingCheckouts = Object.create(targetCheckouts) as typeof targetCheckouts;
+      const bumpCartVersion = async () => {
+        const currentCart = await database.carts.get(cart!.id);
+        await database.carts.update(cart!.id, { version: currentCart!.version + 1 });
+      };
+      const raceRequestUseCases = new CheckoutOrderUseCases({
+        ...repositories,
+        checkouts: racingCheckouts,
+        transactionRunner: new DexieApplicationTransactionRunner(database),
+        currentSessionStore: new MemorySessionStore("regular-session"),
+        paymentGateway: gateway,
+        clock: new CountingClock(["2026-07-01T04:01:00.000Z"]),
+        idGenerator: new PrefixIds(),
+      });
+      if (step === "address") {
+        const saveAddress = targetCheckouts.setAddress.bind(targetCheckouts);
+        racingCheckouts.setAddress = async (command) => {
+          await bumpCartVersion();
+          return saveAddress(command);
+        };
+      } else {
+        const savePayment = targetCheckouts.setPayment.bind(targetCheckouts);
+        racingCheckouts.setPayment = async (command) => {
+          await bumpCartVersion();
+          return savePayment(command);
+        };
+      }
+
+      const save =
+        step === "address"
+          ? raceRequestUseCases.setAddress({
+              checkoutSessionId: sessionBeforeSave.id,
+              checkoutExpectedVersion: sessionBeforeSave.version,
+              address,
+            })
+          : raceRequestUseCases.setPayment({
+              checkoutSessionId: sessionBeforeSave.id,
+              checkoutExpectedVersion: sessionBeforeSave.version,
+              paymentMethodCode: "TEST-SUCCESS",
+            });
+      await expect(save).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+
+      expect(await database.checkout_sessions.get(started.session.id)).toEqual(beforeSession);
+      expect(await database.orders.toArray()).toEqual(ordersBefore);
+      expect(await database.payments.toArray()).toEqual(paymentsBefore);
+      expect(await database.order_status_histories.toArray()).toEqual(orderHistoryBefore);
+      expect(await database.inventory_histories.toArray()).toEqual(inventoryHistoryBefore);
+      expect(await database.product_variants.toArray()).toEqual(variantsBefore);
+      expect((await database.carts.get(cart!.id))!.version).toBe(cart!.version + 1);
+      expect(gateway.calls).toHaveLength(0);
+    },
+  );
+
   it("normalizes checkout address input before persisting the snapshot", async () => {
     const cart = await database.carts
       .where("[userId+status]")
@@ -582,6 +659,46 @@ describe("checkout and customer order application integration", () => {
     expect(payments[1]!.processedAt).toBe(
       histories.find((history) => history.reasonCode === "PAYMENT_SUCCEEDED")!.createdAt,
     );
+  });
+
+  it("rejects an unsupported runtime retry method without changing order or payment state", async () => {
+    gateway.result = { status: "failed", errorCode: "DECLINED" };
+    const checkout = await readyCheckout("TEST-DECLINED");
+    const first = await useCases.beginOrder({
+      checkoutSessionId: checkout.id,
+      checkoutActionVersion: checkout.version,
+    });
+    const failed = await useCases.resumePayment(first.orderId);
+    const orderBefore = await database.orders.get(first.orderId);
+    const paymentsBefore = await database.payments.where("orderId").equals(first.orderId).toArray();
+    const historiesBefore = await database.order_status_histories
+      .where("orderId")
+      .equals(first.orderId)
+      .toArray();
+    const variantBefore = await database.product_variants.get("variant-basic-shirt-02");
+    const historyCountBefore = await database.inventory_histories.count();
+
+    await expect(
+      useCases.retryPayment({
+        orderId: failed.orderId,
+        orderActionVersion: orderBefore!.version,
+        methodCode: "TEST-UNKNOWN" as "TEST-SUCCESS",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { paymentMethodCode: "validation.invalid" },
+    });
+
+    expect(await database.orders.get(first.orderId)).toEqual(orderBefore);
+    expect(await database.payments.where("orderId").equals(first.orderId).toArray()).toEqual(
+      paymentsBefore,
+    );
+    expect(
+      await database.order_status_histories.where("orderId").equals(first.orderId).toArray(),
+    ).toEqual(historiesBefore);
+    expect(await database.product_variants.get("variant-basic-shirt-02")).toEqual(variantBefore);
+    expect(await database.inventory_histories.count()).toBe(historyCountBefore);
+    expect(gateway.calls).toHaveLength(1);
   });
 
   it.each([

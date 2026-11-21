@@ -81,6 +81,8 @@ const SCOPE_TABLES = {
     "product_variants",
     "product_images",
     "inventory_histories",
+    "cart_items",
+    "order_items",
   ],
   "change-product-status": [
     "users",

@@ -151,6 +151,14 @@ function nativeNotFound(messageKey: string): ApplicationError {
   return new ApplicationError({ code: "NOT_FOUND", messageKey, retryable: false });
 }
 
+function nativeCheckoutCartChanged(): ApplicationError {
+  return new ApplicationError({
+    code: "CART_VERSION_CHANGED",
+    messageKey: "checkout.cart.changed",
+    retryable: false,
+  });
+}
+
 function nativeUnsupported(): ApplicationError {
   return new ApplicationError({
     code: "PERMISSION_DENIED",
@@ -1795,6 +1803,8 @@ class NativeCheckoutSessionRepository implements CheckoutSessionRepository {
           retryable: false,
         });
       assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      const cart = await new NativeCartRepository(context).getById(current.cartId);
+      if (cart === null || cart.version !== current.cartVersion) throw nativeCheckoutCartChanged();
       const updated = {
         ...current,
         addressSnapshot: command.address,
@@ -1832,6 +1842,8 @@ class NativeCheckoutSessionRepository implements CheckoutSessionRepository {
           retryable: false,
         });
       assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      const cart = await new NativeCartRepository(context).getById(current.cartId);
+      if (cart === null || cart.version !== current.cartVersion) throw nativeCheckoutCartChanged();
       const updated = {
         ...current,
         paymentMethodCode: command.paymentMethodCode,

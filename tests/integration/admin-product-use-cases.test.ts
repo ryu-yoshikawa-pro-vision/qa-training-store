@@ -114,6 +114,82 @@ describe("admin product aggregate application integration", () => {
     });
   });
 
+  it("removes an unused variant while preserving the remaining aggregate and inventory history", async () => {
+    const created = await useCases.create({
+      ...baseCreate,
+      product: {
+        ...baseCreate.product,
+        productCode: "P-SAFE-REMOVE",
+        variationName: "色",
+      },
+      variants: [
+        {
+          ...baseCreate.variants[0]!,
+          sku: "P-SAFE-REMOVE-ONE",
+          optionValue: "赤",
+          initialStockQuantity: 0,
+        },
+        {
+          ...baseCreate.variants[0]!,
+          clientKey: "second-variant",
+          sku: "P-SAFE-REMOVE-TWO",
+          optionValue: "青",
+          initialStockQuantity: 4,
+        },
+      ],
+    });
+    const [removed, retained] = created.variants;
+    expect(removed).toBeDefined();
+    expect(retained).toBeDefined();
+    const retainedHistoryBefore = await database.inventory_histories
+      .where("variantId")
+      .equals(retained!.id)
+      .toArray();
+    const summaryBefore = await database.product_review_summaries.get(created.product.id);
+
+    const updated = await useCases.update({
+      productId: created.product.id,
+      productExpectedVersion: created.product.version,
+      product: created.product,
+      createVariants: [],
+      updateVariants: [
+        {
+          variantId: retained!.id,
+          sku: retained!.sku,
+          optionValue: retained!.optionValue,
+          regularPrice: retained!.regularPrice,
+          salePrice: retained!.salePrice,
+          saleStartAt: retained!.saleStartAt,
+          saleEndAt: retained!.saleEndAt,
+          purchaseLimit: retained!.purchaseLimit,
+          isActive: retained!.isActive,
+          expectedVersion: retained!.version,
+        },
+      ],
+      removeVariantIds: [removed!.id],
+      images: [],
+    });
+
+    expect(updated.product.version).toBe(created.product.version + 1);
+    expect(updated.variants.map((variant) => variant.id)).toEqual([retained!.id]);
+    expect(await database.product_variants.get(removed!.id)).toBeUndefined();
+    expect(await database.product_variants.get(retained!.id)).toMatchObject({
+      stockQuantity: retained!.stockQuantity,
+      sku: retained!.sku,
+      isActive: retained!.isActive,
+      version: retained!.version + 1,
+    });
+    expect(
+      await database.inventory_histories.where("variantId").equals(removed!.id).toArray(),
+    ).toEqual([]);
+    expect(
+      await database.inventory_histories.where("variantId").equals(retained!.id).toArray(),
+    ).toEqual(retainedHistoryBefore);
+    expect(await database.product_review_summaries.get(created.product.id)).toEqual(summaryBefore);
+    expect(await database.cart_items.where("variantId").equals(removed!.id).count()).toBe(0);
+    expect(await database.order_items.where("variantId").equals(removed!.id).count()).toBe(0);
+  });
+
   it("normalizes productCode and SKU across create/update and rejects normalized duplicates", async () => {
     const created = await useCases.create({
       ...baseCreate,

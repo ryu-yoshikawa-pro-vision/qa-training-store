@@ -428,7 +428,11 @@ test.describe("Phase 1 required E2E", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("15 未知URLから安全なホームへ戻り、Guest/Session pointerを維持する", async ({ page }) => {
+  test("15 未知URLから安全なホームへ戻り、Guest/Session pointerを維持する", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("regular-member");
     await page.goto("/");
     await expect(
       page.getByRole("heading", { name: "決定的なシナリオで、確かなテストを。" }),
@@ -437,6 +441,8 @@ test.describe("Phase 1 required E2E", () => {
       guestId: localStorage.getItem("scenario-shop.guest-id"),
       sessionId: localStorage.getItem("scenario-shop.session-id"),
     }));
+    expect(before.guestId).toBe("guest-default-001");
+    expect(before.sessionId).not.toBeNull();
 
     await page.goto("/__ai_qa_missing_route__");
     await expect(page.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
@@ -452,7 +458,8 @@ test.describe("Phase 1 required E2E", () => {
       guestId: localStorage.getItem("scenario-shop.guest-id"),
       sessionId: localStorage.getItem("scenario-shop.session-id"),
     }));
-    expect(after).toEqual(before);
+    expect(after.guestId).toBe(before.guestId);
+    expect(after.sessionId).toBe(before.sessionId);
   });
 
   test("16 未検出の深いURLをアプリ境界で表示し、既知の拒否画面と区別する", async ({ page }) => {

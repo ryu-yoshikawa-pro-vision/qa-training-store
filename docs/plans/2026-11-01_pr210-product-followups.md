@@ -50,15 +50,15 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 
 `docs/spec/features/admin-inventory.md#BR-ADMININV-001` は0件を `out_of_stock`、1〜5件を `low_stock`、6件以上を `available` とする。SKU単位の在庫を検索する `DexieInventoryRepository.search` の `available` 条件だけが1件以上であり、低在庫と重複していた。SKU在庫一覧の条件を6件以上へ修正し、4境界値を `tests/integration/admin-operations-use-cases.test.ts` に追加した。商品一覧の別契約 `in_stock` (1件以上) は変更しない。最新HEADのCIと実Web画面の受入は確認待ち。
 
-## 高リスク候補：実証を優先する
+## 高リスク経路：現在の受入状況
 
 | 対象 | 静的根拠・現在の限界 | #210側の検証観点 |
 | --- | --- | --- |
-| **管理者権限の変化とユーザー更新の競合** `BR-ADMINUSER-001 / AC-ADMINUSER-001` | `src/application/use-cases/review-user-use-cases.ts` の `changeRole` / `changeSuspension` は操作者認可と更新transactionに時間差がある。#199の学習用制御interleaving 2 Caseの成功は、実並行での権限越境の再現ではない。 | 権限・Sessionの失効と更新を別セッションで検証し、拒否時のtarget・version・Session不変を確認。実再現または安全性の欠落が確定した場合のみ、更新時の認可境界と関連回帰を修正対象にする。詳しい再現情報の公開は避ける。 |
-| **購入上限縮小後のCart/Checkout再検証** `BR-CART-001/003 / AC-CART-001/003` | Dexie `cart-checkout-repositories.ts#getCartDto` と Native SQLite `native-customer-application-repositories.ts#getCartDto` は `maximumQuantity` を計算する一方、`blockingIssues` への追加は在庫不足等のみ。購入上限変更後の実Checkout成立は未実証。 | 上限の変更前後で既存明細・Cart DTO・Checkout開始/確認・注文/在庫・versionの変化を独立に検査。両RepositoryとUIを同じ契約で確認し、根拠のある場合にのみ回帰テスト・共通修正を追加する。 |
-| **決済処理中の再操作と失敗復帰** | Web/Nativeの確定ボタン再押下・復帰UIには静的差がある。一方、`CheckoutOrderUseCases` の重複処理防止・冪等結果が別層に存在するため、二重決済は未実証。 | 同一キーの冪等応答を許容しながら新規二重決済を拒否できること、例外ごとのUI・注文/決済/在庫不変を検証。実際の二重決済は証拠なしに断定しない。 |
+| **管理者・顧客の認可失効と更新** `BR-ADMINUSER-001 / AC-ADMINUSER-001` | 管理者更新は2026-11-02の記録どおり更新transaction内で再認可する。今回、顧客レビューの作成・更新・削除にも同じ境界を追加した。 | 失効・停止・role変更をtransaction開始前に挿入するintegration testで拒否を再現し、レビュー、summary、履歴、対象order itemの不変を確認する。単一DB transaction内の決定的interleavingであり、複数実機の同時操作を試した証拠とは区別する。 |
+| **購入上限縮小後のCart/Checkout再検証** `BR-CART-001/003 / AC-CART-001/003` | Web Dexie / Native SQLiteで上限超過を `QUANTITY_LIMIT_EXCEEDED` として扱う修正と回帰は2026-11-01の節に記録済み。 | 現在の差分では、住所・支払方法保存直前にCart versionを変更するintegration / SQLite contract casesを追加し、Session・Order・Payment・Stockの拒否時不変を確認した。 |
+| **決済再試行・冪等性** `BR-CHECKOUT-003 / AC-CHECKOUT-003` | `CheckoutOrderUseCases` は処理中Paymentをtransactionで確定する。無効な実行時支払コードは処理開始前に拒否する修正を今回追加した。 | local mock gatewayの並行resume testと、無効method retry時のOrder / Payment / history / Stock不変testを実行する。外部決済・実課金は使用しない。 |
 
-高リスク候補は新規Issue化や確定Highと同義ではない。再現証拠、既存Issue重複確認、影響範囲を揃えて別途判断する。
+上表は過去の候補状態を反映し、2026-11-22の実行結果で更新した。transaction testは具体的な境界での拒否・不変を検証するが、物理端末での操作や複数プロセス間の並行実行を証明するものではない。
 
 ## UI/UX・状態表示：実Web/Nativeと正式仕様の照合待ち
 
@@ -66,7 +66,7 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 
 | 候補 | #210で確認すること |
 | --- | --- |
-| Nativeログイン拒否理由が `messageKey` のまま表示される可能性 | 停止・退会・誤資格・保存失敗の実Android表示とSession/Cart不変、Webとの差 |
+| Nativeログイン・Checkout拒否の利用者向け表示 | 認証・入力エラーのmessage key漏えいを日本語案内へ修正済み。Checkout価格・在庫・数量・状態エラーも個別案内とCart復帰を追加し、component回帰を追加。実Androidの画面確認は残る。 |
 | 管理在庫の0/1/5/6以上の区分 | `BR-ADMININV-001`の分類に合わせ、Dexie SKU一覧の`available`を6以上に修正。0/1/5/6のintegrationテストを追加。最新HEADのCI・実Web表示は確認待ち |
 | 商品一覧empty時の復帰導線 | Web Breadcrumbs、条件解除CTA、Native空状態が正式な「戻る導線」を満たすか |
 | 管理商品絞り込み後のページ位置 | ページ2以降でフィルター変更した際の再検索・結果非表示の有無 |
@@ -79,6 +79,16 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 | Signup確認・注意事項同意と完了先 | Web/Nativeの入力/同意UI・遷移先・Session状態の仕様差 |
 
 新しい製品候補が #199 の分析から見つかった場合も、具体的な変更・回帰検証の管理先は #210 に追加する。#199側には証拠と教材・分析への影響を記録する。
+
+## 2026-11-22 PR #210 独立レビュー・受入更新
+
+- **仕様判断**：ユーザーはNative Checkoutで未保存住所を直接入力してSessionと注文スナップショットに使用することを正式に承認した。Webは本人の登録済み住所を選択する。`docs/spec/features/checkout-and-payment.md`へ記録し、Nativeの任意の住所2行目入力・確認・注文保存も回帰で検証する。
+- **修復したレビュー指摘**：runtimeの無効な支払方法コード拒否、variant削除判定が読むDexie transaction scope、顧客レビューのtransaction内再認可、Dexie/SQLiteでの住所・支払保存時Cart version再確認、Web Checkout開始通知、Nativeの内部error key漏えいと失敗後の復帰導線、E2E guest/session identity assertionを修正した。Native拒否理由を個別の日本語にし、住所行1/2を別表示する追加reviewも修正した。拒否系テストは関連Order/Payment/Stock/history/versionの不変を比較する。
+- **独立レビュー**：backendおよびWeb/Nativeのread-onlyレビュアーが修正前後を確認した。最新の再レビューで追加コードfindingはなく、Android視覚参照の更新/実機表示は未確認事項として残る。GitHub上のreview threadは0件。CodeRabbit等の外部レビューは起動していない。
+- **ローカル検証**：WSL2 Ubuntu / Bash、Node.js 24.22.2、pnpm 10.34.5。作業ツリー上の `pnpm run verify` は成功し、typecheck、unit、integration 158、Web component 123、Native component 88、repository 150 PASS / 1 SKIP、contracts 803 PASS / 7 SKIP、security、build:web / Expo export、build:specを含む。`pnpm run format:check`、`git diff --check`、sanitizer、security checkも成功した。ESLintは0 errors / 63 warnings。
+- **E2E環境制約**：ローカルChromium required suiteは36件ともブラウザー起動時の `libnspr4.so` 等不足で止まり、製品操作へ到達しなかった。cross-role、a11y、mobile-boundaryのローカル実行は未実施。timeout延長・テストskip・OS権限変更は行っていない。CIは修正を含むcommitの最新SHAでWeb/Mobileを再実行し、CIのみで通過した範囲を区別して記録する。
+- **Native視覚参照の相違**：`SCREEN-CHECKOUT-ADDRESS/default/android.webp` は任意の住所2行目を含まないため、今回承認された入力仕様を表していない。Canonical Android screenshotを作り直すには既存 `native-ci.yml` のvisual-capture workflowを最新SHAで実行し、生成artifactを確認してから `android-visual-capture.ts promote` を使う。実行用GitHub CLI認証/ネットワークが利用できない場合は画像を変更せずvisual acceptanceを未完了とする。
+- **実機 / 未決事項**：WSLにAndroid SDK、emulator、adb、iOS simulatorはなく、物理Android/iOS操作とiOS runtimeを実施できない。既存のAndroid API 34 emulator / MaestroとAndroid/iOS build結果は実機受入に数えない。Web/NativeのCI・component結果だけで実画面・視覚gateをPASSとしない。
 
 ## 既存19ファイルの変更受入
 
