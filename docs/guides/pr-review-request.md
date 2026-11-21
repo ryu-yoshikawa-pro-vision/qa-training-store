@@ -39,5 +39,5 @@ CIと現在の実装差分を含めて確認し、残っている問題だけ se
 ## 注意事項
 
 - review-only の場合、`docs/reports/` にレポートファイルを作成しない。
-- 重要な判断根拠は、チャットの返答または `.codex/runs/<run_id>/REPORT.md` に残す。
+- 重要な判断根拠は、チャットの返答または `runs/<run_id>/REPORT.md` に残す。Run ArtifactはParentが管理する。
 - GitHub上での変更操作は、ユーザーが明示した場合にのみ行う。
