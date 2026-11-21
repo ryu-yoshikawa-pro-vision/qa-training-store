@@ -19,7 +19,7 @@ OpenCode V2（実機確認: v2.3.0）は`.opencode/plugins/`直下のディレ�
 
 - **組み込み`shell`: 既定`deny`。** `git status *`のような広い`allow`例外は全面的に削除した。これは複合コマンドやリダイレクト、OpenCodeのShellスキャナーの解釈差による抜け道を残さないためである。`deny`はautoacceptより優先され、実際に組み込み`shell`ツールはモデルから提供されなくなる。
 - `external_directory`: `ask`（autoaccept下では自動許可される。下記「未解決リスク」を参照）。
-- `read`: `*.env` と `*.env.*` は`deny`、`*.env.example`は`allow`。
+- `read`: `*.env` と `*.env.*` は`deny`、`*.env.example`は`allow`。この拒否は組み込み`read`ツールへの権限制御であり、`evaluateCommand()`が許可したShellコマンドによるファイル読み取り（例: `cat .env`）を包括的に防ぐものではない（下記「未解決リスク」を参照）。
 
 **`ask`は唯一の安全対策ではない。** 通常の開発作業はPluginが登録する下記の安全性判定付きツール経由で実行する。
 
@@ -46,27 +46,46 @@ Windows側ファイルシステムに配置したlinked worktreeの`.git`ファ�
 
 ### 採用した方式: 相対worktree参照
 
-Git公式機能`git worktree repair --relative-paths`でリンクを相対パス化した。Windows gitで作成したworktreeを一時環境で再現し、相対化の前後で以下を確認した。
+Git公式機能`git worktree repair --relative-paths`でリンクを相対パス化している。一時Gitリポジトリで同じ操作を再現し、以下を確認した。
 
-1. Windows gitでmain repoとlinked worktreeを作成すると、両リンクファイルに`C:/...`が保存される。
-2. 相対化前はWSL gitが`fatal: gitfile does not point to a valid repository`で失敗する。
-3. `git worktree repair --relative-paths <worktree>`をmain worktreeで実行すると、`.git`は`gitdir: ../<main>/.git/worktrees/<id>`、`gitdir`は`../../../../<linked>/.git`のように相対化される。
-4. 相対化後はWindows/WSL2の双方で`git status --short`、`git rev-parse --show-toplevel`、`git branch --show-current`が成功し、HEADとブランチ情報が一致する。
+1. `git worktree add`直後は両リンクファイルに絶対パスが保存され、`core.repositoryformatversion=0`、`extensions.relativeWorktrees`は未設定。
+2. `git worktree repair --relative-paths <worktree>`をmain worktreeで実行すると、`.git`は`gitdir: ../<main>/.git/worktrees/<id>`、`gitdir`は`../../../../<linked>/.git`のように相対化され、**公式動作として**`core.repositoryformatversion=1`と`extensions.relativeWorktrees=true`が書き込まれる。
+3. 一時環境で拡張を`git config --unset extensions.relativeWorktrees`により外しても、Git 2.56.xは相対リンクを正しく解決し、`git worktree list --porcelain`に`prunable`は出ない。
+4. 旧Git（2.43.0）は拡張未設定時に相対`gitdir`をCWD基準で解釈し、linked worktreeを`prunable gitdir file points to non-existent location`と表示する。拡張を設定すると旧Gitは`fatal: unknown repository extension found: relativeworktrees`でリポジトリ全体を拒否する。
 
-**`extensions.relativeWorktrees` / `worktree.useRelativePaths`は採用しなかった。** 理由: 一時環境で`repair --relative-paths`は自動的に`extensions.relativeWorktrees = true`を書き込むが、この環境のWSL git（2.43.0）は当該拡張を認識できず`fatal: unknown repository extension found: relativeworktrees`で全git操作が失敗した。公式`git config --unset extensions.relativeWorktrees`で拡張設定を外すと、相対リンク自体は残り、WSL/Windows双方で基本Git操作と共有Hookの文脈解決（`git commit`は許可、`git reset --hard`は`G1`拒否）が動作することを確認した。
+### 現在の設定と適用範囲（2026-11-21確認）
+
+| 項目 | 現在の値 |
+|---|---|
+| 参照方式 | 相対パス（`.git` = `gitdir: ../qa-training-store/.git/worktrees/qa-training-store-opencode`、`gitdir` = `../../../../qa-training-store-opencode/.git`） |
+| `core.repositoryformatversion` | 1 |
+| `extensions.relativeWorktrees` | **未設定**（旧Git 2.43.0対応の暫定構成として手動でunsetされた状態） |
+| `worktree.useRelativePaths` / `gc.worktreePruneExpire` | 未設定 |
+
+使用中のGitクライアントはすべて相対worktree拡張を解釈できる。**WSL2**: エージェントPATHの`~/.local/share/git-current/bin/git` = 2.56.1（`/usr/bin/git` = 2.43.0はPATHの後方にあり、エージェントは使用していない）。**Windows**: `AppData/Local/Programs/Git/cmd/git.exe` = 2.56.0.windows.4、GitHub Desktop同梱Git = 2.56.0.windows.4 / 2.56.1.windows.1。これらでは拡張の有無にかかわらず相対リンクが解決され、`prunable`は表示されない。
+
+公式の相対worktree参照を正式に有効化するには`git config --local extensions.relativeWorktrees true`を実行する。しかし共有安全性判定`.codex/hooks/pre_tool_use_policy.mjs`は状態変更を伴う`git config`を一貫して`G10`で拒否し、`guarded_git` / `guarded_shell`も実行前にfail-closeするため、エージェントはこの変更を行えない。Hookを無効化したり別経路で回避したりせず、ユーザーが明示的に実行する必要がある（下記「元に戻す方法」も参照）。
+
+### 検証結果（2026-11-21）
+
+- WSL2（Git 2.56.1）: `status -sb`クリーン、`branch --show-current` = `feat/opencode-v2-codex-safety`、`--show-toplevel` / `--git-common-dir`が期待値、`worktree list --porcelain`は2 worktreeを正常表示（`prunable`なし）、`worktree prune --dry-run --verbose`は出力なし、`fsck --no-dangling`正常。
+- Windows（Git 2.56.0.windows.4）: 同じ2 worktreeを正常表示、`prunable`なし、`worktree prune --dry-run --verbose`はrc=0で出力なし。HEADとブランチ情報も一致。
+- 旧Git（`/usr/bin/git` 2.43.0）: 相対`gitdir`をCWD基準で解釈し、linked worktreeに`prunable`を表示する（一時環境で再現済み）。エージェントはこのバイナリを使用しない。
 
 ### 既存worktreeへの適用手順
 
 1. 全worktreeの所在と状態を`git worktree list --porcelain`で把握する（本リポジトリはmain + 本worktreeの2つ）。
-2. 未コミット変更を確認・保護する。
-3. `.git`と`.git/worktrees/<id>/gitdir`を安全な場所へバックアップする。
-4. Windows gitでmain worktreeから`git worktree repair --relative-paths <linked-worktree>`を実行する。
-5. WSL gitが拡張を認識しない場合は`git config --unset extensions.relativeWorktrees`で拡張設定を外す。
-6. Windows/WSL2双方で`git status --short`、`git rev-parse --show-toplevel`、`git rev-parse --git-common-dir`、`git branch --show-current`を確認する。
+2. 未コミット変更を確認・保護する（他worktreeに既存の変更がある場合は触らない）。
+3. `.git/config`、linked worktreeの`.git`、対応する`gitdir`を安全な場所へバックアップする。
+4. main worktreeから`git worktree repair --relative-paths <linked-worktree>`を実行する（公式に拡張が設定される）。
+5. 旧Gitを明示的に使う必要がある場合のみ`git config --unset extensions.relativeWorktrees`で拡張を外す。現在の環境では既に外れた状態であり、Git 2.56.xは拡張なしでも正常に動作する。
+6. Windows/WSL2双方で`git status --short`、`git rev-parse --show-toplevel`、`git rev-parse --git-common-dir`、`git branch --show-current`、`git worktree list --porcelain`を確認する。
 
-### 移行失敗時の復旧
+### 元に戻す方法
 
-バックアップした`.git`と`gitdir`を元の絶対パス内容へ戻す。またはWindows gitで`git worktree repair <worktree>`を実行して絶対パス形式へ再確立する。いずれの場合も`git worktree list --porcelain`で全worktreeが認識されることを確認する。
+- 拡張を公式状態へ戻す: `git config --local extensions.relativeWorktrees true`（共有Hookが拒否するためユーザーが明示実行する）。戻すと旧Git 2.43.0はリポジトリを拒否するようになる。
+- 絶対パス形式へ戻す: バックアップした`.git`と`gitdir`を元の内容へ戻す。または`git worktree repair <worktree>`を実行する。いずれの場合も`git worktree list --porcelain`で全worktreeが認識されることを確認する。
+- 現在の暫定構成（拡張未設定）へ戻す: `git config --local --unset extensions.relativeWorktrees`。Git 2.56.xでは相対リンクの解決と`prunable`非表示は維持される。
 
 ## 検証
 
@@ -98,8 +117,8 @@ pnpm run lint
 
 ## 未解決リスク
 
-- **WSL git 2.43.0の制約**: `extensions.relativeWorktrees`非対応のため、`git worktree list --porcelain`をWSL側で実行するとlinked worktreeが`prunable`（`gitdir file points to non-existent location`）と表示される。ただし`git status` / `rev-parse` / `branch` / 共有Hook判定は正常に動作し、Windows側の`git worktree list`は正常である。Workspace全体を管理する運用では、新しいgitを導入するか`git worktree list`の結果をWindows側で確認する必要がある。
-- **Shell以外の経路**: ガードはShell文字列と`guarded_git`の引数に限る。ファイル編集ツール、MCP、Code Mode内の他ツール、間接スクリプト、任意コード実行を包括的に保護するものではない。`guarded_shell`が`evaluateCommand()`を許可したという理由だけで、そのコマンドが包括的に安全であると扱ってはならない。
+- **旧Gitの扱い（残る制約）**: エージェントが使用するPATHのGitはWSL 2.56.1 / Windows 2.56.0であり、`prunable`は解消済み。ただし`/usr/bin/git` 2.43.0はPATHの後方に残っており、明示的に実行すると相対`gitdir`を誤解釈してlinked worktreeを`prunable`と表示する（拡張を設定するとリポジトリ全体を拒否）。エージェントと非対話Shellがこのバイナリを使用しないことを運用で確認する必要がある。GitHub Desktop同梱Gitは2.56.xであり、この制約に該当しない。
+- **Shell以外の経路**: ガードはShell文字列と`guarded_git`の引数に限る。ファイル編集ツール、MCP、Code Mode内の他ツール、間接スクリプト、任意コード実行を包括的に保護するものではない。`guarded_shell`が`evaluateCommand()`を許可したという理由だけで、そのコマンドが包括的に安全であると扱ってはならない。`read`権限の`.env`拒否も同様に、許可されたShellコマンド内のファイル読み取りを防ぐものではない。
 - **OS sandboxではない**: 実行はホストユーザー権限で行われ、OSレベルの隔離は提供しない。
 - **`external_directory`の`ask`**: autoaccept下では自動許可される。外部ディレクトリへのアクセスを完全に制限するものではない。
 - **V2 Plugin APIはベータ**: ツールイベント形式の変更リスクがある。組み込み`shell`の`deny`はPluginに依存しない最終防御として維持する。
