@@ -92,6 +92,12 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 - **最新HEAD required E2Eの修復**：commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb CI #44925761465は`e2e/web/ui-ux-improvements.spec.ts:98`で失敗した。Cart transfer toastとCheckout開始通知の2つの`role=status`に対して、古いテストが通知を限定せずlocator strict-mode errorとなった。製品の両通知と両方のassertionを維持し、テストを通知別に識別するよう更新。独立再レビューは追加findingなし。修正を含む最新HEAD CIは確認待ちであり、これをPASSとは扱わない。
 - **最新HEAD Android Maestro blocker**：commit `054749f34d83eee2a7ccd018352b6ca655c934b7`のMobile CI #44927140741で、Android Runtime / Maestro job `136922330221`の`native-purchase`、`native-payment-retry`、`native-session-checkout-restart`が`native-checkout-address-next`不在で失敗。製品画面には同testIDのボタンがあるが、flow側のaddress session-ready待ちとCTAへの明示scrollが不足している。任意住所2行目追加後にCTAがviewport外となった可能性があるものの、failure hierarchy未取得のため直接原因は未確定。3 flowにsession-ready待ちとCTA scrollを追加し、全assertionを維持した。独立read-only再レビュー指摘なし、対象flow contract 78件・format check PASS。新HEAD CIで再確認する。
 
+## 2026-11-22 修復後のCI結果
+
+- Code SHA `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`のWeb CI [#44931433280](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44931433280)とMobile App CI [#44931433660](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44931433660)はsuccess。Android Runtime / Maestro job `136933362584`の17 flowすべてがsuccessし、更新した3つのCheckout flowも含む。Android automation/production builds、iOS automation/production-validation simulator builds、Native Static、Production Bundle Guard、iOS Native CI Verifyもsuccess。
+- Web CIは27 success / 2 skipped（Extended mobile Chromium E2E、production deploy）。このCIではrequired Chromium E2E・cross-role・accessibility・mobile-boundaryを実行しsuccess。ローカルWSL E2EはChromium host library不足のため未実行であり、CI結果と区別する。
+- Emulator/build結果は実機・iOS runtime証拠ではない。Native canonical screenshotは任意住所2行目がなく、visual acceptanceは未完了。Native未保存住所の直接入力はユーザー承認済みで仕様へ反映済み。Checkout税額独立明細を表示しない仕様追記は別途ユーザー判断待ち。
+
 ## 既存19ファイルの変更受入
 
 PR #210の作成時点で、製品実装9・正式仕様1・既存製品テスト9の内容を #199 の旧HEADから移した。**「どちらのPRに置くか」の判断は完了**。ただし各変更の必要性、正式仕様との適合、非default状態、認可、金額、Web/Native、CIは個別に未検証事項がある。特にCheckout正式仕様の意味変更は自動受入しない。

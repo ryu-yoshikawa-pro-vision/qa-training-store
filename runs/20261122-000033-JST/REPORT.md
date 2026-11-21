@@ -156,3 +156,22 @@
 - Subagent: `review_ui_native`はread-onlyで3 Flowとscreenを確認。追加テスト・実装は行わず、共有するwait/scroll前提不足を指摘。確信度は中、失敗時Hierarchy未確認と明記。`repair_confirmed_findings`には3 Maestro YAMLのみの限定修正を依頼し、作業結果待ち。
 - 残作業: Flow差分確認、Prettier/CI validation、必要なら独立再レビュー、通常commit/push、新headのrequired Web/Mobile CI、PR body/Run最終更新。Checkout tax-line方針はユーザー回答待ち。Native canonical screenshotと実端末/iOS runtimeも未受入。
 - Progress: 33% (3/9)
+
+## 2026-11-22 03:16 (JST) - 修復後のWeb/Mobile CI成功
+
+- Summary: code SHA `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`のrequired Web CIとMobile App CIが両方success。3件のAndroid Maestro修復対象flowを含む全17 runtime flowがsuccess。
+- Changes: Web/Mobile CI evidence、skip、platform範囲、PR現在状態をfollow-up、review plan、Run Plan/Tasksへ追記。製品コード・テスト・CI workflowは変更していない。Web 27/29 jobs success、2 skipped。Mobile 10/10 jobs success。
+- Validation: `wait_for_required_ci` expected/observed SHA一致。Web run `44931433280`: Chromium required `136928889592`、cross-role `136928889571`、accessibility `136928889462`、mobile-boundary `136928889440`、Vitest unit/integration/component/repository/contracts、build-production/automation、verify、validateがsuccess。Extended E2E mobile-chromium `136928890670`とdeploy-production `136930068742`はskip。Mobile run `44931433660`: Native Static `136928738083`、Android automation/production builds `136928738253` / `136928738358`、iOS automation/production-validation builds `136928738460` / `136928738486`、Production Bundle Guard `136933257892`、Android Runtime / Maestro `136933362584`、iOS Native CI Verify `136935479880`、native-ci verify `136936805447` success。Maestro 17 flows passし、`native-purchase` 45s、`native-payment-retry` 40s、`native-session-checkout-restart` 27sでsuccess。これはAPI 34 Android emulator上のruntimeで、実機/iOS runtimeではない。
+- PR: GitHub PR #210はOpen/unmerged、mergeable、head `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`、57 changed files、review threads 0。PR本文更新は次に実施する。force push・PR mergeなし。
+- 判断 / 残件: Native未保存住所直接入力はユーザー承認済み。Checkout税額を独立明細で表示しない仕様はユーザー判断待ちであり、この条件の製品受入・PR merge可否を最終確定しない。Canonical Android住所画面画像は2行目欄を含まない。実機/iOS runtime/visual acceptanceは未完了。ローカルChromiumは`libnspr4.so`等のhost library不足で起動せず、E2EはGitHub Actionsの上記実行結果で確認した。ローカル`pnpm run verify`はcode修復段階でsuccess、今回Maestro修復はYAMLのみのため対象contract 78件・format・security・sanitizer・commit hook・最新CIを再確認。
+- Progress: 67% (6/9)
+- 記録順序注記: 02:37のMaestro repair checkpointは重複したProgress markerへの追記位置のため、02:35のtriage checkpointより先に物理配置されている。既存記録はappend-only契約を守って変更せず、各checkpointの日時を正しい実施順として扱う。
+
+## 2026-11-22 03:24 (JST) - 文書確定・GitHub更新前検査
+
+- Summary: 製品レビュー結果と最新code HEAD CI evidenceを既存follow-up/plan/Runへ整理し、PR説明更新前の最終ローカル品質確認を完了。
+- Changes: follow-up内のNative直接住所ポリシーをユーザー承認済みと明確化。残る仕様判断はCheckout税額独立明細だけと記録。製品実装・テスト変更なし。
+- Validation: `pnpm run format:check` PASS、`pnpm run security:check` PASS（236 runtime files / 397 credential-scan files）、`node scripts/sanitize-codex-artifacts.mjs --path runs/20261122-000033-JST --write --check` PASS（3 files scanned / 0 changed / 0 residual findings）、`git diff --check`・`git diff --cached --check` PASS。作業HEAD `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`。今回の変更対象は追跡済み文書5ファイルのみ。
+- GitHub/CI: PR #210はOpen/unmergedで、現PR headと`origin/product/scenario-shop-maintenance`はいずれも`e3a9d130dd2ab9f79e6399f3df055e70465a18ce`。このheadのWeb CI #44931433280は27 success / 2 skipped、Mobile App CI #44931433660は10/10 success。通常push前にPR本文へ対象headの結果と残受入事項を追記し、更新後HEADのrequired CIを再取得する。
+- 残件: Checkout税額独立明細方針のユーザー判断待ち。Android canonical visual referenceは2行目field未反映、実機・iOS runtime未実施。PRの最終merge可否はこれらが解消・承認されるまで保留。
+- Progress: 78% (7/9)
