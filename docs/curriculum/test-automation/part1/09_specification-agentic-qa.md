@@ -33,7 +33,7 @@ Agentic QAの主なエントリーポイントは、コーディングエージ�
 | Gray-box | `qa-charter.json` | 読み取り専用 ＋ 許可されたシードデータ／テスト制御／限定ログ | 不具合の原因候補を絞り込む探索 |
 | Black-box Scored | `challenge.json.required_coverage` | 隔離されたルートディレクトリのみ | 受講者向けに安全化された入力を用いた、比較・採点可能な探索 |
 
-NormalモードおよびGray-boxモードであっても、`.codex/runs/<run_id>/` や `.artifacts/` への実行記録の保存は許可されます。`working-tree-snapshot.ts` を用いて同一形式の実行前後のスナップショットを取得し、比較結果の `passed=true` かつ `additional_source_diff_count=0`（ソースコードへの差分がないこと）を確認した上で指摘事項（Findings）を確定します。なお、Black-boxモードにおける読み取り専用設定は、それ単体では完全なソースコードの隔離を意味しません。Runnerには `learner-spec/`、`runbook/`、`challenge/` のみを渡すように制限します。
+NormalモードおよびGray-boxモードであっても、`runs/<run_id>/` や `.artifacts/` への実行記録の保存は許可されます。チャーターと確定した `qa-findings.json` は `runs/<run_id>/` に保存し、`working-tree-snapshot.ts` を用いて同一形式の実行前後のスナップショットを取得します。比較結果の `passed=true` かつ `additional_source_diff_count=0`（ソースコードへの差分がないこと）を確認した上で指摘事項（Findings）を確定します。Black-box採点の `.artifacts/agentic-qa/**` 契約は変更しません。なお、Black-boxモードにおける読み取り専用設定は、それ単体では完全なソースコードの隔離を意味しません。Runnerには `learner-spec/`、`runbook/`、`challenge/` のみを渡すように制限します。
 
 通常の「Scenario ShopをQAしてください」といった依頼にはNormalモードを使用します。Black-box Scoredモードで必要となる新規コーディングエージェントセッション、信頼された識別情報（trusted identity）、ツールの分離、実際のツールスコープは、エージェント実行環境やホスト（Agent Runtime / Host）が提供する機能であり、リポジトリ内のハーネスが独自に生成するものではありません。
 

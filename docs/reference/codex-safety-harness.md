@@ -3,141 +3,35 @@
 ## 目的
 
 - リポジトリ内で Codex を使用するにあたり、危険な実行オプションやコマンドの実行を抑制するための実用的なガードレールを提供する。
-- `AGENTS.md` の定めに加え、`execpolicy` ルールおよびラッパーによって技術的な制御レイヤーを追加する。
+- `AGENTS.md` の定めに加え、Codex project config、Hook、execpolicyルールによる独立した制御レイヤーを説明する。
 
 ## 構成
 
-- `scripts/codex-safe.ps1`
-  - Codex 起動ラッパー
-  - 危険な CLI 引数（`--dangerously-bypass-approvals-and-sandbox`, `-c/--config`, `--add-dir` など）を拒否
-  - 安全側のデフォルト設定（`--sandbox`, `--ask-for-approval`）を強制付与
-  - 起動前に `codex execpolicy check` を実行し、ルールのスモークテストを実施（事前検証 / preflight）
-  - JSONL ログ（既定: `.codex/logs/codex-safe-YYYYMMDD.jsonl`、`--run-id` 指定時: `.codex/runs/<run_id>/logs/codex-safe-YYYYMMDD.jsonl`）に開始・ブロック・事前検証・起動の各イベントを追記
-- `scripts/codex-safe.sh`
-  - Bash 向け Codex 起動ラッパー（PowerShell 版と同等の方針）
-  - 危険な CLI 引数の拒否、`--sandbox` / `--ask-for-approval` の強制付与、事前検証を実施
-  - `--print-command`、`--preflight-only`、`--allow-search`、`--run-id`、`--log-path` をサポート
-- `.codex/agents/*.toml`
-  - プロジェクトスコープのカスタムエージェント定義
-  - `code_researcher`、`implementation_researcher`、`test_investigator` は読み取り専用（read-only）の調査エージェント
-  - `implementation_worker` は親エージェントが承認した小さく限定的な実装のみを担当する書き込み可能（workspace-write）エージェント
-  - 書き込み可能なサブエージェントは原則として 1 タスクにつき 1 つのみ使用し、ファイルの削除、名前変更（rename）、Git の変更操作（mutation）、スコープ外の編集は行わない
-- `.codex/rules/*.rules`
-  - `execpolicy` ルール
-  - 読み取り系の allow（許可）、影響範囲の広い操作への prompt（確認要求）、破壊的操作の forbidden（禁止）を定義
-- `.codex/rules-auto-net/*.rules`
-  - `--preset auto-net` 指定時のみ追加で読み込む execpolicy ルール
-  - ネットワーク、パッケージマネージャー、ビルド、テスト関連のコマンドを allow に設定し、シェルラッパー系コマンドはフックによる検証が完了するまで forbidden とする
-- `.codex/config.toml`
-  - プロジェクトスコープのデフォルト設定: `sandbox_mode = "workspace-write"`, `approval_policy = "never"`, `web_search = "cached"`
-  - `sandbox_workspace_write.network_access = true`, `writable_roots = []`
-  - 通常の対話型エントリポイントは直接起動（direct `codex`）。Codex の承認プロンプトは表示せず自動拒否する。
-  - `codex-safe safe` は `--ask-for-approval on-request` および `sandbox_workspace_write.network_access=false` を明示的に指定し、ローカルでの例外操作やリカバリにおける承認経路として利用できる。ネットワークを伴う例外操作には、承認とネットワークサンドボックスへの昇格に関する実行時検証が必要となる。
-  - `readonly` プリセットは読み取り専用サンドボックスかつ on-request、`auto-net` プリセットは workspace-write かつ never かつ network true を明示する。
-  - ログインシェルは `allow_login_shell = false`
-  - Codex 0.147.0 で有効なプロジェクトプロファイルには依存せず、ラッパーがプリセットごとのサンドボックスおよび承認設定を明示的に注入する。
-  - `safe` の network false および `auto-net` の network true は、ラッパー側で明示的にオーバーライドする。
-  - PreToolUse / Bash フック: `.codex/hooks/pre_tool_use_policy.mjs`
-  - Windows ネイティブランチャー: `.codex/hooks/pre_tool_use_policy_windows.ps1`
-  - 状態を変更する Git 操作は、フックが所有するチェックアウトの canonical root に明示的に固定し、直接 Git ラッパーや `git -C` による対象変更を拒否する。詳細は[Git ブランチ安全性](git-branch-safety.md#hookによる操作rootの固定)を参照する。
-- `.codex/text-quality-rules.json`
-  - リポジトリ固有のリテラル・正規表現ルールの正本。現在は明示的な4つの置換ルールを設定値として管理しており、一般的な日本語ルールはここに複製しない。
-- `.textlintrc.json`
-  - 一般的な日本語向け本番ルールの正本。評価用プリセットから個別に選定した2つのルールを既存の5ルールに追加した、計7個の個別ルールのみを有効化している。プリセット全体の導入、AI判定（AI Judge）、広範な辞書、独自の自然さ判定などは追加しない。なお、`no-unmatched-pair` は技術文書内のインラインコードなどを誤検知するため採用していない。
-- `scripts/lint-text-quality.mjs` / `scripts/check-text-quality-changes.mjs`
-  - 前者はカスタムのリテラル・正規表現および textlint の個別ルールを Markdown 本文へ適用するスクリプト。後者はベースラインと現在のフィンガープリント・マルチセットを Git ツリー単位で比較するほか、同一の Markdown 列挙ロジックを用いた全件スキャンモードを提供する。
-- `.codex/requirements.toml`
-  - 管理配布や機能有効化の際に使用する補助的な最小要件定義
-- `scripts/verify`
-  - 品質ゲート実行の統一エントリポイント
-  - execpolicy の判定、Bash ラッパーの事前検証、Bash / PowerShell テスト（実行可能な環境のみ）を実施する。
-  - ソースリポジトリのメンテナーは、配布前に追加で `--strict-harness` / `-StrictHarness` を実行し、仕様・バージョン・CI・更新計画に関する契約（contract）もあわせて確認する。
-- `scripts/cleanup-runs.sh` / `scripts/cleanup-runs.ps1`
-  - 実行時に生成された成果物（run artifact）を整理するためのプレビューおよび確定実行用エントリポイント
-  - デフォルトでは削除を実行せず、明示的な確認（confirm）が指定された場合のみ、対象として把握している成果物を削除する。
+- `.codex/config.toml`: Codex project config。`workspace-write`、`approval_policy = "never"`、network setting、Hooks、agentsを保持します。
+- `.codex/hooks/pre_tool_use_policy.mjs`: 共通PreToolUse command guard。設定matcherはBashのみで、`apply_patch`とMCP toolは対象外です。
+- `.codex/hooks/pre_tool_use_policy_windows.ps1`: Windows native transport launcher。
+- `.codex/rules/*.rules`: 共通execpolicy rules。読み取り系allow、影響の大きい操作へのprompt、破壊的操作のforbiddenを定義します。
+- `.codex/agents/*.toml`: project-scoped custom agentsと権限境界。
+- `scripts/verify`: Linux通常verifyとsource template strict-harness検査。
+- `scripts/new-run.*` / `scripts/collect-run-artifacts.*`: Run初期化とmachine-managed manifest更新。
+- Run Artifactは保持し、sanitizerとcredential/security scanを経て追跡します。
 
-関連する上位ガイド:
-
-- `docs/reference/codex-implementation-harness.md`
-  - `codex-safe` / `codex-task` / `codex-sandbox` の使い分け
+project config/rulesはCodexのproject trust条件を満たす場合に読み込まれます。非managed環境ではHook定義もtrustが必要です。設定や静的execpolicy診断だけではruntime Hookの配信・発火を証明できません。
 
 ## 推奨起動方法
 
-通常の対話型作業では、リポジトリのルートディレクトリから直接 `codex` を起動します。
+通常の起動方法はLinuxのプロジェクトルートから直接 `codex` を実行することです。project config/rulesはCodexのproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。設定があることだけをruntimeでのHook発火の証拠として扱ってはなりません。
 
-```powershell
-codex
-```
+`.codex/config.toml` の `workspace-write`、`approval_policy = "never"`、network setting、Hooks、agentsを維持します。共通のexecpolicyルールは `.codex/rules/*.rules` にあります。`codex execpolicy check` はルール診断であり、Hookのruntime発火確認ではありません。
 
-プロジェクトの `.codex/config.toml` におけるデフォルト値は、`workspace-write` / `approval_policy = "never"` / `network_access = true` です。`never` の設定下では、サンドボックスの承認や execpolicy の `prompt` などによる確認プロンプトが表示されず自動的に拒否されるため、影響度の高い操作は実行されません。なお、`git switch` は通常のブランチ切り替えとして確認プロンプトの対象から除外されており、破壊的な切り替え操作（destructive switch）については既存のフックが拒否（deny）します。
+## Direct Codexの制約
 
-ローカルでの例外操作、リカバリ、事前検証、ラッパーによるログ記録などが必要な場合は、補助的な経路として `codex-safe` を使用します。PowerShell からの実行例:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1
-```
-
-非対話実行の例:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 exec "作業内容..."
-```
-
-読み取り専用（readonly）プリセット:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset readonly
-```
-
-auto-net プリセット:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset auto-net
-```
-
-事前検証（preflight）のみ実行:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly
-```
-
-Bash からの実行例:
-
-```bash
-bash scripts/codex-safe.sh
-```
-
-auto-net プリセット:
-
-```bash
-bash scripts/codex-safe.sh --preset auto-net
-```
-
-`git checkout`、マージやリベースのリカバリ、ローカルブランチの削除は、引き続き確認プロンプト（prompt）の対象です。明示的に依頼されたローカル例外操作に限って、ネットワーク昇格を伴わない `codex-safe safe`（on-request）経由で実行できます。`gh api` や、PRのマージ・クローズ、リリースの作成、リポジトリ削除といった影響度の高い GitHub CLI 操作もプロンプト対象を維持します。これらのネットワーク例外操作については、safe ラッパーによる execpolicy の承認とネットワークサンドボックスへの昇格が、読み取り専用の実行時検証によって確認できた場合に限り、承認経路として利用します。通常の直接実行からラッパーへの自動フォールバックは行いません。
-
-`auto-net` は明示的に指定した場合にのみ有効となる既存のプリセットです。ラッパーのデフォルト設定は `safe` のまま維持されます。直接起動時のプロジェクトデフォルトのネットワーク設定とは独立しており、ラッパー側からネットワーク設定を明示的に指定します。
-
-`safe` プリセットは、Codex に対して `sandbox_workspace_write.network_access=false` を明示的に設定します。ただし、検証時に確認した Windows の昇格サンドボックス環境（elevated sandbox）においては、`CodexSandboxOffline` として動作しているセッションから Python による HTTPS 通信が成功する事象が観測されました。この結果は当該環境における特定の挙動であり、一般的な Windows 環境における動作や原因を断定するものではありません。そのため、Windows においては safe プリセットの `network=false` のみをもって完全なネットワーク分離境界（isolation boundary）とはみなしません。ネットワークの遮断そのものがセキュリティ要件となる作業では、この不確実な状態を前提とせず、別途信頼できる隔離環境を用意するか、実行時検証を行う必要があります。
-
-## 何をブロックするか（例）
-
-- `--dangerously-bypass-approvals-and-sandbox`
-- `-c` / `--config`
-- `--add-dir`
-- `-C` / `--cd`
-- `-s` / `--sandbox`
-- `-a` / `--ask-for-approval`
-- `-p` / `--profile`
-- `--enable` / `--disable`
-- raw `--full-auto`
+このリポジトリにはCLI引数を書き換えたり拒否したりする起動ラッパーはありません。プロジェクト設定の `approval_policy = "never"` では、承認を必要とする操作にローカルの例外承認経路を提供しません。例外・高影響操作はこの設定と共通Hook/execpolicy契約の範囲で扱い、利用者が通常のCodex標準動作で実行できる場合を除き、サポートされた手順とはみなしません。bypass flagによってsandboxやapprovalを無効化しないでください。
 
 ## 削除禁止
 
 - プロジェクト配下のファイルの読み取りや新規作成・編集は、通常の作業であれば承認なしで行って差し支えない。
 - シェル、PowerShell、Git コマンドによるファイルの削除は禁止する。対象の例として、`rm`、`del`、`erase`、`Remove-Item`、`rmdir`、`unlink`、および通常の `git rm` が挙げられる。
-- `cleanup-runs` は、生成された実行時成果物（run artifact）を限定的に削除するための例外コマンドである。ただし、デフォルトがプレビューのみであること、明示的な確認（confirm）が必須であること、リポジトリルート外やシンボリックリンクの候補を拒否すること、という前提条件を満たす場合にのみ使用する。
-- `auto-net` は、共通の Full Access ポリシーとは異なる非対話型プリセットであり、`git add`、`git commit`、`git push`、`git rm`、`git reset`、`git clean` といった既存の禁止事項をそのまま維持する。
-- `auto-net` では、削除や名前変更（rename）を含むパッチ操作も禁止する。不要と思われるファイルがある場合は、削除候補として `REPORT.md` に記録する。
 - `implementation_worker` も同様に、削除、名前変更、移動、Git の変更操作、削除や名前変更を伴うパッチ操作を行わない。
 - 追跡対象となっている実行時成果物を配布対象から除外する移行作業（migration）に限り、明示された対象に対して `git rm --cached -- <path>` を使用してよい。その場合でも、物理ファイル自体の削除は行わない。
 
@@ -145,25 +39,25 @@ bash scripts/codex-safe.sh --preset auto-net
 
 `apply_patch` によるパッチ操作は、通常のファイル編集であれば使用してよい。ただし、削除（delete）、名前変更（rename）、移動（move）は意図が不透明になりやすく影響範囲も大きいため、通常の編集とは区別して扱う。
 
-| 操作 | readonly | direct `codex` | safe | auto-net |
-| --- | --- | --- | --- | --- |
-| 既存ファイルの内容変更 | 不可 | 可 | 可 | 可 |
-| 新規ファイル作成 | 不可 | 可 | 可 | 可 |
-| ファイル削除 | 不可 | 原則不可。明示された対象とレビュー可能な理由がある場合のみ候補化 | 原則不可。明示された対象とレビュー可能な理由がある場合のみ候補化 | 不可 |
-| rename / move | 不可 | 要レビュー。必要性、影響、migration を説明する | 要レビュー。必要性、影響、migration を説明する | 不可 |
-| 削除候補の `REPORT.md` 記録 | 可 | 可 | 可 | 可 |
+| 操作 | read-only agent | direct `codex` |
+| --- | --- | --- |
+| 既存ファイルの内容変更 | 不可 | 依頼範囲内で可 |
+| 新規ファイル作成 | 不可 | 依頼範囲内で可 |
+| ファイル削除 | 不可 | 実行しない。必要性がある場合は停止し、承認された実行主体と経路が明示的に確定するまで保留 |
+| rename / move | 不可 | 実行しない。必要性・影響・migration理由と承認済み実行経路が明示的に確定するまで保留 |
+| Run Artifact作成・更新 | 不可 | Parentが管理 |
 
 判断に迷う場合は、削除・名前変更・移動を実行せず、`REPORT.md` に削除候補または移動候補として記録にとどめる。
 
 ## Hook guard
 
-- Full Access 共通ポリシーの正本は `.codex/hooks/pre_tool_use_policy.mjs` のみである。`PreToolUse` の `Bash` マッチャー（`^Bash$`）から `tool_input.command` のみを受け取り、ポリシーマトリクス（Section 3 Matrix）相当の G1〜G10 および N1〜N4 を判定する。
+- Full Access 共通ポリシーの正本は `.codex/hooks/pre_tool_use_policy.mjs` のみである。Hookは `PreToolUse` の `^Bash$` matcherで起動し、`tool_input.command` のみを受け取ってポリシーマトリクス（Section 3 Matrix）相当の G1〜G10 および N1〜N4 を判定する。他のtoolには適用されない。
 - Windows ネイティブ環境では、`command_windows` から `.codex/hooks/pre_tool_use_policy_windows.ps1` を経由して Node プロセスへ標準入力（stdin）を転送する。リポジトリルートは、ルート直下およびネストされた作業ディレクトリ（cwd）のいずれからでも解決できるようにする。
 - 不正な形式（malformed）やスキーマ違反の入力に対しては、標準出力（stdout）を空、標準エラー出力（stderr）を非空としたうえで終了コード 2（exit 2）により安全側に倒して拒否（fail-close）する。拒否（deny）時は `hookSpecificOutput.permissionDecision = "deny"` を含む構造化データを出力し、安全（safe）と判定された場合は終了コード 0（exit 0）かつ出力なしとする。
 - Git 操作については、既存のシェル境界内にある個々の Git 呼び出し（invocation）を個別に共通解析し、`git -C <path> <subcommand> ...` のような形式であっても通常形式と同様に G1〜G10 および N1〜N4 のポリシーを適用する。呼び出しの中に 1 つでも DENY（拒否）対象が含まれている場合は、コマンド全体を DENY とする。
 - 複数の `-C <path>` が指定された場合は出現順に累積適用し、後続のパスは直前の有効な作業ディレクトリ（effective cwd）を基準として解決する。コンテキスト未指定時における保護対象ブランチ（protected branch）の判定は、各呼び出しが選択した有効なリポジトリ（effective repository）を対象とする。同一のサブコマンドが複数含まれるコマンドであっても、すべての呼び出しを漏れなく評価する。
 - `--git-dir`、`--git-dir=<path>`、`--work-tree`、`--work-tree=<path>` は、リポジトリの参照先を変更するグローバルオプション（repository-changing global option）として区別して扱う。完全な Git CLI パーサーまでは実装せず、commit、merge、cherry-pick、revert、pull、am、push などのコンテキストに依存する変更操作（context-sensitive mutation）では安全側に倒して拒否（fail-close）する一方、読み取り専用の操作（read-only operation）を一律で拒否（blanket deny）することはない。解析不能な Git 呼び出しについては、曖昧なコンテキストのまま ALLOW（許可）することはしない。
-- Bash 系の `git` と Windows / PowerShell の `git.exe` は、同一の Git 実行ファイルとして扱う。サブコマンド以降はクォートを考慮した引数トークン（quote-aware argument token）として評価し、クォートで囲まれた `--force`、`--amend`、`-fd`、`-D`、`HEAD:main` なども、通常の危険なオプションと同様に判定する。
+- `^Bash$` Hookが受け取るcommand内の `git` と `git.exe` は同一の Git 実行ファイルとして扱う。サブコマンド以降はクォートを考慮した引数トークン（quote-aware argument token）として評価し、クォートで囲まれた `--force`、`--amend`、`-fd`、`-D`、`HEAD:main` なども、通常の危険なオプションと同様に判定する。
 - push 操作は、明示的かつ一意な単一の refspec を指定した場合のみ ALLOW の候補とし、保護対象の宛先（protected destination）、強制実行や削除（force / delete）、`--all` / `--branches`、マッチング push、ワイルドカード、複数 refspec、リモートや URL・パスのみを指定した暗黙的な push、実行時設定や環境変数によって宛先が変わり得る push などは、すべてフェイルクローズ（fail-close）する。通常の `git fetch` は許可を維持するが、保護対象のローカル ref を宛先とする fetch、`update-ref`、および `worktree add -B` による保護ブランチの変更は DENY とする。
 - `-c`、`--config`、`--config-env` や、インラインの `GIT_DIR`、`GIT_WORK_TREE`、`GIT_CONFIG_*` による実行時セマンティクスの変更は完全には解決せず、コンテキスト依存の変更操作ではフェイルクローズする。なお、完全なシェル／Git パーサーの実装、エイリアスの展開、PowerShell の状態追跡、各種ラッパー、`.git` ディレクトリの直接書き換えへの対応は本ポリシーの対象外である。
 - シェルコマンドの前半に `git switch` やブランチ切り替え形式の `git checkout`、`cd` / `chdir` / `pushd` / `Set-Location` / `sl`、永続的な Git 環境変数の変更があり、その後にコンテキスト依存の Git 変更操作が続く場合は、実行時コンテキストのシミュレーションは行わず、コマンド全体をフェイルクローズする。単独のブランチ切り替え、カレントディレクトリ変更後の読み取り専用 Git 操作、`git config --get` / `--list` などの読み取り専用の設定参照操作はそのまま許可を維持する。
@@ -171,8 +65,6 @@ bash scripts/codex-safe.sh --preset auto-net
 - コンテキスト未解決による G10 の判定は一旦保留して後続の Git 呼び出しも評価し、後続に具体的な拒否理由がある場合はそちらを優先する。すべての呼び出しに具体的な拒否理由がない場合に限り、保留していた G10 を返す。
 - `update-ref -m <reason>` のオプション値、`fetch` や `pull` の `--refmap` / `--stdin`、保護対象ローカル ref の宛先、状態を変更する `git config`、保護ブランチに対する `branch -d` / `--delete` / `-m` / `--move` のターゲットなどをトークン単位で検査し、対象が不明な場合や未対応の構文（unsupported syntax）である場合は、曖昧なコンテキストのまま ALLOW することはない。Bash の行継続（line continuation）や限定的な引用符なしオプションのエスケープは正規化するが、完全なシェル／Git パーサーの実装までは行わない。
 - `.codex/config.toml` では `features.hooks = true` を使用し、非推奨（deprecated）となった `codex_hooks` や過去の PowerShell / Python ポリシーは参照しない。`apply_patch` はマッチャーの対象外であり、共通フック側でその追加・更新・削除・移動（Add / Update / Delete / Move）を検査することはない。
-- `.codex/rules/**` は静的なプレフィックス照合による多層防御（defense-in-depth）であり、共通ポリシーの正本ではない。`auto-net` におけるシェルラッパーの禁止など、プリセット固有のルールは別個の規約として維持する。
-- Phase 1 では、シェルラッパー系の `bash -lc`、`sh -c`、`pwsh -Command`、`cmd /c` は、auto-net rules 側で原則禁止（forbidden 寄り）として扱う。
 
 ## Hook trust運用
 
@@ -189,18 +81,12 @@ bash scripts/codex-safe.sh --preset auto-net
 
 ### `/hooks`での確認手順
 
-リポジトリのルートディレクトリで、普段使用している対話型 CLI を起動します。リポジトリ標準のラッパーを使用する場合は、以下を実行します。
+リポジトリのルートディレクトリで、普段使用している対話型 CLI を起動します。
 
-PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/codex-safe.ps1
-```
-
-Bash:
+通常運用ではLinuxのリポジトリルートから直接 `codex` を起動します。
 
 ```bash
-bash scripts/codex-safe.sh
+codex
 ```
 
 Codex の対話型 CLI が起動したら、その Codex セッション内で次を実行します。
@@ -302,8 +188,6 @@ pnpm run diagnose:hooks
 
 ### `--dangerously-bypass-hook-trust`の扱い
 
-`--dangerously-bypass-hook-trust` は、通常の対話型作業やリポジトリ標準ラッパーの信頼設定を代替する目的で使用してはなりません。使用が認められる場合であっても、Codex の外部でフックの定義元が検証されている単発の自動化処理に限定されます。このオプションは、`scripts/codex-safe.ps1`、`scripts/codex-safe.sh`、`scripts/codex-task.ps1`、`scripts/codex-task.sh` に自動付与される構成にはなっていません。
-
 フックが動作しない場合は、まず `/hooks` による確認、プロジェクトおよびフックの信頼状態、`CODEX_HOME` の一致を確認してください。`--dangerously-bypass-hook-trust` を付与して回避することを、通常のトラブルシューティング手順としてはなりません。
 
 ### 公式仕様の参照
@@ -318,7 +202,7 @@ pnpm run diagnose:hooks
 - `docs/reports/` は、長期保存（durable）を目的とした調査・監査・検証結果の保管場所であり、通常のレビュー回答、進捗報告、簡易な確認結果、実行（run）内ログの既定の保存先ではない。
 - レポートファイルを生成してよいケースは、ユーザーから保存の明示的な指示があった場合、タスク計画の完了条件（DoD: Definition of Done）にレポートファイルが含まれている場合、または複数情報源の調査・監査・検証結果を将来参照する必要がある場合に限られる。
 - レビューのみ（review-only）、計画のみ（plan-only）、状況報告（status update）、簡易な確認、通常の証跡コマンド実行結果、実行進捗の記録、チャット上で完結する評価などでは、`docs/reports/` にファイルを作成しない。
-- 判断に迷う場合はレポートファイルを作成せず、チャットでの回答および `.codex/runs/<run_id>/REPORT.md` への記録にとどめる。
+- 判断に迷う場合はレポートファイルを作成せず、チャットでの回答および `runs/<run_id>/REPORT.md` への記録にとどめる。Run ArtifactはParentが管理する。
 
 ## 文章品質CLIとRepository gate
 
@@ -342,7 +226,6 @@ bash scripts/verify --hook-contracts
 
 ## 運用メモ
 
-- ルールを変更した後は、`-PreflightOnly` および `codex execpolicy check` を実行して事前確認を行う。
+- ルールを変更した後は、共通 `.codex/rules/*.rules` を使う `codex execpolicy check` でルールを診断する。この診断はruntime Hookの配信・発火を確認するものではない。
 - 破壊的ルールの追加時は検証を実施し、明示的な保存依頼または完了条件（DoD）がある場合に限って `docs/reports/` に長期保存レポート（durable report）を残す。
 - 利用側リポジトリ（consumer repo）では、`bash scripts/verify` を初動の確認コマンドとして使用する。
-- 非対話実行を行う場合は `codex-safe` ではなく `codex-task` を使用し、`--run-id` を指定して実行固有の成果物（run-local artifact）として集約する。

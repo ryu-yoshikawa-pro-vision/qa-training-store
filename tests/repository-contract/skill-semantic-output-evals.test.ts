@@ -515,15 +515,10 @@ describe("Semantic Output Eval aggregation and runner preflight contracts", () =
 
   it("parses only the three planned CLI options and rejects unknown case selection before execution", () => {
     expect(
-      parseSemanticEvalCliArguments([
-        "--model",
-        "gpt-5.6-luna",
-        "--output",
-        ".codex/runs/result.json",
-      ]),
+      parseSemanticEvalCliArguments(["--model", "gpt-5.6-luna", "--output", "runs/result.json"]),
     ).toEqual({
       model: "gpt-5.6-luna",
-      output: ".codex/runs/result.json",
+      output: "runs/result.json",
     });
     expect(
       parseSemanticEvalCliArguments([

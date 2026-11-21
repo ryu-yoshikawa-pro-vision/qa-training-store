@@ -11,4 +11,16 @@ for candidate in python3 python; do
 done
 [[ -n "$python_cmd" ]] || { echo "Python 3 is required to collect run artifacts" >&2; exit 127; }
 
-"$python_cmd" "$script_dir/collect-run-artifacts.py" "$@"
+has_runs_root=0
+for argument in "$@"; do
+  if [[ "$argument" == "--runs-root" ]]; then
+    has_runs_root=1
+    break
+  fi
+done
+
+if (( has_runs_root )); then
+  "$python_cmd" "$script_dir/collect-run-artifacts.py" "$@"
+else
+  "$python_cmd" "$script_dir/collect-run-artifacts.py" --runs-root "$script_dir/../runs" "$@"
+fi

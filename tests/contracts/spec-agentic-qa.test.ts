@@ -680,8 +680,8 @@ describe("Specification and Agentic QA contracts", () => {
       "working tree after fixture",
     );
     const unchanged = compareWorkingTreeSnapshots(before, after, {
-      before: ".codex/runs/20260810-000010-JST/working-tree-snapshot-normal-before.json",
-      after: ".codex/runs/20260810-000010-JST/working-tree-snapshot-normal-after.json",
+      before: "runs/20260810-000010-JST/working-tree-snapshot-normal-before.json",
+      after: "runs/20260810-000010-JST/working-tree-snapshot-normal-after.json",
     });
     expect(unchanged.passed).toBe(true);
     expect(unchanged.additional_source_diff_count).toBe(0);
@@ -732,16 +732,9 @@ describe("Specification and Agentic QA contracts", () => {
     const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "manifest-selection-"));
     try {
       const runId = "20260810-130321-JST";
-      const runDir = path.join(temporary, ".codex", "runs", runId);
-      const manifest = path.join(
-        temporary,
-        ".artifacts",
-        "agentic-qa",
-        runId,
-        "trusted",
-        "benchmark-manifest.json",
-      );
-      fs.mkdirSync(runDir, { recursive: true });
+      const runRoot = path.join(temporary, ".artifacts", "agentic-qa", runId);
+      const manifest = path.join(runRoot, "trusted", "benchmark-manifest.json");
+      fs.mkdirSync(runRoot, { recursive: true });
       fs.mkdirSync(path.dirname(manifest), { recursive: true });
       fs.copyFileSync(
         path.join(
@@ -751,7 +744,7 @@ describe("Specification and Agentic QA contracts", () => {
         manifest,
       );
 
-      const selected = selectBenchmarkManifestFile(runDir, "CHALLENGE-INTERMEDIATE-001");
+      const selected = selectBenchmarkManifestFile(runRoot, "CHALLENGE-INTERMEDIATE-001");
       expect(selected).toBe(manifest);
     } finally {
       fs.rmSync(temporary, { recursive: true, force: true });
@@ -1541,7 +1534,11 @@ describe("Specification and Agentic QA contracts", () => {
       const renamedTo = "renamed -> 日本語.txt";
       fs.writeFileSync(path.join(temporary, added), "added", "utf8");
       const output = [`?? ${leading}`, `?? ${added}`, `R  ${renamedTo}`, renamed].join("\0");
-      const entries = parsePorcelainStatusRecords(temporary, `${output}\0`);
+      const runArtifacts = [
+        "?? runs/20260810-000010-JST/REPORT.md",
+        "?? .codex/runs/20260810-000009-JST/REPORT.md",
+      ].join("\0");
+      const entries = parsePorcelainStatusRecords(temporary, `${output}\0${runArtifacts}\0`);
       expect(entries.map((entry) => `${entry.status}:${entry.path}`)).toEqual([
         `A:${leading}`,
         `A:${added}`,
@@ -1983,7 +1980,7 @@ describe("Specification and Agentic QA contracts", () => {
       expect(() =>
         runContractFixture({
           rootDir,
-          runDir: path.join(rootDir, ".codex", "runs", "fixture-rejection"),
+          runDir: path.join(rootDir, "runs", "fixture-rejection"),
           challengeId,
         }),
       ).toThrow("Local deterministic contract fixture supports only CHALLENGE-BASIC-001");

@@ -40,6 +40,7 @@ const EXCLUDED_PREFIXES = [
   "node_modules/",
   "output/",
   ".artifacts/",
+  "runs/",
   ".codex/runs/",
   "dist/",
 ];

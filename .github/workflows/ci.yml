@@ -255,10 +255,11 @@ jobs:
       - name: Run focused Hook contracts
         run: pnpm run test:hooks
 
-      - name: Run native command contracts
+      - name: Run runtime-only sanitizer contracts
         run: >-
           pnpm exec vitest run
-          tests/contracts/codex-task-native-command.test.ts
+          tests/contracts/codex-artifact-sanitization.test.ts
+          --testNamePattern "ignores root runtime logs|rejects staged and committed runtime-only paths"
           --no-file-parallelism
           --maxWorkers=1
           --testTimeout=30000
