@@ -17,11 +17,12 @@ training/agentic-qa/challenges/   受講者向けに安全化されたチャレ�
 training/agentic-qa/instructor/   模範解答（Answer Key）とパッチ（講師専用）
 training/agentic-qa/skills/        ハッシュ検証済みの採点用スキルスナップショット
 training/agentic-qa/tool-profiles/ 採点用ツールプロファイル
-.codex/runs/<run_id>/              永続化対象のチャーター、検出事項（Findings）、評価結果
+runs/<run_id>/                     Normal／Gray-boxのチャーター、検出事項（Findings）、Run-local評価結果
+.codex/runs/**                     preserved legacy/history。移動・削除・書換えない
 .artifacts/                        生のエビデンス（raw evidence）および使い捨てランタイムデータ
 ```
 
-NormalモードおよびGray-boxモードでは、`.codex/runs/<run_id>/qa-charter.json`、候補版（candidate）および確定版（final）の `qa-findings.json`、ならびに同一実行（Run）のワーキングツリースナップショットを使用します。Black-box入力では、隔離されたアーティファクトチェーンのチャレンジディレクトリ、受講者向け安全バンドル（learner-safe Bundle）、ランブック、ハッシュ検証済みの `training/agentic-qa/skills/scored-v1.md` スナップショット、標準ランナー入力（Canonical Runner Input）、およびソースコード非含有の準備済みテスト対象（Source-free Prepared Target）を使用します。
+NormalモードおよびGray-boxモードでは、`runs/<run_id>/qa-charter.json`、候補版（candidate）および確定版（final）の `qa-findings.json`、ならびに同一実行（Run）のワーキングツリースナップショットを使用します。Black-box入力では、隔離されたアーティファクトチェーンのチャレンジディレクトリ、受講者向け安全バンドル（learner-safe Bundle）、ランブック、ハッシュ検証済みの `training/agentic-qa/skills/scored-v1.md` スナップショット、標準ランナー入力（Canonical Runner Input）、およびソースコード非含有の準備済みテスト対象（Source-free Prepared Target）を使用します。Black-boxの採点・証拠チェーンである`.artifacts/agentic-qa/**`の構造と契約は変更しません。
 
 生のスクリーンショット、トレース、ADBログ、MCPログなどの生データは `.artifacts/` 配下に保存します。永続化する実行アーティファクト（Run Artifact）には、リポジトリ相対パスによる概要情報のみを含めます。
 
@@ -41,19 +42,19 @@ NormalモードおよびGray-boxモードでは、`.codex/runs/<run_id>/qa-chart
 
 ## Normal / Gray-boxモードの具体的な関連付け
 
-対象の実行（Run）では、既存のZodコントラクトに従って `.codex/runs/<run_id>/qa-charter.json` を生成または検証します。ここでは `spec_refs[]`、ミッション、想定リスク、ロール、シード値、プラットフォーム、ビューポートまたはデバイス、必須カバレッジ、許可された操作コントロール、探索バジェット（`exploration_budget`）、および停止条件を関連付けます。
+対象の実行（Run）では、既存のZodコントラクトに従って `runs/<run_id>/qa-charter.json` を生成または検証します。ここでは `spec_refs[]`、ミッション、想定リスク、ロール、シード値、プラットフォーム、ビューポートまたはデバイス、必須カバレッジ、許可された操作コントロール、探索バジェット（`exploration_budget`）、および停止条件を関連付けます。ParentがRun Artifactを管理し、childはRun-localのCharterやFindingsを作成・更新せず、結果をParentへ返します。
 
 ランタイムとの最初のインタラクションを行う前に、事前スナップショット（BEFORE Snapshot）を取得します。
 
 ```text
-pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --phase before
+pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir runs/<run_id> --mode normal --phase before
 ```
 
 ランタイムでのQA完了後に候補版の `qa-findings.json`（candidate）を作成し、事後スナップショット（AFTER Snapshot）を取得した上で、同一の実行およびモード（Run / Mode）で両スナップショットを比較します。
 
 ```text
-pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --phase after
-pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --before .codex/runs/<run_id>/working-tree-snapshot-normal-before.json --after .codex/runs/<run_id>/working-tree-snapshot-normal-after.json
+pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir runs/<run_id> --mode normal --phase after
+pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir runs/<run_id> --mode normal --before runs/<run_id>/working-tree-snapshot-normal-before.json --after runs/<run_id>/working-tree-snapshot-normal-after.json
 ```
 
 比較結果の `passed` が true であり、かつ `additional_source_diff_count` が 0 の場合にのみ、検出事項（Findings）を確定します。NormalおよびGray-boxモードの出力では `charter_id` と `working_tree_snapshot` を設定し、Challenge、Benchmark Revision、Runtime Variant、Runner Profile はそれぞれ null とします。

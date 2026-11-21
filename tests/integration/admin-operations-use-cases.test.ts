@@ -102,16 +102,12 @@ describe("admin inventory, order, and shipment integration", () => {
     const inventoryIds = async (stockState: "out" | "low" | "available") => {
       const result = await useCases.searchInventory({
         stockState,
-        pageSize: 100,
+        pageSize: 50,
       });
-      return result.items
-        .filter((item) => ids.has(item.variantId))
-        .map((item) => item.variantId);
+      return result.items.filter((item) => ids.has(item.variantId)).map((item) => item.variantId);
     };
     expect(await inventoryIds("out")).toEqual([variants[0]!.id]);
-    expect(new Set(await inventoryIds("low"))).toEqual(
-      new Set([variants[1]!.id, variants[2]!.id]),
-    );
+    expect(new Set(await inventoryIds("low"))).toEqual(new Set([variants[1]!.id, variants[2]!.id]));
     expect(await inventoryIds("available")).toEqual([variants[3]!.id]);
   });
 

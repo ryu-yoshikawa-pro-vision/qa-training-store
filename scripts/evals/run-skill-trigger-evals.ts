@@ -282,8 +282,14 @@ export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly
         fail("git status returned a malformed porcelain entry");
       }
       const pathPart = entry.slice(3).replaceAll("\\", "/");
-      return !(pathPart === ".codex/runs" || pathPart.startsWith(".codex/runs/"));
-    });
+      return !(
+        pathPart === "runs" ||
+        pathPart.startsWith("runs/") ||
+        pathPart === ".codex/runs" ||
+        pathPart.startsWith(".codex/runs/")
+      );
+    })
+    .map((entry) => entry.slice(3));
 }
 
 function assertTargetHasNoTriggerDataset(targetRoot: string): void {
@@ -364,7 +370,9 @@ export function assertTargetPreflight(
 
   const sourceChanges = sourceStatusOutsideRunArtifacts(evaluatorReal);
   if (sourceChanges.length > 0) {
-    fail(`Evaluator has source changes outside .codex/runs/**: ${sourceChanges.join(" | ")}`);
+    fail(
+      `Evaluator has source changes outside Run artifact roots runs/** and legacy .codex/runs/**: ${sourceChanges.join(" | ")}`,
+    );
   }
 
   return {

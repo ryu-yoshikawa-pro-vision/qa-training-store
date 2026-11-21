@@ -43,7 +43,9 @@ describe("Husky configuration contracts", () => {
   });
 
   it("keeps security:check as the repository-wide pre-commit gate", () => {
-    expect(packageJson.scripts?.["security:check"]).toBe("tsx scripts/security-static-check.ts");
+    expect(packageJson.scripts?.["security:check"]).toBe(
+      "node --import tsx scripts/security-static-check.ts",
+    );
     expect(preCommit).toContain("pnpm run security:check");
     expect(packageJson.scripts?.verify).toContain("pnpm run security:check");
   });

@@ -178,6 +178,6 @@ may / optional       → 任意、可能
 
 検索は修正漏れを探すために使いますが、単純な一括置換は行いません。検索結果を、一般語、定着した技術用語、正式名称、識別子、コード、固定値、機械契約、過去記録に分類してから修正します。
 
-過去の`.codex/runs/`、過去の`docs/plans/`、`docs/reports/`、調査結果、リリース記録、既存ADR、完了した作業履歴、生成済みartifact、eval dataset、fixture、snapshot、ログは、文章表現を統一するだけの理由では書き換えません。今回新しく作成・更新するPlanやRun Artifactは、この規約に従います。
+過去の`runs/`とpreserved legacy/historyの`.codex/runs/`、過去の`docs/plans/`、`docs/reports/`、調査結果、リリース記録、既存ADR、完了した作業履歴、生成済みartifact、eval dataset、fixture、snapshot、ログは、文章表現を統一するだけの理由では書き換えません。今回新しく作成・更新するPlanやRun Artifactは、この規約に従います。
 
 `CHANGELOG.md`など履歴と現在の運用説明が同居する場合は、履歴を変更せず、現在運用される説明部分だけを対象にします。

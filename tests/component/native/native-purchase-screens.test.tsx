@@ -200,22 +200,19 @@ describe("Native customer purchase screens", () => {
       "storage.write.failed",
       "端末へログイン状態を保存できませんでした。設定を確認してください。",
     ],
-  ] as const)(
-    "displays a readable login error for %s",
-    async (code, messageKey, expected) => {
-      const login = jest.fn().mockRejectedValue(
-        new ApplicationError({ code, messageKey, retryable: false }),
-      );
-      runtime({ auth: { login } });
-      const view = render(<NativeLoginScreen />);
-      await act(async () => {
-        fireEvent.press(view.getByTestId("native-login-submit"));
-      });
-      await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
-      expect(view.getByTestId("native-purchase-error").props.children).toBe(expected);
-      expect(mockRouterReplace).not.toHaveBeenCalled();
-    },
-  );
+  ] as const)("displays a readable login error for %s", async (code, messageKey, expected) => {
+    const login = jest
+      .fn()
+      .mockRejectedValue(new ApplicationError({ code, messageKey, retryable: false }));
+    runtime({ auth: { login } });
+    const view = await render(<NativeLoginScreen />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId("native-login-submit"));
+    });
+    await waitFor(() => expect(view.getByTestId("native-purchase-error")).toBeTruthy());
+    expect(view.getByTestId("native-purchase-error").props.children).toBe(expected);
+    expect(mockRouterReplace).not.toHaveBeenCalled();
+  });
 
   it("does not expose an internal messageKey on Native registration failure", async () => {
     const register = jest.fn().mockRejectedValue(
@@ -226,7 +223,7 @@ describe("Native customer purchase screens", () => {
       }),
     );
     runtime({ auth: { register } });
-    const view = render(<NativeSignupScreen />);
+    const view = await render(<NativeSignupScreen />);
     await act(async () => {
       fireEvent.press(view.getByTestId("native-signup-submit"));
     });
@@ -239,7 +236,7 @@ describe("Native customer purchase screens", () => {
   it("does not expose an unexpected authentication exception to Native users", async () => {
     const login = jest.fn().mockRejectedValue(new Error("internal credential provider detail"));
     runtime({ auth: { login } });
-    const view = render(<NativeLoginScreen />);
+    const view = await render(<NativeLoginScreen />);
     await act(async () => {
       fireEvent.press(view.getByTestId("native-login-submit"));
     });

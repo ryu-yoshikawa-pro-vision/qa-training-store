@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { lstat, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
@@ -9,7 +9,9 @@ const textExtensions = new Set([
   ".html",
   ".js",
   ".json",
+  ".jsonl",
   ".jsx",
+  ".md",
   ".svg",
   ".ts",
   ".tsx",
@@ -22,14 +24,21 @@ async function collect(relativePath: string): Promise<string[]> {
   const absolutePath = path.join(root, relativePath);
   let entry;
   try {
-    entry = await stat(absolutePath);
-  } catch {
-    return [];
+    entry = await lstat(absolutePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw new Error(`Credential scan could not inspect ${relativePath}`);
+  }
+  if (entry.isSymbolicLink()) {
+    throw new Error(`Credential scan refuses symlink/reparse point: ${relativePath}`);
   }
   if (entry.isFile()) {
     return textExtensions.has(path.extname(relativePath))
       ? [relativePath.replaceAll("\\", "/")]
       : [];
+  }
+  if (!entry.isDirectory()) {
+    throw new Error(`Credential scan found unsupported filesystem entry: ${relativePath}`);
   }
   const children = await readdir(absolutePath);
   return (
@@ -48,7 +57,7 @@ const credentialPatterns: [string, RegExp][] = [
   ["private key", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
   [
     "hard-coded secret assignment",
-    /\b(?:api[_-]?key|client[_-]?secret|access[_-]?token)\b\s*[:=]\s*["'][A-Za-z0-9_./+=-]{16,}["']/i,
+    /\b(?:api[_-]?key|client[_-]?secret|access[_-]?token)\b["']?\s*[:=]\s*["'][A-Za-z0-9_./+=-]{16,}["']/i,
   ],
 ];
 
@@ -69,7 +78,7 @@ async function main(): Promise<void> {
   ).flat();
   const credentialFiles = (
     await Promise.all(
-      ["src", "app", "config", "public", "scripts", ".github", "dist"].map((directory) =>
+      ["src", "app", "config", "public", "scripts", ".github", "dist", "runs"].map((directory) =>
         collect(directory),
       ),
     )

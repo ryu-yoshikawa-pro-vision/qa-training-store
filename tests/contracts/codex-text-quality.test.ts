@@ -181,6 +181,22 @@ function runComparison(root: string, extraArgs: string[] = [], workingTree = tru
 }
 
 describe("Codex deterministic text quality contracts", () => {
+  it("ignores both Run roots for formatting and full Markdown scans", () => {
+    const markdownlint = fs.readFileSync(path.join(repoRoot, ".markdownlint-cli2.jsonc"), "utf8");
+    const prettierignore = fs.readFileSync(path.join(repoRoot, ".prettierignore"), "utf8");
+    const gitignore = fs.readFileSync(path.join(repoRoot, ".gitignore"), "utf8").split(/\r?\n/u);
+    const fullScanner = fs.readFileSync(comparisonPath, "utf8");
+
+    expect(markdownlint).toContain('"runs/**"');
+    expect(markdownlint).toContain('".codex/runs/**"');
+    expect(prettierignore.split(/\r?\n/u)).toContain("runs");
+    expect(fullScanner).toContain('"runs/"');
+    expect(fullScanner).toContain('".codex/runs/"');
+    expect(gitignore).not.toContain("runs");
+    expect(gitignore).not.toContain("runs/");
+    expect(gitignore).not.toContain("runs/**");
+  });
+
   it("keeps production rules explicit and emits no raw match or full source line", () => {
     const productionRules = JSON.parse(
       fs.readFileSync(path.join(repoRoot, ".codex", "text-quality-rules.json"), "utf8"),
@@ -465,10 +481,42 @@ describe("Codex deterministic text quality contracts", () => {
     }, "BAD\n");
   });
 
+  it("skips historical Run Markdown in both working-tree and commit comparisons", () => {
+    withFixture((root) => {
+      writeFile(root, ".codex/runs/legacy/report.md", "BAD\n");
+      writeFile(root, "runs/20261118-000001-JST/report.md", "BAD\n");
+
+      const workingTree = runComparison(root);
+      expect(workingTree.status).toBe(0);
+      expect(JSON.parse(workingTree.stdout)).toMatchObject({
+        status: "pass",
+        changed_files: 0,
+        violations: [],
+      });
+
+      const baseRef = git(root, ["rev-parse", "HEAD"]);
+      git(root, ["add", ".codex/runs/legacy/report.md", "runs/20261118-000001-JST/report.md"]);
+      git(root, ["commit", "--quiet", "-m", "add Run records"]);
+      const committed = runNode(
+        path.join(root, "scripts", "check-text-quality-changes.mjs"),
+        ["--base-ref", baseRef, "--rules", path.join(root, "rules.json"), "--json"],
+        root,
+      );
+      expect(committed.status).toBe(0);
+      expect(JSON.parse(committed.stdout)).toMatchObject({
+        status: "pass",
+        mode: "commit",
+        changed_files: 0,
+        violations: [],
+      });
+    });
+  });
+
   it("scans all current Markdown, including untracked files, while excluding historical prefixes", () => {
     withFixture((root) => {
       writeFile(root, "docs/untracked.md", "BAD\n");
       writeFile(root, ".codex/runs/old.md", "BAD\n");
+      writeFile(root, "runs/20261118-000002-JST/old.md", "BAD\n");
       writeFile(root, "docs/plans/old.md", "BAD\n");
       writeFile(root, "docs/reports/old.md", "BAD\n");
       writeFile(root, "docs/history/old.md", "BAD\n");

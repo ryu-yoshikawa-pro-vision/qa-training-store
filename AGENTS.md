@@ -1,6 +1,6 @@
 # Repository Agent Working Agreement
 
-Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / wrapper / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。
+Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。
 
 ## 1. 基本原則と常駐契約
 
@@ -31,12 +31,12 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 
 - Product / architecture / repository contextが変更判断に必要な場合: `docs/PROJECT_CONTEXT.md`。
 - 対象領域の既存設計判断を変更・依存する場合: `docs/adr/`。
-- active Runの継続、過去Runのevidence、Run運用やProgress詳細が必要な場合: `.codex/runs/`、[`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md)、[`docs/reference/codex-implementation-harness.md`](docs/reference/codex-implementation-harness.md)。
+- active Runの継続、過去Runのevidence、Run運用やProgress詳細が必要な場合: `runs/`、保存済みのlegacy/historyである`.codex/runs/`、[`docs/reference/run-artifacts.md`](docs/reference/run-artifacts.md)、[`docs/reference/codex-implementation-harness.md`](docs/reference/codex-implementation-harness.md)。
 - Safety Harness詳細、破壊的操作、`docs/reports/`作成判断が必要な場合: [`docs/reference/codex-safety-harness.md`](docs/reference/codex-safety-harness.md)。
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
 - 人間向け文章の言語・表現を判断する場合: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)。
 
-このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを残す。active Runがなければ作成し、同一会話・同一taskでは既存のactive Runを再利用する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
+このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。実体の`run.json`はmachine-managedとし、Git管理するRun Artifactはcommit前にsanitizerとcredential/security scanを通す。Codex CLIはLinuxのリポジトリrootから`codex`を直接起動する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。`.codex/runs/**`はpreserved legacy/historyとして扱い、移動・削除・書換えを行わない。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
 ## 4. 品質ゲートとrepairの高レベル契約
 
@@ -63,6 +63,11 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 ## 7. Codex native delegation
 
 - Parentがrequirement interpretation、Plan、delegation、scope、validation、failure interpretation、completion decisionを担い、childはParent-defined scopeを越えない。
+- Codexの調査・実装・検証コマンド実行などの実作業は原則childへ委任し、Parent自身が直接代行しない。Parentは委任先、作業範囲、実行順序を決め、childからの根拠・差分・検証結果を確認して採否と次の指示を判断する。
+- 調査は読み取り専用childへ、実装は対象ファイルと変更範囲を確定して書き込み担当childへ、検証は実行コマンドを指定して検証担当childへ委任する。独立した読み取り専用調査は並列にできるが、書き込み担当は既存の直列運用と安全境界を維持する。
+- childの起動不可、委任先の利用不可、権限不足、作業範囲の未確定時は、Parentによる直接実行へ暗黙に切り替えず、未完了の実作業と理由を報告する。Parentによる最終差分確認、Run Artifact管理、Git操作、PR / CIの完了判断は既存契約に従ってParentが担う。
+- 子の実行中は短時間の反復ポーリングを行わず、完了通知を待つ。待機が必要な場合は分単位の長い`wait_agent`を使い、待機タイムアウトだけで子を失敗・中断・終了と判断しない。Codex v1 / v2ごとの待機時間と例外はimplementation harnessを参照する。
+- 削除・rename・移動など、既存のchild権限では実行できない変更はParentが直接実装する例外としない。既存の安全性規約に従って実行を停止し、必要な承認と実行経路を確認する。
 - childは独自Run Artifactを作らず、追加のsubagentを起動しない（No child subagent delegation）。詳細なRole、worker scope、validation-only境界は`.codex/agents/**`、`.codex/config.toml`、implementation harnessを参照する。
 - Codex native delegationとAndroid / Native validationは別の責務として扱う。
 
@@ -70,4 +75,4 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 
 - L1: wordingのみの文書改善は、`REPORT.md`に記録すれば自己承認でよい。
 - L2: workflowやtemplate構造の変更は、実装前にユーザー承認が必要。
-- L3: permission / sandbox / approval / wrapper behaviorの変更は、実装前に明示承認とrollback planが必要。
+- L3: permission / sandbox / approval / Codex startup behaviorの変更は、実装前に明示承認とrollback planが必要。

@@ -1,6 +1,6 @@
 # Project-scoped Codex config baseline.
-# Codex loads this file only after the project is trusted. The wrappers still pass
-# explicit sandbox/approval flags and block unsafe overrides.
+# Codex loads this file only after the project is trusted. The PreToolUse hook
+# definition must also be trusted before Codex will execute it.
 
 sandbox_mode = "workspace-write"
 approval_policy = "never"
@@ -28,10 +28,15 @@ inherit = "core"
 [features]
 hooks = true
 
+# GPT-6 Lunaはモデルカタログに従いv2を使用する。待機は長時間を既定とする。
+[features.multi_agent_v2]
+min_wait_timeout_ms = 300000
+default_wait_timeout_ms = 600000
+
 [agents]
 max_threads = 4
 max_depth = 1
-default_subagent_model = "gpt-5.6-luna"
+default_subagent_model = "gpt-6-luna"
 default_subagent_reasoning_effort = "max"
 
 [[hooks.PreToolUse]]
