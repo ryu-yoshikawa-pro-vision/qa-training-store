@@ -54,11 +54,11 @@ describe("Expo dependency maintenance workflow contracts", () => {
     expect(checkout).toBeDefined();
     expect(workflow).toContain(manualGuard);
     expect(workflow.indexOf(manualGuard)).toBeLessThan(workflow.indexOf("actions/checkout@"));
-    expect(checkout).toContain("actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8");
+    expect(checkout).toMatch(/actions\/checkout@v\d+\.\d+\.\d+/);
     expect(checkout).toContain("ref: main");
     expect(checkout).toContain("persist-credentials: false");
-    expect(workflow).toContain("pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a");
-    expect(workflow).toContain("actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444");
+    expect(workflow).toMatch(/pnpm\/action-setup@v\d+\.\d+\.\d+/);
+    expect(workflow).toMatch(/actions\/setup-node@v\d+\.\d+\.\d+/);
   });
 
   it("converts the initial Expo check into an explicit no-op or update decision", () => {

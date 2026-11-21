@@ -31,9 +31,10 @@ Scenario Shopへ変更を加える際の、必要最小限の案内をまとめ�
 ## 依存関係・ワークフローの変更
 
 - 依存関係のバージョン更新には、既知の脆弱性、サポート終了（EOL）、互換性の問題、計画済みの基盤更新、新機能のいずれかの理由を記載する。単に最新であるという理由だけで更新しない。
-- GitHub Actionsのリモート`uses:`は完全なコミットSHAで固定し、変更時には公式ソース、リリースタグ、セキュリティアドバイザリを確認する。
-- Dependabot Version UpdatesやRenovateなど、通常の自動バージョン更新は有効化しない。
-- Dependabot Security Updatesは通常のバージョン更新とは区別して扱い、Public Repository Hardeningのマージ後タスクとして有効化・検証する。
+- `.github/workflows/`のリモート`uses:`は検証済みの完全なrelease tag（例: `v5.0.0`）を使い、実行commitは`.github/workflows/actions.lock`で固定する。lockfileは公式[`gh-actions-lock`](https://github.com/github/gh-actions-lock)で生成し、手編集しない。移行だけを理由にActionのversionを変更せず、tag・解決commit・repository identityの差分を確認する。`training/github-actions/`のTraining Copyテンプレートは別契約のため、現状のfull commit SHA pinを維持する。
+- workflowやAction参照を変更したら、認証済みGitHub CLIに`gh extension install github/gh-actions-lock --pin v0.4.1`を導入し、リポジトリrootで`gh actions-lock`と`gh actions-lock --verify`を実行する。CIの検証は`contents: read`のままにする。
+- `.github/dependabot.yml`のGitHub Actions weekly設定と`open-pull-requests-limit: 0`を維持し、通常のversion update PRは生成しない。Dependabotのsecurity-only PRがlockfileを自動同期するという期待は、対象PRの確認前に動作確認済みと扱わない。
+- Dependabotがsecurity update PRでlockfileを同期しない場合、PR branchを確認し、公式CLIでlockfileを再生成・検証する。lockfileを書き込むGitHub認証には`contents: write`と`workflow` OAuth scopeが必要となるため、権限を追加せずに手動更新できない場合はRepository管理者へ依頼する。GitHub Actions lockfile機能の対象環境（GitHub Enterprise Cloud）、Require lockfile policyによる全workflowのcoverage強制、Dependabot Security Updatesの設定状態は、本PRでは変更せず未確認として扱う。
 - フォークされたPRではCloudflare Preview Deploymentを実行しない。
 
 ## 実装前
