@@ -136,3 +136,23 @@
   - Result: 修復担当はPrettierと`git diff --check` PASSを報告。独立レビュアーはstatus locatorが個別通知を識別し、両動作assertionを保持していることを確認。テストを実行せず、stage/commit/pushも未実施。
   - 親Agentの判断: CI失敗を隠さず原因と修正を記録。local browser検証は環境制約として未実施のまま区別し、新SHAのCIを完了条件とする。
 - Progress: 33% (3/9)
+
+## 2026-11-22 02:37 (JST) - Maestro flow repair review
+
+- Summary: Android Maestroの3つの購入flowにCheckout住所画面のsession readiness待ちとCTA表示のスクロールを追加。製品コード・既存flow assertionは変更していない。
+- Changes: `maestro/native-purchase.yaml`、`maestro/native-payment-retry.yaml`、`maestro/native-session-checkout-restart.yaml`の既存`native-checkout-address-next` tap直前に`native-checkout-address-session-ready`待機と`scrollUntilVisible`を追加。review plan / follow-up / Run Plan / Tasksを修復後の状態へ同期。
+- 判断 / 理由: 独立UI reviewerは、Native testIDは画面側に存在し、共通flow gapはsession-ready待機とscrollの不足であると確認。failure hierarchyがないため実行時の直接原因がsessionタイミングかviewportかは未確定。修復後レビューでは既存操作・assertionsが維持され、YAML書式は既存Flow patternと一致し、指摘なし。
+- Validation: `pnpm run format:check` PASS。`pnpm exec vitest run tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1` PASS（2 files / 78 tests）。修復workerのYAML parse、対象prettier、`git diff --check`もPASS。Maestro runtimeはWSLローカルで実行せず、新head Mobile CIを待つ。
+- Subagent: `repair_confirmed_findings`が3 Maestro YAMLのみを変更し、`review_ui_native`が独立read-only再レビュー。変更scope外の編集・stage・commit・pushなし。
+- 残作業: Run sanitizer/security、差分最終確認、stage/通常commit/push、`wait_for_required_ci`で最新Web/Mobile CI確認、PR本文へ結果追記。Native visual screenshot/physical device、iOS runtime、Checkout tax-line判断は未完了。
+- Progress: 44% (4/9)
+
+## 2026-11-22 02:35 (JST) - Android Maestro blocker triage
+
+- Summary: `054749f34d83eee2a7ccd018352b6ca655c934b7`のrequired CI結果でWeb CI success、Mobile App CI failureを確認。Android Runtime / MaestroのNative purchase、Native payment retry、Native session checkout restartの3 flowが配送先画面で失敗。
+- Changes: 製品コード変更なし。failure evidence、独立read-only review、待機/scrollの限定修復方針をRun Plan、TASKS、review plan、follow-upへ記録。repair workerへ`maestro/native-purchase.yaml`、`maestro/native-payment-retry.yaml`、`maestro/native-session-checkout-restart.yaml`のみにowner scopeを設定。
+- 判断 / 理由: Mobile run `44927140741` / Android Runtime job `136922330221`は3件とも`Element not found: Id matching regex: native-checkout-address-next`。既存screen codeにはIDがあり、Flowはaddress screen shell確認後にtapするが、session-ready markerの待機とCTAへのscrollを持たない。Native住所フォームに直近で任意住所2行目が追加されているためviewport外の可能性もある。`native-session-checkout-restart`はresume通知を確認済みでも同じtapで失敗しており、単なるsession初期化待ちだけでは説明できない。Failure hierarchy/artifactの直接確認はできず、screen clippingかscroll未実施かの即時原因は断定しない。
+- Validation: Waiter `wait_for_required_ci`は expected SHA `054749f34d83eee2a7ccd018352b6ca655c934b7`を観測し、Web run `44927140722` success、Mobile run `44927140741` failureを返した。Web required E2E `136915843047`、cross-role `136915843034`、accessibility `136915843102`、mobile-boundary `136915843073` success。Mobile Native Static `136918912595`、Android automation/production build `136918912650` / `136918912614`、Production Bundle Guard `136922208916`、iOS automation/production-validation build `136918912793` / `136918912873` success。Android Maestro failureは上記3 flow、ほかのpurchase boundary, review, production validation flowはsuccess。ローカルWSLにAndroid SDK/emulatorはなく端末実行なし。
+- Subagent: `review_ui_native`はread-onlyで3 Flowとscreenを確認。追加テスト・実装は行わず、共有するwait/scroll前提不足を指摘。確信度は中、失敗時Hierarchy未確認と明記。`repair_confirmed_findings`には3 Maestro YAMLのみの限定修正を依頼し、作業結果待ち。
+- 残作業: Flow差分確認、Prettier/CI validation、必要なら独立再レビュー、通常commit/push、新headのrequired Web/Mobile CI、PR body/Run最終更新。Checkout tax-line方針はユーザー回答待ち。Native canonical screenshotと実端末/iOS runtimeも未受入。
+- Progress: 33% (3/9)

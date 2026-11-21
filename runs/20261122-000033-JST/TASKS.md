@@ -7,7 +7,7 @@
 - [x] 3. 同一HEADのWeb/Mobile CI job・実test scope・artifactを照合する。
 - [ ] 4. WSL2のE2E環境制約を分類し、E2E selector repairを含む最新HEADのWeb CIでrequired/cross-role/a11y/mobile-boundaryを確認する。
 - [ ] 5. 修正を含む最新Native CIのcomponent/Maestro/buildを確認し、visual/device未実施の範囲を正確に分類する。
-- [x] 6. 確定した不具合をbounded repair-loopで修正し、影響範囲の静的検査と独立再レビューを完了する（E2E実行はtask 4の最新CI確認に含む）。
+- [x] 6. 確定した不具合をbounded repair-loopで修正し、影響範囲の静的検査・targeted contract test・独立再レビューを完了する（full Maestro CIはtask 5で確認）。
 - [ ] 7. Follow-up/REPORTを確定更新し、sanitizer/security/Git差分を最終確認する。
 - [ ] 8. CI修復を対象PR branchへ通常commit/pushし、更新後のPR HEADでrequired CIを取得する。
 - [ ] 9. 仕様判断・未実施項目・PR merge前判定を報告する（PR mergeはしない）。
@@ -20,6 +20,7 @@
 - Playwright Chromium 1234は導入済みだが、修正前のWSL local実行はLinux host library不足でbrowser起動前に失敗。required 36件に製品操作到達なし、残るE2E 3 suiteは未実行。最新HEAD CIでの代替確認が残る。
 - `CustomerReviewUseCases`の認可失効と`setAddress` / `setPayment`のCart version不一致を決定的fixture interleavingで再現。拒否結果とDB state不変を確認する回帰テストを追加し、integration/repository testsでPASS。
 - Commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb CI #44925761465ではrequired Chromium E2Eが1 assertionで失敗。guest cart toastと新Checkout開始通知の両方がstatus領域に出たため、既存テストの単一role=status locatorが2件に一致した。製品通知は保持し、テスト側を通知別に識別する修正を行い、独立再レビューは指摘なし。新HEAD CI待ち。
+- Commit `054749f34d83eee2a7ccd018352b6ca655c934b7`のWeb CI #44927140722はsuccess。Mobile App CI #44927140741はAndroid Maestroの3 flowが`native-checkout-address-next`の未検出で失敗し、その他のNative static/build/Production Bundle GuardとiOS buildsはsuccess。3 flowのsession-ready待機とCTA scrollを補い、既存assertionを維持。独立reviewは指摘なし。targeted YAML contract tests 78件とformat checkはsuccess。最新CI再実行が残る。
 
 ## Blocked
 

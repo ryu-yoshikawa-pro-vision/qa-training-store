@@ -53,6 +53,18 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - assertVisible:
     id: "native-checkout-session-resumed"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-session-ready"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-checkout-address-next"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
 - tapOn:
     id: "native-checkout-address-next"
 - extendedWaitUntil:

@@ -51,6 +51,7 @@
 - Nativeの直接入力ポリシーはユーザー承認済みで、住所2行目の任意入力と確認表示を追加済み。既存Android正本画面参照は住所2行目を表示していないため、更新後のcanonical captureを視覚確認する必要がある。
 - PR #210のHEADは現在の`origin/main`から#227分遅れている可能性がある。#227は主に共通Hook/runtime変更で、今回の受入中に自動で取り込まない。最新base上のCI証拠と混同しない。
 - Commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb required CI #44925761465は`e2e/web/ui-ux-improvements.spec.ts:98`のrole=status strict-mode衝突で失敗した。Cart transfer toastと新Checkout開始通知の2件を同じlocatorが選んだため、製品表示は維持し、該当通知を個別に識別するtest selectorへ修正。別のread-only reviewerが2 assertion維持とlocatorの明確さを確認し、追加findingなし。新HEAD CIは未完了。
+- `054749f34d83eee2a7ccd018352b6ca655c934b7`のWeb CI #44927140722はsuccess。Mobile CI #44927140741ではAndroid Maestro job `136922330221`内の3 flowが全て`native-checkout-address-next`を見つけられず失敗。Native Static、Android automation/production build、Production Bundle Guard、iOS automation/production-validation buildはsuccess。独立read-only reviewでは、3 flowにaddress session-ready待ちとCTA scrollが不足していることを確認。新たに追加したNative住所2行目のためCTAが画面外になった可能性もあるが、失敗時Hierarchyは確認できず直接トリガーは未確定。3 Maestro flowへ待機とスクロールを追加し、既存assertionを維持。別レビュアーは変更に指摘なし、targeted contract tests 78件とformat checkはsuccess。新HEAD CIで再確認する。
 - Linux/CI環境でiOS simulator、物理Android/iOS端末が得られない場合、画面・視覚・実機の実証は未完了となる。
 - GitHub CLIの保存認証は無効で、通常shellからのGitHub API接続はsandbox DNS/network制限を受ける。GitHub connectorにworkflow dispatch機能がない場合、canonical visual captureは未取得として記録する。Windows/WSL設定・権限・sandboxは変更しない。
 - 同時更新の状態不変は、既存integration testのinterleavingが実際に証明する範囲と、単なる連続呼出しを区別する。

@@ -90,6 +90,7 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 - **Native視覚参照の相違**：`SCREEN-CHECKOUT-ADDRESS/default/android.webp` は任意の住所2行目を含まないため、今回承認された入力仕様を表していない。Canonical Android screenshotを作り直すには既存 `native-ci.yml` のvisual-capture workflowを最新SHAで実行し、生成artifactを確認してから `android-visual-capture.ts promote` を使う。実行用GitHub CLI認証/ネットワークが利用できない場合は画像を変更せずvisual acceptanceを未完了とする。
 - **実機 / 未決事項**：WSLにAndroid SDK、emulator、adb、iOS simulatorはなく、物理Android/iOS操作とiOS runtimeを実施できない。既存のAndroid API 34 emulator / MaestroとAndroid/iOS build結果は実機受入に数えない。Web/NativeのCI・component結果だけで実画面・視覚gateをPASSとしない。
 - **最新HEAD required E2Eの修復**：commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb CI #44925761465は`e2e/web/ui-ux-improvements.spec.ts:98`で失敗した。Cart transfer toastとCheckout開始通知の2つの`role=status`に対して、古いテストが通知を限定せずlocator strict-mode errorとなった。製品の両通知と両方のassertionを維持し、テストを通知別に識別するよう更新。独立再レビューは追加findingなし。修正を含む最新HEAD CIは確認待ちであり、これをPASSとは扱わない。
+- **最新HEAD Android Maestro blocker**：commit `054749f34d83eee2a7ccd018352b6ca655c934b7`のMobile CI #44927140741で、Android Runtime / Maestro job `136922330221`の`native-purchase`、`native-payment-retry`、`native-session-checkout-restart`が`native-checkout-address-next`不在で失敗。製品画面には同testIDのボタンがあるが、flow側のaddress session-ready待ちとCTAへの明示scrollが不足している。任意住所2行目追加後にCTAがviewport外となった可能性があるものの、failure hierarchy未取得のため直接原因は未確定。3 flowにsession-ready待ちとCTA scrollを追加し、全assertionを維持した。独立read-only再レビュー指摘なし、対象flow contract 78件・format check PASS。新HEAD CIで再確認する。
 
 ## 既存19ファイルの変更受入
 
