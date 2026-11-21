@@ -89,6 +89,7 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 - **E2E環境制約**：ローカルChromium required suiteは36件ともブラウザー起動時の `libnspr4.so` 等不足で止まり、製品操作へ到達しなかった。cross-role、a11y、mobile-boundaryのローカル実行は未実施。timeout延長・テストskip・OS権限変更は行っていない。CIは修正を含むcommitの最新SHAでWeb/Mobileを再実行し、CIのみで通過した範囲を区別して記録する。
 - **Native視覚参照の相違**：`SCREEN-CHECKOUT-ADDRESS/default/android.webp` は任意の住所2行目を含まないため、今回承認された入力仕様を表していない。Canonical Android screenshotを作り直すには既存 `native-ci.yml` のvisual-capture workflowを最新SHAで実行し、生成artifactを確認してから `android-visual-capture.ts promote` を使う。実行用GitHub CLI認証/ネットワークが利用できない場合は画像を変更せずvisual acceptanceを未完了とする。
 - **実機 / 未決事項**：WSLにAndroid SDK、emulator、adb、iOS simulatorはなく、物理Android/iOS操作とiOS runtimeを実施できない。既存のAndroid API 34 emulator / MaestroとAndroid/iOS build結果は実機受入に数えない。Web/NativeのCI・component結果だけで実画面・視覚gateをPASSとしない。
+- **最新HEAD required E2Eの修復**：commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb CI #44925761465は`e2e/web/ui-ux-improvements.spec.ts:98`で失敗した。Cart transfer toastとCheckout開始通知の2つの`role=status`に対して、古いテストが通知を限定せずlocator strict-mode errorとなった。製品の両通知と両方のassertionを維持し、テストを通知別に識別するよう更新。独立再レビューは追加findingなし。修正を含む最新HEAD CIは確認待ちであり、これをPASSとは扱わない。
 
 ## 既存19ファイルの変更受入
 

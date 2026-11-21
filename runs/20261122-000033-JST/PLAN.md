@@ -45,7 +45,14 @@
 ## Current Evidence
 
 - Saved plan: `docs/plans/2026-11-21_235837_pr210-product-acceptance-review.md`
-- PR head: `7b0eaae1494afeef97f63048fb30cf9e50bbb4ed`
+- PR head at review start: `7b0eaae1494afeef97f63048fb30cf9e50bbb4ed`
 - PR status: open/unmerged; 49 changed files; GitHub mergeable; no inline review comments at start.
 - Main update: `ddc451a7079bbc75cd1d6623f5ae1e4647caf635` (`#227`), added 15 paths; overlap with this PR is only `AGENTS.md`.
 - Existing Web CI #44911578084 and Mobile App CI #44911578122 are successful at the target HEAD.
+
+## Branch update authorized by user
+
+- 2026-11-22: commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd` was created with existing Git hooks enabled and pushed normally to `origin/product/scenario-shop-maintenance`; no force push or PR merge.
+- At post-push verification, PR #210 remained open/unmerged and its head matched the pushed SHA. The worktree was clean with zero unresolved paths.
+- `wait_for_required_ci` for the pushed SHA is pending. Do not report the previous SHA's CI as verification for the new code.
+- A Checkout tax-line policy decision is awaiting user response. The PR may be updated and CI checked, but do not declare product acceptance or merge readiness while this policy remains unconfirmed.

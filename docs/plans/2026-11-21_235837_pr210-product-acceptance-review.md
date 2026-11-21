@@ -10,6 +10,7 @@
 - `origin/main`はPR merge元の`581fac744cd8fe575e36cb070114f406d8b91288`から`ddc451a7079bbc75cd1d6623f5ae1e4647caf635`へPR #227で進んでいる。追加差分はPR #210と`AGENTS.md`の1パスだけ重なる。今回、main取り込みやPR mergeは行わない。
 - PR #210の指定HEADに対し、既存Web CI #44911578084とMobile App CI #44911578122はいずれも成功。これは仕様受入・実機受入の代替ではない。
 - Checkout仕様にはWebの登録済み住所選択とNativeの住所直接入力の差がある。2026-11-22、ユーザーがNativeの未保存住所直接入力を正式に許可。仕様へ反映し、任意の住所2行目の入力・保存snapshot・確認表示をテストで確認する。Webは登録済み住所選択を維持する。
+- 住所2行目を含む更新後Native画面のcanonical Android screenshotが古く、視覚受入は未完了。Checkout税額の独立明細を表示しないという仕様追記はユーザー判断待ち。
 
 ## 前提・非目標
 
@@ -49,6 +50,7 @@
 
 - Nativeの直接入力ポリシーはユーザー承認済みで、住所2行目の任意入力と確認表示を追加済み。既存Android正本画面参照は住所2行目を表示していないため、更新後のcanonical captureを視覚確認する必要がある。
 - PR #210のHEADは現在の`origin/main`から#227分遅れている可能性がある。#227は主に共通Hook/runtime変更で、今回の受入中に自動で取り込まない。最新base上のCI証拠と混同しない。
+- Commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb required CI #44925761465は`e2e/web/ui-ux-improvements.spec.ts:98`のrole=status strict-mode衝突で失敗した。Cart transfer toastと新Checkout開始通知の2件を同じlocatorが選んだため、製品表示は維持し、該当通知を個別に識別するtest selectorへ修正。別のread-only reviewerが2 assertion維持とlocatorの明確さを確認し、追加findingなし。新HEAD CIは未完了。
 - Linux/CI環境でiOS simulator、物理Android/iOS端末が得られない場合、画面・視覚・実機の実証は未完了となる。
 - GitHub CLIの保存認証は無効で、通常shellからのGitHub API接続はsandbox DNS/network制限を受ける。GitHub connectorにworkflow dispatch機能がない場合、canonical visual captureは未取得として記録する。Windows/WSL設定・権限・sandboxは変更しない。
 - 同時更新の状態不変は、既存integration testのinterleavingが実際に証明する範囲と、単なる連続呼出しを区別する。
@@ -57,4 +59,4 @@
 
 - 独立レビューfindings、仕様照合、CI coverage、実行済みWeb/Native範囲、状態不変の証拠、未検証と人間判断を個別に報告する。
 - 未検証・未決の項目をPASS扱いしない。
-- merge commit、push、PR #210のmergeは行わない。
+- PR #210をmainへmergeしない。作業branchへの通常commit/pushは、既存のGit safety規約とユーザーの明示承認に従う。

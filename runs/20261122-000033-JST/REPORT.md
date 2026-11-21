@@ -123,3 +123,16 @@
 - Summary: 上記01:34 checkpointのProgressは完了数を過大計上していたため訂正する。
 - Parent decision: `TASKS.md`の9項目で完了済みは1〜3と6の4項目。文書最終確認、更新後Web/Mobile CI、PR branch commit/push、仕様受入判定は継続中。
 - Progress: 44% (4/9)
+
+## 2026-11-22 01:50 (JST) - 最新Web CIのE2E assertion競合を修復
+
+- Summary: commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd` のWeb CIでrequired Chromium E2Eが1 assertion failureとなった。製品のCheckout開始通知とguest cart転送toastが同時に表示された状態で、古いテストが`getByRole("status")`を限定せず2領域へ一致させた。修復担当はテスト側locatorをtoast文言で限定し、Checkout開始通知も個別にassertする修正を行った。
+- Changes: `e2e/web/ui-ux-improvements.spec.ts`のFlow A assertionを通知ごとに識別。`docs/plans/2026-11-21_235837_pr210-product-acceptance-review.md`、`docs/plans/2026-11-01_pr210-product-followups.md`、Run `PLAN.md` / `TASKS.md`へ失敗原因と修復待ち状態を記録。製品通知・製品コードは変更していない。
+- 判断 / 理由: Web CI #44925761465 required job `136911688696`は、guest-cart toast statusとCheckout lifecycle statusの2つを返しstrict-mode violationとなった。35件は成功し、残る失敗も同じjob内の該当assertionだけ。製品機能の失敗ではなく、2つの期待通知を保持したE2E selector問題と分類する。Mobile CI #44925761438は同時点で実行中だったが、次のpushで旧SHAのCIとなるため最新HEAD結果として流用しない。
+- Validation: WSL2 Ubuntu/Bash、Linux Node.js 24.22.2 / pnpm 10.34.5。`pnpm run format:check` PASS、`pnpm run typecheck` PASS、`git diff --check` PASS。別のread-onlyレビュアーがE2E修正を確認し、2通知が区別され両assertionが残っていることを確認、追加findingなし。E2E自体はローカル実行していない。既知のWSL Chromium host library不足は未解消で、ブラウザー起動前に失敗するローカル制約のため最新CIで確認する。
+- 残作業: sanitizer/security check、最終stage、通常commit/push、`wait_for_required_ci`による新HEAD Web/Mobile CI、PR本文とRun記録更新、未決tax-line方針の回答待ち。Native canonical screenshotは住所2行目がなく、Android/iOS実機・iOS runtimeも未確認。
+- Subagent:
+  - Delegation: `repair_confirmed_findings`へE2E spec一箇所のみの限定修正を依頼し、`review_ui_native`に別個のread-only再レビューを依頼。
+  - Result: 修復担当はPrettierと`git diff --check` PASSを報告。独立レビュアーはstatus locatorが個別通知を識別し、両動作assertionを保持していることを確認。テストを実行せず、stage/commit/pushも未実施。
+  - 親Agentの判断: CI失敗を隠さず原因と修正を記録。local browser検証は環境制約として未実施のまま区別し、新SHAのCIを完了条件とする。
+- Progress: 33% (3/9)

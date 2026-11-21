@@ -95,7 +95,10 @@ test.describe("UI/UX improvement flows A-J", () => {
     await page.getByRole("button", { name: "ログイン" }).click();
     await expect(page).toHaveURL(/\/checkout\/address$/);
     await expectHeadingFocused(page);
-    await expect(page.getByRole("status")).toContainText("カートを保存しました");
+    await expect(
+      page.getByRole("status").filter({ hasText: "カートを保存しました" }),
+    ).toContainText("カートを保存しました");
+    await expect(page.getByText("新しい購入手続きを開始しました。")).toBeVisible();
     await addDefaultAddress(page);
     await page.goto("/checkout/address");
     await expect(page.getByRole("heading", { name: "配送先を選択" })).toBeFocused();
