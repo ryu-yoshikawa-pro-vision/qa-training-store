@@ -122,7 +122,7 @@ function workflowOptions(
     source_revision_git_sha: fixture.evaluatorSha,
     routing_source_git_sha: fixture.routingSha,
     model: "gpt-5.6-luna",
-    output: ".codex/runs/test/workflow-e2e-result.json",
+    output: "runs/test/workflow-e2e-result.json",
     ...overrides,
   };
 }
@@ -136,7 +136,7 @@ afterEach(() => {
 function createScopeWorkspace(): string {
   const root = mkdtempSync(join(tmpdir(), "skill-workflow-scope-"));
   execFileSync("git", ["init", "--quiet"], { cwd: root, stdio: "ignore" });
-  writeFileSync(join(root, ".gitignore"), ".codex/runs/\n.artifacts/\n");
+  writeFileSync(join(root, ".gitignore"), "runs/\n.codex/runs/\n.artifacts/\n");
   for (const relativePath of Object.values(scopeFixtureFiles)) {
     const absolutePath = join(root, relativePath);
     mkdirSync(join(absolutePath, ".."), { recursive: true });
@@ -272,20 +272,19 @@ describe("Workflow E2E Eval repository contract", () => {
     ).toThrow("objects/info/alternates");
   }, 15_000);
 
-  it("restricts Workflow output to a file below Evaluator .codex/runs", async () => {
+  it("restricts Workflow output to the canonical Evaluator runs root", async () => {
     const fixture = createWorkflowPreflightFixture();
     expect(
-      resolveWorkflowRunOutputPath(
-        fixture.evaluatorRoot,
-        ".codex/runs/test/workflow-e2e-result.json",
-      ),
-    ).toBe(join(fixture.evaluatorRoot, ".codex", "runs", "test", "workflow-e2e-result.json"));
-    expect(resolveWorkflowRunOutputPath(fixture.evaluatorRoot, ".codex/runs/result.json")).toBe(
-      join(fixture.evaluatorRoot, ".codex", "runs", "result.json"),
+      resolveWorkflowRunOutputPath(fixture.evaluatorRoot, "runs/test/workflow-e2e-result.json"),
+    ).toBe(join(fixture.evaluatorRoot, "runs", "test", "workflow-e2e-result.json"));
+    expect(resolveWorkflowRunOutputPath(fixture.evaluatorRoot, "runs/result.json")).toBe(
+      join(fixture.evaluatorRoot, "runs", "result.json"),
     );
 
     for (const output of [
+      "runs",
       ".codex/runs",
+      ".codex/runs/test/legacy-result.json",
       "package.json",
       "src/result.json",
       "result.json",
@@ -293,14 +292,14 @@ describe("Workflow E2E Eval repository contract", () => {
       join(fixture.parent, "outside.json"),
     ]) {
       expect(() => resolveWorkflowRunOutputPath(fixture.evaluatorRoot, output), output).toThrow(
-        ".codex/runs",
+        "runs/**",
       );
     }
 
     const unsafePath = join(fixture.parent, "unsafe-result.json");
     await expect(
       runWorkflowEval(workflowOptions(fixture, { output: unsafePath }), fixture.evaluatorRoot),
-    ).rejects.toThrow(".codex/runs");
+    ).rejects.toThrow("runs/**");
     expect(existsSync(unsafePath)).toBe(false);
   });
 
@@ -430,7 +429,7 @@ describe("Workflow E2E Eval repository contract", () => {
       source_revision_git_sha: "a".repeat(40),
       routing_source_git_sha: "b".repeat(40),
       model: "gpt-5.6-luna",
-      output: ".codex/runs/result.json",
+      output: "runs/result.json",
     };
     const smokeProbe = {
       ...summarizeCommonSmokeProbe({
@@ -668,7 +667,7 @@ describe("Workflow E2E Eval repository contract", () => {
   it("detects deleted Git-visible files and retains ignored-prefix inventory diffs", () => {
     withScopeWorkspace((root) => {
       const deletedPath = join(root, scopeFixtureFiles.clean);
-      const runArtifact = ".codex/runs/case-run/stage.json";
+      const runArtifact = "runs/case-run/stage.json";
       const officialArtifact = ".artifacts/agentic-qa/case-run/evidence.png";
       mkdirSync(join(root, runArtifact, ".."), { recursive: true });
       mkdirSync(join(root, officialArtifact, ".."), { recursive: true });
@@ -1021,7 +1020,7 @@ describe("Workflow E2E Eval repository contract", () => {
       "--routing-source-git-sha",
       "b".repeat(40),
       "--output",
-      ".codex/runs/result.json",
+      "runs/result.json",
     ]);
     expect(parsed.model).toBe("gpt-5.6-luna");
     expect(deriveNativeFirstAnomaly("==> Validate toolchain\nPASS: node\nmissing adb\n")).toBe(
@@ -1044,10 +1043,10 @@ describe("Workflow E2E Eval repository contract", () => {
       "--routing-source-git-sha",
       "b".repeat(40),
       "--output",
-      ".codex/runs/result.json",
+      "runs/result.json",
     ]);
     expect(parsed.target_root).toBe("target");
-    expect(parsed.output).toBe(".codex/runs/result.json");
+    expect(parsed.output).toBe("runs/result.json");
   });
 
   it("rejects unsafe Workflow output arguments before runner execution", () => {
@@ -1060,7 +1059,9 @@ describe("Workflow E2E Eval repository contract", () => {
       "b".repeat(40),
     ];
     for (const output of [
+      "runs",
       ".codex/runs",
+      ".codex/runs/legacy-result.json",
       "package.json",
       "src/result.json",
       "result.json",
@@ -1070,7 +1071,7 @@ describe("Workflow E2E Eval repository contract", () => {
       expect(
         () => parseWorkflowEvalCliArguments([...commonArguments, "--output", output]),
         output,
-      ).toThrow(".codex/runs");
+      ).toThrow("runs/**");
     }
   });
 

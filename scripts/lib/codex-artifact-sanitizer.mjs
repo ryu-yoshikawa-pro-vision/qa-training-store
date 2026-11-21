@@ -31,11 +31,13 @@ const TOKEN_PRIORITIES = Object.freeze([
 ]);
 const TEXT_EXTENSIONS = new Set([".md", ".json", ".jsonl", ".txt"]);
 const ARTIFACT_PREFIXES = Object.freeze([
+  "runs/",
   ".codex/runs/",
   ".codex/artifacts/",
   ".codex/reports/",
   ".codex/logs/",
 ]);
+const RUNTIME_ONLY_PREFIXES = Object.freeze(["logs/", ".artifacts/codex-hooks/"]);
 const RESIDUAL_PATTERNS = Object.freeze([
   {
     type: "Windows file URI",
@@ -530,12 +532,23 @@ function normalizeGitPath(value) {
   return value.replaceAll("\\", "/").replace(/^\.\//, "");
 }
 
+function lowercaseAscii(value) {
+  return value.replace(/[A-Z]/g, (character) =>
+    String.fromCharCode(character.charCodeAt(0) + 0x20),
+  );
+}
+
 function isArtifactTextPath(value) {
   const normalized = normalizeGitPath(value);
   return (
     ARTIFACT_PREFIXES.some((prefix) => normalized.startsWith(prefix)) &&
     TEXT_EXTENSIONS.has(path.posix.extname(normalized).toLowerCase())
   );
+}
+
+function isRuntimeOnlyPath(value) {
+  const normalized = lowercaseAscii(normalizeGitPath(value));
+  return RUNTIME_ONLY_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
 function nulSeparated(buffer) {
@@ -596,7 +609,34 @@ function gitArtifactPaths(root, args) {
   return nulSeparated(output).map(normalizeGitPath).filter(isArtifactTextPath);
 }
 
+function runtimeOnlyGitPaths(root, args) {
+  return nulSeparated(runGit(args, root)).map(normalizeGitPath).filter(isRuntimeOnlyPath);
+}
+
+function addRuntimeOnlyPathFindings(paths, root, findings) {
+  for (const filePath of paths) {
+    findings.push({
+      file_path: path.resolve(root, filePath),
+      line_number: 1,
+      pattern_type: "runtime-only path",
+      content: "<runtime-only-path-redacted>",
+    });
+  }
+}
+
 function inspectStaged(root, context, stats, findings) {
+  addRuntimeOnlyPathFindings(
+    runtimeOnlyGitPaths(root, [
+      "diff",
+      "--cached",
+      "--name-only",
+      "-z",
+      "--diff-filter=ACMRTUXB",
+      "--no-renames",
+    ]),
+    root,
+    findings,
+  );
   const paths = gitArtifactPaths(root, [
     "diff",
     "--cached",
@@ -609,6 +649,7 @@ function inspectStaged(root, context, stats, findings) {
     ".codex/artifacts",
     ".codex/reports",
     ".codex/logs",
+    "runs",
   ]);
   const entries = parseIndexEntries(runGit(["ls-files", "--stage", "-z"], root));
   for (const filePath of paths) {
@@ -659,6 +700,18 @@ function parseTreeEntry(record) {
 function inspectCommitted(root, baseRef, context, stats, findings) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(baseRef))
     throw new Error("A safe base ref is required.");
+  addRuntimeOnlyPathFindings(
+    runtimeOnlyGitPaths(root, [
+      "diff",
+      "--name-only",
+      "-z",
+      "--diff-filter=ACMRTUXB",
+      "--no-renames",
+      baseRef + "...HEAD",
+    ]),
+    root,
+    findings,
+  );
   const paths = gitArtifactPaths(root, [
     "diff",
     "--name-only",
@@ -671,6 +724,7 @@ function inspectCommitted(root, baseRef, context, stats, findings) {
     ".codex/artifacts",
     ".codex/reports",
     ".codex/logs",
+    "runs",
   ]);
   for (const filePath of paths) {
     const records = nulSeparated(runGit(["ls-tree", "-z", "HEAD", "--", filePath], root));

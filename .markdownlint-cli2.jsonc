@@ -3,6 +3,7 @@
   "globs": ["**/*.md"],
   "ignores": [
     "node_modules/**",
+    "runs/**",
     ".codex/runs/**",
     ".codex/tmp/**",
     ".artifacts/**",

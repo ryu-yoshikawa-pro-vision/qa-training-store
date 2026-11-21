@@ -13,7 +13,7 @@ const EXPECTED_EVENTS = new Set([
 ]);
 
 const loggerDirectory = path.dirname(fileURLToPath(import.meta.url));
-const logsDirectory = path.resolve(loggerDirectory, "..", "logs");
+const logsDirectory = path.resolve(loggerDirectory, "..", "..", "logs");
 const fallbackLogsDirectory = path.resolve(loggerDirectory, "..", "..", ".artifacts", "codex-hooks");
 
 const FALLBACK_LOG_PATH_ERRORS = new Set(["EACCES", "EEXIST", "ENOTDIR", "EPERM", "EROFS"]);

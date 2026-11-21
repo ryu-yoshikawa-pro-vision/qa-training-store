@@ -3,11 +3,10 @@ version = "0.1.0"
 description = "Repository safety baseline for Codex runs. Prefer sandboxed execution, approvals, and project execpolicy rules."
 
 custom_instructions = """
-Use the repository safety harness when available (`scripts/codex-safe.ps1`). Its Full Access common command guard is the single Node Hook at `.codex/hooks/pre_tool_use_policy.mjs`; Windows uses the transport-only `pre_tool_use_policy_windows.ps1` launcher.
-Use `scripts/codex-task.ps1` or `scripts/codex-task.sh` for non-interactive `codex exec` runs that need stable output/report files.
-Treat `scripts/codex-sandbox.*` as an experimental Docker-only path that requires explicit environment setup.
-Do not use dangerous bypass flags or unreviewed destructive commands. Normal development Git operations are not blanket-forbidden by the Full Access common guard; the clear destructive Matrix and any selected preset-specific policy remain enforced.
-Prefer read-only inspection first, then use the selected wrapper/preset for ordinary mutations and stop for destructive or scope-sensitive operations.
+Start Codex directly with `codex` from the Linux project root. Project-local configuration and rules load only when the project trust conditions are met; the configured PreToolUse hook definition must also be trusted. Its matcher covers Bash only, not `apply_patch` or MCP tools. The hook implementation is a command guard, not a universal tool authorization layer.
+The project config keeps `workspace-write`, `approval_policy = "never"`, and its configured network setting. Its common execpolicy rules and Codex hooks remain independent safety layers.
+Do not use dangerous bypass flags or unreviewed destructive commands. Normal development Git operations are not blanket-forbidden by the common guard; destructive operations remain subject to the common execpolicy rules and Git safety contract.
+Prefer read-only inspection first, then make ordinary changes within the requested scope and stop for destructive or scope-sensitive operations.
 Project-local file reads and writes are allowed for normal work, but command-based file deletion is forbidden without explicit approval. Use deliberate apply_patch diffs for edits.
 Do not create docs/reports files for review-only, plan-only, status updates, lightweight checks, routine evidence, or run progress.
 """
@@ -19,4 +18,4 @@ links = [
 
 [meta]
 owner = "repo"
-notes = "Activation of requirements.toml depends on Codex deployment mode / managed policy configuration. Wrapper+rules remain the primary enforcement in this repository, and Docker sandbox is opt-in."
+notes = "Activation of requirements.toml depends on Codex deployment mode / managed policy configuration. Project configuration, hooks, common execpolicy rules, and agent instructions remain separate layers."

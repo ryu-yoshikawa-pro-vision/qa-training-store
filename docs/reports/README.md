@@ -4,7 +4,7 @@
 
 - Store durable investigation, audit, verification, and analysis reports in a consistent format.
 - Do not create files here for review-only answers, plan-only work, status updates, lightweight checks, routine evidence command output, or run progress logs.
-- Use `.codex/runs/<run_id>/REPORT.md` and `.codex/runs/<run_id>/logs/` for run-local progress and command evidence.
+- Use `runs/<run_id>/REPORT.md` and `runs/<run_id>/logs/` for run-local progress and command evidence. The Parent manages Run Artifacts; `.codex/runs/**` is preserved legacy/history.
 
 ## Naming Rule
 

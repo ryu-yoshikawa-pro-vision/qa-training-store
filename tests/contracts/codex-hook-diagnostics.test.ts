@@ -216,7 +216,8 @@ function snapshot(root: string) {
       .split("\0")
       .filter(Boolean)
       .sort(),
-    logs: listRelativeFiles(root, ".codex/logs"),
+    logs: listRelativeFiles(root, "logs"),
+    legacyLogs: listRelativeFiles(root, ".codex/logs"),
   };
 }
 

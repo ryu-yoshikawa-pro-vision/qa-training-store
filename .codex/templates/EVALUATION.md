@@ -1,29 +1,25 @@
 # Evaluation（評価）
 
-`evaluation.json` は agent または reviewer が作成します。実行事実は `run.json`、`codex-task` report JSON、logs を参照し、ここでは解釈と判断だけを記述します。
+`evaluation.json` は agent または reviewer が作成します。直接 `codex` での作業とvalidationの観測事実を、`run.json`、logs、validation evidenceから参照し、ここでは解釈と判断を記録します。
 
-- `--evaluation-template` はこの artifact の初期 skeleton を作るだけです。
-- `--require-evaluation` はこの artifact の存在と schema validation を要求します。
-- runner は evaluation result を自動判断しません。
 - `evaluation.json` が failure interpretation の source of truth です。
 - `run.json.evaluation_path` は evaluation artifact への summary link です。
 - `run.json.primary_failure_category` は valid evaluation からコピーされる summary field です。
-- baseline では `--evaluation-template` と `--require-evaluation` は `--run-id` + `--record-run-manifest` と組み合わせます。
 - `evidence` は required の短い説明、`evidence_refs` は optional の structured reference です。
+- 実行事実、changed files、exit code、log path、executed commandsなどmachine-managed factsを手書きしません。
 
 ## Inputs（入力）
 
 - Run manifest:
-- Codex task report JSON:
 - Logs:
 - Changed files source:
 - Validation evidence:
 
 ## Rules（ルール）
 
-- 観測事実はrunner / wrapper / hooksが生成する。
+- 観測事実は実行記録、hooks、validation evidenceから記録する。
 - 解釈はagentが生成する。
-- `changed_files`、exit code、log path、report path、executed commandsを手書きしない。
+- `changed_files`、exit code、log path、executed commandsを手書きしない。
 - `failure_categories`と`findings[].category`は`spec/failure-taxonomy.json`から選ぶ。
 - すべての`rating`とFindingにはEvidenceを含める。
 - `evidence_refs` を使う場合は artifact 全文を複製せず、path / selector / event_id / summary で参照する。

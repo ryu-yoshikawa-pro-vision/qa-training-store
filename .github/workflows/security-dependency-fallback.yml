@@ -1128,7 +1128,7 @@ jobs:
               > "$RUNNER_TEMP/pre-run-validation.json"
           run_id="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S-JST)"
           bash scripts/new-run.sh --run-id "$run_id" --task-type implementation --workflow-level standard --no-run-manifest
-          run_dir=".codex/runs/$run_id"
+          run_dir="runs/$run_id"
           dependency="$(node --input-type=module -e 'import fs from "node:fs"; process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependency)' "$prepared/fix-authorization.json")"
           selected_strategy="$(node --input-type=module -e '
             import fs from "node:fs";
@@ -1253,7 +1253,7 @@ jobs:
           fi
 
           run_id="$(<"$RUN_ID_FILE")"
-          run_dir=".codex/runs/$run_id"
+          run_dir="runs/$run_id"
           if ! grep -Fqx -- "- 選択strategy: $pre_strategy" "$run_dir/PLAN.md"; then
             echo "needs_human:run_plan_strategy_mismatch" >&2
             exit 1
@@ -1299,9 +1299,9 @@ jobs:
           const publishFiles = [
             "package.json",
             "pnpm-lock.yaml",
-            `.codex/runs/${runId}/PLAN.md`,
-            `.codex/runs/${runId}/TASKS.md`,
-            `.codex/runs/${runId}/REPORT.md`,
+            `runs/${runId}/PLAN.md`,
+            `runs/${runId}/TASKS.md`,
+            `runs/${runId}/REPORT.md`,
           ];
           const files = Object.fromEntries(await Promise.all(publishFiles.map(async (file) => [file, await sha256(file)])));
           const manifest = {
@@ -1333,9 +1333,9 @@ jobs:
           path: |
             package.json
             pnpm-lock.yaml
-            .codex/runs/${{ steps.create_run.outputs.run_id }}/PLAN.md
-            .codex/runs/${{ steps.create_run.outputs.run_id }}/TASKS.md
-            .codex/runs/${{ steps.create_run.outputs.run_id }}/REPORT.md
+            runs/${{ steps.create_run.outputs.run_id }}/PLAN.md
+            runs/${{ steps.create_run.outputs.run_id }}/TASKS.md
+            runs/${{ steps.create_run.outputs.run_id }}/REPORT.md
             validated-fix.json
           if-no-files-found: error
           retention-days: 1
@@ -1440,13 +1440,13 @@ jobs:
             return entries;
           };
           const publishFiles = Object.keys(manifest.publish_sha256 ?? {}).sort();
-          const runFiles = publishFiles.filter((file) => file.startsWith(".codex/runs/"));
+          const runFiles = publishFiles.filter((file) => file.startsWith("runs/"));
           if (
             publishFiles.length !== 5 ||
             !publishFiles.includes("package.json") ||
             !publishFiles.includes("pnpm-lock.yaml") ||
             runFiles.length !== 3 ||
-            runFiles.some((file) => !/^\.codex\/runs\/[^/]+\/(?:PLAN|TASKS|REPORT)\.md$/.test(file))
+            runFiles.some((file) => !/^runs\/[^/]+\/(?:PLAN|TASKS|REPORT)\.md$/.test(file))
           ) throw new Error("needs_human:validated_manifest_run_files_invalid");
           const runIds = new Set(runFiles.map((file) => file.split("/")[2]));
           if (runIds.size !== 1) throw new Error("needs_human:validated_manifest_run_id_invalid");
@@ -1472,24 +1472,24 @@ jobs:
           fi
           cp "$artifact/package.json" package.json
           cp "$artifact/pnpm-lock.yaml" pnpm-lock.yaml
-          run_dir="$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          run_dir="$(find "$artifact/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
           if [[ -z "$run_dir" ]]; then
             echo "needs_human:validated_artifact_run_missing" >&2
             exit 1
           fi
-          if [[ "$(find "$artifact/.codex/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" != 1 ]]; then
+          if [[ "$(find "$artifact/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" != 1 ]]; then
             echo "needs_human:validated_artifact_run_count_invalid" >&2
             exit 1
           fi
           run_id="$(basename "$run_dir")"
-          mkdir -p .codex/runs
-          cp -R "$run_dir" .codex/runs/
+          mkdir -p runs
+          cp -R "$run_dir" runs/
           expected_changes=$(printf '%s\n' \
             package.json \
             pnpm-lock.yaml \
-            ".codex/runs/$run_id/PLAN.md" \
-            ".codex/runs/$run_id/TASKS.md" \
-            ".codex/runs/$run_id/REPORT.md" | sort)
+            "runs/$run_id/PLAN.md" \
+            "runs/$run_id/TASKS.md" \
+            "runs/$run_id/REPORT.md" | sort)
           actual_changes=$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )
           if [[ "$actual_changes" != "$expected_changes" ]]; then
             echo "needs_human:publish_change_set_invalid" >&2
@@ -1720,7 +1720,7 @@ jobs:
           git switch --create "$branch"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json pnpm-lock.yaml .codex/runs
+          git add package.json pnpm-lock.yaml runs
           git commit -m "Security Update: dependency $dependency"
           git_credential="$(printf 'x-access-token:%s' "$installation_token" | base64 -w 0)"
           echo "::add-mask::$git_credential"
