@@ -168,19 +168,10 @@ check_template_contract() {
   [[ ! -e .codex/templates/hook-observation.schema.json ]] || return 1
   [[ ! -e .codex/templates/subagent-run.schema.json ]] || return 1
   [[ -f .codex/rules/10-readonly-allow.rules ]] || return 1
-  [[ -f .codex/rules-auto-net/10-auto-net-allow.rules ]] || return 1
-  [[ -f .codex/rules-auto-net/20-auto-net-risky-forbidden.rules ]] || return 1
-  [[ -f .codex/rules-auto-net/30-auto-net-forbidden.rules ]] || return 1
   [[ ! -e .codex/hooks/observe.sh ]] || return 1
   [[ ! -e .codex/hooks/observe.ps1 ]] || return 1
-  [[ -f scripts/codex-task.ps1 ]] || return 1
-  [[ -f scripts/codex-task.sh ]] || return 1
-  [[ -f scripts/codex-sandbox.ps1 ]] || return 1
-  [[ -f scripts/codex-sandbox.sh ]] || return 1
   [[ -f scripts/new-run.ps1 ]] || return 1
   [[ -f scripts/new-run.sh ]] || return 1
-  [[ -f scripts/cleanup-runs.ps1 ]] || return 1
-  [[ -f scripts/cleanup-runs.sh ]] || return 1
   [[ -f scripts/init-project.ps1 ]] || return 1
   [[ -f scripts/init-project.sh ]] || return 1
   [[ -f scripts/validate-output-schema.py ]] || return 1
@@ -267,10 +258,10 @@ check_template_contract() {
   contains '### REPORT.md append-only contract' docs/reference/run-artifacts.md || return 1
   contains "## Run Artifact lifecycle" docs/reference/run-artifacts.md || return 1
   contains "作業完了後も実行ディレクトリ（Run Directory）を保持" docs/reference/run-artifacts.md || return 1
-  contains "通常のクリーンアップや成果物整理のみを理由として削除しません" docs/reference/run-artifacts.md || return 1
+  contains "通常の整理を理由に削除しません" docs/reference/run-artifacts.md || return 1
   contains '新規Run Artifactのcanonical rootはリポジトリ直下の`runs/<run_id>/`です。' docs/reference/run-artifacts.md || return 1
   contains "作業完了後も実行ディレクトリ（Run Directory）を保持し、調査、レビュー、修正、再発防止に活用できるよう蓄積します。" docs/reference/run-artifacts.md || return 1
-  contains '過去の実行ディレクトリや `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` は、通常のクリーンアップや成果物整理のみを理由として削除しません。' docs/reference/run-artifacts.md || return 1
+  contains '過去の実行ディレクトリや `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` は保持し、通常の整理を理由に削除しません。' docs/reference/run-artifacts.md || return 1
   contains 'runs/` とpreserved legacy/historyの`.codex/runs/`を`.gitignore`に追加してはなりません。' docs/reference/run-artifacts.md || return 1
   contains 'runs/`は`.gitignore`に登録せず、credential/security scanから除外しません。' docs/reference/run-artifacts.md || return 1
   contains 'scripts/security-static-check.ts' docs/reference/run-artifacts.md || return 1
@@ -409,20 +400,8 @@ check_template_contract() {
   contains "web_search = \"cached\"" .codex/config.toml || return 1
   contains "network_access = true" .codex/config.toml || return 1
   contains "network_access_in_workspace_write = true" codex-project.toml || return 1
-  contains "apply_patch_file_edits = \"allowed_in_direct_workspace_write_safe_and_auto_net\"" codex-project.toml || return 1
-  contains "apply_patch_creates = \"allowed_in_direct_workspace_write_safe_and_auto_net\"" codex-project.toml || return 1
-  contains "apply_patch_deletes = \"forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_explicit_intent_and_reviewable_diff\"" codex-project.toml || return 1
-  contains "apply_patch_renames = \"forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_review_and_migration_reason\"" codex-project.toml || return 1
   contains 'run_manifest = "recommended"' codex-project.toml || return 1
   contains 'run_manifest = "required"' codex-project.toml || return 1
-  contains 'sandbox_workspace_write.network_access=false' scripts/codex-safe.ps1 || return 1
-  contains 'sandbox_workspace_write.network_access=false' scripts/codex-safe.sh || return 1
-  contains 'sandbox_workspace_write.network_access=true' scripts/codex-safe.ps1 || return 1
-  contains 'sandbox_workspace_write.network_access=true' scripts/codex-safe.sh || return 1
-  contains 'sandbox_workspace_write.network_access=false' scripts/codex-task.ps1 || return 1
-  contains 'sandbox_workspace_write.network_access=false' scripts/codex-task.sh || return 1
-  contains 'sandbox_workspace_write.network_access=true' scripts/codex-task.ps1 || return 1
-  contains 'sandbox_workspace_write.network_access=true' scripts/codex-task.sh || return 1
   contains 'pattern = ["git", ["checkout", "merge", "rebase", "tag"]]' .codex/rules/20-risky-prompt.rules || return 1
   contains 'git branch -vd old-feature' .codex/rules/20-risky-prompt.rules || return 1
   contains 'git branch -dv old-feature' .codex/rules/20-risky-prompt.rules || return 1
@@ -430,15 +409,14 @@ check_template_contract() {
   contains 'gh api /repos/example/repo/issues' .codex/rules/20-risky-prompt.rules || return 1
   contains 'gh pr merge 123' .codex/rules/20-risky-prompt.rules || return 1
   contains 'gh pr create' .codex/rules/20-risky-prompt.rules && return 1
-  contains 'git branch -vd old-feature' .codex/rules-auto-net/20-auto-net-risky-forbidden.rules || return 1
-  contains 'gh api /repos/example/repo/issues' .codex/rules-auto-net/20-auto-net-risky-forbidden.rules || return 1
-  contains 'git branch --show-current' .codex/rules-auto-net/10-auto-net-allow.rules || return 1
-  contains 'preflight用overlay' .codex/rules/README.md || return 1
-  contains 'actual runtime policyは`.codex/rules/*.rules`が正本' .codex/rules/README.md || return 1
+  contains 'direct sessions with `approval_policy = "never"` reject these operations' .codex/rules/README.md || return 1
+  contains 'apply_patch_file_edits = "allowed_in_direct_workspace_write_within_parent_defined_scope"' codex-project.toml || return 1
+  contains 'apply_patch_creates = "allowed_in_direct_workspace_write_within_parent_defined_scope"' codex-project.toml || return 1
+  contains 'apply_patch_deletes = "forbidden_without_explicit_target_reason_and_approved_executor_path"' codex-project.toml || return 1
+  contains 'apply_patch_renames = "forbidden_without_review_migration_reason_and_approved_executor_path"' codex-project.toml || return 1
   contains "[agents]" .codex/config.toml || return 1
   contains "default_subagent_model =" .codex/config.toml || return 1
   contains "default_subagent_reasoning_effort =" .codex/config.toml || return 1
-  ! contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
   contains "hooks = true" .codex/config.toml || return 1
   contains 'matcher = "^Bash$"' .codex/config.toml || return 1
   contains "command_windows" .codex/config.toml || return 1
@@ -477,8 +455,9 @@ check_template_contract() {
   contains "--no-run-manifest" docs/reference/run-artifacts.md || return 1
   contains "-NoRunManifest" docs/reference/run-artifacts.md || return 1
   contains "run.json.safety.network" docs/reference/run-artifacts.md || return 1
-  contains 'fresh direct `codex` runtime validation' docs/reference/run-artifacts.md || return 1
-  contains "リポジトリ／ワークスペース内での通常の対話型エントリーポイント" docs/reference/codex-implementation-harness.md || return 1
+  contains '旧wrapper経路由来のlegacy compatibility field' docs/reference/run-artifacts.md || return 1
+  contains 'scripts/collect-run-artifacts.sh --run-id <run_id> --strict' docs/reference/run-artifacts.md || return 1
+  contains 'direct `codex`' docs/reference/codex-implementation-harness.md || return 1
   contains "--no-run-manifest" docs/reference/codex-implementation-harness.md || return 1
   contains "-NoRunManifest" docs/reference/codex-implementation-harness.md || return 1
   contains "approval_policy = \"never\"" docs/reference/codex-safety-harness.md || return 1
@@ -486,21 +465,13 @@ check_template_contract() {
   contains "--no-run-manifest" docs/guides/quickstart.md || return 1
   contains "-NoRunManifest" docs/guides/quickstart.md || return 1
   contains "approval_policy = \"never\"" MIGRATION.md || return 1
-  contains "auto-net" MIGRATION.md || return 1
+  contains "codex execpolicy check" MIGRATION.md || return 1
   contains "Codex direct interactive default" docs/PROJECT_CONTEXT.md || return 1
-  contains "codex-task" docs/reference/run-artifacts.md || return 1
   contains "Source-of-Truth" docs/reference/run-artifacts.md || return 1
   contains "logs/hooks-" docs/reference/run-artifacts.md || return 1
   contains "checkpoint" docs/reference/run-artifacts.md || return 1
   contains "collect-run-artifacts" docs/reference/run-artifacts.md || return 1
-  contains '### Interactive `codex-safe` manifest sync' docs/reference/run-artifacts.md || return 1
-  contains 'Codexプロセスの終了や `Stop` Hookの実行のみを理由として `status=completed` に変更してはなりません。' docs/reference/run-artifacts.md || return 1
-  contains 'Run directory not found' scripts/codex-safe.ps1 || return 1
-  contains 'manifest_sync_start' scripts/codex-safe.ps1 || return 1
-  contains 'Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"' scripts/codex-safe.ps1 || return 1
-  contains 'Run directory not found' scripts/codex-safe.sh || return 1
-  contains 'manifest_sync_start' scripts/codex-safe.sh || return 1
-  contains 'bash "$repo_root/scripts/collect-run-artifacts.sh"' scripts/codex-safe.sh || return 1
+  contains '`Stop` および `SubagentStop` Hookはセッション状態の観測用であり、Runマニフェスト更新のトリガーとしては機能しません。' docs/reference/run-artifacts.md || return 1
   contains '--refresh-git-changed-files' scripts/collect-run-artifacts.py || return 1
   contains '--refresh-git-changed-files' scripts/collect-run-artifacts.ps1 || return 1
   contains "schema_version" .codex/templates/RUN_MANIFEST.json || return 1
@@ -518,49 +489,17 @@ check_template_contract() {
   ! contains "collect_hook_observations" scripts/collect-run-artifacts.py || return 1
   ! contains "--hook-log" scripts/collect-run-artifacts.py || return 1
   ! contains "HookLog" scripts/collect-run-artifacts.ps1 || return 1
-  contains 'Join-Path $repoRoot "logs"' scripts/cleanup-runs.ps1 || return 1
-  contains 'find "logs"' scripts/cleanup-runs.sh || return 1
-  ! contains ".codex\\logs" scripts/cleanup-runs.ps1 || return 1
-  ! contains ".codex/logs" scripts/cleanup-runs.sh || return 1
-  ! contains ".codex/observations/hooks.jsonl" scripts/cleanup-runs.ps1 || return 1
-  ! contains ".codex/observations/hooks.jsonl" scripts/cleanup-runs.sh || return 1
-  contains "--allowed-files" scripts/codex-task.sh || return 1
-  contains "--allowed-dirs" scripts/codex-task.sh || return 1
-  contains "--allowed-globs" scripts/codex-task.sh || return 1
-  contains "--expected-changed-files" scripts/codex-task.sh || return 1
-  contains "--expected-missing" scripts/codex-task.sh || return 1
-  contains "--evaluation-template" scripts/codex-task.sh || return 1
-  contains "--require-evaluation" scripts/codex-task.sh || return 1
-  contains "--require-clean-git" scripts/codex-task.sh || return 1
-  contains "--require-run-id" scripts/codex-task.sh || return 1
-  contains "--max-iterations" scripts/codex-task.sh || return 1
-  contains "AllowedFiles" scripts/codex-task.ps1 || contains "--allowed-files" scripts/codex-task.ps1 || return 1
-  contains "AllowedDirs" scripts/codex-task.ps1 || contains "--allowed-dirs" scripts/codex-task.ps1 || return 1
-  contains "AllowedGlobs" scripts/codex-task.ps1 || contains "--allowed-globs" scripts/codex-task.ps1 || return 1
-  contains "ExpectedChangedFiles" scripts/codex-task.ps1 || contains "--expected-changed-files" scripts/codex-task.ps1 || return 1
-  contains "ExpectedMissing" scripts/codex-task.ps1 || contains "--expected-missing" scripts/codex-task.ps1 || return 1
-  contains "EvaluationTemplate" scripts/codex-task.ps1 || contains "--evaluation-template" scripts/codex-task.ps1 || return 1
-  contains "RequireEvaluation" scripts/codex-task.ps1 || contains "--require-evaluation" scripts/codex-task.ps1 || return 1
-  contains "RequireCleanGit" scripts/codex-task.ps1 || contains "--require-clean-git" scripts/codex-task.ps1 || return 1
-  contains "RequireRunId" scripts/codex-task.ps1 || contains "--require-run-id" scripts/codex-task.ps1 || return 1
-  contains "MaxIterations" scripts/codex-task.ps1 || contains "--max-iterations" scripts/codex-task.ps1 || return 1
   [[ -f scripts/collect-run-artifacts.sh ]] || return 1
   [[ -f scripts/collect-run-artifacts.ps1 ]] || return 1
   [[ -f scripts/collect-run-artifacts.py ]] || return 1
   contains "allowed_dirs" docs/reference/change-scope-policy.md || return 1
   contains "allowed_globs" docs/reference/change-scope-policy.md || return 1
-  contains "expected_missing" docs/reference/change-scope-policy.md || return 1
+  contains "expected_changed_files" docs/reference/change-scope-policy.md || return 1
   contains "must_be_subset_of_allowed_scope" docs/reference/change-scope-policy.md || return 1
-  contains "--run-id" docs/reference/change-scope-policy.md || return 1
-  contains "--record-run-manifest" docs/reference/change-scope-policy.md || return 1
+  contains "Run Artifact自体のパスは、マニフェストに記録してよい" docs/reference/change-scope-policy.md || return 1
   contains "run.json" docs/reference/change-scope-policy.md || return 1
-  contains "--require-evaluation" docs/reference/run-artifacts.md || return 1
   contains "evaluation_path" docs/reference/run-artifacts.md || return 1
   contains "primary_failure_category" docs/reference/run-artifacts.md || return 1
-  contains "--require-clean-git" docs/reference/run-artifacts.md || return 1
-  contains "--require-run-id" docs/reference/run-artifacts.md || return 1
-  contains "--max-iterations" docs/reference/run-artifacts.md || return 1
-  contains "repair loop" docs/reference/run-artifacts.md || return 1
   contains "primary_failure_category" docs/reference/failure-taxonomy.md || return 1
   contains "failure_categories" docs/reference/failure-taxonomy.md || return 1
   contains "artifact_contract_gap" docs/reference/failure-taxonomy.md || return 1
@@ -575,24 +514,16 @@ check_template_contract() {
   contains ".codex/runs/" docs/reference/change-scope-policy.md || return 1
   contains "リポジトリルート相対" docs/reference/change-scope-policy.md || return 1
   contains "スコープ検証" docs/reference/change-scope-policy.md || return 1
-  contains "--require-clean-git" docs/reference/change-scope-policy.md || return 1
   contains "spec/change-scope-policy.json" docs/reference/change-scope-policy.md || return 1
   contains "scripts/new-run.sh" docs/reference/codex-implementation-harness.md || return 1
   contains "scripts/new-run.ps1" docs/reference/codex-implementation-harness.md || return 1
   contains "Existing run directories are never overwritten" scripts/new-run.sh || return 1
   contains "Run directory already exists and will not be overwritten" scripts/new-run.ps1 || return 1
-  contains "scripts/cleanup-runs.sh" docs/reference/run-artifacts.md || return 1
-  contains "scripts/cleanup-runs.ps1" docs/reference/run-artifacts.md || return 1
-  contains "--confirm-delete-generated-runs" docs/reference/run-artifacts.md || return 1
+  contains '通常のクリーンアップや成果物の整理、コード以外のファイル整理のみを理由とした削除は行いません。' docs/reference/run-artifacts.md || return 1
   contains "plan-consumer-update" docs/guides/consumer-update.md || return 1
   contains "--exclude-protected" docs/guides/consumer-update.md || return 1
   contains "--strict-harness" docs/reference/codex-implementation-harness.md || return 1
   contains "-StrictHarness" docs/reference/codex-implementation-harness.md || return 1
-  contains "--allowed-dirs" docs/reference/codex-implementation-harness.md || return 1
-  contains "--allowed-globs" docs/reference/codex-implementation-harness.md || return 1
-  contains "--expected-missing" docs/reference/codex-implementation-harness.md || return 1
-  contains "passed_with_warnings" docs/reference/codex-implementation-harness.md || return 1
-  contains "logs/hooks-" docs/reference/codex-implementation-harness.md || return 1
   contains "REPORT" docs/reference/codex-implementation-harness.md || return 1
   contains "delegation" AGENTS.md || return 1
   contains "stop_hook_active" .codex/hooks/log_event.mjs || return 1
@@ -621,16 +552,12 @@ check_strict_harness_contract() {
   [[ -f "$source_repo_root/tools/validate-spec.ps1" ]] || return 1
   [[ -f "$source_repo_root/tools/plan-consumer-update.sh" ]] || return 1
   [[ -f "$source_repo_root/tools/plan-consumer-update.ps1" ]] || return 1
-  [[ -f "$source_repo_root/tests/integration/test-cleanup-runs.sh" ]] || return 1
-  [[ -f "$source_repo_root/tests/integration/Test-CleanupRuns.ps1" ]] || return 1
   [[ -f "$source_repo_root/tests/integration/test-plan-consumer-update.sh" ]] || return 1
   [[ -f "$source_repo_root/tests/integration/Test-PlanConsumerUpdate.ps1" ]] || return 1
   [[ -f "$source_repo_root/.github/workflows/validate-template.yml" ]] || return 1
   contains "verify --strict-harness" "$source_repo_root/README.md" || return 1
   contains "plan-consumer-update" "$source_repo_root/README.md" || return 1
-  contains "cleanup-runs" "$source_repo_root/README.md" || return 1
   contains "template/scripts/verify --strict-harness" "$source_repo_root/.github/workflows/validate-template.yml" || return 1
-  contains "tests/integration/test-cleanup-runs.sh" "$source_repo_root/.github/workflows/validate-template.yml" || return 1
   contains "tests/integration/test-plan-consumer-update.sh" "$source_repo_root/.github/workflows/validate-template.yml" || return 1
   bash "$source_repo_root/tools/validate-spec.sh"
 }
@@ -707,13 +634,6 @@ execpolicy_expect() {
         --rules .codex/rules/30-destructive-forbidden.rules
       )
       ;;
-    auto-net)
-      rule_args=(
-        --rules .codex/rules-auto-net/10-auto-net-allow.rules
-        --rules .codex/rules-auto-net/20-auto-net-risky-forbidden.rules
-        --rules .codex/rules-auto-net/30-auto-net-forbidden.rules
-      )
-      ;;
     *)
       return 1
       ;;
@@ -755,22 +675,6 @@ check_execpolicy_safety_contract() {
     'allow|gh pr edit 123'
     'allow|gh pr checks 123'
   )
-  local -a auto_net_cases=(
-    'allow|git branch --show-current'
-    'forbidden|git branch -d old-feature'
-    'forbidden|git branch --delete old-feature'
-    'forbidden|git branch -vd old-feature'
-    'forbidden|git branch -dv old-feature'
-    'forbidden|git branch -v -d old-feature'
-    'forbidden|gh api /repos/example/repo/issues'
-    'forbidden|gh pr merge 123'
-    'forbidden|gh pr close 123'
-    'forbidden|gh issue close 123'
-    'forbidden|gh release create v1'
-    'forbidden|gh release delete v1'
-    'forbidden|gh repo delete example/repo'
-    'allow|docker ps'
-  )
   local test_case expected command
   local -a command_tokens=()
 
@@ -779,13 +683,6 @@ check_execpolicy_safety_contract() {
     command="${test_case#*|}"
     read -r -a command_tokens <<< "$command"
     execpolicy_expect "$expected" common "${command_tokens[@]}" || return 1
-  done
-
-  for test_case in "${auto_net_cases[@]}"; do
-    expected="${test_case%%|*}"
-    command="${test_case#*|}"
-    read -r -a command_tokens <<< "$command"
-    execpolicy_expect "$expected" auto-net "${command_tokens[@]}" || return 1
   done
 
   execpolicy_expect prompt common docker ps
@@ -797,16 +694,8 @@ check_codex_available() {
     codex execpolicy check --rules .codex/rules/10-readonly-allow.rules -- git status >/dev/null 2>&1
 }
 
-check_bash_wrapper_preflight() {
-  bash scripts/codex-safe.sh --preflight-only >/tmp/codex-safe-preflight.log 2>&1
-}
-
 check_powershell_has_codex() {
   powershell.exe -NoProfile -Command "if (Get-Command codex -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >/dev/null 2>&1
-}
-
-check_powershell_wrapper_preflight() {
-  powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly >/tmp/codex-safe-ps-preflight.log 2>&1
 }
 
 check_hook_contracts() {
@@ -838,22 +727,6 @@ if ! check_codex_available; then
 else
   run_check "execpolicy baseline decisions" check_execpolicy_baseline
   run_check "execpolicy safety decisions" check_execpolicy_safety_contract
-fi
-
-if [[ -f scripts/codex-safe.sh ]] && check_codex_available; then
-  run_check "bash wrapper preflight" check_bash_wrapper_preflight
-else
-  log_skip "bash wrapper preflight (codex command not executable or wrapper not found)"
-fi
-
-if command -v powershell.exe >/dev/null 2>&1; then
-  if check_powershell_has_codex; then
-    run_check "PowerShell wrapper preflight" check_powershell_wrapper_preflight
-  else
-    log_skip "PowerShell wrapper preflight (codex not found in PowerShell PATH)"
-  fi
-else
-  log_skip "PowerShell wrapper preflight (powershell.exe not available)"
 fi
 
 echo "Summary: PASS=$pass_count FAIL=$fail_count SKIP=$skip_count"

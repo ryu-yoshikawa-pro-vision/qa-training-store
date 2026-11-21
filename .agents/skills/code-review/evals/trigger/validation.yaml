@@ -1,7 +1,7 @@
 schema_version: 1
 cases:
   - id: code-review-validation-001
-    query: "このRepositoryのscripts/codex-task.ps1を自己レビューし、仕様逸脱・失敗時の回帰リスク・不足テストを該当行と根拠付きで列挙してください。"
+    query: "このRepositoryのCodex直接起動とRun記録の現行手順を自己レビューし、仕様逸脱・失敗時の回帰リスク・不足する文書上の根拠を該当箇所とともに列挙してください。"
     expected_skill: code-review
     boundary: code-review-vs-repair-loop
   - id: code-review-validation-002

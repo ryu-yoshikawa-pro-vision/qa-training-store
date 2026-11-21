@@ -37,11 +37,7 @@ const ARTIFACT_PREFIXES = Object.freeze([
   ".codex/reports/",
   ".codex/logs/",
 ]);
-const RUNTIME_ONLY_PREFIXES = Object.freeze([
-  "logs/",
-  ".artifacts/codex-task/",
-  ".artifacts/codex-hooks/",
-]);
+const RUNTIME_ONLY_PREFIXES = Object.freeze(["logs/", ".artifacts/codex-hooks/"]);
 const RESIDUAL_PATTERNS = Object.freeze([
   {
     type: "Windows file URI",

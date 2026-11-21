@@ -21,7 +21,7 @@
 6. consumer 固有のファイルを除外しながら差分を確認する。
 7. 必要なテンプレートの差分のみを consumer リポジトリへ反映する。
 8. `bash scripts/verify` または PowerShell 版の verify を実行する。
-9. 必要に応じて `cleanup-runs` をドライラン（dry-run）で実行し、`runs/<run_id>/`内の生成成果物とroot `logs/*.jsonl`の整理候補を確認する。preserved legacy/historyの`.codex/**`配下は候補にならない。
+9. Run Artifactは保持します。新規Runの初期化には `scripts/new-run.*` を使用し、既存manifestの機械更新が必要な場合は直接 `codex` の終了後に `scripts/collect-run-artifacts.*` を明示実行します。
 10. プルリクエスト（PR）を作成し、差分をレビューする。
 
 ## 更新計画の出力

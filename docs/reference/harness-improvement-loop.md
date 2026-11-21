@@ -20,7 +20,7 @@
 
 - 指示レイヤー: `AGENTS.md`、`PLANS.md`、`CODE_REVIEW.md`、`.agents/skills/`。
 - 安全性レイヤー: `.codex/rules/`、`.codex/hooks/`。
-- 実行レイヤー: `scripts/codex-safe.*`、`scripts/codex-task.*`。
+- 実行レイヤー: 直接 `codex`、Run初期化・collector、Hooks、および検証workflow。
 - 契約レイヤー: `spec/`、`docs/reference/`、`examples/`。
 - その他: 既存レイヤーに当てはまらないRepository target。パスを明示的に記録します。
 
@@ -29,7 +29,7 @@
 ## Strictnessの対応
 
 - `normal`: ドキュメント、サンプル、安全性に影響しないスキルの動作。
-- `strict`: 安全性レイヤー、ランナー、スキーマ、ルール、フック、`codex-safe`、`codex-task`、および`spec/`契約の変更。
+- `strict`: 安全性レイヤー、Run管理、スキーマ、共通rules、Hooks、および`spec/`契約の変更。
 - `blocked`: 破壊的操作、クレデンシャル（認証情報）の取り扱い、外部権限の行使、ポリシーのバイパス。
 
 Safety layerの変更にはstrictワークフローによるレビューが必要です。また、`blocked` candidateは、明示的な許可や個別の対象範囲の指定がない限り、現在のタスクには適用しません。

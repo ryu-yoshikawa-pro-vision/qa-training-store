@@ -24,29 +24,20 @@ describe("direct Codex workspace contract", () => {
     expect(sandbox.writable_roots).toEqual([]);
     expect(safety.default_sandbox_mode).toBe("workspace-write");
     expect(safety.network_access_in_workspace_write).toBe(true);
-    expect(safety.apply_patch_file_edits).toContain("direct_workspace_write");
-    expect(safety.apply_patch_creates).toContain("direct_workspace_write");
-    expect(safety.apply_patch_deletes).toContain("direct_workspace_write");
-    expect(safety.apply_patch_renames).toContain("direct_workspace_write");
+    expect(safety.apply_patch_file_edits).toBe(
+      "allowed_in_direct_workspace_write_within_parent_defined_scope",
+    );
+    expect(safety.apply_patch_creates).toBe(
+      "allowed_in_direct_workspace_write_within_parent_defined_scope",
+    );
+    expect(safety.apply_patch_deletes).toBe(
+      "forbidden_without_explicit_target_reason_and_approved_executor_path",
+    );
+    expect(safety.apply_patch_renames).toBe(
+      "forbidden_without_review_migration_reason_and_approved_executor_path",
+    );
     expect(workflowLevels.standard?.run_manifest).toBe("recommended");
     expect(workflowLevels.strict?.run_manifest).toBe("required");
-  });
-
-  it("keeps safe and auto-net wrapper overrides explicit in both hosts", () => {
-    const safeWrappers = [read("scripts/codex-safe.ps1"), read("scripts/codex-safe.sh")];
-    const taskWrappers = [read("scripts/codex-task.ps1"), read("scripts/codex-task.sh")];
-
-    for (const wrapper of safeWrappers) {
-      expect(wrapper).toContain("sandbox_workspace_write.network_access=false");
-      expect(wrapper).toContain("sandbox_workspace_write.network_access=true");
-      expect(wrapper).toContain("on-request");
-      expect(wrapper).toContain("auto-net");
-    }
-    for (const wrapper of taskWrappers) {
-      expect(wrapper).toContain("sandbox_workspace_write.network_access=false");
-      expect(wrapper).toContain("sandbox_workspace_write.network_access=true");
-      expect(wrapper).toContain('"never"');
-    }
   });
 
   it("keeps normal branch switching prompt-free and guards exception operations", () => {
@@ -80,27 +71,16 @@ describe("direct Codex workspace contract", () => {
     );
   });
 
-  it("mirrors prompt-class operations in auto-net preflight without replacing runtime rules", () => {
-    const overlay = read(".codex/rules-auto-net/20-auto-net-risky-forbidden.rules");
-    const allow = read(".codex/rules-auto-net/10-auto-net-allow.rules");
-    const readme = read(".codex/rules/README.md");
+  it("documents direct Codex trust and the Bash-only hook boundary", () => {
+    const config = read(".codex/config.toml");
+    const requirements = read(".codex/requirements.toml");
+    const safety = read("docs/reference/codex-safety-harness.md");
 
-    for (const command of [
-      "git branch -d old-feature",
-      "git branch --delete old-feature",
-      "gh api /repos/example/repo/issues",
-      "gh pr merge 123",
-      "gh pr close 123",
-      "gh issue close 123",
-      "gh release create v1",
-      "gh release delete v1",
-      "gh repo delete example/repo",
-    ]) {
-      expect(overlay).toContain(command);
-    }
-    expect(allow).toContain("git branch --show-current");
-    expect(readme).toContain("preflight用overlay");
-    expect(readme).toContain("actual runtime policyは`.codex/rules/*.rules`が正本");
+    expect(config).toContain('matcher = "^Bash$"');
+    expect(requirements).toContain("project trust conditions");
+    expect(requirements).toContain("not `apply_patch` or MCP tools");
+    expect(safety).toContain("非managed環境");
+    expect(safety).toContain("runtime Hook");
   });
 
   it("requires parent delegation", () => {
@@ -150,8 +130,8 @@ describe("direct Codex workspace contract", () => {
     expect(runArtifacts).toContain("--no-run-manifest");
     expect(runArtifacts).toContain("-NoRunManifest");
     expect(runArtifacts).toContain("run.json.safety.network");
-    expect(runArtifacts).toContain("fresh direct `codex` runtime validation");
     expect(implementation).toContain('run_manifest = "recommended"');
-    expect(implementation).toContain("--record-run-manifest");
+    expect(implementation).toContain("collect-run-artifacts.*");
+    expect(implementation).toContain("明示実行");
   });
 });

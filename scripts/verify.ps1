@@ -91,17 +91,8 @@ function Test-TemplateContract {
         ".codex/templates/RUN_MANIFEST.json",
         ".codex/templates/evaluation.schema.json",
         ".codex/rules/10-readonly-allow.rules",
-        ".codex/rules-auto-net/10-auto-net-allow.rules",
-        ".codex/rules-auto-net/20-auto-net-risky-forbidden.rules",
-        ".codex/rules-auto-net/30-auto-net-forbidden.rules",
-        "scripts/codex-task.ps1",
-        "scripts/codex-task.sh",
-        "scripts/codex-sandbox.ps1",
-        "scripts/codex-sandbox.sh",
         "scripts/new-run.ps1",
         "scripts/new-run.sh",
-        "scripts/cleanup-runs.ps1",
-        "scripts/cleanup-runs.sh",
         "scripts/init-project.ps1",
         "scripts/init-project.sh",
         "scripts/validate-output-schema.py",
@@ -373,9 +364,6 @@ function Test-TemplateContract {
     if ($implementationHarness -notmatch [regex]::Escape("scripts/new-run.ps1")) { throw "implementation harness doc missing PowerShell new-run guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("--strict-harness")) { throw "implementation harness doc missing strict verify guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("-StrictHarness")) { throw "implementation harness doc missing PowerShell strict verify guidance" }
-    if ($implementationHarness -notmatch [regex]::Escape("--allowed-dirs")) { throw "implementation harness doc missing allowed-dirs guidance" }
-    if ($implementationHarness -notmatch [regex]::Escape("--allowed-globs")) { throw "implementation harness doc missing allowed-globs guidance" }
-    if ($implementationHarness -notmatch [regex]::Escape("--expected-missing")) { throw "implementation harness doc missing expected-missing guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("collect-run-artifacts")) { throw "implementation harness doc missing artifact collector guidance" }
     $newRunBash = Get-Content -Raw scripts/new-run.sh
     $newRunPowerShell = Get-Content -Raw scripts/new-run.ps1
@@ -389,7 +377,6 @@ function Test-TemplateContract {
     if ($changeScope -notmatch [regex]::Escape("allowed_globs")) { throw "change-scope doc missing allowed_globs guidance" }
     if ($changeScope -notmatch [regex]::Escape("expected_missing")) { throw "change-scope doc missing expected_missing guidance" }
     if ($changeScope -notmatch [regex]::Escape("must_be_subset_of_allowed_scope")) { throw "change-scope doc missing allowed scope subset contract" }
-    if ($changeScope -notmatch [regex]::Escape("--record-run-manifest")) { throw "change-scope doc missing record-run-manifest guidance" }
     if ($changeScope -notmatch [regex]::Escape("runs/")) { throw "change-scope doc missing canonical Run root exclusion" }
     if ($changeScope -notmatch [regex]::Escape(".codex/runs/")) { throw "change-scope doc missing preserved legacy Run root exclusion" }
     $runArtifacts = Get-Content -Raw -Encoding UTF8 docs/reference/run-artifacts.md
@@ -397,26 +384,12 @@ function Test-TemplateContract {
     if ($runArtifacts -notmatch [regex]::Escape("changed_files")) { throw "run-artifacts doc missing changed_files guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("logs/hooks-")) { throw "run-artifacts doc missing Hook JSONL guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("checkpoint")) { throw "run-artifacts doc missing checkpoint guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape("--max-iterations")) { throw "run-artifacts doc missing max-iterations guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape("repair loop")) { throw "run-artifacts doc missing repair loop guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("collect-run-artifacts")) { throw "run-artifacts doc missing collector guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape('### Interactive `codex-safe` manifest sync')) { throw "run-artifacts doc missing interactive sync guidance" }
     if ($runArtifacts -notmatch [regex]::Escape('`Stop` Hook')) { throw "run-artifacts doc missing Stop Hook boundary" }
-    $safePowerShell = Get-Content -Raw scripts/codex-safe.ps1
-    $safeBash = Get-Content -Raw scripts/codex-safe.sh
     $collectorPython = Get-Content -Raw scripts/collect-run-artifacts.py
     $collectorPowerShell = Get-Content -Raw scripts/collect-run-artifacts.ps1
-    if ($safePowerShell -notmatch [regex]::Escape("Run directory not found")) { throw "PowerShell codex-safe missing Run Directory precondition" }
-    if ($safePowerShell -notmatch [regex]::Escape("manifest_sync_start")) { throw "PowerShell codex-safe missing manifest sync route" }
-    if ($safePowerShell -notmatch [regex]::Escape('Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"')) { throw "PowerShell codex-safe missing absolute collector route" }
-    if ($safeBash -notmatch [regex]::Escape("Run directory not found")) { throw "Bash codex-safe missing Run Directory precondition" }
-    if ($safeBash -notmatch [regex]::Escape("manifest_sync_start")) { throw "Bash codex-safe missing manifest sync route" }
-    if ($safeBash -notmatch [regex]::Escape('bash "$repo_root/scripts/collect-run-artifacts.sh"')) { throw "Bash codex-safe missing absolute collector route" }
     if ($collectorPython -notmatch [regex]::Escape("--refresh-git-changed-files")) { throw "Python collector missing refresh option" }
     if ($collectorPowerShell -notmatch [regex]::Escape("--refresh-git-changed-files")) { throw "PowerShell collector missing refresh pass-through" }
-    if ($runArtifacts -notmatch [regex]::Escape("scripts/cleanup-runs.sh")) { throw "run-artifacts doc missing cleanup-runs.sh guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape("scripts/cleanup-runs.ps1")) { throw "run-artifacts doc missing cleanup-runs.ps1 guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape("--confirm-delete-generated-runs")) { throw "run-artifacts doc missing cleanup confirm guidance" }
     $consumerUpdate = Get-Content -Raw docs/guides/consumer-update.md
     if ($consumerUpdate -notmatch [regex]::Escape("plan-consumer-update")) { throw "consumer-update doc missing planning guidance" }
     if ($consumerUpdate -notmatch [regex]::Escape("--exclude-protected")) { throw "consumer-update doc missing exclude-protected guidance" }
@@ -452,19 +425,10 @@ function Test-TemplateContract {
     $project = Get-Content -Raw codex-project.toml
     foreach ($contract in @(
         'network_access_in_workspace_write = true',
-        'apply_patch_file_edits = "allowed_in_direct_workspace_write_safe_and_auto_net"',
-        'apply_patch_creates = "allowed_in_direct_workspace_write_safe_and_auto_net"',
-        'apply_patch_deletes = "forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_explicit_intent_and_reviewable_diff"',
-        'apply_patch_renames = "forbidden_in_readonly_and_auto_net; direct_workspace_write_and_safe_require_review_and_migration_reason"',
         'run_manifest = "recommended"',
         'run_manifest = "required"'
     )) {
         if ($project -notmatch [regex]::Escape($contract)) { throw "codex-project.toml missing contract: $contract" }
-    }
-    foreach ($path in @('scripts/codex-safe.ps1', 'scripts/codex-safe.sh', 'scripts/codex-task.ps1', 'scripts/codex-task.sh')) {
-        $wrapper = Get-Content -Raw $path
-        if ($wrapper -notmatch 'sandbox_workspace_write\.network_access=false') { throw "$path missing safe network false override" }
-        if ($wrapper -notmatch 'sandbox_workspace_write\.network_access=true') { throw "$path missing auto-net network true override" }
     }
     $commonPromptRules = Get-Content -Raw .codex/rules/20-risky-prompt.rules
     if ($commonPromptRules -notmatch [regex]::Escape('pattern = ["git", ["checkout", "merge", "rebase", "tag"]]')) { throw "common prompt rules must leave git switch prompt-free" }
@@ -484,14 +448,18 @@ function Test-TemplateContract {
     )) {
         if ($commonPromptRules -notmatch [regex]::Escape($command)) { throw "common prompt rules missing $command" }
     }
-    $autoNetPromptRules = Get-Content -Raw .codex/rules-auto-net/20-auto-net-risky-forbidden.rules
-    if ($autoNetPromptRules -notmatch [regex]::Escape('gh api /repos/example/repo/issues')) { throw "auto-net preflight overlay missing gh api guard" }
-    if ((Get-Content -Raw .codex/rules-auto-net/10-auto-net-allow.rules) -notmatch [regex]::Escape('git branch --show-current')) { throw "auto-net read-only branch allow missing" }
-    $rulesReadme = Get-Content -Raw .codex/rules/README.md
-    if ($rulesReadme -notmatch 'preflight') { throw "rules README missing auto-net overlay contract" }
-    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern 'actual runtime policy')) { throw "rules README missing runtime policy source" }
+    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern 'direct sessions with `approval_policy = "never"` reject these operations')) { throw "rules README missing direct-session prompt behavior" }
+    $projectMetadata = Get-Content -Raw codex-project.toml
+    foreach ($contract in @(
+        'apply_patch_file_edits = "allowed_in_direct_workspace_write_within_parent_defined_scope"',
+        'apply_patch_creates = "allowed_in_direct_workspace_write_within_parent_defined_scope"',
+        'apply_patch_deletes = "forbidden_without_explicit_target_reason_and_approved_executor_path"',
+        'apply_patch_renames = "forbidden_without_review_migration_reason_and_approved_executor_path"'
+    )) {
+        if ($projectMetadata -notmatch [regex]::Escape($contract)) { throw "project metadata missing direct workspace contract: $contract" }
+    }
     $runArtifacts = Get-Content -Raw docs/reference/run-artifacts.md
-    foreach ($contract in @('--no-run-manifest', '-NoRunManifest', 'run.json.safety.network', 'fresh direct `codex` runtime validation')) {
+    foreach ($contract in @('--no-run-manifest', '-NoRunManifest', 'run.json.safety.network', 'scripts/collect-run-artifacts.*', 'scripts/collect-run-artifacts.sh --run-id <run_id> --strict')) {
         if ($runArtifacts -notmatch [regex]::Escape($contract)) { throw "run-artifacts reference missing direct runtime contract: $contract" }
     }
     $implementation = Get-Content -Raw docs/reference/codex-implementation-harness.md
@@ -500,14 +468,15 @@ function Test-TemplateContract {
         '--no-run-manifest',
         '-NoRunManifest',
         'run_manifest = "recommended"',
-        '--record-run-manifest'
+        'collect-run-artifacts.*',
+        '明示実行'
     )) {
         if ($implementation -notmatch [regex]::Escape($contract)) { throw "implementation harness missing direct / strict contract: $contract" }
     }
     foreach ($contract in @(
         'approval_policy = "never"',
-        'network false',
-        'read-only runtime validation',
+        'Bashだけ',
+        'trustが必要',
         'direct `codex`'
     )) {
         if (-not (Select-String -LiteralPath 'docs/reference/codex-safety-harness.md' -SimpleMatch -Quiet -Pattern $contract)) { throw "safety harness missing direct safety contract: $contract" }
@@ -521,7 +490,6 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('[agents]')) { throw "config missing agents section" }
     if ($config -notmatch '(?m)^\s*default_subagent_model\s*=') { throw "config missing default subagent model key" }
     if ($config -notmatch '(?m)^\s*default_subagent_reasoning_effort\s*=') { throw "config missing default subagent reasoning effort key" }
-    if ($config -match [regex]::Escape('[profiles.repo_auto_net]')) { throw "config contains unsupported repo_auto_net profile" }
     if ($config -notmatch [regex]::Escape('hooks = true')) { throw "config missing hook feature flag" }
     if ($config -notmatch [regex]::Escape('matcher = "^Bash$"')) { throw "config missing Bash-only matcher" }
     if ($config -notmatch [regex]::Escape('command_windows')) { throw "config missing Windows launcher command" }
@@ -533,8 +501,6 @@ function Test-TemplateContract {
     if ((Test-Path ".codex/hooks/observe.ps1") -or (Test-Path ".codex/hooks/observe.sh")) { throw "legacy observer Hook remains" }
     if ((Get-Content -Raw scripts/collect-run-artifacts.py) -match "collect_(hook_observations|subagents)") { throw "legacy collector aggregation remains" }
     if ((Get-Content -Raw scripts/collect-run-artifacts.ps1) -match "HookLog|--hook-log") { throw "legacy HookLog collector contract remains" }
-    if ((Get-Content -Raw scripts/cleanup-runs.ps1) -match [regex]::Escape(".codex\observations\hooks.jsonl")) { throw "legacy observation cleanup branch remains" }
-    if ((Get-Content -Raw scripts/cleanup-runs.sh) -match [regex]::Escape(".codex/observations/hooks.jsonl")) { throw "legacy observation cleanup branch remains" }
 }
 
 function Test-StrictHarnessContract {
@@ -547,8 +513,6 @@ function Test-StrictHarnessContract {
         "tools/validate-spec.ps1",
         "tools/plan-consumer-update.sh",
         "tools/plan-consumer-update.ps1",
-        "tests/integration/test-cleanup-runs.sh",
-        "tests/integration/Test-CleanupRuns.ps1",
         "tests/integration/test-plan-consumer-update.sh",
         "tests/integration/Test-PlanConsumerUpdate.ps1",
         ".github/workflows/validate-template.yml"
@@ -561,11 +525,9 @@ function Test-StrictHarnessContract {
     $readme = Get-Content -Raw (Join-Path $sourceRepoRoot "README.md")
     if ($readme -notmatch [regex]::Escape("verify --strict-harness")) { throw "README missing strict verify guidance" }
     if ($readme -notmatch [regex]::Escape("plan-consumer-update")) { throw "README missing consumer update planning guidance" }
-    if ($readme -notmatch [regex]::Escape("cleanup-runs")) { throw "README missing cleanup guidance" }
 
     $workflow = Get-Content -Raw (Join-Path $sourceRepoRoot ".github/workflows/validate-template.yml")
     if ($workflow -notmatch [regex]::Escape("template/scripts/verify --strict-harness")) { throw "Workflow missing strict verify command" }
-    if ($workflow -notmatch [regex]::Escape("tests/integration/test-cleanup-runs.sh")) { throw "Workflow missing cleanup-runs test" }
     if ($workflow -notmatch [regex]::Escape("tests/integration/test-plan-consumer-update.sh")) { throw "Workflow missing plan-consumer-update test" }
 
     & powershell.exe -ExecutionPolicy Bypass -File (Join-Path $sourceRepoRoot "tools/validate-spec.ps1")
@@ -634,11 +596,6 @@ function Test-ExecpolicySafetyContract {
         '--rules', '.codex/rules/20-risky-prompt.rules',
         '--rules', '.codex/rules/30-destructive-forbidden.rules'
     )
-    $autoNetRuleArgs = @(
-        '--rules', '.codex/rules-auto-net/10-auto-net-allow.rules',
-        '--rules', '.codex/rules-auto-net/20-auto-net-risky-forbidden.rules',
-        '--rules', '.codex/rules-auto-net/30-auto-net-forbidden.rules'
-    )
 
     $commonCases = @(
         @{ Expected = 'allow'; Command = @('git', 'switch', 'feature/safe') },
@@ -670,42 +627,7 @@ function Test-ExecpolicySafetyContract {
         Assert-ExecpolicyDecision -CodexExe $codex -RuleArgs $commonRuleArgs -CommandTokens $case.Command -Expected $case.Expected
     }
 
-    $autoNetCases = @(
-        @{ Expected = 'allow'; Command = @('git', 'branch', '--show-current') },
-        @{ Expected = 'forbidden'; Command = @('git', 'switch', 'feature/safe') },
-        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-d', 'old-feature') },
-        @{ Expected = 'forbidden'; Command = @('git', 'branch', '--delete', 'old-feature') },
-        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-vd', 'old-feature') },
-        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-dv', 'old-feature') },
-        @{ Expected = 'forbidden'; Command = @('git', 'branch', '-v', '-d', 'old-feature') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'api', '/repos/example/repo/issues') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'pr', 'merge', '123') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'pr', 'close', '123') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'issue', 'close', '123') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'release', 'create', 'v1') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'release', 'delete', 'v1') },
-        @{ Expected = 'forbidden'; Command = @('gh', 'repo', 'delete', 'example/repo') },
-        @{ Expected = 'allow'; Command = @('docker', 'ps') }
-    )
-    foreach ($case in $autoNetCases) {
-        Assert-ExecpolicyDecision -CodexExe $codex -RuleArgs $autoNetRuleArgs -CommandTokens $case.Command -Expected $case.Expected
-    }
     Assert-ExecpolicyDecision -CodexExe $codex -RuleArgs $commonRuleArgs -CommandTokens @('docker', 'ps') -Expected 'prompt'
-}
-
-function Test-WrapperPreflight {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
-    $safeExitCode = $LASTEXITCODE
-    if ($safeExitCode -ne 0) { throw "safe wrapper preflight failed (exit=$safeExitCode)" }
-
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset auto-net -PreflightOnly > $null
-    $autoNetExitCode = $LASTEXITCODE
-    if ($autoNetExitCode -ne 0) { throw "auto-net wrapper preflight failed (exit=$autoNetExitCode)" }
-}
-
-function Test-PowerShellHasCodex {
-    $result = & powershell.exe -NoProfile -Command "if (Get-Command codex -ErrorAction SilentlyContinue) { 'yes' } else { 'no' }"
-    return (($result | Out-String).Trim() -eq 'yes')
 }
 
 function Test-HookContracts {
@@ -740,17 +662,6 @@ else {
     Add-Skip "execpolicy baseline decisions"
 }
 
-if (Get-Command powershell.exe -ErrorAction SilentlyContinue) {
-    if (Test-PowerShellHasCodex) {
-        Invoke-Check "PowerShell wrapper preflight" { Test-WrapperPreflight }
-    }
-    else {
-        Add-Skip "PowerShell wrapper preflight"
-    }
-}
-else {
-    Add-Skip "PowerShell wrapper preflight"
-}
 
 Write-Host "Summary: PASS=$passCount FAIL=$failCount SKIP=$skipCount"
 

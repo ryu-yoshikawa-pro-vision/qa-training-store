@@ -8,9 +8,6 @@ param(
     [ValidateSet("lightweight", "standard", "strict")]
     [string]$WorkflowLevel = "standard",
 
-    [ValidateSet("safe", "readonly", "auto-net")]
-    [string]$Preset = "safe",
-
     [switch]$NoPlan,
 
     [switch]$NoRunManifest,
@@ -141,7 +138,6 @@ try {
         $manifestTemplate.run_id = $RunId
         $manifestTemplate.task_type = $TaskType
         $manifestTemplate.workflow_level = $WorkflowLevel
-        $manifestTemplate.preset = $Preset
         ($manifestTemplate | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath (Join-Path $runRoot "run.json")
     }
 }

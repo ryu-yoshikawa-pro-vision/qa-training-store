@@ -169,6 +169,7 @@ Playwright拡張機能は導入されていますが、Testingサイドバーや
 ### 前提環境
 
 - 本リポジトリの通常開発環境はLinuxです。ディストリビューションやバージョンは固定せず、WSL2上のLinux環境およびnative Linux環境を利用できます。Git、Codex、開発ツール、ローカル検証はLinux上で行い、WSL2ではリポジトリをLinuxのファイルシステム上に配置してください。PowerShellによるローカルチェックは通常の完了条件に含めません。Windows対応およびWindows向けCI・契約は維持し、Windows向け変更は既存のテスト／CI契約で確認します。
+- Codex CLIはLinuxのリポジトリrootから `codex` を直接起動します。
 - Node.js 24
 - pnpm 10.34.5
 

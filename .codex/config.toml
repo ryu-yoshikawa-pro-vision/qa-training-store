@@ -1,6 +1,6 @@
 # Project-scoped Codex config baseline.
-# Codex loads this file only after the project is trusted. The wrappers still pass
-# explicit sandbox/approval flags and block unsafe overrides.
+# Codex loads this file only after the project is trusted. The PreToolUse hook
+# definition must also be trusted before Codex will execute it.
 
 sandbox_mode = "workspace-write"
 approval_policy = "never"

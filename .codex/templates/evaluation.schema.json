@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Codex Harness Evaluation",
-  "description": "Canonical evaluation artifact for one run. Observed execution facts are referenced from run.json, codex-task report JSON, or logs; the agent or reviewer records interpretation here.",
+  "description": "Canonical evaluation artifact for one run. Observed execution facts are referenced from run.json, logs, or validation evidence; the agent or reviewer records interpretation here. Legacy evidence reference kinds remain accepted for existing artifacts.",
   "type": "object",
   "additionalProperties": false,
   "required": [

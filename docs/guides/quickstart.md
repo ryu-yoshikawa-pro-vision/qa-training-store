@@ -40,12 +40,10 @@
 
 | 作業内容 | 推奨モード |
 | --- | --- |
-| ドキュメント確認、PRレビュー、静的調査 | `readonly` または direct `codex` |
+| ドキュメント確認、PRレビュー、静的調査 | direct `codex`（必要に応じてread-only agentへ委任） |
 | 通常の対話型実装・ドキュメント更新 | リポジトリ内からの direct `codex` |
-| ローカルブランチの削除、マージ／リベースのリカバリなどの明示的な例外作業 | `codex-safe safe` による都度（on-request）承認 |
-| 影響の大きい GitHub CLI などのネットワーク例外 | `codex-safe safe`（承認およびネットワークサンドボックスへの昇格に関するランタイム確認が完了した場合のみ） |
-| 非対話の strict 実装、機械管理されたエビデンス収集 | `codex-task --run-id <run_id> --record-run-manifest` |
+| strict Run、機械管理されたエビデンス収集 | direct `codex` と既存Run collectorの明示実行 |
 | git add / commit / push | ファイル変更タスク（file-changing task）の Git ライフサイクル規約に従う（ユーザーによって Git 操作が禁止されていない場合） |
 | 削除、rename、git rm | 原則として実行しない。明示的に指定された対象のみ、Safety／Git safety 規約に従って実行する |
 
-通常の direct `codex` は、`workspace-write`、`approval_policy = "never"`、およびネットワークアクセスが有効（network access enabled）の状態で動作する。execpolicy の `prompt` オペレーションは、承認プロンプトを表示せずに自動で拒否される。`auto-net` は削除せず、必要に応じて明示的に指定する既存のラッパープリセットとして維持する。
+通常はリポジトリのルートから `codex` を直接起動します。具体的なshellやhostの運用は各consumerのポリシーに従ってください。`.codex/config.toml` の値は `workspace-write`、`approval_policy = "never"`、network access enabledです。project config/rulesはproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。

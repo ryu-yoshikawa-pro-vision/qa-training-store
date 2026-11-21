@@ -78,7 +78,6 @@ function createFixture(): Fixture {
         status: "running",
         task_type: "implementation",
         workflow_level: "standard",
-        preset: "safe",
         validation: { status: "not_run", commands: ["template-command"], warnings: [] },
         custom_machine_field: { retained: true },
       },
@@ -300,16 +299,7 @@ describe("run root migration contract", () => {
     const fixture = createFixture();
     const result = runBash(
       fixture.scriptPath("new-run.sh"),
-      [
-        "--run-id",
-        runId,
-        "--task-type",
-        "repair",
-        "--workflow-level",
-        "strict",
-        "--preset",
-        "readonly",
-      ],
+      ["--run-id", runId, "--task-type", "repair", "--workflow-level", "strict"],
       fixture.root,
     );
 
@@ -331,10 +321,10 @@ describe("run root migration contract", () => {
       status: "running",
       task_type: "repair",
       workflow_level: "strict",
-      preset: "readonly",
       validation: { status: "not_run", commands: ["template-command"], warnings: [] },
       custom_machine_field: { retained: true },
     });
+    expect(manifest).not.toHaveProperty("preset");
   });
 
   it("retains Bash flags and refuses an existing target run even with --force", () => {
@@ -423,7 +413,7 @@ describe("run root migration contract", () => {
       const fixture = createFixture();
       const result = runPowerShell(
         fixture.scriptPath("new-run.ps1"),
-        ["-RunId", runId, "-TaskType", "repair", "-WorkflowLevel", "strict", "-Preset", "readonly"],
+        ["-RunId", runId, "-TaskType", "repair", "-WorkflowLevel", "strict"],
         fixture.root,
       );
 
@@ -441,10 +431,10 @@ describe("run root migration contract", () => {
         status: "running",
         task_type: "repair",
         workflow_level: "strict",
-        preset: "readonly",
         validation: { status: "not_run", commands: ["template-command"], warnings: [] },
         custom_machine_field: { retained: true },
       });
+      expect(manifest).not.toHaveProperty("preset");
 
       const flagFixture = createFixture();
       const flagResult = runPowerShell(

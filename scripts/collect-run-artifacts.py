@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import stat
 import subprocess
+import sys
 
 
 def parse_args():
@@ -180,7 +181,6 @@ def default_manifest(repo_root: Path, run_id: str):
             "run_id": run_id,
             "task_type": "implementation",
             "workflow_level": "standard",
-            "preset": "safe",
             "runtime": "host",
             "repo": None,
             "branch": None,
@@ -201,6 +201,7 @@ def default_manifest(repo_root: Path, run_id: str):
             "primary_failure_category": None,
         }
     data["run_id"] = run_id
+    data.pop("preset", None)
     return data
 
 
@@ -282,7 +283,7 @@ def merge_manifests(default_data, existing_data, base_data):
     for source in (base_data or {}, existing_data or {}):
         for key in ("run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "status", "primary_failure_category"):
             value = source.get(key)
-            if value is not None:
+            if value is not None or (key == "preset" and key in source):
                 manifest[key] = copy.deepcopy(value)
         if "codex_task_reports" in source and isinstance(source.get("codex_task_reports"), list):
             manifest["codex_task_reports"] = copy.deepcopy(source.get("codex_task_reports"))
@@ -360,6 +361,13 @@ def main():
         raise SystemExit(str(exc)) from exc
     evaluation_present = evaluation_path.exists()
     manifest["evaluation_path"] = repo_relative(repo_root, evaluation_path) if evaluation_present else None
+    if args.strict and not evaluation_present:
+        add_warning(
+            validation_warnings,
+            "evaluation_missing",
+            repo_relative(repo_root, evaluation_path),
+            "Strict collection requires evaluation.json",
+        )
     if evaluation_present:
         if not evaluation_path.is_file():
             raise SystemExit(f"Run evaluation path is not a file: {evaluation_path}")
@@ -368,15 +376,54 @@ def main():
         except (OSError, json.JSONDecodeError) as exc:
             add_warning(validation_warnings, "evaluation_invalid_json", repo_relative(repo_root, evaluation_path), str(exc))
         else:
-            if isinstance(evaluation, dict):
+            evaluation_repo_path = repo_relative(repo_root, evaluation_path)
+            if not isinstance(evaluation, dict):
+                add_warning(
+                    validation_warnings,
+                    "evaluation_not_object",
+                    evaluation_repo_path,
+                    "Evaluation JSON must be an object",
+                )
+            else:
+                schema_valid = not args.strict
+                if args.strict:
+                    schema_path = (repo_root.resolve() / ".codex" / "templates" / "evaluation.schema.json").resolve()
+                    validator_path = (repo_root.resolve() / "scripts" / "validate-output-schema.py").resolve()
+                    try:
+                        schema_result = subprocess.run(
+                            [sys.executable, str(validator_path), str(schema_path), str(evaluation_path.resolve())],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            check=False,
+                        )
+                    except OSError:
+                        schema_result = None
+                    if schema_result is None:
+                        add_warning(
+                            validation_warnings,
+                            "evaluation_schema_validator_failed",
+                            evaluation_repo_path,
+                            "Evaluation schema validator could not run",
+                        )
+                        schema_valid = False
+                    elif schema_result.returncode != 0:
+                        add_warning(
+                            validation_warnings,
+                            "evaluation_schema_invalid",
+                            evaluation_repo_path,
+                            "Evaluation does not satisfy the configured schema",
+                        )
+                        schema_valid = False
+
                 if evaluation.get("run_id") == args.run_id:
-                    manifest["primary_failure_category"] = evaluation.get("primary_failure_category")
+                    if schema_valid:
+                        manifest["primary_failure_category"] = evaluation.get("primary_failure_category")
                 else:
                     add_warning(
                         validation_warnings,
                         "evaluation_run_id_mismatch",
-                        repo_relative(repo_root, evaluation_path),
-                        f"run_id={evaluation.get('run_id')!r}",
+                        evaluation_repo_path,
+                        "Evaluation run_id does not match the selected Run",
                     )
 
     manifest["validation"] = {

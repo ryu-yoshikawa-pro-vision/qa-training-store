@@ -1,13 +1,10 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import {
-  chmodSync,
   closeSync,
   copyFileSync,
-  existsSync,
   mkdtempSync,
   mkdirSync,
   openSync,
-  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -24,9 +21,6 @@ import {
 
 const root = process.cwd();
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
-const bashExecutable =
-  process.platform === "win32" ? "C:\\Program Files\\Git\\bin\\bash.exe" : "bash";
-const bashAvailable = process.platform !== "win32" || existsSync(bashExecutable);
 const powerShellExecutable = process.platform === "win32" ? "powershell.exe" : "pwsh";
 const powerShellAvailable =
   spawnSync(powerShellExecutable, ["-NoProfile", "-Command", "exit 0"], {
@@ -71,89 +65,6 @@ function createGitFixture() {
   return cwd;
 }
 
-function createShellWrapperFixture() {
-  const cwd = mkdtempSync(path.join(os.tmpdir(), "codex-task-shell-wrapper-"));
-  const scripts = path.join(cwd, "scripts");
-  const lib = path.join(scripts, "lib");
-  const fakeBin = path.join(cwd, "fake-bin");
-  mkdirSync(lib, { recursive: true });
-  mkdirSync(fakeBin, { recursive: true });
-  copyFileSync(path.join(root, "scripts/codex-task.sh"), path.join(scripts, "codex-task.sh"));
-  copyFileSync(
-    path.join(root, "scripts/sanitize-codex-artifacts.mjs"),
-    path.join(scripts, "sanitize-codex-artifacts.mjs"),
-  );
-  copyFileSync(
-    path.join(root, "scripts/lib/codex-artifact-sanitizer.mjs"),
-    path.join(lib, "codex-artifact-sanitizer.mjs"),
-  );
-  const fakeCodex = path.join(fakeBin, process.platform === "win32" ? "codex" : "codex");
-  writeFileSync(
-    fakeCodex,
-    [
-      "#!/usr/bin/env bash",
-      "set -euo pipefail",
-      "output_file=''",
-      "while (($#)); do",
-      '  if [[ "$1" == \'--output-last-message\' ]]; then output_file="$2"; shift 2; else shift; fi',
-      "done",
-      '[[ -n "$output_file" ]] || exit 31',
-      'if [[ "${CODEX_TEST_OUTPUT_MODE:-valid}" == invalid ]]; then',
-      "  printf '\\377' > \"$output_file\"",
-      "else",
-      '  printf \'{"artifact":"%s/private"}\\n\' "${CODEX_TEST_OUTPUT_PATH:?}" > "$output_file"',
-      "fi",
-      'exit "${CODEX_TEST_EXIT_CODE:-0}"',
-      "",
-    ].join("\n"),
-    "utf8",
-  );
-  chmodSync(fakeCodex, 0o755);
-  git(cwd, "init", "-q");
-  git(cwd, "config", "user.name", "Codex Task Contract");
-  git(cwd, "config", "user.email", "codex-task@example.invalid");
-  return { cwd, fakeBin };
-}
-
-function toShellPath(value: string) {
-  if (process.platform !== "win32") return value;
-  const cygpath = path.resolve(path.dirname(bashExecutable), "..", "usr", "bin", "cygpath.exe");
-  const result = spawnSync(cygpath, ["-u", value], { encoding: "utf8" });
-  if (result.status !== 0) throw new Error(`cygpath failed: ${result.stderr}`);
-  return result.stdout.trim();
-}
-
-function runShellWrapper(
-  fixture: ReturnType<typeof createShellWrapperFixture>,
-  args: string[],
-  options: { codexExitCode?: number; outputMode?: "valid" | "invalid" } = {},
-) {
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    PATH: `${fixture.fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
-    CODEX_TEST_OUTPUT_PATH: fixture.cwd,
-    CODEX_TEST_EXIT_CODE: String(options.codexExitCode ?? 0),
-    CODEX_TEST_OUTPUT_MODE: options.outputMode ?? "valid",
-  };
-  delete env.CODEX_BIN;
-  const scriptPath = path.join(fixture.cwd, "scripts/codex-task.sh");
-  const shellArgs =
-    process.platform === "win32"
-      ? [
-          toShellPath(scriptPath),
-          ...args.map((argument) => (path.isAbsolute(argument) ? toShellPath(argument) : argument)),
-        ]
-      : [scriptPath, ...args];
-  return spawnSync(bashExecutable, shellArgs, {
-    cwd: fixture.cwd,
-    encoding: "utf8",
-    env,
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout: 60_000,
-    windowsHide: process.platform === "win32",
-  });
-}
-
 describe("portable Codex Run Artifact sanitizer", () => {
   it("uses one Node implementation and keeps the PowerShell entry point thin", () => {
     const common = read("scripts/lib/codex-artifact-sanitizer.mjs");
@@ -181,7 +92,7 @@ describe("portable Codex Run Artifact sanitizer", () => {
     () => {
       const cwd = createGitFixture();
       try {
-        const file = path.join(cwd, ".codex/runs/sample/powershell-wrapper.md");
+        const file = path.join(cwd, ".codex/runs/sample/powershell-sanitizer.md");
         writeFileSync(file, `local=${cwd.replaceAll("\\", "/")}/private\n`);
         const wrapperPath = path.join(root, "scripts/sanitize-codex-artifacts.ps1");
         const write = spawnSync(
@@ -203,7 +114,7 @@ describe("portable Codex Run Artifact sanitizer", () => {
         expect(write.status, `${write.stderr}\n${write.stdout}`).toBe(0);
         expect(readFileSync(file, "utf8")).toBe("local=<REPO_ROOT>/private\n");
 
-        git(cwd, "add", ".codex/runs/sample/powershell-wrapper.md");
+        git(cwd, "add", ".codex/runs/sample/powershell-sanitizer.md");
         const staged = spawnSync(
           powerShellExecutable,
           ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", wrapperPath, "-Staged", "-Check"],
@@ -251,8 +162,7 @@ describe("portable Codex Run Artifact sanitizer", () => {
     try {
       copyFileSync(path.join(root, ".gitignore"), path.join(cwd, ".gitignore"));
       for (const relativePath of [
-        "logs/codex-task-clean.jsonl",
-        ".artifacts/codex-task/artifacts/output.json",
+        "logs/session-clean.jsonl",
         ".artifacts/codex-hooks/hooks-clean.jsonl",
       ]) {
         const filePath = path.join(cwd, relativePath);
@@ -266,7 +176,7 @@ describe("portable Codex Run Artifact sanitizer", () => {
         ).toBe(0);
       }
 
-      const runLog = "runs/20990101-000000-JST/logs/codex-task.jsonl";
+      const runLog = "runs/20990101-000000-JST/logs/session.jsonl";
       const runLogPath = path.join(cwd, runLog);
       mkdirSync(path.dirname(runLogPath), { recursive: true });
       writeFileSync(runLogPath, "{}\n", "utf8");
@@ -283,11 +193,10 @@ describe("portable Codex Run Artifact sanitizer", () => {
 
   it("rejects staged and committed runtime-only paths without changing the index or worktree", () => {
     const runtimeFiles = [
-      ["LOGS/codex-task-clean.jsonl", '{"event":"clean"}\n'],
-      [".ARTIFACTS/CODEX-TASK/artifacts/output.json", '{"ok":true}\n'],
+      ["LOGS/session-clean.jsonl", '{"event":"clean"}\n'],
       [".aRtIfAcTs\\CoDeX-HoOkS\\hooks-clean.jsonl", '{"event":"clean"}\n'],
     ] as const;
-    const runLog = "runs/20990101-000000-JST/logs/codex-task.jsonl";
+    const runLog = "runs/20990101-000000-JST/logs/session.jsonl";
     const contentPaths = [...runtimeFiles.map(([relativePath]) => relativePath), runLog];
     const readContent = (directory: string) =>
       contentPaths.map((relativePath) => readFileSync(path.join(directory, relativePath), "utf8"));
@@ -614,17 +523,6 @@ describe("portable Codex Run Artifact sanitizer", () => {
       ].join("\n"),
     );
 
-    const powershellTask = read("scripts/codex-task.ps1");
-    expect(powershellTask).toContain("sanitize-codex-artifacts.mjs");
-    expect(powershellTask).toContain(
-      "$state.output_file, $state.report_path, $state.log_path, $state.manifest_path, $state.evaluation_file_path",
-    );
-    expect(powershellTask).not.toContain("ConvertTo-CodexSanitizedValue");
-    const bashTask = read("scripts/codex-task.sh");
-    expect(bashTask).toContain("trap sanitize_known_outputs_on_exit EXIT");
-    expect(bashTask).toContain("--write --check");
-    expect(bashTask).toContain('targets+=("$output_file" "$report_path" "$log_path")');
-
     const workflow = read(".github/workflows/ci.yml");
     const job = workflow.slice(
       workflow.indexOf("  codex-artifact-sanitization:"),
@@ -641,12 +539,6 @@ describe("portable Codex Run Artifact sanitizer", () => {
     expect(job).toContain('"workflow_dispatch"');
     expect(job).toContain("A resolvable base commit is required.");
     expect(job).not.toContain("Test-Path");
-    const windowsContracts = workflow.slice(
-      workflow.indexOf("  codex-hook-contract-windows:"),
-      workflow.indexOf("  vitest:", workflow.indexOf("  codex-hook-contract-windows:")),
-    );
-    expect(windowsContracts).toContain("Run native command contracts");
-    expect(windowsContracts).toContain("tests/contracts/codex-task-native-command.test.ts");
     const fallback = read(".github/workflows/security-dependency-fallback.yml");
     expect(fallback).toContain("node scripts/sanitize-codex-artifacts.mjs --path");
     expect(fallback).not.toContain("pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1");
@@ -655,206 +547,6 @@ describe("portable Codex Run Artifact sanitizer", () => {
     );
   });
 
-  it.skipIf(!bashAvailable)(
-    "sanitizes the Bash wrapper's known outputs for both Run and non-Run execution paths",
-    () => {
-      const defaultPaths = createShellWrapperFixture();
-      try {
-        const result = runShellWrapper(defaultPaths, [
-          "--skip-preflight",
-          "--skip-verify",
-          "safe prompt",
-        ]);
-        const artifactsDirectory = path.join(
-          defaultPaths.cwd,
-          ".artifacts",
-          "codex-task",
-          "artifacts",
-        );
-        const reportsDirectory = path.join(defaultPaths.cwd, ".artifacts", "codex-task", "reports");
-        const logsDirectory = path.join(defaultPaths.cwd, "logs");
-        const artifactName = readdirSync(artifactsDirectory).find((name) =>
-          /^codex-task-.*\.json$/.test(name),
-        );
-        const reportName = readdirSync(reportsDirectory).find((name) =>
-          /^codex-task-.*\.report\.json$/.test(name),
-        );
-        const logName = readdirSync(logsDirectory).find((name) =>
-          /^codex-task-.*\.jsonl$/.test(name),
-        );
-
-        expect(result.error).toBeUndefined();
-        expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
-        expect(artifactName).toBeDefined();
-        expect(reportName).toBeDefined();
-        expect(logName).toBeDefined();
-        expect(existsSync(path.join(defaultPaths.cwd, ".codex", "artifacts"))).toBe(false);
-        expect(existsSync(path.join(defaultPaths.cwd, ".codex", "reports"))).toBe(false);
-        for (const target of [
-          path.join(artifactsDirectory, artifactName!),
-          path.join(reportsDirectory, reportName!),
-          path.join(logsDirectory, logName!),
-        ]) {
-          expect(readFileSync(target, "utf8")).not.toContain(
-            defaultPaths.cwd.replaceAll("\\", "/"),
-          );
-        }
-      } finally {
-        rmSync(defaultPaths.cwd, { recursive: true, force: true });
-      }
-
-      const noRun = createShellWrapperFixture();
-      try {
-        const custom = path.join(noRun.cwd, "custom");
-        mkdirSync(custom, { recursive: true });
-        const outputPath = path.join(custom, "output.txt");
-        const reportPath = path.join(custom, "report.json");
-        const logPath = path.join(custom, "log.jsonl");
-        const result = runShellWrapper(noRun, [
-          "--skip-preflight",
-          "--skip-verify",
-          "--output-file",
-          outputPath,
-          "--report-path",
-          reportPath,
-          "--log-path",
-          logPath,
-          "safe prompt",
-        ]);
-        expect(result.error).toBeUndefined();
-        expect(result.status, `${result.stderr}\n${result.stdout}`).toBe(0);
-        for (const target of [outputPath, reportPath, logPath]) {
-          expect(readFileSync(target, "utf8")).not.toContain(noRun.cwd.replaceAll("\\", "/"));
-        }
-      } finally {
-        rmSync(noRun.cwd, { recursive: true, force: true });
-      }
-
-      const withRun = createShellWrapperFixture();
-      try {
-        const runId = "20990101-000000-JST";
-        mkdirSync(path.join(withRun.cwd, "runs", runId), { recursive: true });
-        const result = runShellWrapper(withRun, [
-          "--skip-preflight",
-          "--run-id",
-          runId,
-          "--record-run-manifest",
-          "--evaluation-template",
-          "--verify-command",
-          `printf '${withRun.cwd}/verify' >/dev/null`,
-          "safe prompt",
-        ]);
-        expect(result.error).toBeUndefined();
-        expect(result.status, result.stderr).toBe(0);
-        const runRoot = path.join(withRun.cwd, "runs", runId);
-        const artifactPath = path.join(
-          runRoot,
-          "artifacts",
-          readdirSync(path.join(runRoot, "artifacts"))[0]!,
-        );
-        const reportPath = path.join(
-          runRoot,
-          "reports",
-          readdirSync(path.join(runRoot, "reports"))[0]!,
-        );
-        const logPath = path.join(runRoot, "logs", readdirSync(path.join(runRoot, "logs"))[0]!);
-        const manifestPath = path.join(runRoot, "run.json");
-        const evaluationPath = path.join(runRoot, "evaluation.json");
-        for (const target of [artifactPath, reportPath, logPath, manifestPath, evaluationPath]) {
-          expect(readFileSync(target, "utf8")).not.toContain(withRun.cwd.replaceAll("\\", "/"));
-        }
-        expect(JSON.parse(readFileSync(manifestPath, "utf8"))).toMatchObject({ run_id: runId });
-        expect(JSON.parse(readFileSync(evaluationPath, "utf8"))).toMatchObject({ run_id: runId });
-      } finally {
-        rmSync(withRun.cwd, { recursive: true, force: true });
-      }
-
-      const codexFailure = createShellWrapperFixture();
-      try {
-        const custom = path.join(codexFailure.cwd, "custom");
-        mkdirSync(custom, { recursive: true });
-        const outputPath = path.join(custom, "output.txt");
-        const reportPath = path.join(custom, "report.json");
-        const logPath = path.join(custom, "log.jsonl");
-        const result = runShellWrapper(
-          codexFailure,
-          [
-            "--skip-preflight",
-            "--skip-verify",
-            "--output-file",
-            outputPath,
-            "--report-path",
-            reportPath,
-            "--log-path",
-            logPath,
-            "safe prompt",
-          ],
-          { codexExitCode: 7 },
-        );
-        expect(result.status).toBe(7);
-        for (const target of [outputPath, reportPath, logPath]) {
-          expect(readFileSync(target, "utf8")).not.toContain(
-            codexFailure.cwd.replaceAll("\\", "/"),
-          );
-        }
-        expect(JSON.parse(readFileSync(reportPath, "utf8"))).toMatchObject({
-          status: "codex_failed",
-        });
-      } finally {
-        rmSync(codexFailure.cwd, { recursive: true, force: true });
-      }
-
-      const verifyFailure = createShellWrapperFixture();
-      try {
-        const custom = path.join(verifyFailure.cwd, "custom");
-        mkdirSync(custom, { recursive: true });
-        const outputPath = path.join(custom, "output.txt");
-        const reportPath = path.join(custom, "report.json");
-        const logPath = path.join(custom, "log.jsonl");
-        const result = runShellWrapper(verifyFailure, [
-          "--skip-preflight",
-          "--verify-command",
-          "exit 9",
-          "--output-file",
-          outputPath,
-          "--report-path",
-          reportPath,
-          "--log-path",
-          logPath,
-          "safe prompt",
-        ]);
-        expect(result.status).toBe(9);
-        for (const target of [outputPath, reportPath, logPath]) {
-          expect(readFileSync(target, "utf8")).not.toContain(
-            verifyFailure.cwd.replaceAll("\\", "/"),
-          );
-        }
-        expect(JSON.parse(readFileSync(reportPath, "utf8"))).toMatchObject({
-          status: "verify_failed",
-        });
-      } finally {
-        rmSync(verifyFailure.cwd, { recursive: true, force: true });
-      }
-
-      const sanitizerFailure = createShellWrapperFixture();
-      try {
-        const custom = path.join(sanitizerFailure.cwd, "custom");
-        mkdirSync(custom, { recursive: true });
-        const outputPath = path.join(custom, "invalid.json");
-        const result = runShellWrapper(
-          sanitizerFailure,
-          ["--skip-preflight", "--skip-verify", "--output-file", outputPath, "safe prompt"],
-          { outputMode: "invalid" },
-        );
-        expect(result.status).toBe(1);
-        expect(readFileSync(outputPath)).toEqual(Buffer.from([0xff]));
-        expect(result.stderr).toContain("Known Run output sanitization failed");
-      } finally {
-        rmSync(sanitizerFailure.cwd, { recursive: true, force: true });
-      }
-    },
-    120_000,
-  );
   it("records the completion gate in the operator agreement", () => {
     const agents = read("AGENTS.md");
     const repairReference = read("docs/reference/repair-loop.md");

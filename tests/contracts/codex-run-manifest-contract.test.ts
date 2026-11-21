@@ -17,9 +17,44 @@ function nextRunId() {
 function copyCollectorToFixture(tempRoot: string) {
   const scriptsRoot = path.join(tempRoot, "scripts");
   const fixtureCollectorPath = path.join(scriptsRoot, "collect-run-artifacts.py");
+  const fixtureValidatorPath = path.join(scriptsRoot, "validate-output-schema.py");
+  const templatesRoot = path.join(tempRoot, ".codex", "templates");
   fs.mkdirSync(scriptsRoot, { recursive: true });
+  fs.mkdirSync(templatesRoot, { recursive: true });
   fs.copyFileSync(collectorPath, fixtureCollectorPath);
+  fs.copyFileSync(
+    path.join(repoRoot, "scripts", "validate-output-schema.py"),
+    fixtureValidatorPath,
+  );
+  fs.copyFileSync(
+    path.join(repoRoot, ".codex", "templates", "evaluation.schema.json"),
+    path.join(templatesRoot, "evaluation.schema.json"),
+  );
   return fixtureCollectorPath;
+}
+
+function validEvaluation(runId: string) {
+  const dimensions = Object.fromEntries(
+    [
+      "task_completion",
+      "scope_control",
+      "validation_confidence",
+      "safety_compliance",
+      "reviewability",
+      "maintainability",
+      "reproducibility",
+    ].map((name) => [name, { rating: "pass", evidence: "Valid contract fixture evidence" }]),
+  );
+  return {
+    schema_version: 1,
+    run_id: runId,
+    result: "pass",
+    primary_failure_category: null,
+    failure_categories: [],
+    dimensions,
+    findings: [],
+    improvement_candidates: [],
+  };
 }
 
 type Manifest = {
@@ -36,6 +71,9 @@ function runCollector(
   baseManifest?: Record<string, unknown>,
   refreshGitChangedFiles = false,
   includeEvaluation = false,
+  strict = false,
+  expectFailure = false,
+  evaluationContents?: string | ((runId: string) => string),
 ) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-contract-"));
   const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
@@ -47,11 +85,11 @@ function runCollector(
   fs.mkdirSync(runRoot, { recursive: true });
   fs.writeFileSync(manifestPath, `${JSON.stringify(existingManifest)}\n`, "utf8");
   if (includeEvaluation) {
-    fs.writeFileSync(
-      path.join(runRoot, "evaluation.json"),
-      `${JSON.stringify({ run_id: runId, primary_failure_category: null })}\n`,
-      "utf8",
-    );
+    const contents =
+      typeof evaluationContents === "function"
+        ? evaluationContents(runId)
+        : (evaluationContents ?? `${JSON.stringify(validEvaluation(runId))}\n`);
+    fs.writeFileSync(path.join(runRoot, "evaluation.json"), contents, "utf8");
   }
   if (baseManifest) {
     fs.writeFileSync(baseManifestPath, `${JSON.stringify(baseManifest)}\n`, "utf8");
@@ -92,11 +130,14 @@ function runCollector(
     if (refreshGitChangedFiles) {
       args.push("--refresh-git-changed-files");
     }
+    if (strict) {
+      args.push("--strict");
+    }
     const result = spawnSync(process.platform === "win32" ? "python" : "python3", args, {
       cwd: tempRoot,
       encoding: "utf8",
     });
-    expect(result.status, result.stderr).toBe(0);
+    expect(result.status, result.stderr).toBe(expectFailure ? 1 : 0);
     return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Manifest;
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -611,21 +652,186 @@ describe("run manifest v2 contract", () => {
     expect(manifest.validation.warnings).toEqual([]);
   });
 
-  it("keeps every manifest writer on the v2 shape for new runs", () => {
+  it("initializes new Runs from the manifest template and refreshes them through the collector", () => {
     const template = JSON.parse(
       fs.readFileSync(path.join(repoRoot, ".codex", "templates", "RUN_MANIFEST.json"), "utf8"),
     ) as Manifest;
-    const powershell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.ps1"), "utf8");
-    const shell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), "utf8");
+    const newRunShell = fs.readFileSync(path.join(repoRoot, "scripts", "new-run.sh"), "utf8");
+    const newRunPowerShell = fs.readFileSync(path.join(repoRoot, "scripts", "new-run.ps1"), "utf8");
+    const collector = fs.readFileSync(collectorPath, "utf8");
+    const collectorShell = fs.readFileSync(
+      path.join(repoRoot, "scripts", "collect-run-artifacts.sh"),
+      "utf8",
+    );
+    const collectorPowerShell = fs.readFileSync(
+      path.join(repoRoot, "scripts", "collect-run-artifacts.ps1"),
+      "utf8",
+    );
 
     expect(template.schema_version).toBe(2);
+    expect(template).not.toHaveProperty("preset");
     expect(template).not.toHaveProperty("agents_used");
     expect(template).not.toHaveProperty("hook_observations");
     expect(template).not.toHaveProperty("subagents");
-    expect(powershell).toContain("schema_version = 2");
-    expect(shell).toContain('"schema_version": 2');
-    expect(powershell).toContain("$existingIsV1");
-    expect(shell).toContain('existing.get("schema_version") == 1');
+    expect(newRunShell).toContain(
+      'render_run_manifest "$repo_root/.codex/templates/RUN_MANIFEST.json" "$run_root/run.json"',
+    );
+    expect(newRunShell).toContain("if (( ! no_run_manifest )); then");
+    expect(newRunPowerShell).toContain('Join-Path $runRoot "run.json"');
+    expect(newRunPowerShell).toContain('"RUN_MANIFEST.json"');
+    expect(collectorShell).toContain("collect-run-artifacts.py");
+    expect(collectorPowerShell).toContain("collect-run-artifacts.py");
+    expect(collector).toContain("manifest_path.write_text(json.dumps(manifest");
+    expect(collector).toContain(
+      'existing_is_v1 = isinstance(existing_data, dict) and existing_data.get("schema_version") == 1',
+    );
+    expect(collector).toContain(
+      'base_is_v1 = isinstance(base_data, dict) and base_data.get("schema_version") == 1',
+    );
+
+    const fallbackManifest = runCollector({
+      schema_version: 2,
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+    expect(fallbackManifest).not.toHaveProperty("preset");
+  });
+
+  it("preserves preset only as compatibility metadata when refreshing an existing manifest", () => {
+    const manifest = runCollector({
+      schema_version: 2,
+      preset: "auto-net",
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+
+    expect(manifest.preset).toBe("auto-net");
+  });
+
+  it("writes a warning manifest and exits nonzero when strict collection lacks evaluation.json", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      false,
+      true,
+      true,
+    );
+
+    expect(manifest.artifact_summary.evaluation_present).toBe(false);
+    expect(manifest.validation.status).toBe("passed_with_warnings");
+    expect(manifest.validation.warnings).toContainEqual(
+      expect.objectContaining({
+        type: "evaluation_missing",
+        path: `runs/${String(manifest.run_id)}/evaluation.json`,
+      }),
+    );
+  });
+
+  it("passes strict collection when evaluation.json matches the Run", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+      true,
+    );
+
+    expect(manifest.artifact_summary.evaluation_present).toBe(true);
+    expect(manifest.validation.warnings).toEqual([]);
+  });
+
+  it("does not import primary_failure_category from a schema-invalid strict evaluation", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        primary_failure_category: null,
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+      true,
+      true,
+      (runId) =>
+        `${JSON.stringify({
+          ...validEvaluation(runId),
+          result: "invalid-result",
+          primary_failure_category: "artifact_contract_gap",
+        })}\n`,
+    );
+
+    expect(manifest.primary_failure_category).toBeNull();
+    expect(manifest.validation.warnings).toContainEqual(
+      expect.objectContaining({ type: "evaluation_schema_invalid" }),
+    );
+  });
+
+  it.each([
+    {
+      name: "malformed JSON",
+      warningType: "evaluation_invalid_json",
+      contents: "{ invalid json\n",
+    },
+    {
+      name: "mismatched Run ID",
+      warningType: "evaluation_run_id_mismatch",
+      contents: (runId: string) => `${JSON.stringify(validEvaluation(`${runId}-other`))}\n`,
+    },
+    {
+      name: "non-object JSON",
+      warningType: "evaluation_not_object",
+      contents: "[]\n",
+    },
+    {
+      name: "schema-invalid object",
+      warningType: "evaluation_schema_invalid",
+      contents: (runId: string) => `${JSON.stringify({ schema_version: 1, run_id: runId })}\n`,
+    },
+  ])("writes the manifest and fails strict collection for $name", ({ warningType, contents }) => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        workflow_level: "strict",
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      true,
+      true,
+      true,
+      contents,
+    );
+
+    expect(manifest.validation.status).toBe("passed_with_warnings");
+    expect(manifest.validation.warnings).toContainEqual(
+      expect.objectContaining({
+        type: warningType,
+        path: `runs/${String(manifest.run_id)}/evaluation.json`,
+      }),
+    );
+  });
+
+  it("allows non-strict collection without evaluation.json", () => {
+    const manifest = runCollector({
+      schema_version: 2,
+      workflow_level: "standard",
+      validation: { status: "not_run", commands: [], warnings: [] },
+    });
+
+    expect(manifest.artifact_summary.evaluation_present).toBe(false);
+    expect(manifest.validation.warnings).toEqual([]);
   });
 
   it("keeps the existing changed_files list when refresh is not requested", () => {

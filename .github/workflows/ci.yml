@@ -238,16 +238,6 @@ jobs:
       - name: Run focused Hook contracts
         run: pnpm run test:hooks
 
-      - name: Run native command contracts
-        run: >-
-          pnpm exec vitest run
-          tests/contracts/codex-task-native-command.test.ts
-          tests/contracts/codex-safe-run-manifest-sync.test.ts
-          tests/contracts/cleanup-runs-contract.test.ts
-          --no-file-parallelism
-          --maxWorkers=1
-          --testTimeout=30000
-
       - name: Run runtime-only sanitizer contracts
         run: >-
           pnpm exec vitest run

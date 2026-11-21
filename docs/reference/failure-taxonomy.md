@@ -20,7 +20,7 @@
 | `instruction_gap` | 指示が曖昧で Codex が判断に迷った | `AGENTS.md`, skills |
 | `scope_creep` | 不要な変更を行った | worker policy, allowed files |
 | `missing_context` | 必要なファイルや背景情報を確認していない | planning skill |
-| `missing_validation` | 検証不足 | `codex-task`, validation plan |
+| `missing_validation` | 検証不足 | validation plan |
 | `unsafe_action_blocked` | 危険な操作が rule や hook で阻止された | rules, hooks, prompt policy |
 | `bad_subagent_delegation` | subagent への委譲が不適切 | subagent policy |
 | `flaky_or_env_issue` | 環境差異や不安定性による問題 | sandbox, setup docs |
@@ -63,7 +63,7 @@
 - artifact のスキーマ・責務・正本関係（source-of-truth relationship）が不明確で、Run 自体を評価できない場合に限って使用します。
 - 例:
   - `run.json` と `evaluation.json` のどちらが失敗の解釈（failure interpretation）の正本なのか不明な場合
-  - `codex-task` レポート JSON と `run.json` の責務が重複しており、観測事実の正本を特定できない場合
+  - 実行記録と `run.json` の責務が重複しており、観測事実の正本を特定できない場合
 
 ### 誤用防止
 

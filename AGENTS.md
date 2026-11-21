@@ -1,6 +1,6 @@
 # Repository Agent Working Agreement
 
-Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / wrapper / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。
+Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユーザーの明示指示と対象範囲を優先し、この文書と必要時に指定された正本へ従うこと。ただし、`.codex/**`、Codex Hook / native delegation、`ci_wait`等のCodex固有契約はCodexだけに適用する。
 
 ## 1. 基本原則と常駐契約
 
@@ -35,7 +35,7 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
 - 人間向け文章の言語・表現を判断する場合: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)。
 
-このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。実体の`run.json`はmachine-managedとし、Git管理するRun Artifactはcommit前にsanitizerとcredential/security scanを通す。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。`.codex/runs/**`はpreserved legacy/historyとして扱い、移動・削除・書換えを行わない。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
+このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。実体の`run.json`はmachine-managedとし、Git管理するRun Artifactはcommit前にsanitizerとcredential/security scanを通す。Codex CLIはLinuxのリポジトリrootから`codex`を直接起動する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。`.codex/runs/**`はpreserved legacy/historyとして扱い、移動・削除・書換えを行わない。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
 ## 4. 品質ゲートとrepairの高レベル契約
 
@@ -74,4 +74,4 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 
 - L1: wordingのみの文書改善は、`REPORT.md`に記録すれば自己承認でよい。
 - L2: workflowやtemplate構造の変更は、実装前にユーザー承認が必要。
-- L3: permission / sandbox / approval / wrapper behaviorの変更は、実装前に明示承認とrollback planが必要。
+- L3: permission / sandbox / approval / Codex startup behaviorの変更は、実装前に明示承認とrollback planが必要。

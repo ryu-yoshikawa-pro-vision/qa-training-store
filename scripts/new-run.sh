@@ -9,7 +9,6 @@ Options:
   --run-id <id>
   --task-type <plan|review|implementation|investigation|repair|harness-improvement>
   --workflow-level <lightweight|standard|strict>
-  --preset <safe|readonly|auto-net>
   --no-plan
   --no-run-manifest
   --force
@@ -27,7 +26,6 @@ repo_root="$(cd "$script_dir/.." && pwd -P)"
 run_id=""
 task_type="implementation"
 workflow_level="standard"
-preset="safe"
 no_plan=0
 no_run_manifest=0
 
@@ -56,11 +54,6 @@ parse_args() {
       --workflow-level)
         [[ $# -ge 2 ]] || { echo "--workflow-level requires a value" >&2; exit 2; }
         workflow_level="$2"
-        shift 2
-        ;;
-      --preset)
-        [[ $# -ge 2 ]] || { echo "--preset requires a value" >&2; exit 2; }
-        preset="$2"
         shift 2
         ;;
       --no-plan)
@@ -95,7 +88,6 @@ render_run_manifest() {
   content="${content//<run_id>/$run_id}"
   content="${content//\"task_type\": \"implementation\"/\"task_type\": \"$task_type\"}"
   content="${content//\"workflow_level\": \"standard\"/\"workflow_level\": \"$workflow_level\"}"
-  content="${content//\"preset\": \"safe\"/\"preset\": \"$preset\"}"
   printf '%s\n' "$content" > "$output_path"
 }
 
@@ -122,14 +114,6 @@ case "$workflow_level" in
   lightweight|standard|strict) ;;
   *)
     echo "Invalid --workflow-level: $workflow_level" >&2
-    exit 2
-    ;;
-esac
-
-case "$preset" in
-  safe|readonly|auto-net) ;;
-  *)
-    echo "Invalid --preset: $preset" >&2
     exit 2
     ;;
 esac

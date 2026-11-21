@@ -6,35 +6,39 @@
 
 ## 運用の要点
 
-- `AGENTS.md` の読込順と run 運用を必ず守る。
-- 人間向け文書の言語と表現は [`WRITING_STANDARDS.md`](WRITING_STANDARDS.md) を正本とする。
-- 計画依頼では package-local [`feature-plan template`](../.agents/skills/feature-plan/assets/plan-template.md) をベースに計画書を作り、Repositoryの保存契約に従って `docs/plans/` へ保存する。
-- `docs/reports/` は durable な調査・監査・検証結果だけに使う。review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録では作らない。
-- 新規Runの進捗と実行ログは `runs/<run_id>/REPORT.md` と `runs/<run_id>/logs/` に残す。`.codex/runs/**`はpreserved legacy/historyであり、移動・削除・書換えない。Run ArtifactはParentが管理し、childは作成・更新しない。`run.json`はmachine-managedとする。
-- Run IDなしの`codex-safe`／`codex-task`とLogging Hookはroot `logs/`を使い、Run IDなしのtask output／reportは`.artifacts/codex-task/artifacts/`と`.artifacts/codex-task/reports/`を使う。これらはGit管理しない。Run ID指定時の出力先は引き続き`runs/<run_id>/{logs,artifacts,reports}/`とする。
-- 通常のinteractive作業はRepository内からdirect `codex`を起動する。project defaultは`workspace-write`／`approval_policy = "never"`／workspace network access enabledであり、execpolicy `prompt`は自動拒否される。
-- safe wrapperはnetwork falseを明示し、local例外操作・recoveryにはon-request approvalを提供する。高影響network例外はapprovalとnetwork sandbox昇格のread-only runtime確認後に限る。`auto-net`は明示利用する既存presetとして維持する。
-- shell / PowerShell / git command によるファイル削除は禁止する。direct workspace-writeの`apply_patch`で通常編集・新規作成は可能だが、削除・rename・moveには明示された対象とレビュー可能な理由、または必要性・影響・migration理由の確認が必要。
-- read-only 調査 subagent は調査結果だけを返し、編集・作成・削除を行わない。
-- `implementation_worker` は親 agent が承認した小さく限定された実装だけを担当し、対象ファイル以外の編集、削除、rename、git mutation を行わない。
-- 重要な意思決定は `docs/adr/` に記録する。
-- `docs/PROJECT_CONTEXT.md` 自体は living document として更新し、履歴は `docs/history/` に残す。
+- `AGENTS.md` の読込順とRun運用を守る。
+- 通常はLinuxのプロジェクトルートから `codex` を直接起動する。.codex/config.tomlのsandbox、approval、network、Hooks、agents、共通execpolicy設定を維持する。
+- project config/rulesはCodexのproject trust条件を満たす場合に読み込まれる。非managed環境ではHook定義もtrustが必要。PreToolUse matcherはBashのみで、`apply_patch`やMCP操作は対象外。runtimeでHookが発火することは静的設定だけでは証明できない。
+- strict Runは `scripts/new-run.*` で初期化し、直接 `codex` を実行する。必要なmanifest更新は既存 `scripts/collect-run-artifacts.*` を明示実行する。`run.json`はmachine-managedとする。
+- 新規manifestにpreset既定値は出力しない。既存の`preset`と`run.json.safety.network`はwrapper由来のlegacy compatibility dataであり、直接`codex`のactive policyや実行時ネットワーク観測値ではない。collectorは既存値を保持する。
+- 日付付きの過去記録にある`codex-task` report等への参照は、当時存在したartifact evidenceを指す歴史情報であり、現行Runの記録経路ではない。現行のRun evidenceはRun-local `REPORT.md`、machine-managed `run.json`、validation結果などへ記録する。
+- Run Artifact、sanitizer、credential/security scan、Git安全性契約を維持する。`.codex/runs/**`はpreserved legacy/historyとして変更しない。
+- shell / PowerShell / git command によるファイル削除は禁止する。削除・rename・moveには明示された対象と理由が必要。
+- ParentがRun Artifactを管理し、childは作成・更新しない。
+- 重要な意思決定は `docs/adr/` に記録する。PROJECT_CONTEXTの運用理解が変わった場合のみ更新し、履歴は`docs/history/`へ残す。
+
+以降の日付付きセクションは各記載日の状態を示す履歴です。codex-safe／auto-net／codex-taskやruntime write rootに関する過去の記述を現行手順として読み替えず、現行手順はこの冒頭の運用要約とリンク先の正本を参照してください。
+
+## 現行Codex起動とHook確認（2026-11-21）
+
+- 本RepositoryのCodex CLIはLinuxのリポジトリrootから直接 `codex` を起動する。PowerShellによるローカルチェックは通常の完了条件に含めず、Windows対応とWindows向けCI／契約は維持する。
+- PreToolUse Hookの設定matcherは `^Bash$` であり、`apply_patch`やMCP toolには適用されない。今回の環境ではユーザー側 `~/.codex` のSQLiteがread-onlyのためruntime Hook状態を確認できず、runtimeでの配信・発火は未検証とする。
 
 ## ディレクトリ構成
 
-- `.codex/templates/`: PLAN / TASKS / REPORT の run テンプレート
+- `.codex/templates/`: PLAN / TASKS / REPORT のRunテンプレート
 - `runs/`: 新規Run Artifactのcanonical root
-- `logs/`: Run IDなしのCodex wrapper／Hookログ。Git管理外
-- `.artifacts/codex-task/`: Run IDなしのtask output／report。Git管理外
-- `.codex/runs/`: preserved legacy/history。新規Runの作成・更新先やcleanup対象にしない
+- `logs/`: Git管理外のHook等ログ
+- `.artifacts/`: Git管理外の一時artifact
+- `.codex/runs/`: preserved legacy/history。変更しない
 - `.codex/agents/`: project-scoped custom agents
-- `.codex/rules/`: execpolicy ルール
-- `.agents/skills/`: repo-local の planning / review workflow と references
-- `docs/plans/`: ユーザー向け計画書
-- `docs/reports/`: durable な調査・監査・検証レポート
-- `docs/reference/`: operator / maintainer 向け補助資料
-- `scripts/`: `codex-safe` / `codex-task` / `codex-sandbox` と verify
-- `codex-project.toml`: template 適用後の project metadata
+- `.codex/rules/`: execpolicyルール
+- `.agents/skills/`: repo-local workflow
+- `docs/plans/`: 計画書
+- `docs/reports/`: durableな調査・監査・検証レポート
+- `docs/reference/`: operator / maintainer向け補助資料
+- `scripts/`: Run初期化、collector、sanitizer、verify等
+- `codex-project.toml`: template適用後のproject metadata
 
 ## Runtime write root migration（2026-11-20）
 
@@ -415,7 +419,7 @@
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。
-- 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。
+- Codexの標準経路はLinuxプロジェクトrootからの直接 `codex` 起動です。Run初期化とstrict manifest更新には、既存の `scripts/new-run.*` と `scripts/collect-run-artifacts.*` を使います。
 
 ## Screen Catalog / Visual Specification（2026-08-12）
 
