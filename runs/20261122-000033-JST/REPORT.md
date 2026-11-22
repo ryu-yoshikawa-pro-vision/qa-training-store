@@ -238,3 +238,16 @@
 - Repair iteration 3: retain the focused target and invoke the existing measured-origin scroll helper again from ScrollView `onKeyboardDidShow`, after React Native records keyboard coordinates. Keep immediate focus handling where relevant. Allowed files remain Native purchase screen and its component test. This is a bounded final iteration for this issue; if the next Android pixel check still fails, stop for a distinct diagnosis rather than another blind edit.
 - Current decisions: task 6 and final task 7 remain open despite green CI. The existing capture case's canonical image remains unchanged. Request a new workflow dispatch only after the next repair head's CI and runtime screenshot prove the keyboard-open field is fully visible.
 - Progress: 50% (5/10)
+
+## 2026-11-22 13:13 (JST) - Android Runtime受入再確認とrepair停止
+
+- Summary: HEAD `d30fd725f29898701b726b3dc5413c235bdda539`のAndroid Runtime証跡を確認した。Native住所2行目の日本語入力・値保持・注文確認表示は実行証拠で確認したが、IME表示中の入力欄は隠れたままのため視覚受入はFAIL。
+- Changes: 製品ソース・Maestro flow・canonical画像は変更していない。Android Runtimeの最新証跡と停止判断をRunへ記録した。税額方針は既承認で正式仕様/DTO/画面契約と一致しており、実装変更なし。
+- 判断 / 理由: 同一run artifact `native-android-runtime-evidence-44981409641` (14738885970)のkeyboard screenshot SHA-256は`021386c9ee2f3cbc3d4de6a13da6ebb2ade577f5c2d72cae93d1f0ff7aecbc92`。前回repair screenshotと同一で、IMEが住所2行目入力欄下部と入力文字に重なる。`commands.json`では値assert後のkeyboard-open screenshot、`maestro.log`ではIME表示後に撮影しており、早すぎるcaptureではない。artifact logからアプリ内keyboard callback/scroll実行は観測できず、callback未発火と座標計算誤りを区別できない。既に3回の限定スクロール修復でpixel変化がないためrepair-loopは`stop_no_progress`。新しい原因証拠なしに追加修正しない。
+- Validation: d30 HEADのWeb CI #44981409676 success、Mobile App CI #44981409641 success。Android Runtime/Maestro job `137085547600` success。住所2行目入力、戻り、再起動後復元、confirmationの既存Maestro assertionは通過。confirmationでは住所2行目が住所1行目の後に一度表示され、金額は小計・会員割引・送料・合計のみ。独立read-only re-reviewは実装差分に新しいP1/P2を報告していないが、pixel acceptanceを覆すものではない。
+- ブロッカー / 残作業: GitHub UIによる登録済みcase `SCREEN-CHECKOUT-ADDRESS/default/android`のworkflow_dispatchが未取得。通常push CIではvisual capture stepがskipされ、manifest/raw PNG/同一run APKを使ったcanonical比較は未完了。既存canonicalは住所2行目欄を欠くため、manifest/APK/profile/source SHAを検証したdefault captureを取得後にのみ更新判断する。追加コード修正は根本原因の別証拠が得られるまで停止。物理AndroidおよびiOS runtimeも未実施。
+- Subagent:
+  - Delegation: `/root/review_ui_native`へcommands.json、Maestro log、端末logcatのread-only時系列確認を依頼。
+  - Result: line2をfocusする前の明示scrollに続き、日本語入力・値assert・keyboard-open screenshotの順。IME onShownはscreenshotより前で、captureがIME表示前ではないと確認。logにはアプリ内callback/scroll呼び出しの記録なし。
+  - 親Agentの判断: 3回の対象修復後も同一pixel failureであり`stop_no_progress`。推測修正を追加せず、未受入とGitHub UI capture blockerを明示する。
+- Progress: 60% (6/10)

@@ -141,3 +141,10 @@ PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用�
 - 独立再レビューでは、最初の修正の16dp固定offsetがNativeShellのScrollView開始Yを補わないため、IME重なりが残り得ると指摘された。第2反復では`getNativeScrollRef().measureInWindow()`でwindow Yを得て余白と合算する。対応component test 48件とtypecheckはPASSし、第2回read-only reviewで追加findingなし。修復後Android Runtime pixel確認・canonical artifact/manifest/APK照合は未完了。
 - PR HEAD `75f649a35d8d646e5d9e0e4342d21f1b92312c84`のWeb CI #44977825833とMobile App CI #44977825780はsuccess。Android Runtime/Maestro job `137075464249`のpurchase/restart flowもsuccessし、同一run Artifact `native-android-runtime-evidence-44977825780`から修復後の画像を取得した。しかしkeyboard-open PNGでもIMEが住所2行目欄と日本語文字に重なり、視認性の受入条件は未達。CI greenやhelper呼出しassertionはpixel受入を意味しない。React Native `ScrollView`のkeyboardDidShow handlerがkeyboard metricsを設定するため、focus時だけのscrollに加えてkeyboardDidShow後の再測定・再スクロールを加える最終限定修正を行い、Android Runtimeを再取得する。
 - 最終限定反復では、focus targetを保持してblurで消去し、React Nativeの`onKeyboardDidShow`後（RN 0.86.3がkeyboard metricsを設定した後）にScrollView window Yを含む同じスクロール処理を再実行する。すでにkeyboard metricsが存在する場合のfocus即時経路も維持。Native focused-screen 49 tests / Native component 90 tests / typecheck / formatはPASSし、独立read-only reviewで新規findingなし。修復後Android screenshotのみ未確認。
+
+### 2026-11-22 d30 Android Runtime keyboard visual結果
+
+- d30 `d30fd725f29898701b726b3dc5413c235bdda539`のWeb CI #44981409676、Mobile App CI #44981409641、Android Runtime/Maestro job `137085547600`はsuccess。artifact `native-android-runtime-evidence-44981409641` (14738885970)は当該SHAに紐づく。
+- Android keyboard-open screenshotではIMEが任意住所2行目の入力欄下部と一部文字に重なり、受入条件は未達。日本語入力値は戻り・再起動後に保持され、confirmationでは住所1行目の次に一度表示される。価格表示は小計・会員割引・送料・合計の4項目。
+- `commands.json` / `maestro.log` / device logcatの時系列ではIME `onShown`後に撮影されており、早撮りが原因ではない。同じ画面のSHA-256は直前repair runのscreenshotと同一。app内callback/scroll実行はartifact logに出ないため、callback未発火と座標計算の誤りは判別できない。
+- 3回の限定scroll修復後もpixel進展がなく、repair-loopを`stop_no_progress`として停止した。新しい原因証拠なしに追加修復しない。GitHub UIによる登録済み`SCREEN-CHECKOUT-ADDRESS/default/android` captureのmanifest/raw PNG/APK/profile検証とcanonical比較はまだ未実施。現行canonicalは住所2行目欄が欠けているため、正規artifact確認後にdefault画像のみ更新を判断する。物理Android/iOS runtimeも未実施で、PR #210のmergeは推奨しない。
