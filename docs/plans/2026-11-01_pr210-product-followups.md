@@ -156,3 +156,10 @@ PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用�
 - 原因はNative画面実装ではなく、Unicode `inputText`後に既にIMEが閉じている場合でも`hideKeyboard`を実行するflow状態依存が有力。Maestro 2.8.0のAndroid実装はBack eventを送るため、既に閉じたIMEに対する操作がCartへの戻り操作として伝播した可能性が高い。製品ソース、住所値assert、CTA scroll/tapや後続確認assertionは変えない。
 - 限定修正として、値assert後に住所2行目を再tapし、`waitForAnimationToEnd`（5000ms）の後に従来のkeyboard screenshotを撮る。続く`hideKeyboard`、CTAの100%可視までのscroll、tapと注文確認assertionを保持する。対象差分は`maestro/native-purchase.yaml`のみ。flow契約78 tests、Prettier check、対象diff checkはPASS。独立read-only re-reviewは新findingなし（確信度は中〜高）。Android RuntimeによるIME再表示・CTA遷移の再確認は新HEAD CI待ち。
 - 住所2行目がIMEに一部隠れるd30の視覚不具合は解決していない。3回の製品scroll修正後の`stop_no_progress`判断を維持し、推測に基づく製品変更は追加しない。登録済みdefault captureのworkflow_dispatchも取得できていないため、canonical比較・promoteは未完了である。
+
+### 2026-11-22 修正後Android Runtime再確認
+
+- HEAD `07ec39347ef764260eac6b90b26081665b5610a2`のWeb CI #44990802514とMobile App CI #44990802546はsuccess。Android Runtime/Maestro job `137114080802` successし、Native PurchaseとNative Session Checkout Restartも完了した。run artifact `native-android-runtime-evidence-44990802546`（14741574872）はGitHub metadataでbranch/head `product/scenario-shop-maintenance` / `07ec3934`に紐づく。実行deviceは`native-api34`。同artifactの`apk-sha256.txt`はAutomation APK `edf36c83ccba7a0260257dd03ab839889aaeb324d6b1283cd3451d9d0691a439`を記録する。
+- Native Purchaseのsequence 49–72はすべてCOMPLETED。住所2行目を再tapした後のIME中screenshotはPNG 1080×1920で、SHA-256 `049b7ea08ea0ad2c3f630667d559a71a46d5dbdc6a69f52f5e8525cd4d57587c`。IMEが再表示され`hideKeyboard`後も住所画面に留まり、CTAから支払い・確認・注文完了へ進めた。住所の戻り後保持・注文確認表示もassertion/screenshotで確認。確認画面では住所2行目`青山ビル101`が一度表示され、金額は小計・会員割引・送料・合計のみ。
+- **視覚条件は引き続きFAIL**：IME中screenshotでは住所2行目欄の下部と入力文字がキーボードに隠れる。Native Purchase Maestro flowのCTA失敗は解消したが、製品画面のIME重なりは解消していない。3回の製品scroll修正でpixel進展がなかった`stop_no_progress`判断を維持し、今回も製品コードは変更しない。
+- 登録済み`SCREEN-CHECKOUT-ADDRESS/default/android`のworkflow_dispatchはこの実行環境から起動できず、run IDはない。通常Mobile CIではScreen Catalog capture/visual profileがskip。Runtime artifactはcanonical capture用raw PNG/manifestではなく、正式profile/APK hash/source SHAを揃えたdefault captureの代替にはならない。既存canonicalは空欄の住所2行目欄を欠き、更新・promoteは行っていない。

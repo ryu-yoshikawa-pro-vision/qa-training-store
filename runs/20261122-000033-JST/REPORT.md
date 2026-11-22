@@ -264,3 +264,16 @@
   - Result: independent reviewはCart遷移と`hideKeyboard`順序を中〜高確信で関連付け、修正差分に新findingなしとした。実装担当は既存assertionsを維持。修正後のIME再表示は次のAndroid CIで実証が必要。
   - 親Agentの判断: flow修復を受け入れ、stage前の最終差分を確認する。修正後CI結果を取得するまで完了扱いにしない。
 - Progress: 55% (6/11)
+
+## 2026-11-22 15:19 (JST) - 修正後Android Runtime・最新HEAD CI確認
+
+- Summary: 修正HEAD `07ec39347ef764260eac6b90b26081665b5610a2`のWeb/Mobile required CIはsuccess。Android RuntimeのNative Purchase flow failureは解消したが、IME中の住所2行目視認性は再実行後も未達で、視覚受入は未完了。
+- Changes: follow-up/acceptance/RunへCI run、Android screenshot hash、flow実行結果、残る視覚・canonical未検証を記録。製品コード・仕様・canonical画像の追加変更はなし。Maestro flow修正は直前commit `07ec3934`でstage/commit/push済み。
+- 判断 / 理由: run #44990802546のAndroid Runtime screenshotでは住所2行目を再tapした後にIMEが確実に再表示され、同じ画面の既存`hideKeyboard`後もCheckoutが維持され、CTAから確認・完了へ進む。入力行の下部と日本語文字はIMEに隠れるため、flow failureは修復、製品視覚契約は引き続きFAILと分類。
+- Validation: CI waiter expected/observed SHA一致。Web CI #44990802514 success。Mobile App CI #44990802546 success。Android Runtime/Maestro job `137114080802` success。Native Purchase `native-purchase`はSUCCESS、`native-api34` device。Artifact `native-android-runtime-evidence-44990802546` ID `14741574872`（workflow run metadata head `07ec3934`）。Automation APK SHA-256 `edf36c83ccba7a0260257dd03ab839889aaeb324d6b1283cd3451d9d0691a439`。Keyboard screenshot `049b7ea08ea0ad2c3f630667d559a71a46d5dbdc6a69f52f5e8525cd4d57587c`、returned address `23f310ab51f42a9c6bd813cc1f3f1a6f06b671e08c82bed46eac59affa70d5df`、confirmation `07f26d3a0bad34a0b642402214283007438e98368e4639009f704f6bd52d8425`は1080×1920のPNGとして取得・目視確認。
+- Blocker / remaining: `SCREEN-CHECKOUT-ADDRESS/default/android` workflow_dispatchは実行されずrun IDなし（この環境では`gh` credential無効、GitHub connectorにdispatch機能なし。ユーザーも実行できなかったと回答）。Screen Catalog capture/raw PNG/manifest/profile matched APKの証拠がないためcanonical比較/promoteは未実施。Canonical `default/android.webp`は任意住所2行目欄を欠いたまま。物理Android/iOS runtimeも未確認。
+- Subagent:
+  - Delegation: `/root/review_ui_native`へ成功run artifact・IME/CTA/confirmation画面のread-only確認を依頼。
+  - Result: flow sequence 49–72 completed、Native Purchase SUCCESS、address CTA/payment/confirmation/order completionへ遷移。Keyboard overlapは残ると確認。
+  - 親Agentの判断: flow修復は成功として受け入れ、既知の製品IME overlapとcanonical未検証を合格扱いしない。PR mergeは推奨しない。
+- Progress: 64% (7/11)
