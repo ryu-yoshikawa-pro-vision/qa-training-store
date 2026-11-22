@@ -28,12 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        uses: actions/dependency-review-action@v5.0.0 # v5.0.0
         with:
           vulnerability-check: true
           fail-on-severity: moderate
@@ -42,21 +42,38 @@ jobs:
           show-openssf-scorecard: false
           comment-summary-in-pr: never
 
+  actions-lock:
+    name: Actions lock
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5.0.0 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install gh-actions-lock
+        run: gh extension install github/gh-actions-lock --pin v0.4.1
+
+      - name: Verify workflow action lock
+        run: gh actions-lock --verify
+
   style-quality:
     name: Style Quality
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -115,15 +132,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -154,12 +171,12 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@v4.4.0 # v4.4.0
         with:
           node-version: 24
 
@@ -219,15 +236,15 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -264,15 +281,15 @@ jobs:
           - component
           - contracts
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -292,15 +309,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -324,15 +341,15 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
       EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -353,7 +370,7 @@ jobs:
         run: test -f dist/index.html
 
       - name: Upload automation artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: web-dist-automation
           path: dist
@@ -361,7 +378,7 @@ jobs:
           retention-days: 3
 
       - name: Upload specification artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: spec-site-automation
           path: output/spec-site
@@ -378,15 +395,15 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
       EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -401,7 +418,7 @@ jobs:
         run: test -f dist/index.html
 
       - name: Upload production artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: web-dist-production
           path: dist
@@ -435,15 +452,15 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -452,7 +469,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download automation artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: web-dist-automation
           path: dist
@@ -471,7 +488,7 @@ jobs:
 
       - name: Upload Playwright artifacts on failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: playwright-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/playwright
@@ -480,7 +497,7 @@ jobs:
 
       - name: Upload Training Web artifacts on failure
         if: ${{ failure() && matrix.name == 'training-web-baseline' }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: training-web-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/training/playwright
@@ -509,15 +526,15 @@ jobs:
       PLAYWRIGHT_USE_PREBUILT_DIST: "true"
       UI_REVIEW_STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -526,7 +543,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download automation artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: web-dist-automation
           path: dist
@@ -539,7 +556,7 @@ jobs:
 
       - name: Upload UI review screenshots
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: ui-review-${{ matrix.project }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/ui-review/${{ env.UI_REVIEW_STAGE }}/${{ matrix.viewport }}
@@ -557,15 +574,15 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "false"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -574,7 +591,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download production artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: web-dist-production
           path: dist
@@ -587,7 +604,7 @@ jobs:
 
       - name: Upload Playwright artifacts on failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: playwright-production-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/playwright
@@ -607,15 +624,15 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -624,7 +641,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download automation artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: web-dist-automation
           path: dist
@@ -637,7 +654,7 @@ jobs:
 
       - name: Upload Playwright artifacts on failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: playwright-mobile-chromium-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/playwright
@@ -647,6 +664,7 @@ jobs:
   verify:
     needs:
       - dependency-review
+      - actions-lock
       - style-quality
       - code-quality
       - vitest
@@ -667,6 +685,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          ACTIONS_LOCK_RESULT: ${{ needs.actions-lock.result }}
           STYLE_QUALITY_RESULT: ${{ needs.style-quality.result }}
           CODE_QUALITY_RESULT: ${{ needs.code-quality.result }}
           CODEX_ARTIFACT_RESULT: ${{ needs.codex-artifact-sanitization.result }}
@@ -692,6 +711,7 @@ jobs:
             fi
           }
 
+          require_success "actions-lock" "$ACTIONS_LOCK_RESULT"
           require_success "style-quality" "$STYLE_QUALITY_RESULT"
           require_success "code-quality" "$CODE_QUALITY_RESULT"
           require_success "codex-artifact-sanitization" "$CODEX_ARTIFACT_RESULT"
@@ -751,15 +771,15 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           package-manager-cache: false
@@ -768,7 +788,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download automation artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: web-dist-automation
           path: dist
@@ -795,7 +815,7 @@ jobs:
 
       - name: Deploy Cloudflare Preview
         id: deploy
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        uses: cloudflare/wrangler-action@v4.0.0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -909,15 +929,15 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "false"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+      - uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -926,7 +946,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Download production artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           name: web-dist-production
           path: dist
@@ -943,7 +963,7 @@ jobs:
 
       - name: Deploy Cloudflare Production
         id: deploy
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        uses: cloudflare/wrangler-action@v4.0.0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

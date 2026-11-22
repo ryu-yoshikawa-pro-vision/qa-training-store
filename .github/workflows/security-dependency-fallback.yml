@@ -270,7 +270,7 @@ jobs:
 
       - name: Upload sanitized context
         id: upload_context
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: security-context-${{ github.run_id }}
           path: ${{ runner.temp }}/sanitized-security-context.json
@@ -295,7 +295,7 @@ jobs:
       authorization_sha256: ${{ steps.candidate_hash.outputs.authorization_sha256 }}
     steps:
       - name: Checkout immutable base
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           ref: main
           persist-credentials: false
@@ -312,18 +312,18 @@ jobs:
           fi
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           package-manager-cache: false
 
       - name: Download sanitized context by artifact ID
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           artifact-ids: ${{ needs.read-alert.outputs.context_artifact_id }}
           path: ${{ runner.temp }}/security-context
@@ -778,7 +778,7 @@ jobs:
 
       - name: Upload candidate artifact
         id: upload_candidate
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: security-candidate-${{ github.run_id }}
           path: |
@@ -805,7 +805,7 @@ jobs:
       authorization_sha256: ${{ steps.prepared_hash.outputs.authorization_sha256 }}
     steps:
       - name: Checkout immutable base
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           ref: main
           persist-credentials: false
@@ -822,25 +822,25 @@ jobs:
           fi
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           package-manager-cache: false
 
       - name: Download context by artifact ID
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           artifact-ids: ${{ needs.read-alert.outputs.context_artifact_id }}
           path: ${{ runner.temp }}/security-context
           merge-multiple: true
 
       - name: Download candidate by artifact ID
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           artifact-ids: ${{ needs.opencode-edit.outputs.candidate_artifact_id }}
           path: ${{ runner.temp }}/security-candidate
@@ -958,7 +958,7 @@ jobs:
 
       - name: Upload prepared artifact before arbitrary repository code
         id: upload_prepared
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: prepared-security-fix-${{ github.run_id }}
           path: |
@@ -1020,7 +1020,7 @@ jobs:
       validated_artifact_id: ${{ steps.upload_validated.outputs.artifact-id }}
     steps:
       - name: Checkout immutable base
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           ref: main
           persist-credentials: false
@@ -1037,26 +1037,26 @@ jobs:
           fi
 
       - name: Download context by artifact ID
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           artifact-ids: ${{ needs.read-alert.outputs.context_artifact_id }}
           path: ${{ runner.temp }}/security-context
           merge-multiple: true
 
       - name: Download prepared fix by artifact ID
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           artifact-ids: ${{ needs.validate-exec.outputs.prepared_artifact_id }}
           path: ${{ runner.temp }}/prepared-security-fix
           merge-multiple: true
 
       - name: Setup pnpm for final prepared validation
-        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        uses: pnpm/action-setup@v4.4.0 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node for final prepared validation
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        uses: actions/setup-node@v5.0.0 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           package-manager-cache: false
@@ -1326,7 +1326,7 @@ jobs:
           NODE
       - name: Upload validated artifact with exact six-file allowlist
         id: upload_validated
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@v6.0.0 # v6.0.0
         with:
           name: validated-security-fix-${{ github.run_id }}
           include-hidden-files: true
@@ -1361,7 +1361,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout immutable base
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v5.0.0 # v5.0.0
         with:
           ref: main
           persist-credentials: false
@@ -1378,7 +1378,7 @@ jobs:
           fi
 
       - name: Download validated artifact by artifact ID
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@v7.0.0 # v7.0.0
         with:
           artifact-ids: ${{ needs.finalize.outputs.validated_artifact_id }}
           path: ${{ runner.temp }}/validated-security-fix

@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const crossBrowserWorkflow = readFileSync(".github/workflows/cross-browser-smoke.yml", "utf8");
@@ -8,10 +9,43 @@ const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   scripts?: Record<string, string>;
   devDependencies?: Record<string, string>;
 };
-const allWorkflows = readdirSync(".github/workflows")
+const workflowFiles = readdirSync(".github/workflows")
   .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
-  .map((file) => readFileSync(join(".github/workflows", file), "utf8"))
-  .join("\n");
+  .sort();
+const workflowSources = new Map(
+  workflowFiles.map((file) => [file, readFileSync(join(".github/workflows", file), "utf8")]),
+);
+type ActionsLock = {
+  version: string;
+  workflows: Record<string, string[]>;
+  dependencies: Record<string, { ref: string; commit: string; owner_id: number; repo_id: number }>;
+};
+const actionsLock = parseYaml(
+  readFileSync(".github/workflows/actions.lock", "utf8"),
+) as ActionsLock;
+type DependabotConfig = {
+  version: number;
+  updates: {
+    "package-ecosystem": string;
+    directory: string;
+    schedule: { interval: string };
+    "open-pull-requests-limit": number;
+  }[];
+};
+const dependabotConfig = parseYaml(
+  readFileSync(".github/dependabot.yml", "utf8"),
+) as DependabotConfig;
+
+function workflowActionRefs(source: string): string[] {
+  return [...source.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)/gm)]
+    .map((match) => match[1])
+    .filter((ref): ref is string => ref !== undefined && !ref.startsWith("./"));
+}
+
+function lockKeyForActionRef(ref: string): string {
+  const [repository, version] = ref.split("@");
+  return (repository?.split("/").slice(0, 2).join("/") ?? "") + "@" + version;
+}
 
 function jobBlock(jobName: string, nextJobName?: string) {
   const start = workflow.indexOf(`  ${jobName}:`);
@@ -34,6 +68,34 @@ function stepBlock(job: string, stepName: string) {
 }
 
 describe("Phase 1 CI deployment boundaries", () => {
+  it("keeps GitHub Actions Dependabot security-only without ordinary update PRs", () => {
+    expect(dependabotConfig.version).toBe(2);
+    expect(dependabotConfig.updates).toEqual([
+      {
+        "package-ecosystem": "github-actions",
+        directory: "/",
+        schedule: { interval: "weekly" },
+        "open-pull-requests-limit": 0,
+      },
+    ]);
+  });
+
+  it("verifies the Actions lockfile with read-only permissions before aggregation", () => {
+    const lockJob = jobBlock("actions-lock", "style-quality");
+    const verifyJob = jobBlock("verify", "deploy-preview");
+
+    expect(lockJob).toContain("name: Actions lock");
+    expect(lockJob).toContain("GH_TOKEN:");
+    expect(lockJob).toContain("gh extension install github/gh-actions-lock --pin v0.4.1");
+    expect(lockJob).toContain("gh actions-lock --verify");
+    expect(lockJob).toContain("persist-credentials: false");
+    expect(lockJob).not.toContain("contents: write");
+    expect(workflow).toContain("permissions:\n  contents: read");
+    expect(verifyJob).toContain("- actions-lock");
+    expect(verifyJob).toContain("needs.actions-lock.result");
+    expect(verifyJob).toContain('require_success "actions-lock" "$ACTIONS_LOCK_RESULT"');
+  });
+
   it("runs Format check before Markdown lint in the style job", () => {
     const style = jobBlock("style-quality", "code-quality");
     const format = stepBlock(style, "Format check");
@@ -404,7 +466,7 @@ describe("Phase 1 CI deployment boundaries", () => {
 
   it("keeps checkout credentials disabled and avoids leaking Cloudflare secrets to unrelated steps", () => {
     const checkoutMatches = [
-      ...workflow.matchAll(/- uses: actions\/checkout@[0-9a-f]{40}(?=\s|$)/g),
+      ...workflow.matchAll(/- uses: actions\/checkout@v\d+\.\d+\.\d+(?=\s|$)/g),
     ];
     expect(checkoutMatches.length).toBeGreaterThan(0);
     for (const match of checkoutMatches) {
@@ -430,14 +492,34 @@ describe("Phase 1 CI deployment boundaries", () => {
     }
   });
 
-  it("pins every remote workflow action to a strict 40-character commit SHA", () => {
-    const remoteUses = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)/gm)]
-      .map((match) => match[1])
-      .filter((ref): ref is string => ref !== undefined && !ref.startsWith("./"));
+  it("locks every workflow action tag to the recorded execution commit", () => {
+    expect(actionsLock.version).toBe("v0.0.3");
+    expect(Object.keys(actionsLock.workflows).sort()).toEqual(
+      workflowFiles.map((file) => ".github/workflows/" + file),
+    );
 
-    expect(remoteUses.length).toBeGreaterThan(0);
-    for (const ref of remoteUses) {
-      expect(ref).toMatch(/@[0-9a-f]{40}(?=\s|$)/);
+    const expectedDependencies = new Set<string>();
+    for (const file of workflowFiles) {
+      const refs = workflowActionRefs(workflowSources.get(file) ?? "");
+      expect(refs.length).toBeGreaterThan(0);
+      for (const ref of refs) {
+        expect(ref).toMatch(/@v\d+\.\d+\.\d+(?=\s|$)/);
+        expectedDependencies.add(lockKeyForActionRef(ref));
+      }
+
+      const workflowPath = ".github/workflows/" + file;
+      expect(new Set(actionsLock.workflows[workflowPath])).toEqual(
+        new Set(refs.map(lockKeyForActionRef)),
+      );
+    }
+
+    expect(Object.keys(actionsLock.dependencies).sort()).toEqual([...expectedDependencies].sort());
+    for (const [actionRef, dependency] of Object.entries(actionsLock.dependencies)) {
+      expect(actionRef).toMatch(/@v\d+\.\d+\.\d+$/);
+      expect(dependency.ref).toBe(actionRef.slice(actionRef.lastIndexOf("@") + 1));
+      expect(dependency.commit).toMatch(/^sha1-[0-9a-f]{40}$/);
+      expect(dependency.owner_id).toBeGreaterThan(0);
+      expect(dependency.repo_id).toBeGreaterThan(0);
     }
   });
 
