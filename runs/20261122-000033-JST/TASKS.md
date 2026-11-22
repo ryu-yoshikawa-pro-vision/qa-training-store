@@ -23,7 +23,7 @@
 - [x] 7. 最終修復差分のみstageし通常commit/push後、最新HEADのWeb/Mobile required CIと住所入力Maestro flowを確認する。HEAD `d30fd725`のWeb/Mobile CIとAndroid Runtime/Maestroは成功したが、IME表示中のpixel条件は未達。
 - [ ] 8. 修復済み最終HEADからGitHub UIでユーザーが単発Android visual captureをdispatchし、同一runのvisual artifact/APKを取得・検証する。
 - [ ] 9. canonical画像と正式仕様を比較し、必要なら登録済み`default`画像のみpromote、実行・仕様検証を再実行する。
-- [ ] 10. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。
+- [x] 10. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。registered captureはdispatchできず、最新HEADのrequired CIはWeb/Mobile success。視覚受入はFAILとして残す。
 - [x] 11. `13ee1f9a`で失敗したNative PurchaseのIME/Back状態依存をMaestro flowだけで修復し、commit `07ec3934`を通常push後、最新HEADのWeb/Mobile CIとAndroid Runtime artifactを再取得・確認した。両CI・flow成功、IME overlapは未受入。
 
 ## Discovered
