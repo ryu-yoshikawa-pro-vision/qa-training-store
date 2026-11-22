@@ -12,13 +12,13 @@
 
 | 旧個別条件 | マージ前の完了条件 | 現状 |
 | --- | --- | --- |
-| **1.2** | 最終Web／Template／ZIPの実配布ファイルとCI ArtifactにSecret・PII・模範解答・採点内部資料が混入していないことを実物検査 | **未受入**（fbc8e551以前の監査は履歴として保持。今回候補の最終HEAD Artifactと実配布物を未監査） |
-| **1.3** | 固定Skill全配布ファイルの権利者・一次許諾／ライセンス・必要なLICENSE/NOTICEを確認。許諾不能の素材を配布しない | **BLOCKED**（一次許諾未確認） |
-| **1.4** | 公開JS・画像・フォント等の配布物と一次ライセンス・表示要件を全件突合 | **未受入**（一部NOTICEは確認、全配布物・一次権利根拠は未照合） |
-| **7.1** | #199統合差分のコード・セキュリティ・配布・教材の独立レビュー、指摘対応と再検証を保存 | **PASS（候補差分のレビュー範囲）**（独立reviewerがdiff digest `439dad5c…`を確認。P0–P2なし、修正済みP3を再確認。最終CIは別条件） |
+| **1.2** | 最終Web／Template／ZIPの実配布ファイルとCI ArtifactにSecret・PII・模範解答・採点内部資料が混入していないことを実物検査 | **BLOCKED（部分検査）**（HEAD `49af44d7…`のWeb／Spec ZIPと配布証拠Artifactを走査。既知Secret・危険パスは0件。ただしCI Artifactにlearner template本体がなく、画像内容・全template内容は未検査） |
+| **1.3** | 固定Skill全配布ファイルの権利者・一次許諾／ライセンス・必要なLICENSE/NOTICEを確認。許諾不能の素材を配布しない | **BLOCKED**（固定Skill全件の権利者による一次許諾・再配布条件を確認できていない） |
+| **1.4** | 公開JS・画像・フォント等の配布物と一次ライセンス・表示要件を全件突合 | **BLOCKED**（製品画像9件、React Navigation画像の取得revision、生成JS依存閉包の権利根拠が不足） |
+| **7.1** | #199統合差分のコード・セキュリティ・配布・教材の独立レビュー、指摘対応と再検証を保存 | **PASS（レビュー対象範囲）**（独立reviewerが統合差分を確認。P0–P2なし、P3を修正・再確認。後続Case全件レビューは別条件） |
 | **7.2のマージ前部分** | 正式Caseの未受入／FAIL／BLOCKED、後続移管の正当性、#210の製品不具合、公開・機能利用制限を実行者とは別の確認者がレビュー | **PASS（マージ前の移管レビュー範囲）**（Case状態・後続12条件・利用制限を独立確認。全正式Case結果のレビューは後続） |
-| **8.3** | 全変更確定後、**同一最終HEAD**の必須Web/Mobile CI、Build・検証Artifact、skipped・failureを確認 | **未確認**（基準HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`のWeb CIはFAIL、Mobile App CIはSUCCESS。修正候補はローカルのみで、最終HEAD CI待ち） |
-| **8.4** | 権利・安全性・独立レビュー・CI・残リスクの根拠を揃え、マージ可否を判定 | **未受入・マージ不可**（1.2/1.3/1.4/8.3が未達。レビュー範囲の完了だけでは受入できない） |
+| **8.3** | 全変更確定後、**同一最終HEAD**の必須Web/Mobile CI、Build・検証Artifact、skipped・failureを確認 | **PASS（コードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`）**（Web `45063620677`、Mobile `45063620660` が同一SHAでSUCCESS。後続の記録専用commitには別途最新HEAD CIが必要） |
+| **8.4** | 権利・安全性・独立レビュー・CI・残リスクの根拠を揃え、マージ可否を判定 | **未受入・マージ不可**（1.2/1.3/1.4が未達。CI成功と限定レビューだけでは受入できない） |
 
 ### 2026-11-22 最新証拠チェックポイント
 
@@ -72,6 +72,16 @@
 
 - 04:35 JSTの記録・TASKS完了チェックを含むcandidate digest `e66adde670ea0f5120c6f9f7e605992b10b889f18fbb1e41f129a19853038060`で`pnpm run verify`を再度実行し、Linux ext4上でexit 0。結果は上記と同じく全suite・全typecheck・Web/Spec Build PASS、Contracts 1,451 passed / 7 skipped、ESLint 93 warnings / 0 errors。新しい失敗なし。
 - 検証後に追加したのはこのRun／Planの実行結果記録のみ。ソースは変更していない。GitHub Actionsはローカルcommit後の最新HEADで別途確認する。
+
+#### 2026-11-23 最新Web/Mobile CI・配布Artifactの調査（コードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`）
+
+- PR #199はOPEN、base `main`、HEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`。#210を含むmainは`b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。このPlan／Run更新後に記録用commitを作成する場合、新しい最終HEADのCIを別途確認する。
+- [Web CI #45063620677](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45063620677) と [Mobile App CI #45063620660](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45063620660) は同一HEADでSUCCESS。Web Integration 197 PASS、Contracts 1,452 PASS / 6 skipped（125 files）、Windows PowerShell Run-root contract 7 PASS / 12 platform skips、required Chromium 71 PASS、PR専用cross-role 33 PASS。Mobile Native Static、Expo Doctor、Android/iOS Build、Android Maestro、`native-ci / verify`もSUCCESS。条件付きMobile Chromiumと成功時failure-only uploadはskip。
+- Cross-roleの33 PASSには`test.fail()`による期待済みの2つのSUT失敗が含まれる。管理商品選択のclearとmany-products filter/page resetは失敗を再現し未受入を維持。surviving Sessionを持つ停止operatorのForbidden loopもCase evidenceで`productAcceptance=FAIL`。stale Cartは`/cart`へ戻り、23 DB table不変を確認した。CaseをPASSへ昇格しない。
+- 同一runのBuild/検証ArtifactはWeb production `14770088637`（ZIP SHA-256 `dc6eaf3c…`）、Automation `14770687052`（`9fd3f229…`）、Spec `14770501644`（`405eded…`）、course distribution evidence `14770806464`、course run evidence `14770443312`、cross-role DB digest `14769908244`／visual `14769958159`、Android production APK `14771290788`、iOS production app `14771073123`等。
+- Web production／automation各320件、Spec 116件、course evidence 7件のZIPはCRC正常。重複・unsafe path・symlink・禁止名・既知GitHub/OpenAI/Anthropic/AWS/Google/Slack/GitLab token・秘密鍵・主要個人メールpatternは0件。course manifestはHEAD一致、567配布file（Shop 320／local 142／external Skill 105）、同期前後hash一覧568行一致、manifest path重複・unsafe/forbidden pathは0件。別Build間ではShop 318/320のパスとSHAが一致し、hashed JS pathが1件欠落、`index.html`のSHAが不一致。完全な同一生成物比較とは扱わない。
+- course artifactはlearner template本体ではなくmanifest／hash一覧／knowledge graph evidenceのみ。画像118件のpixel/metadata確認は未実施。WSLからの再生成はcheckout外のLinux依存package pathがtargetへ混入してpath guardで停止し、CI Web ZIPをshopBuildとして使う再生成も`raw.githubusercontent.com`のDNS `EAI_AGAIN`により固定Skill取得で停止した。したがって1.2は部分走査のみで未受入。
+- Tutor／正式評価のfail-closed契約は最新ContractsでPASS。ただしProvider認証・料金・保持／削除条件の一次根拠と本人確認がないため、外部AIの実利用受入はBLOCKED。1.3/1.4の権利根拠は不足。7.1/7.2のマージ前review scopeはPASS、全正式Case独立結果reviewは後続。8.3はこのコードHEADでPASS、8.4は**未受入・マージ不可**。
 
 ### 後続へ移管する12個別条件と7.2の残範囲
 

@@ -55,6 +55,18 @@
   - 親Agentの判断:
 - Progress: NN% (done/total)
 
+## 2026-11-23 06:05 JST - 最新CI・配布Artifact調査
+
+- Summary: コードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`のPRはOPEN、baseは`main`、取り込み済みmainは`b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。Web CI `45063620677`、Mobile App CI `45063620660`はいずれも同一SHAでSUCCESS。
+- Validation: Web Integration 197 PASS、Contracts 125 filesで1,452 PASS / 6 skip、Windows `tests/contracts/codex-run-root-migration-contract.test.ts`は7 PASS / 12 platform skip（PowerShell実行stepで`powershell.exe is available`）、required Chromium 71 PASS、PR専用cross-role 33 PASS。Mobile Native Static、Expo Doctor、Android/iOS Build、Android Maestro、iOS verify、`native-ci / verify`もSUCCESS。ローカルext4 snapshotの`pnpm run verify`もPASS（以前のRun記録参照）。
+- E2E semantics: cross-role 33 PASSには`test.fail()`で意図された既知SUT失敗が含まれる。商品選択clearとmany-products filter/page resetは失敗を再現。停止operatorのsurviving Session→Forbidden loopはCase evidenceで`productAcceptance=FAIL`。stale Cartは`/cart`へ復帰し、23 DB tableが不変。製品CaseをPASSへ変更しない。main所有`e2e/web/cross-role-lifecycle.spec.ts`は変更していない。今回の33件は`e2e/web/pr219-cross-role-lifecycle.spec.ts`のみ。
+- Artifact audit: Web production ZIP 320 entries、Automation ZIP 320、Spec ZIP 116、course evidence ZIP 7を実ダウンロードして走査。ZIP CRC正常、重複・unsafe path・symlink・禁止ファイル名・既知GitHub/OpenAI/Anthropic/AWS/Google/Slack/GitLab token・秘密鍵・主要個人メールpatternは0件。ZIP SHA-256: production `dc6eaf3c628a78499611a8101d184926b1111030ec1b6964ba30109e2df47079`; automation `9fd3f229a96c0bb1afe569590a377b8f1e31e67f7cbbcb771cfbd73a5906ee30`; spec `405ededec192401fdc54e9527a04e3a70a397843a098ac1b1de6ff5b2618ab24`; course evidence `bb872205cbbd2cbd0d2d6ff104e352b75bf49683074498c92ea1fea203a99ed6`.
+- Distribution evidence: `pr199-course-distribution` artifact `14770806464`にはmanifest・同期前後hash一覧・knowledge graph evidenceのみが含まれ、template本体はない。manifest SHA-256 `9ad238a9dc0a6d935d516e0d36da0536252210ff4b3b22e98f0d4e61808ae876`、source SHAはHEAD、567配布file（generated Shop 320/local 142/external Skill 105）、before/after 568-line hash lists一致。path duplicate/unsafe/forbiddenは0。別BuildのWeb ZIPとは318/320 path+SHA一致、hashed JS path 1件欠落、`index.html` SHA不一致。2つの独立Build間で完全一致は主張しない。
+- Limitation: Web ZIP画像118件のpixel/metadata検査は未実行（Pillowがなく、表示内容の確認も未完了）。CI artifactにlearner template/公開ZIP本体は保存されていない。WSLからのtemplate再生成はcheckout外のLinux依存package pathがcourse targetへ混入してpath guardで停止。実CI Web ZIPをshopBuildにした再生成は`raw.githubusercontent.com`のDNS `EAI_AGAIN`で外部固定Skill fetch時に停止。したがって1.2は部分走査のみ・未受入。
+- Acceptance: 1.3は固定Skill権利者の一次許諾待ちでBLOCKED。1.4は製品画像9件、React Navigation画像revision、generated JS dependency closureの権利根拠不足でBLOCKED。Tutor／正式評価のfail-closed契約はPASSだが、実Provider auth／費用／保持・削除の一次根拠と本人確認は未完了。7.1統合レビューと7.2マージ前移管レビューは限定scopeでPASS、全Case independent result reviewは後続。8.3はコードHEAD `49af...`でPASS、8.4は未受入・マージ不可。後続12条件と本人受入6条件を維持。
+- Changes: 既存統合受入Plan、継続手順、配布Artifact監査報告、Run Reportの現状を上記まで更新。記録commitと最新HEAD CI、PR本文への最終run結果記録はまだ未実施。
+- Progress: 12/18 tasks (67%; 1.2/rights/PR-body/record-commit/latest-head-CI/final gate remain open).
+
 ## 削除候補
 
 - Codex はファイルやディレクトリを削除しない。

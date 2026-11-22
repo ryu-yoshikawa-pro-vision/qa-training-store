@@ -11,7 +11,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "PR #199固有の認可失効、last-admin、在庫境界、stale Cart、Tutor安全停止、79要件・208動作の意味参照を修正した。最終HEADのCI・配布Artifact・権利根拠はまだ確定していない。",
+      "evidence": "PR #199固有の認可失効、last-admin、在庫境界、stale Cart、Tutor安全停止、79要件・208動作の意味参照を修正した。コードHEAD 49af44d72a4fcbd14e393e56b3e07c2346b0cd03のWeb/Mobile CIはPASS。配布物検査は部分実施、権利根拠と8.4最終受入は未完了。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -32,7 +32,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Focused契約、Integration、Repository、Component、Hooks、Contracts全体とverify/Buildは正規directoryを用いたLinux ext4 snapshotでPASS。初回ContractsのEISDIRはuntracked root node_modules symlinkを含む検証fixture配置でのみ発生し、通常directoryを用いた再検証では再現しなかった。ローカルChromiumはlibnspr4.so不足でassertion未実行、GitHub Actionsは最終HEADで未確認。",
+      "evidence": "Focused契約、Integration、Repository、Component、Hooks、Contracts全体とverify/Buildは正規directoryのLinux ext4 snapshotでPASS。GitHub Web run 45063620677とMobile run 45063620660はコードHEAD 49af44d72a4fcbd14e393e56b3e07c2346b0cd03でSUCCESS。Web Integration 197、Contracts 1,452/6 skipped、Windows PowerShell Run-root 7/12 platform skipped、required Chromium 71、cross-role 33が確認済み。ローカルE2Eはlibnspr4.so不足でassertion未実行。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -53,7 +53,7 @@
     },
     "reviewability": {
       "rating": "warn",
-      "evidence": "独立reviewerは候補の統合差分を確認し、P0-P2なし、修正済みP3を再確認した。7.2のマージ前移管範囲は確認済みだが、全正式Caseの独立結果レビュー、権利者の一次許諾、最終CIは未完了。",
+      "evidence": "独立reviewerは候補の統合差分を確認し、P0-P2なし、修正済みP3を再確認した。7.2のマージ前移管範囲も確認済み。全正式Caseの独立結果レビューと権利者の一次許諾は未完了。",
       "evidence_refs": [
         {
           "kind": "subagent_run",
@@ -74,7 +74,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Linux ext4 snapshotの通常directory依存配置でContractsとverifyがPASS。初回Contractsはroot node_modules symlinkがstatusに未追跡pathとして現れる別fixture配置でのみEISDIRになった。Chromium共有ライブラリ不足のためローカルE2E assertionsは未実行。最終PR SHAでGitHub Actionsを確認する必要がある。",
+      "evidence": "Linux ext4 snapshotの通常directory配置でContractsとverifyがPASS。初回EISDIRはroot node_modules symlinkを含む一時fixtureだけで発生。Chromium共有ライブラリ不足のためローカルE2E assertionsは未実行だが、PR code HEADのGitHub E2Eは成功。CI Artifactにlearner template本体がなく、WSLでの再生成もpath guardまたはraw.githubusercontent.com DNS制約で停止した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -87,7 +87,7 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "対象候補はまだPR branchへcommit/pushされておらず、8.3のWeb CIとMobile App CIを同一最終HEADで確認していない。",
+      "evidence": "コードHEAD 49af44d72a4fcbd14e393e56b3e07c2346b0cd03は通常push済みで、Web CI 45063620677とMobile App CI 45063620660が同一HEADでSUCCESS。計画・Run更新を含む次の記録commit後は、新しい最終HEADのCI確認が必要。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -95,7 +95,7 @@
           "summary": "Run開始時のPR branchと検証実行状態"
         }
       ],
-      "detail": "候補をローカルで修正・検証後にcommitし、通常pushして最新HEADだけをwait_for_required_ciで一度確認する。"
+      "detail": "コードHEADのWeb/Mobile CIを確認した。計画・Runの記録commitを作成・通常pushした場合は、その更新後HEADをwait_for_required_ciで再確認し、最終結果をPR本文に記録する。"
     },
     {
       "category": "flaky_or_env_issue",
@@ -112,7 +112,7 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "固定Skillの一次再配布許諾、第三者素材の全件権利根拠、最終HEADの配布バイナリ全走査は確認できていない。",
+      "evidence": "固定Skillの一次再配布許諾と第三者素材の全件権利根拠は確認できていない。最終code HEADのWeb/Spec ZIPとcourse evidenceは既知pattern/pathを部分走査したが、CI Artifactにlearner template payloadがなく、画像pixel/metadataとtemplate全内容は未確認。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -125,7 +125,7 @@
           "summary": "Web配布物・第三者素材監査の現状と不足事項"
         }
       ],
-      "detail": "1.2は最終実Artifact全走査まで未受入、1.3は権利者の一次許諾待ちでBLOCKED、1.4は出典とライセンス閉包が不足。8.4のマージ可判定を行わない。"
+      "detail": "1.2は部分走査のみで未受入、1.3は固定Skill権利者の一次許諾待ちでBLOCKED、1.4は製品画像9件・React Navigation画像revision・生成JS依存closureの根拠不足でBLOCKED。8.4のマージ可判定は行わない。"
     },
     {
       "category": "review_gap",

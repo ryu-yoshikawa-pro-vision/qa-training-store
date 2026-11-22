@@ -82,3 +82,24 @@
 - 2026-11-08の上記「配布ガードに不足」の記述は当時のHEAD `b37df6084eb9303aec24fd6e08afc839a6e3aacd`で観測した履歴として維持する。後続commit `cd7dbce79ceb0afda26befef18afe9717aba1770`で`FORBIDDEN_PATH`が`.env*`と`.kube/**`を拒否し、既存Distribution contractにsource/destination manifestとgenerated Shopの負例が追加された。
 - 現行ソースの`FORBIDDEN_PATH`は`.envrc`、`.environment`、`.kube/config`を含む上記パスを拒否する。これはmanifest/path guardの回帰証拠であり、最終HEADの実Web/Template/ZIP Artifact全走査や未知PII・画像内容・著作権の監査を代替しない。
 - 2026-11-23時点では最終作業HEADが未確定で、最終HEADのArtifact全実体走査は未実施。B案1.2の判定は未受入のまま維持し、同一最終HEADのCI生成物が利用可能になった場合にのみその実ファイルを監査する。
+
+## 2026-11-23 06:05 JST 追加確認：HEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`
+
+対象はWeb CI [#45063620677](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45063620677) のArtifact。Web CIとMobile App CI [#45063620660](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45063620660) は同じHEADでSUCCESS。artifact一覧と実体を再取得し、ZIPパス・CRC・manifest・既知Secret patternを検査した。
+
+| Artifact | ID | entries / compressed ZIP bytes | ZIP SHA-256 |
+| --- | ---: | ---: | --- |
+| `web-dist-production` | 14770088637 | 320 / 19,612,027 | `dc6eaf3c628a78499611a8101d184926b1111030ec1b6964ba30109e2df47079` |
+| `web-dist-automation` | 14770687052 | 320 / 19,612,027 | `9fd3f229a96c0bb1afe569590a377b8f1e31e67f7cbbcb771cfbd73a5906ee30` |
+| `spec-site-automation` | 14770501644 | 116 / 6,510,466 | `405ededec192401fdc54e9527a04e3a70a397843a098ac1b1de6ff5b2618ab24` |
+| `pr199-course-distribution-45063620677-1` | 14770806464 | 7 / 119,494 | `bb872205cbbd2cbd0d2d6ff104e352b75bf49683074498c92ea1fea203a99ed6` |
+
+- 全4 ZIPでCRC error、duplicate path、absolute/parent traversal path、symlink、禁止file nameは0件。既知GitHub/OpenAI/Anthropic/AWS/Google/Slack/GitLab token、秘密鍵header、主要個人メールdomain patternのmatchは0件。これは未知Secret/PIIを否定する検査ではない。
+- course distribution evidenceの`qa-course-distribution-manifest.json`はSHA-256 `9ad238a9dc0a6d935d516e0d36da0536252210ff4b3b22e98f0d4e61808ae876`、source SHAはHEAD。567配布fileはgenerated Shop 320、local 142、external Skill 105。before/after SHA一覧は各568行で内容が一致し、manifest target pathの重複・unsafe・禁止pathは0件。manifest flagsはreference solutions / scoring tests / completed states / secretsを含めない。
+- Production Web ZIPとcourse-sync manifestのgenerated Shopは318/320 fileでpath・SHAが一致。1つの`entry-*.js`はfile hash由来名が別jobのBuildで異なってmanifestのpathに存在せず、`index.html`もSHAが異なる。これは独立Build間の比較であり、course-sync job内の検証ではsource SHAと同期前後file hashesが一致している。完全同一の生成物とは主張しない。
+- ProductionとAutomation ZIPは320 pathの集合が異なる。異なるpathは両Buildそれぞれの`_expo/static/js/web/entry-*.js`と`index.html`。Build kind別の独立成果物として扱い、同一artifactの複製とは扱わない。
+- Spec ZIPは116 entriesで、asset pathの不正やzip破損は検出されなかった。画像ファイル118件（Web artifact）と94件（Spec artifact）はPython Pillowが利用できず、pixel内容、EXIF/XMP相当metadataの検査を実施していない。
+- course distribution artifactはmanifest、before/after SHA一覧、knowledge graphの検証・impact evidenceのみを収録し、実learner template／distribution ZIPのpayloadを含まない。したがってtemplate全ファイルの実体検査は未完了。
+- local regenerationも試した。通常`course:sync`はWSL checkout外のLinux依存package pathをShop assets由来のtarget pathへ変換し、distribution path guardが`course/shop/assets/______home/...`を拒否した。CI Web ZIPをShop buildに指定した再生成は、external fixed Skill fetchの`raw.githubusercontent.com` DNS `EAI_AGAIN`で停止。どちらもソース変更やArtifact内容の変換をせず、環境制約として記録。
+
+**B案1.2判定：未受入（BLOCKED、部分実検査のみ）。** Web/Specの取得ZIPとcourse evidenceの既知pattern・path検査は完了したが、実learner template payloadがCI Artifactに存在せず、template全体・画像の表示内容/metadataを検査できていない。再開条件は、最終HEADの実template/ZIPを再現可能なCI Artifactとして取得し、同一HEADでそのpayload全体と画像内容を確認すること。1.3/1.4の権利監査とは独立し、許諾を推測しない。

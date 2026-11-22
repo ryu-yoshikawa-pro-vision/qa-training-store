@@ -36,5 +36,8 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- 外部固定Skillの配布権利者による一次許諾、全生成物の素材ライセンス証拠、実Provider契約/保持検証、本人環境の実受入、最終GitHub Actions確認には外部当事者またはpush承認が必要。
+- 1.2はコードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`のWeb/Spec ZIP・course evidenceを部分走査したが、CI Artifactにlearner template本体がなく、画像内容・metadataも未確認のため未受入。course-sync evidenceは567件manifestと同期前後hash一覧一致を示す。
+- 外部固定Skillの配布権利者による一次許諾、製品画像・React Navigation画像・生成JS dependency closureの素材ライセンス証拠、実Provider契約/保持検証、本人環境の実受入には外部当事者の判断が必要。
 - Tutorの実Provider送信は保持条件の一次根拠を取得できるまで利用不可とし、実Provider認証・課金・保持をこのRunで推測しない。
+- Web CI `45063620677`とMobile App CI `45063620660`はコードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`でSUCCESS。ただし、Plan/Run記録commit後の新HEAD CI、PR本文への最終結果記録、8.4最終判定は未完了。
+- 現checkpointのtracked task progressは12/18 (67%)。task 7は部分走査のため未完了、task 9はPR本文記録未完了、task 11–13は記録commit/push後の最新CIと最終ゲート待ち、task 15は権利一次証拠待ち。
