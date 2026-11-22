@@ -429,17 +429,8 @@ describe("Native CI workflow contracts", () => {
     ).toThrow(/fail closed/);
   });
 
-  it("keeps canonical Android visual capture PR-210-scoped, profile-bound, and provenance-bound", () => {
+  it("keeps canonical Android visual capture manual, profile-bound, and provenance-bound", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
-    const captureEligibilityStart = runtime.indexOf(
-      "- name: Determine PR #210 Screen Catalog capture eligibility",
-    );
-    const captureEligibilityEnd = runtime.indexOf("\n      - ", captureEligibilityStart + 1);
-    const captureEligibility = runtime.slice(
-      captureEligibilityStart,
-      captureEligibilityEnd === -1 ? undefined : captureEligibilityEnd,
-    );
-    const captureEligibilityRun = captureEligibility.slice(captureEligibility.indexOf("run:"));
     const profileStart = runtime.indexOf("- name: Normalize Android canonical visual profile");
     const profileEnd = runtime.indexOf("\n      - name:", profileStart + 1);
     const profileStep = runtime.slice(profileStart, profileEnd === -1 ? undefined : profileEnd);
@@ -453,72 +444,15 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("capture_case_key:");
     expect(nativeWorkflow).toContain("type: string");
     expect(nativeWorkflow).toContain("default: SCREEN-STOREFRONT-HOME/default/android");
-    expect(captureEligibilityStart).toBeGreaterThanOrEqual(0);
-    expect(captureEligibility).toContain("shell: bash");
-    expect(captureEligibility).toContain("PR210_CAPTURE_EVENT_NAME: ${{ github.event_name }}");
-    expect(captureEligibility).toContain(
-      "PR210_CAPTURE_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}",
-    );
-    expect(captureEligibility).toContain(
-      "PR210_CAPTURE_HEAD_REF: ${{ github.event.pull_request.head.ref }}",
-    );
-    expect(captureEligibility).toContain(
-      "PR210_CAPTURE_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}",
-    );
-    expect(captureEligibility).toContain(
-      "PR210_CAPTURE_BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}",
-    );
-    expectInOrder(captureEligibility, [
-      'if [[ "$PR210_CAPTURE_EVENT_NAME" == "pull_request"',
-      '&& "$PR210_CAPTURE_PULL_REQUEST_NUMBER" == "210"',
-      '&& "$PR210_CAPTURE_HEAD_REF" == "product/scenario-shop-maintenance"',
-      '&& "$PR210_CAPTURE_HEAD_REPOSITORY" == "$PR210_CAPTURE_BASE_REPOSITORY" ]]; then',
-    ]);
-    expect(captureEligibility).toContain("shopt -u nocasematch");
-    expectInOrder(captureEligibilityRun, [
-      "capture=false",
-      'if [[ "$PR210_CAPTURE_EVENT_NAME" == "pull_request"',
-      "capture=true",
-      "\n          fi",
-      "printf 'PR210_SCREEN_CATALOG_CAPTURE=%s\\n'",
-    ]);
-    const captureGuardStart = captureEligibilityRun.indexOf("if [[");
-    const captureGuardEnd = captureEligibilityRun.indexOf("\n          fi", captureGuardStart);
-    const captureTrueIndex = captureEligibilityRun.indexOf("capture=true");
-    expect(captureEligibilityRun.match(/^[ \t]*capture=false[ \t]*$/gm)).toHaveLength(1);
-    expect(captureEligibilityRun.match(/^[ \t]*capture=true[ \t]*$/gm)).toHaveLength(1);
-    expect(captureGuardStart).toBeGreaterThanOrEqual(0);
-    expect(captureTrueIndex).toBeGreaterThan(captureGuardStart);
-    expect(captureTrueIndex).toBeLessThan(captureGuardEnd);
-    expect(captureEligibility).toContain(
-      'printf \'PR210_SCREEN_CATALOG_CAPTURE=%s\\n\' "$capture" >> "$GITHUB_ENV"',
-    );
-    expect(runtime.match(/PR210_SCREEN_CATALOG_CAPTURE=/g)).toHaveLength(1);
-    expect(captureEligibilityRun).not.toContain("${{");
-    expect(runtime).not.toMatch(/github\.event\.pull_request\.head\.ref\s*==/);
-    expect(runtime).toContain(
-      "if: ${{ inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true' }}",
-    );
-    expect(
-      runtime.match(
-        /if: \$\{\{ inputs\.capture_spec_visuals == true \|\| env\.PR210_SCREEN_CATALOG_CAPTURE == 'true' \}\}/g,
-      ),
-    ).toHaveLength(2);
-    expect(runtime).toContain(
-      "if: ${{ !cancelled() && (inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true') && steps.android_emulator_ready.outcome == 'success' }}",
-    );
     expect(profileStart).toBeGreaterThanOrEqual(0);
     expect(captureStart).toBeGreaterThanOrEqual(0);
     expect(profileStep).toContain("id: android_profile_normalize");
     expect(profileStep).toContain("steps.android_adb_root.outcome == 'success'");
-    expect(profileStep).toContain("env.PR210_SCREEN_CATALOG_CAPTURE == 'true'");
     expect(profileStep).toContain("run: bash scripts/native/android-ci-visual-profile.sh");
     expect(captureStep).toContain("inputs.capture_spec_visuals == true");
-    expect(captureStep).toContain("env.PR210_SCREEN_CATALOG_CAPTURE == 'true'");
     expect(captureStep).toContain("steps.android_profile_normalize.outcome == 'success'");
-    expect(captureStep).toContain(
-      "CAPTURE_CASE_SELECTION: ${{ env.PR210_SCREEN_CATALOG_CAPTURE == 'true' && 'SCREEN-CHECKOUT-ADDRESS/default/android' || inputs.capture_case_key }}",
-    );
+    expect(captureStep).not.toContain("pull_request");
+    expect(captureStep).toContain("CAPTURE_CASE_SELECTION: ${{ inputs.capture_case_key }}");
     expect(captureStep).toContain("run: bash scripts/native/android-ci-visual-capture.sh");
     expectInOrder(runtime, [
       "Normalize Android canonical visual profile",

@@ -213,31 +213,12 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - name: Determine PR #210 Screen Catalog capture eligibility
-        shell: bash
-        env:
-          PR210_CAPTURE_EVENT_NAME: ${{ github.event_name }}
-          PR210_CAPTURE_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
-          PR210_CAPTURE_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR210_CAPTURE_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-          PR210_CAPTURE_BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
-        run: |
-          set -euo pipefail
-          shopt -u nocasematch
-          capture=false
-          if [[ "$PR210_CAPTURE_EVENT_NAME" == "pull_request" \
-            && "$PR210_CAPTURE_PULL_REQUEST_NUMBER" == "210" \
-            && "$PR210_CAPTURE_HEAD_REF" == "product/scenario-shop-maintenance" \
-            && "$PR210_CAPTURE_HEAD_REPOSITORY" == "$PR210_CAPTURE_BASE_REPOSITORY" ]]; then
-            capture=true
-          fi
-          printf 'PR210_SCREEN_CATALOG_CAPTURE=%s\n' "$capture" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
-        if: ${{ inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true' }}
+        if: ${{ inputs.capture_spec_visuals == true }}
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Install visual capture dependencies
-        if: ${{ inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true' }}
+        if: ${{ inputs.capture_spec_visuals == true }}
         shell: bash
         run: pnpm install --frozen-lockfile --ignore-scripts
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
@@ -421,7 +402,7 @@ jobs:
           echo "MAESTRO_BIN=$MAESTRO_BIN" >> "$GITHUB_ENV"
       - name: Check Android adb root capability
         id: android_adb_root
-        if: ${{ !cancelled() && (inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true') && steps.android_emulator_ready.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_emulator_ready.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -454,7 +435,7 @@ jobs:
           echo "ADB_ROOT_AVAILABLE=$root_available" >> "$GITHUB_ENV"
       - name: Normalize Android canonical visual profile
         id: android_profile_normalize
-        if: ${{ !cancelled() && (inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true') && steps.android_emulator_ready.outcome == 'success' && steps.maestro_cli.outcome == 'success' && steps.android_adb_root.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_emulator_ready.outcome == 'success' && steps.maestro_cli.outcome == 'success' && steps.android_adb_root.outcome == 'success' }}
         shell: bash
         run: bash scripts/native/android-ci-visual-profile.sh
       - name: Download Automation Release APK
@@ -582,10 +563,10 @@ jobs:
           fi
       - name: Capture Android Screen Catalog baseline
         id: android_visual_capture
-        if: ${{ !cancelled() && (inputs.capture_spec_visuals == true || env.PR210_SCREEN_CATALOG_CAPTURE == 'true') && steps.android_emulator_ready.outcome == 'success' && steps.android_profile_normalize.outcome == 'success' && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_emulator_ready.outcome == 'success' && steps.android_profile_normalize.outcome == 'success' && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         env:
-          CAPTURE_CASE_SELECTION: ${{ env.PR210_SCREEN_CATALOG_CAPTURE == 'true' && 'SCREEN-CHECKOUT-ADDRESS/default/android' || inputs.capture_case_key }}
+          CAPTURE_CASE_SELECTION: ${{ inputs.capture_case_key }}
         run: bash scripts/native/android-ci-visual-capture.sh
       - name: Upload Android Screen Catalog raw visuals
         if: ${{ always() && steps.android_visual_capture.outcome != 'skipped' }}

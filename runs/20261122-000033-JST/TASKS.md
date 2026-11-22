@@ -14,17 +14,17 @@
 
 ## Now
 
-- [x] 1. 最新HEAD `613a754e`、PR #210のOpen状態、`origin/main`、clean worktreeを再確認する。登録済みAndroid caseの実パラメータも`describe-case`で確認する。
-- [x] 2. 税額表示の承認済み方針を現行仕様、DTO、pricing、Web/Nativeの表示、既存テストと照合する。仕様・実装の一致を確認し、受入記録を更新する。
-- [x] 3. `maestro/native-purchase.yaml`の住所2行目入力・IME中/確認画面の証拠追加を独立read-only reviewし、既存assertionを保ったままflow契約テストを実行する。
-- [x] 4. Follow-up/受入計画/Run記録を住所2行目・税額方針に同期し、sanitizer/security/format/spec validationを実行する。
-- [x] 5. 受入記録と既存Maestro flowを8ファイルのみstageし、通常commit/pushとPR本文更新を行い、HEAD `f96a45e3`のWeb/Mobile required CIを確認する。両方success。
-- [ ] 6. Android keyboard screenshotで確認した住所2行目のIME重なりを修復し、Native component回帰・独立再レビュー・Android pixel確認を完了する。第2修正後もAndroid Runtime画像で重なりが再現し、キーボード表示完了後の再スクロールを加える最終bounded iteration中。
-- [x] 7. 最終修復差分のみstageし通常commit/push後、最新HEADのWeb/Mobile required CIと住所入力Maestro flowを確認する。HEAD `d30fd725`のWeb/Mobile CIとAndroid Runtime/Maestroは成功したが、IME表示中のpixel条件は未達。
-- [ ] 8. 修復済み最終HEADからGitHub UIでユーザーが単発Android visual captureをdispatchし、同一runのvisual artifact/APKを取得・検証する。
-- [ ] 9. canonical画像と正式仕様を比較し、必要なら登録済み`default`画像のみpromote、実行・仕様検証を再実行する。
-- [x] 10. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。registered captureはdispatchできず、最新HEADのrequired CIはWeb/Mobile success。視覚受入はFAILとして残す。
-- [x] 11. `13ee1f9a`で失敗したNative PurchaseのIME/Back状態依存をMaestro flowだけで修復し、commit `07ec3934`を通常push後、最新HEADのWeb/Mobile CIとAndroid Runtime artifactを再取得・確認した。両CI・flow成功、IME overlapは未受入。
+- [x] 1. 開始時にbranch/HEAD/PR#210/`origin/main`/worktreeを再確認し、登録済み`SCREEN-CHECKOUT-ADDRESS/default/android`の定義を確認する。
+- [x] 2. 税額表示の承認済み方針を正式仕様、DTO、pricing、Web/Nativeの表示、既存テストと照合する。
+- [x] 3. 住所2行目の日本語入力・復帰・確認表示を既存テスト/Maestro証拠と照合し、既存assertionを維持する。
+- [x] 4. 既存Android keyboard-open画像からIME重なりを確認し、旧focus targetの解除とレイアウト後再測定の欠落を修復対象として確定する。
+- [x] 5. Native source/component test/Maestroを限定修正し、独立read-only再レビュー、Native component 91件、typecheck、format/securityを通す。
+- [x] 6. PR #210限定・case-sensitiveな一時capture workflow guardとfail-closed contractを追加し、全contracts 803 PASS / 7 SKIPを確認後、commit `79eadf9f`をHook有効で作成し通常pushする。
+- [x] 7. `wait_for_required_ci`で`79eadf9f`のWeb/Mobile CIを確認し、同Mobile runのAndroid Runtime/Maestro、Screen Catalog capture、Artifact uploadを確認する。
+- [x] 8. 同一runのraw PNG/manifest/APKを取得し、source SHA・run・case・canonical profile・APK SHA-256・画像デコードを検証してIME中/確認画面を目視する。
+- [x] 9. default canonicalを現仕様・同一profile raw imageと比較し、必要な場合だけ登録済みcaseの`promote`で更新する。capture後に一時workflow guardと一時contractを復元する。
+- [ ] 10. 最終コード/画像/文書に対してspec validation・visual final・spec build・format/security・verify・sanitizerを実行し、PR branchへ通常commit/pushして最終HEAD CIを待つ。
+- [ ] 11. 既存follow-up/acceptance/Run/PR本文を最終証拠で更新し、差分・HEAD・CI・残る受入条件とmerge推奨を報告する。PR #210自体はmergeしない。
 
 ## Discovered
 

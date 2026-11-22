@@ -171,3 +171,11 @@ PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用�
 - Android Runtime artifact `native-android-runtime-evidence-44993416249` (`14744372796`) is linked by GitHub metadata to the latest docs HEAD. The code path is unchanged from runtime code HEAD `07ec3934`, whose inspected keyboard-open screenshot SHA-256 is `049b7ea08ea0ad2c3f630667d559a71a46d5dbdc6a69f52f5e8525cd4d57587c` (1080×1920). It shows the IME covering the lower edge of the optional line-2 field and part of the entered text. Japanese input, return, and one-time display in confirmation work, but the keyboard-open visibility contract remains **FAIL**.
 - The registered GitHub UI `workflow_dispatch` for `SCREEN-CHECKOUT-ADDRESS/default/android` could not be run in this environment; there is no run ID. WSL `gh` authentication was unavailable and the connected GitHub tool has no workflow-dispatch action; the user also confirmed they could not initiate the UI run. No registered-capture raw PNG/manifest/profile/APK/source SHA exists, so no canonical comparison or promotion was done. Existing `default/android.webp` remains unchanged and stale (it omits the empty optional line-2 field). Do not treat runtime artifact screenshots as registered canonical captures.
 - Physical Android and iOS runtime acceptance remain unverified. **Do not merge** until the IME overlap is resolved from new root-cause evidence and the registered default capture is validated/compared; iOS build and Android emulator evidence are not physical-device acceptance.
+
+### 2026-11-22 Android IME修復・視覚受入の更新
+
+- 上記の未完了判定は当時のHEADまでの履歴。修復HEAD `79eadf9fc0479f9c63ef5e64bd6caeffcc8b3f`でAndroid Emulator上のIME重なりを修正・再確認し、登録済み`SCREEN-CHECKOUT-ADDRESS/default/android`を同run manifest/APK検証後にcanonicalへpromoteした。詳細なrun ID、SHA、profile、画面所見は[製品受入レビュー記録](2026-11-21_235837_pr210-product-acceptance-review.md)の2026-11-22追記と`runs/20261122-000033-JST/REPORT.md`を参照。
+- Tax表示方針は承認済みで、独立税額行なし。実装・DTO・計算変更は不要。
+- Native line 2は任意の直接入力、IME中視認、戻り/session restartでの保持、注文確認表示をCI Emulator/Maestroで確認。Webの登録済み住所選択契約は変更していない。
+- PR専用の一時capture条件は撮影後にworkflow_dispatch専用へ復元済み。最終push後のWeb/Mobile CIを改めて確認してから、この追記時点のCI状態を確定する。
+- Android Emulator受入は完了。物理Android/iOS runtimeは未実施であり、build/emulator evidenceと混同しない。
