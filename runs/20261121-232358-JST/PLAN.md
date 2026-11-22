@@ -55,3 +55,11 @@
 
 - 2026-11-21: current branch/upstream/HEADはPR指定と一致。status初回呼出しは30秒時点で継続中。後続取得で開始時からMERGE_HEADが最新`origin/main`を指し、mainの変更はindexへ載っていた。これを既存状態として保ち、再merge・abortしない。
 - 2026-11-21: `merge-tree`はAGENTS.md、package.jsonのみcontent conflict。main #223/#226/#227とPR #199の意図を両方残す。
+
+## 2026-11-22 follow-up: residual contract test validation
+
+- User-authorized follow-up scope: investigate and resolve the six PowerShell contract-test failures and one Tutor 30-second timeout reported after merge commit `46f63fac467374bd29c18a4fa1623ce78458fc6a`, then run the requested hooks/contracts/verify/build checks.
+- Keep the existing merge commit and its parents. Do not re-merge, rewrite history, push, or modify product SUT/spec/seed/reset files.
+- Allowed repair scope is limited to the Tutor input validator, its related contract test, and (only if needed to ensure Windows-native coverage) the CI job for the PowerShell contract test. Preserve all rejection and privacy rules; do not skip tests without verified Windows-native execution.
+- Use the existing Linux temporary validation worktree for Linux checks and a Windows-local copy of this exact merge commit for native PowerShell tests. If a toolchain or environment prevents a check, record the concrete failure and the remaining assurance gap.
+- Completion requires the Tutor failure to pass at the standard 30-second timeout, all requested local checks/builds to have explicit results, Windows-native test status to be known or clearly blocked, the protected-file boundary to remain clean, and a local commit only if a repair was needed. Remote push remains unapproved.

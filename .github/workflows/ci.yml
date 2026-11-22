@@ -235,6 +235,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Run Windows PowerShell run-root contracts
+        run: >-
+          pnpm exec vitest run
+          tests/contracts/codex-run-root-migration-contract.test.ts
+          --testNamePattern=PowerShell
+          --no-file-parallelism
+          --maxWorkers=1
+          --testTimeout=30000
+          --reporter=verbose
+
       - name: Run focused Hook contracts
         run: pnpm run test:hooks
 

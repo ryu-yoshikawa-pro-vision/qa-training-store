@@ -29,7 +29,7 @@ function hasPowerShellRuntime() {
   return result.status === 0 && !result.error;
 }
 
-const powerShellAvailable = hasPowerShellRuntime();
+const powerShellAvailable = process.platform === "win32" && hasPowerShellRuntime();
 const fixtureRoots: string[] = [];
 
 afterEach(() => {

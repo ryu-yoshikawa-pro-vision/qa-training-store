@@ -24,7 +24,7 @@ function isTutorWorkspacePath(moduleId, relativePath) {
   return match !== null && match[1] === moduleId;
 }
 const BLOCKED_PERSONAL_DATA =
-  /(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b(?:\+81[- ]?|0)\d{1,4}[- ]?\d{1,4}[- ]?\d{3,4}\b|\b\d{3}[- ]\d{4}[- ]\d{4}\b)/i;
+  /(?:(?:^|[^A-Z0-9._%+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b(?:\+81[- ]?|0)\d{1,4}[- ]?\d{1,4}[- ]?\d{3,4}\b|\b\d{3}[- ]\d{4}[- ]\d{4}\b)/i;
 const FORBIDDEN_INPUT = /(?:\.env(?:\.[a-z0-9_-]+)?|-----BEGIN [A-Z ]*PRIVATE KEY-----)/i;
 export const COURSE_TUTOR_AGENT_ID = "qa-course-tutor";
 export const REQUIRED_OPEN_CODE_VERSION = "2.0.22";

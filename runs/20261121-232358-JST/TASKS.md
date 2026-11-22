@@ -34,3 +34,13 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 ## Blocked（ブロック中）
 
 - pushとその後の同一HEAD CIは明示承認待ち。ローカル検証・commit後もpushしない。
+
+## Follow-up（2026-11-22 residual test validation）
+
+- [x] 1. 指定どおりoriginをfetchし、clean status・PRブランチ・merge HEAD/parentsを確認する。
+- [x] 2. 既存Run/Plan、repair-loop、対象テスト、Tutor validator、Windows workflowの実行範囲を確認する。
+- [x] 3. PowerShell 6件をWindowsネイティブで実行し、Linux/WSLとの結果と差を確定する。
+- [x] 4. Tutorの5入力条件を計測し、拒否契約を保つ最小性能修正を関連テストで確認する。
+- [x] 5. Linux一時worktreeで`test:hooks`、`test:contracts`、`verify`を実行する。
+- [x] 6. `build:web`と`build:spec`を独立実行し、verify結果と区別して記録する。
+- [x] 7. 変更境界・差分・Run記録を最終確認し、Run Artifactをsanitizeしてcommit対象を確定する。remote pushは行わない。
