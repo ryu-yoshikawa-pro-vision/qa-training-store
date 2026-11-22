@@ -10,7 +10,7 @@
 - `origin/main`はPR merge元の`581fac744cd8fe575e36cb070114f406d8b91288`から`ddc451a7079bbc75cd1d6623f5ae1e4647caf635`へPR #227で進んでいる。追加差分はPR #210と`AGENTS.md`の1パスだけ重なる。今回、main取り込みやPR mergeは行わない。
 - PR #210の指定HEADに対し、既存Web CI #44911578084とMobile App CI #44911578122はいずれも成功。これは仕様受入・実機受入の代替ではない。
 - Checkout仕様にはWebの登録済み住所選択とNativeの住所直接入力の差がある。2026-11-22、ユーザーがNativeの未保存住所直接入力を正式に許可。仕様へ反映し、任意の住所2行目の入力・保存snapshot・確認表示をテストで確認する。Webは登録済み住所選択を維持する。
-- 住所2行目を含む更新後Native画面のcanonical Android screenshotが古く、視覚受入は未完了。Checkout税額の独立明細を表示しないという仕様追記はユーザー判断待ち。
+- 住所2行目を含む更新後Native画面のcanonical Android screenshotが古く、視覚受入は未完了。2026-11-22、ユーザーはCheckoutで税額を独立明細に表示しない方針を承認済み。現行DTOと表示を維持し、税額計算やフィールドは追加しない。
 
 ## 前提・非目標
 
@@ -62,3 +62,13 @@
 - 独立レビューfindings、仕様照合、CI coverage、実行済みWeb/Native範囲、状態不変の証拠、未検証と人間判断を個別に報告する。
 - 未検証・未決の項目をPASS扱いしない。
 - PR #210をmainへmergeしない。作業branchへの通常commit/pushは、既存のGit safety規約とユーザーの明示承認に従う。
+
+## Android視覚受入の追加作業（2026-11-22）
+
+- 税額表示判断は承認済み。正式仕様、`calculateOrderTotals()`、`CheckoutConfirmationDto`、Web/Nativeの4項目表示が一致するため、実装変更は不要。Checkout税額の独立明細を表示しないことは本プロジェクトの表示契約であり、一般的な税務要件の判断ではない。
+- Android canonical `SCREEN-CHECKOUT-ADDRESS/default/android` は空欄の任意住所2行目欄が欠落している。default状態は空欄のplaceholderを表示するため、正確なAPI 34 canonical profileのCI captureだけで更新する。
+- 登録済みcapture caseは住所2行目を入力しない。既存の `maestro/native-purchase.yaml` に限り、テスト用日本語住所を入力し、IME表示中と確認画面のスクリーンショットおよび既存IDの値assertionを追加する。入力済み画像をdefault canonicalへ昇格しない。
+- CIはMaestro 2.8.0をpinする。現行公式`inputText`仕様は2.7.0以降のAndroid日本語を含むnon-ASCII入力をサポートし、pin版の実装もUnicode経路を持つ。古い互換性記述を見て入力方法を変える必要はない。flow contract 78件と独立read-only reviewは完了したが、実Android CIでの確認はこれから行う。
+- `native-ci.yml` のcapture workflow dispatchは必須。通常のLinux側 `gh` 認証は無効で、GitHub接続にdispatch操作がないため、最終HEADをpushしてCIを確認後、ユーザーへGitHub UIから単発dispatchを依頼する。token/secretは要求しない。
+- Allowed files: `maestro/native-purchase.yaml`、`maestro/native-session-checkout-restart.yaml`、`docs/plans/2026-11-01_pr210-product-followups.md`、本計画、`runs/20261122-000033-JST/PLAN.md`、`runs/20261122-000033-JST/TASKS.md`、`runs/20261122-000033-JST/REPORT.md`、QA charter/snapshot/findings、既存Android canonical画像1点（manifest検証後のみ）。PR本文更新は最新検証完了後。
+- Validation: 該当Maestro flow契約テスト、Native component/既存住所保持テスト、`validate:spec`、visual final validation、`build:spec`、format/security、sanitizer、Git差分確認。commit/push後のWeb/Mobile required CIを同一HEADで確認し、captureではraw PNG・manifest・Automation APKの同一run/source/profile/hashを検証する。Maestro screenshot/JUnitは既存 `native-android-runtime-evidence-<run_id>` Artifactを利用し、CI設定の追加変更は不要。

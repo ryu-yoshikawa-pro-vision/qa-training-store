@@ -185,3 +185,16 @@
 - 仕様・受入: Nativeの未保存住所直接入力はユーザー承認済みで仕様へ反映。Webは登録済み住所選択。Checkout tax-line policyは別途ユーザー判断待ち。任意住所2行目が反映されたAndroid canonical screenshot/visual comparison、物理Android・iOS runtimeは未実施。ローカルWSL Chromiumはhost library不足で起動せず、指定E2Eの最新HEAD証拠はWeb CIから取得。
 - 結論: 最新HEAD CI successとコードレビューの結果をPR本文へ記録した。現時点では未決tax policyと視覚/実機受入が残るためmergeを推奨しない。PR #210はOpen/unmergedであり、PR merge・main変更は行っていない。
 - Progress: 100% (9/9)
+
+## 2026-11-22 10:36 (JST) - Android住所2行目入力契約・検証記録
+
+- Summary: Checkoutの税額表示方針はユーザー承認済みで正式仕様・既存実装と一致し、変更不要と確認した。Android住所2行目の日本語入力フローは既存Maestro 2.8.0契約に適合する。今回のレビュー・仕様記録・ローカル品質検査を完了した。
+- Changes: follow-up、受入計画、Run Plan/Tasksへ税額方針とAndroid受入範囲を記録。Native製品実装、正式仕様本文、canonical画像、CI workflowに追加変更なし。既存2 flowの日本語住所入力・IME/確認/再開スクリーンショット追加は維持。
+- 判断 / 理由: 当初確認した旧互換性記述にはAndroid `inputText` Unicode非対応とあったが、workflowはMaestro 2.8.0をpinし、現行公式仕様は2.7.0以降のAndroid日本語入力を明記する。pin版実装もUnicode入力経路を持つため、clipboard/ADB/IME追加設定へ変更しない。Android実行で入力・表示が通るかは最新Mobile CIで実証する。
+- Validation: targeted flow contract `tests/contracts/native-test-control-maestro.test.ts` + `tests/contracts/native-ci-workflow.test.ts`: 78 tests PASS（今回のflow内容と同一）。独立read-only reviewerに指摘なし。`pnpm run validate:spec`、`pnpm run validate:spec-visuals:final`（canonical 94、pending 0）、`pnpm run build:spec`（22 pages）、`pnpm run format:check`、`pnpm run security:check`（236 runtime / 398 credential-scan files）、`node scripts/sanitize-codex-artifacts.mjs --path runs/20261122-000033-JST --write --check`（4 files / 0 changes / 0 residual findings）はPASS。Web/Mobile CIはまだ旧HEAD `613a754e`の結果であり、現在の作業ツリーは未commit。
+- ブロッカー / 残作業: branchへ変更をcommit/push後、`wait_for_required_ci`で最新SHAのWeb/Mobile CIを取得する。現GitHub連携にはworkflow dispatch操作がなく、local `gh`認証も無効なため、CI後にユーザーがGitHub UIからvisual captureを単発起動する必要がある。raw PNG、同一runのmanifest/APK、profile/hash検証が揃うまでcanonical比較・更新とAndroid視覚受入は未完了。現状canonicalは維持。
+- Subagent:
+  - Delegation: `/root/maestro_line2_flow`へread-onlyでUnicode/IME/API version契約調査、`/root/review_ui_native`は既存2 flowの独立read-only review。
+  - Result: pinされたMaestro 2.8.0でUnicode `inputText`を使用可能と確認。既存Flowは入力・CTA scroll・再表示・session再開・確認画面のassertionを持ち、独立review findingなし。
+  - 親Agentの判断: 現行Maestro contractどおりのFlowを保持。実行時スクリーンショットの証拠なしに日本語入力や画面レイアウトをPASSにしない。
+- Progress: 50% (4/8)

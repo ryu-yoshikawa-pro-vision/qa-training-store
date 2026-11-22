@@ -96,7 +96,7 @@ Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の�
 
 - Code SHA `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`のWeb CI [#44931433280](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44931433280)とMobile App CI [#44931433660](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44931433660)はsuccess。Android Runtime / Maestro job `136933362584`の17 flowすべてがsuccessし、更新した3つのCheckout flowも含む。Android automation/production builds、iOS automation/production-validation simulator builds、Native Static、Production Bundle Guard、iOS Native CI Verifyもsuccess。
 - Web CIは27 success / 2 skipped（Extended mobile Chromium E2E、production deploy）。このCIではrequired Chromium E2E・cross-role・accessibility・mobile-boundaryを実行しsuccess。ローカルWSL E2EはChromium host library不足のため未実行であり、CI結果と区別する。
-- Emulator/build結果は実機・iOS runtime証拠ではない。Native canonical screenshotは任意住所2行目がなく、visual acceptanceは未完了。Native未保存住所の直接入力はユーザー承認済みで仕様へ反映済み。Checkout税額独立明細を表示しない仕様追記は別途ユーザー判断待ち。
+- Emulator/build結果は実機・iOS runtime証拠ではない。Native canonical screenshotは任意住所2行目がなく、visual acceptanceは未完了。Native未保存住所の直接入力はユーザー承認済みで仕様へ反映済み。Checkout税額を独立明細に表示しない方針も2026-11-22に承認済みであり、現行の小計・会員割引・送料・合計のDTO/表示契約を維持する。税額計算・税額フィールドは追加しない。この表示判断を税務要件一般の結論として扱わない。
 
 ## 既存19ファイルの変更受入
 
@@ -123,3 +123,11 @@ PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用�
 - `scripts/pre-commit-quality-check.mjs`と`tests/contracts/pre-commit-quality.test.ts`：大きなstaged assetを読み取るための`maxBuffer`変更と回帰テスト。
 
 後半3件は製品業務ロジックではなく共通ツールの変更である。PR #199の教材・分析に必須であることを確認できない共通変更も、今回の明示指示に従って本PRへ集約した。製品テストの受入と共通ツールの互換性・セキュリティ検証はそれぞれ独立して行う。PR #199の教材ビルドやクイズ、学習用評価・分析の処理は移管対象としない。変更を移しただけではCI成功や製品受入完了を意味しない。
+
+## 2026-11-22 Android視覚受入追記
+
+- **税額表示**：ユーザーはCheckoutに独立税額行を表示しない方針を承認した。正式仕様（`checkout-and-payment.md`）、`calculateOrderTotals()`、`CheckoutConfirmationDto`およびWeb/Native確認画面は商品小計・会員割引・送料・合計の4項目で一致する。実装・DTO変更は不要で、税額計算や税額フィールドも追加しない。これは本プロダクトの画面表示契約の決定であり、税務一般の結論ではない。
+- **住所2行目の画面契約**：正式仕様はNativeで任意の住所2行目を入力・確認し、確認/注文snapshotへ保持することを定める。現行画面は`native-checkout-line2`を住所1行目と電話の間に表示し、確認画面は別行で出す。既存component/integration/SQLite契約は入力値・snapshot・注文保存・住所録不変を確認するが、旧Android canonical `SCREEN-CHECKOUT-ADDRESS/default/android.webp`には空欄の任意入力欄がない。
+- **実行証拠**：登録済みdefault captureは未入力状態を表すため同じ状態のまま正本更新する。入力済み状態は別のcanonical stateとして登録せず、既存Native purchase Maestro flowの補助的な入力/確認画面証拠にする。該当画面のCI実行・artifact・canonical比較は本Runの結果が得られるまで未完了とする。
+- **環境**：本Runでは`describe-case`をWSL2/Bashで実行し、`SCREEN-CHECKOUT-ADDRESS/default/android`、`regular-member`、`/checkout/address`、`customer-seeded-session`、viewport capture、期待canonical pathを確認した。WSLにAndroid SDK/ADB/Emulatorはなく、`gh auth status`は無効credential、GitHub connectorはworkflow dispatchを提供しない。Actionsの単発dispatchが必要な場合、最終HEAD push後にGitHub UIをユーザーへ依頼し、資格情報は求めない。
+- **Maestro Unicode入力**：CIはMaestro 2.8.0をpinし、2.7.0以降はAndroidの日本語を含むnon-ASCIIを`inputText`で入力できる。現行公式仕様と2.8.0実装を確認し、既存の日本語入力flowを維持する。古い互換性記述の「AndroidではUnicode非対応」はこのpinには適用されない。対象flow contract testsは78件PASS。実Android CIによる日本語入力・IME後の表示・確認画面は最新HEADの実行待ち。
