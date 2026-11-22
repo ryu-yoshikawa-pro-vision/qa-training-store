@@ -19,8 +19,8 @@
 - [x] 3. `maestro/native-purchase.yaml`の住所2行目入力・IME中/確認画面の証拠追加を独立read-only reviewし、既存assertionを保ったままflow契約テストを実行する。
 - [x] 4. Follow-up/受入計画/Run記録を住所2行目・税額方針に同期し、sanitizer/security/format/spec validationを実行する。
 - [x] 5. 受入記録と既存Maestro flowを8ファイルのみstageし、通常commit/pushとPR本文更新を行い、HEAD `f96a45e3`のWeb/Mobile required CIを確認する。両方success。
-- [x] 6. Android keyboard screenshotで確認した住所2行目のIME重なりを既存UI primitivesで修復し、Native component回帰と独立再レビューを完了する。React Native helperのScrollView相対/keyboard screen相対座標差をレビューで指摘され、測定したwindow Yを加算する第2反復を実施。Native component 48件PASS、独立再レビュー新規findingなし。
-- [ ] 7. 修復差分のみstageし通常commit/push後、最新HEADのWeb/Mobile required CIと住所入力Maestro flowを確認する。
+- [ ] 6. Android keyboard screenshotで確認した住所2行目のIME重なりを修復し、Native component回帰・独立再レビュー・Android pixel確認を完了する。第2修正後もAndroid Runtime画像で重なりが再現し、キーボード表示完了後の再スクロールを加える最終bounded iteration中。
+- [ ] 7. 最終修復差分のみstageし通常commit/push後、最新HEADのWeb/Mobile required CIと住所入力Maestro flowを確認する。SHA `75f649a3`のCIは成功したがpixel条件が未達のため最終headで再実施する。
 - [ ] 8. 修復済み最終HEADからGitHub UIでユーザーが単発Android visual captureをdispatchし、同一runのvisual artifact/APKを取得・検証する。
 - [ ] 9. canonical画像と正式仕様を比較し、必要なら登録済み`default`画像のみpromote、実行・仕様検証を再実行する。
 - [ ] 10. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。

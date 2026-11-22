@@ -4,6 +4,7 @@ import { Link, router, useLocalSearchParams, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/react-navigation";
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,7 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { TextInputProps } from "react-native";
+import type { KeyboardEvent, ScrollViewProps, TextInputProps } from "react-native";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   CustomerOrderDetailDto,
@@ -110,6 +111,7 @@ function PurchaseTextInput({
   secureTextEntry = false,
   maxLength,
   onFocus,
+  onBlur,
 }: {
   value: string;
   onChangeText: (value: string) => void;
@@ -118,12 +120,14 @@ function PurchaseTextInput({
   secureTextEntry?: boolean;
   maxLength?: number;
   onFocus?: TextInputProps["onFocus"];
+  onBlur?: TextInputProps["onBlur"];
 }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
       maxLength={maxLength}
       onChangeText={onChangeText}
+      onBlur={onBlur}
       onFocus={onFocus}
       placeholder={placeholder}
       placeholderTextColor={nativeColors.muted}
@@ -151,11 +155,16 @@ function PurchaseKeyboardScrollView({
   children,
   testID,
   scrollViewRef,
+  onKeyboardDidShow,
 }: {
   children: ReactNode;
   testID: string;
   scrollViewRef?: RefObject<ScrollView | null>;
+  onKeyboardDidShow?: (event: KeyboardEvent) => void;
 }) {
+  const keyboardEventProps = {
+    onKeyboardDidShow,
+  } as ScrollViewProps & { onKeyboardDidShow?: (event: KeyboardEvent) => void };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -163,6 +172,7 @@ function PurchaseKeyboardScrollView({
       testID={`${testID}-keyboard`}
     >
       <ScrollView
+        {...keyboardEventProps}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         ref={scrollViewRef}
@@ -796,6 +806,7 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
 export function NativeCheckoutAddressScreen() {
   const state = useCheckoutSession("address");
   const scrollViewRef = useRef<ScrollView | null>(null);
+  const focusedAddressLine2Target = useRef<number | null>(null);
   const [address, setAddress] = useState<ShippingAddressSnapshot>(emptyAddress);
   const [savedAddresses, setSavedAddresses] = useState<
     Awaited<ReturnType<NonNullable<typeof state.services>["account"]["listAddresses"]>>
@@ -803,6 +814,22 @@ export function NativeCheckoutAddressScreen() {
   const [busy, setBusy] = useState(false);
   const services = state.services;
   const setMessage = state.setMessage;
+  const scrollAddressLine2ToKeyboard = (target: number) => {
+    const scrollView = scrollViewRef.current;
+    scrollView?.getNativeScrollRef()?.measureInWindow((_x, scrollViewWindowY) => {
+      scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        target,
+        scrollViewWindowY + nativeSpacing.md,
+        true,
+      );
+    });
+  };
+  const handleKeyboardDidShow = () => {
+    const target = focusedAddressLine2Target.current;
+    if (target === null) return;
+    focusedAddressLine2Target.current = null;
+    scrollAddressLine2ToKeyboard(target);
+  };
   useEffect(() => {
     if (state.session?.addressSnapshot !== null && state.session?.addressSnapshot !== undefined)
       setAddress(state.session.addressSnapshot);
@@ -837,6 +864,7 @@ export function NativeCheckoutAddressScreen() {
   };
   return (
     <PurchaseKeyboardScrollView
+      onKeyboardDidShow={handleKeyboardDidShow}
       scrollViewRef={scrollViewRef}
       testID="native-checkout-address-screen"
     >
@@ -927,15 +955,17 @@ export function NativeCheckoutAddressScreen() {
         <PurchaseTextInput
           value={address.addressLine2 ?? ""}
           onChangeText={(value) => setAddress({ ...address, addressLine2: value || null })}
+          onBlur={() => {
+            focusedAddressLine2Target.current = null;
+          }}
           onFocus={(event) => {
-            const scrollView = scrollViewRef.current;
-            scrollView?.getNativeScrollRef()?.measureInWindow((_x, scrollViewWindowY) => {
-              scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
-                event.nativeEvent.target,
-                scrollViewWindowY + nativeSpacing.md,
-                true,
-              );
-            });
+            const target = event.nativeEvent.target;
+            if (Keyboard.metrics() === undefined) {
+              focusedAddressLine2Target.current = target;
+              return;
+            }
+            focusedAddressLine2Target.current = null;
+            scrollAddressLine2ToKeyboard(target);
           }}
           placeholder="建物名・部屋番号（任意）"
           maxLength={INPUT_LIMITS.addressLine2}

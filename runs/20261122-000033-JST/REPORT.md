@@ -213,6 +213,14 @@
   - 親Agentの判断: ユーザー要求のkeyboard visibility契約に反するため、既存実装を最小修正し、実Android CIで再検証する。
 - Progress: 50% (5/10)
 
+## 2026-11-22 12:34 (JST) - Android keyboard timing repair candidate
+
+- New root-cause evidence: Android Runtime screenshot at SHA `75f649a35d8d646e5d9e0e4342d21f1b92312c84` still showed the line-2 field clipped by IME even though the ScrollView-origin offset was corrected. RN 0.86.3 `ScrollView` updates keyboard metrics in `scrollResponderKeyboardDidShow` before invoking its `onKeyboardDidShow` prop. The existing focus callback could run before that metric is available; a green Maestro flow/callback assertion therefore did not establish pixel visibility.
+- Bounded repair iteration 3: keep the focused line-2 native target while the keyboard is opening, clear it on blur, and call the existing measured-origin scroll helper again from `onKeyboardDidShow`. When `Keyboard.metrics()` already reports a visible keyboard, keep the immediate focus path. No spec, address semantics, validation, dependency or capture plumbing changed.
+- Validation: targeted Native purchase screens 49/49 PASS; full `pnpm run test:component:native` 13 suites / 90 tests PASS; `pnpm run typecheck` PASS for app/native-tests/training; `pnpm run format:check` PASS. Independent read-only re-review found no new P1/P2 issue and confirmed the RN 0.86.3 event ordering and local type cast scope.
+- Remaining: final repair has not yet been committed or exercised on Android. The next Mobile CI Runtime keyboard screenshot is the final bounded pixel check. If IME overlap remains, stop this repair loop and report a distinct diagnosis/remaining user acceptance rather than making another blind scroll change.
+- Progress: 50% (5/10; latest Android pixel confirmation and final CI still pending)
+
 ## 2026-11-22 11:41 (JST) - Android IME scroll repair iteration 2
 
 - Finding: independent reviewer #1 confirmed the original IME overlap; first repair iteration called React Native's `scrollResponderScrollNativeHandleToKeyboard` with only a fixed 16dp inset. Independent reviewer #2 found that React Native 0.86.3 measures the target relative to the ScrollView but compares it with keyboard screen Y, while NativeShell places that ScrollView below the header. The missing ScrollView window-origin offset could leave part of line 2 covered.
@@ -221,3 +229,12 @@
 - Repair loop: finding classified `must_fix` (Native input usability / user acceptance). Iteration 1 was not accepted because review exposed an origin mismatch. Iteration 2 passed source review and component test; decision `continue` to post-push Android runtime validation. No assertion, timeout, security control, or address validation was weakened.
 - Delegation: implementation `/root/maestro_line2_flow` (two allowed files only); independent read-only re-review `/root/review_ui_native` found no new issue; validation `/root/native_line2_validation` confirmed targeted component, typecheck, format, security, and diff checks.
 - Progress: 60% (6/10)
+
+## 2026-11-22 12:22 (JST) - Android Runtime visual recheck not accepted
+
+- Result: PR head `75f649a35d8d646e5d9e0e4342d21f1b92312c84` matched the CI waiter expected/observed SHA. Web CI #44977825833 and Mobile App CI #44977825780 both succeeded. Android Runtime/Maestro job `137075464249` succeeded, including Native Purchase and Native Session Checkout Restart flows.
+- Evidence: same-run Artifact `native-android-runtime-evidence-44977825780` (artifact id `14737825162`, source SHA verified in GitHub artifact metadata). Images `purchase/.../native-purchase-address-line2-keyboard.png` and `session-checkout-restart/.../native-session-checkout-address-line2-keyboard.png` decode as PNG and show Japanese entry, but the IME still covers the lower edge of the line-2 field and clips part of the glyphs. The coordinate-origin correction alone did not resolve pixel visibility; canonical was not promoted.
+- Root-cause update: pinned React Native 0.86.3 `ScrollView` sets keyboard metrics in its `keyboardDidShow` handler. The current onFocus helper can measure/scroll before Android keyboard metrics are available. This explains why the Jest call/offset assertion and green Maestro flow did not prove the visual requirement.
+- Repair iteration 3: retain the focused target and invoke the existing measured-origin scroll helper again from ScrollView `onKeyboardDidShow`, after React Native records keyboard coordinates. Keep immediate focus handling where relevant. Allowed files remain Native purchase screen and its component test. This is a bounded final iteration for this issue; if the next Android pixel check still fails, stop for a distinct diagnosis rather than another blind edit.
+- Current decisions: task 6 and final task 7 remain open despite green CI. The existing capture case's canonical image remains unchanged. Request a new workflow dispatch only after the next repair head's CI and runtime screenshot prove the keyboard-open field is fully visible.
+- Progress: 50% (5/10)

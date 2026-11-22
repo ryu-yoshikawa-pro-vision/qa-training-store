@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
-import { ScrollView } from "react-native";
+import { Keyboard, ScrollView } from "react-native";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
@@ -1068,6 +1068,67 @@ describe("Native customer purchase screens", () => {
   });
 
   it("scrolls the focused optional checkout address field above the keyboard", async () => {
+    const keyboardMetrics = jest.spyOn(Keyboard, "metrics").mockReturnValue(undefined);
+    const scrollToKeyboard = jest
+      .spyOn(ScrollView.prototype, "scrollResponderScrollNativeHandleToKeyboard")
+      .mockImplementation(() => {});
+    const scrollViewWindowY = 64;
+    const measureInWindow = jest.fn(
+      (callback: (x: number, y: number, width: number, height: number) => void) =>
+        callback(0, scrollViewWindowY, 390, 600),
+    );
+    const getNativeScrollRef = jest
+      .spyOn(ScrollView.prototype, "getNativeScrollRef")
+      .mockReturnValue({
+        measureInWindow,
+      } as unknown as NonNullable<ReturnType<ScrollView["getNativeScrollRef"]>>);
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: null,
+          unlockedStep: "address",
+        }),
+      },
+    });
+
+    try {
+      const screen = await render(<NativeCheckoutAddressScreen />);
+      await waitFor(() =>
+        expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy(),
+      );
+      await act(async () => {
+        fireEvent(screen.getByTestId("native-checkout-line2"), "focus", {
+          nativeEvent: { target: 123 },
+        });
+      });
+
+      expect(scrollToKeyboard).not.toHaveBeenCalled();
+      fireEvent(screen.getByTestId("native-checkout-address-screen"), "keyboardDidShow", {
+        endCoordinates: { screenX: 0, screenY: 400, width: 390, height: 400 },
+      });
+
+      expect(measureInWindow).toHaveBeenCalledTimes(1);
+      expect(scrollToKeyboard).toHaveBeenCalledWith(
+        123,
+        scrollViewWindowY + nativeSpacing.md,
+        true,
+      );
+    } finally {
+      getNativeScrollRef.mockRestore();
+      scrollToKeyboard.mockRestore();
+      keyboardMetrics.mockRestore();
+    }
+  });
+
+  it("scrolls the focused optional checkout address field immediately when the keyboard is open", async () => {
+    const keyboardMetrics = jest.spyOn(Keyboard, "metrics").mockReturnValue({
+      screenX: 0,
+      screenY: 400,
+      width: 390,
+      height: 400,
+    });
     const scrollToKeyboard = jest
       .spyOn(ScrollView.prototype, "scrollResponderScrollNativeHandleToKeyboard")
       .mockImplementation(() => {});
@@ -1112,6 +1173,7 @@ describe("Native customer purchase screens", () => {
     } finally {
       getNativeScrollRef.mockRestore();
       scrollToKeyboard.mockRestore();
+      keyboardMetrics.mockRestore();
     }
   });
 
