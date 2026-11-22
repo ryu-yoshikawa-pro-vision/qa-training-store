@@ -41,6 +41,10 @@ import {
   styles,
 } from "./native-components";
 
+type PurchaseScrollViewProps = ScrollViewProps & {
+  onKeyboardDidShow?: (event: KeyboardEvent) => void;
+};
+
 const REVIEW_RATINGS = [1, 2, 3, 4, 5] as const;
 const CHECKOUT_RETURN_PATHS: Record<
   CheckoutSession["unlockedStep"],
@@ -160,11 +164,10 @@ function PurchaseKeyboardScrollView({
   children: ReactNode;
   testID: string;
   scrollViewRef?: RefObject<ScrollView | null>;
-  onKeyboardDidShow?: (event: KeyboardEvent) => void;
+  onKeyboardDidShow?: PurchaseScrollViewProps["onKeyboardDidShow"];
 }) {
-  const keyboardEventProps = {
-    onKeyboardDidShow,
-  } as ScrollViewProps & { onKeyboardDidShow?: (event: KeyboardEvent) => void };
+  const scrollViewProps: PurchaseScrollViewProps =
+    onKeyboardDidShow === undefined ? {} : { onKeyboardDidShow };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -172,7 +175,7 @@ function PurchaseKeyboardScrollView({
       testID={`${testID}-keyboard`}
     >
       <ScrollView
-        {...keyboardEventProps}
+        {...scrollViewProps}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         ref={scrollViewRef}
@@ -807,6 +810,7 @@ export function NativeCheckoutAddressScreen() {
   const state = useCheckoutSession("address");
   const scrollViewRef = useRef<ScrollView | null>(null);
   const focusedAddressLine2Target = useRef<number | null>(null);
+  const addressLine2KeyboardFrame = useRef<number | null>(null);
   const [address, setAddress] = useState<ShippingAddressSnapshot>(emptyAddress);
   const [savedAddresses, setSavedAddresses] = useState<
     Awaited<ReturnType<NonNullable<typeof state.services>["account"]["listAddresses"]>>
@@ -814,22 +818,38 @@ export function NativeCheckoutAddressScreen() {
   const [busy, setBusy] = useState(false);
   const services = state.services;
   const setMessage = state.setMessage;
-  const scrollAddressLine2ToKeyboard = (target: number) => {
+  const scrollAddressLine2ToKeyboard = useCallback((target: number) => {
     const scrollView = scrollViewRef.current;
     scrollView?.getNativeScrollRef()?.measureInWindow((_x, scrollViewWindowY) => {
+      if (focusedAddressLine2Target.current !== target) return;
       scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
         target,
         scrollViewWindowY + nativeSpacing.md,
         true,
       );
     });
-  };
-  const handleKeyboardDidShow = () => {
-    const target = focusedAddressLine2Target.current;
-    if (target === null) return;
-    focusedAddressLine2Target.current = null;
-    scrollAddressLine2ToKeyboard(target);
-  };
+  }, []);
+  const handleKeyboardDidShow = useCallback(
+    (_event: KeyboardEvent) => {
+      const target = focusedAddressLine2Target.current;
+      if (target === null) return;
+      if (addressLine2KeyboardFrame.current !== null)
+        cancelAnimationFrame(addressLine2KeyboardFrame.current);
+      addressLine2KeyboardFrame.current = requestAnimationFrame(() => {
+        addressLine2KeyboardFrame.current = null;
+        if (focusedAddressLine2Target.current !== target) return;
+        scrollAddressLine2ToKeyboard(target);
+      });
+    },
+    [scrollAddressLine2ToKeyboard],
+  );
+  useEffect(() => {
+    return () => {
+      focusedAddressLine2Target.current = null;
+      if (addressLine2KeyboardFrame.current !== null)
+        cancelAnimationFrame(addressLine2KeyboardFrame.current);
+    };
+  }, []);
   useEffect(() => {
     if (state.session?.addressSnapshot !== null && state.session?.addressSnapshot !== undefined)
       setAddress(state.session.addressSnapshot);
@@ -960,12 +980,10 @@ export function NativeCheckoutAddressScreen() {
           }}
           onFocus={(event) => {
             const target = event.nativeEvent.target;
-            if (Keyboard.metrics() === undefined) {
-              focusedAddressLine2Target.current = target;
-              return;
-            }
-            focusedAddressLine2Target.current = null;
-            scrollAddressLine2ToKeyboard(target);
+            focusedAddressLine2Target.current = target;
+            const keyboardMetrics = Keyboard.metrics();
+            if (keyboardMetrics !== undefined && keyboardMetrics !== null)
+              scrollAddressLine2ToKeyboard(target);
           }}
           placeholder="建物名・部屋番号（任意）"
           maxLength={INPUT_LIMITS.addressLine2}

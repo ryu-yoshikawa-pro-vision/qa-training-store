@@ -96,6 +96,9 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - tapOn:
     id: "native-checkout-line2"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: native-purchase-address-line2-focused-keyboard
 - inputText: "青山ビル101"
 - assertVisible:
     id: "native-checkout-line2"

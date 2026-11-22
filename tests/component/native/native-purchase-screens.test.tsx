@@ -1,5 +1,6 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Keyboard, ScrollView } from "react-native";
+import type { KeyboardEvent } from "react-native";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
@@ -1067,11 +1068,40 @@ describe("Native customer purchase screens", () => {
     expect(mockRouterPush).toHaveBeenCalledWith("/checkout/payment");
   });
 
-  it("scrolls the focused optional checkout address field above the keyboard", async () => {
+  it("scrolls the focused optional checkout address field after the keyboard layout settles", async () => {
     const keyboardMetrics = jest.spyOn(Keyboard, "metrics").mockReturnValue(undefined);
     const scrollToKeyboard = jest
       .spyOn(ScrollView.prototype, "scrollResponderScrollNativeHandleToKeyboard")
       .mockImplementation(() => {});
+    const animationFrameCallbacks: Array<(time: number) => void> = [];
+    const requestAnimationFrameMock = jest.fn((callback: (time: number) => void) => {
+      animationFrameCallbacks.push(callback);
+      return animationFrameCallbacks.length;
+    });
+    const cancelAnimationFrameMock = jest.fn();
+    const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "requestAnimationFrame",
+    );
+    const cancelAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "cancelAnimationFrame",
+    );
+    let animationFrameGlobalsInstalled = false;
+    const restoreAnimationFrameGlobals = () => {
+      if (!animationFrameGlobalsInstalled) return;
+      if (requestAnimationFrameDescriptor === undefined) {
+        Reflect.deleteProperty(globalThis, "requestAnimationFrame");
+      } else {
+        Object.defineProperty(globalThis, "requestAnimationFrame", requestAnimationFrameDescriptor);
+      }
+      if (cancelAnimationFrameDescriptor === undefined) {
+        Reflect.deleteProperty(globalThis, "cancelAnimationFrame");
+      } else {
+        Object.defineProperty(globalThis, "cancelAnimationFrame", cancelAnimationFrameDescriptor);
+      }
+      animationFrameGlobalsInstalled = false;
+    };
     const scrollViewWindowY = 64;
     const measureInWindow = jest.fn(
       (callback: (x: number, y: number, width: number, height: number) => void) =>
@@ -1082,8 +1112,9 @@ describe("Native customer purchase screens", () => {
       .mockReturnValue({
         measureInWindow,
       } as unknown as NonNullable<ReturnType<ScrollView["getNativeScrollRef"]>>);
+    const listAddresses = jest.fn().mockResolvedValue([]);
     runtime({
-      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      account: { listAddresses },
       checkout: {
         getActive: jest.fn().mockResolvedValue({
           ...checkoutSession,
@@ -1098,27 +1129,61 @@ describe("Native customer purchase screens", () => {
       await waitFor(() =>
         expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy(),
       );
-      await act(async () => {
-        fireEvent(screen.getByTestId("native-checkout-line2"), "focus", {
-          nativeEvent: { target: 123 },
-        });
-      });
+      const line2Input = screen.getByTestId("native-checkout-line2");
+      const onFocus = line2Input.props.onFocus as
+        | ((event: { nativeEvent: { target: number } }) => void)
+        | undefined;
+      const onBlur = line2Input.props.onBlur as (() => void) | undefined;
+      expect(onFocus).toEqual(expect.any(Function));
+      expect(onBlur).toEqual(expect.any(Function));
+      onFocus?.({ nativeEvent: { target: 123 } });
 
       expect(scrollToKeyboard).not.toHaveBeenCalled();
-      fireEvent(screen.getByTestId("native-checkout-address-screen"), "keyboardDidShow", {
-        endCoordinates: { screenX: 0, screenY: 400, width: 390, height: 400 },
+      Object.defineProperty(globalThis, "requestAnimationFrame", {
+        configurable: true,
+        value: requestAnimationFrameMock,
       });
+      Object.defineProperty(globalThis, "cancelAnimationFrame", {
+        configurable: true,
+        value: cancelAnimationFrameMock,
+      });
+      animationFrameGlobalsInstalled = true;
+      const keyboardEvent: KeyboardEvent = {
+        duration: 0,
+        easing: "keyboard",
+        endCoordinates: { screenX: 0, screenY: 400, width: 390, height: 400 },
+      };
+      const onKeyboardDidShow = screen.getByTestId("native-checkout-address-screen").props
+        .onKeyboardDidShow as ((event: KeyboardEvent) => void) | undefined;
+      expect(onKeyboardDidShow).toEqual(expect.any(Function));
+      onKeyboardDidShow?.(keyboardEvent);
 
+      expect(requestAnimationFrameMock).toHaveBeenCalledTimes(1);
+      expect(measureInWindow).not.toHaveBeenCalled();
+      expect(scrollToKeyboard).not.toHaveBeenCalled();
+      animationFrameCallbacks[0]?.(16);
       expect(measureInWindow).toHaveBeenCalledTimes(1);
       expect(scrollToKeyboard).toHaveBeenCalledWith(
         123,
         scrollViewWindowY + nativeSpacing.md,
         true,
       );
+      onKeyboardDidShow?.(keyboardEvent);
+      expect(requestAnimationFrameMock).toHaveBeenCalledTimes(2);
+      animationFrameCallbacks[1]?.(32);
+      expect(scrollToKeyboard).toHaveBeenCalledTimes(2);
+
+      restoreAnimationFrameGlobals();
+      onBlur?.();
+      onKeyboardDidShow?.(keyboardEvent);
+      expect(requestAnimationFrameMock).toHaveBeenCalledTimes(2);
+      expect(scrollToKeyboard).toHaveBeenCalledTimes(2);
+      screen.unmount();
     } finally {
       getNativeScrollRef.mockRestore();
       scrollToKeyboard.mockRestore();
       keyboardMetrics.mockRestore();
+      restoreAnimationFrameGlobals();
     }
   });
 
@@ -1142,6 +1207,35 @@ describe("Native customer purchase screens", () => {
       .mockReturnValue({
         measureInWindow,
       } as unknown as NonNullable<ReturnType<ScrollView["getNativeScrollRef"]>>);
+    const animationFrameCallbacks: Array<(time: number) => void> = [];
+    const requestAnimationFrameMock = jest.fn((callback: (time: number) => void) => {
+      animationFrameCallbacks.push(callback);
+      return animationFrameCallbacks.length;
+    });
+    const cancelAnimationFrameMock = jest.fn();
+    const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "requestAnimationFrame",
+    );
+    const cancelAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "cancelAnimationFrame",
+    );
+    let animationFrameGlobalsInstalled = false;
+    const restoreAnimationFrameGlobals = () => {
+      if (!animationFrameGlobalsInstalled) return;
+      if (requestAnimationFrameDescriptor === undefined) {
+        Reflect.deleteProperty(globalThis, "requestAnimationFrame");
+      } else {
+        Object.defineProperty(globalThis, "requestAnimationFrame", requestAnimationFrameDescriptor);
+      }
+      if (cancelAnimationFrameDescriptor === undefined) {
+        Reflect.deleteProperty(globalThis, "cancelAnimationFrame");
+      } else {
+        Object.defineProperty(globalThis, "cancelAnimationFrame", cancelAnimationFrameDescriptor);
+      }
+      animationFrameGlobalsInstalled = false;
+    };
     runtime({
       account: { listAddresses: jest.fn().mockResolvedValue([]) },
       checkout: {
@@ -1170,6 +1264,121 @@ describe("Native customer purchase screens", () => {
         scrollViewWindowY + nativeSpacing.md,
         true,
       );
+      Object.defineProperty(globalThis, "requestAnimationFrame", {
+        configurable: true,
+        value: requestAnimationFrameMock,
+      });
+      Object.defineProperty(globalThis, "cancelAnimationFrame", {
+        configurable: true,
+        value: cancelAnimationFrameMock,
+      });
+      animationFrameGlobalsInstalled = true;
+      const keyboardEvent: KeyboardEvent = {
+        duration: 0,
+        easing: "keyboard",
+        endCoordinates: { screenX: 0, screenY: 400, width: 390, height: 400 },
+      };
+      const onKeyboardDidShow = screen.getByTestId("native-checkout-address-screen").props
+        .onKeyboardDidShow as ((event: KeyboardEvent) => void) | undefined;
+      expect(onKeyboardDidShow).toEqual(expect.any(Function));
+      onKeyboardDidShow?.(keyboardEvent);
+      expect(requestAnimationFrameMock).toHaveBeenCalledTimes(1);
+      expect(scrollToKeyboard).toHaveBeenCalledTimes(1);
+      animationFrameCallbacks[0]?.(16);
+      expect(scrollToKeyboard).toHaveBeenCalledTimes(2);
+
+      restoreAnimationFrameGlobals();
+      await act(async () => {
+        fireEvent(screen.getByTestId("native-checkout-line2"), "blur");
+      });
+      onKeyboardDidShow?.(keyboardEvent);
+      expect(requestAnimationFrameMock).toHaveBeenCalledTimes(1);
+      expect(scrollToKeyboard).toHaveBeenCalledTimes(2);
+
+      await act(async () => {
+        fireEvent(screen.getByTestId("native-checkout-line2"), "focus", {
+          nativeEvent: { target: 123 },
+        });
+      });
+      expect(scrollToKeyboard).toHaveBeenCalledTimes(3);
+      Object.defineProperty(globalThis, "requestAnimationFrame", {
+        configurable: true,
+        value: requestAnimationFrameMock,
+      });
+      Object.defineProperty(globalThis, "cancelAnimationFrame", {
+        configurable: true,
+        value: cancelAnimationFrameMock,
+      });
+      animationFrameGlobalsInstalled = true;
+      onKeyboardDidShow?.(keyboardEvent);
+      expect(requestAnimationFrameMock).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        screen.unmount();
+      });
+      expect(cancelAnimationFrameMock).toHaveBeenCalledWith(2);
+    } finally {
+      getNativeScrollRef.mockRestore();
+      scrollToKeyboard.mockRestore();
+      keyboardMetrics.mockRestore();
+      restoreAnimationFrameGlobals();
+    }
+  });
+
+  it("does not scroll the optional address field when it blurs before measurement resolves", async () => {
+    const keyboardMetrics = jest.spyOn(Keyboard, "metrics").mockReturnValue({
+      screenX: 0,
+      screenY: 400,
+      width: 390,
+      height: 400,
+    });
+    const scrollToKeyboard = jest
+      .spyOn(ScrollView.prototype, "scrollResponderScrollNativeHandleToKeyboard")
+      .mockImplementation(() => {});
+    const scrollViewWindowY = 64;
+    const measurementCallbacks: Array<
+      (x: number, y: number, width: number, height: number) => void
+    > = [];
+    const measureInWindow = jest.fn(
+      (callback: (x: number, y: number, width: number, height: number) => void) => {
+        measurementCallbacks.push(callback);
+      },
+    );
+    const getNativeScrollRef = jest
+      .spyOn(ScrollView.prototype, "getNativeScrollRef")
+      .mockReturnValue({
+        measureInWindow,
+      } as unknown as NonNullable<ReturnType<ScrollView["getNativeScrollRef"]>>);
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: null,
+          unlockedStep: "address",
+        }),
+      },
+    });
+
+    try {
+      const screen = await render(<NativeCheckoutAddressScreen />);
+      await waitFor(() =>
+        expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy(),
+      );
+      await act(async () => {
+        fireEvent(screen.getByTestId("native-checkout-line2"), "focus", {
+          nativeEvent: { target: 321 },
+        });
+      });
+
+      expect(measureInWindow).toHaveBeenCalledTimes(1);
+      expect(scrollToKeyboard).not.toHaveBeenCalled();
+      await act(async () => {
+        fireEvent(screen.getByTestId("native-checkout-line2"), "blur");
+      });
+      measurementCallbacks[0]?.(0, scrollViewWindowY, 390, 600);
+
+      expect(scrollToKeyboard).not.toHaveBeenCalled();
+      screen.unmount();
     } finally {
       getNativeScrollRef.mockRestore();
       scrollToKeyboard.mockRestore();
