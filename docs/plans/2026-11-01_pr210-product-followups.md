@@ -179,3 +179,9 @@ PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用�
 - Native line 2は任意の直接入力、IME中視認、戻り/session restartでの保持、注文確認表示をCI Emulator/Maestroで確認。Webの登録済み住所選択契約は変更していない。
 - PR専用の一時capture条件は撮影後にworkflow_dispatch専用へ復元済み。最終push後のWeb/Mobile CIを改めて確認してから、この追記時点のCI状態を確定する。
 - Android Emulator受入は完了。物理Android/iOS runtimeは未実施であり、build/emulator evidenceと混同しない。
+
+## 2026-11-23 status update after PR #210 merge
+
+- PR #210 merged to `main` on 2026-11-22 at `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd` (PR #210 head `796e67edcbb14e8da2ea84e082e12de4fe7dd481`). Earlier OPEN/unmerged statements above are historical checkpoints.
+- This merge integrates the product-followup changes into main; it does not mark every candidate or product acceptance condition in this plan complete. Use the latest product acceptance evidence above for Android emulator scope, and keep physical Android/iOS runtime unverified.
+- PR #199 now contains this main commit at remote head `fbc8e551a01882b5e6d8c846edc23f3beea96660`. Its latest Web CI is a separate integration result; do not transfer PR #210 CI/acceptance to PR #199 or formal Cases.

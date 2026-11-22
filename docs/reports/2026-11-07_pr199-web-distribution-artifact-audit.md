@@ -76,3 +76,9 @@
 - **配布ガードに不足を確認**：`manifest.json`の`**/.env*`に対し、`scripts/training/ai-assisted-qa-course-core.mjs`の`FORBIDDEN_PATH`は`.envrc`・`.environment`を拒否せず、`.kube/config`も禁止対象外だった。一方`.env_backup`と`.env.local`は従来から拒否できる。現Artifactの混入ではなく、将来の生成Shop/manifest登録の検証漏れ。共通ガードと既存契約テストに負例を追加する。**修正後HEADのCIが成功するまで受入未確定**。
 
 **マージ前の作業1は未完了。** 固定Skill 105ファイル・Web JS/フォント/画像の権利/NOTICEの全件確認、公開禁止情報の独立監査、許諾の解消が必要。Web CI全体が失敗しているため、最終CIも未完了。
+
+## 2026-11-23 現行ガードとの照合
+
+- 2026-11-08の上記「配布ガードに不足」の記述は当時のHEAD `b37df6084eb9303aec24fd6e08afc839a6e3aacd`で観測した履歴として維持する。後続commit `cd7dbce79ceb0afda26befef18afe9717aba1770`で`FORBIDDEN_PATH`が`.env*`と`.kube/**`を拒否し、既存Distribution contractにsource/destination manifestとgenerated Shopの負例が追加された。
+- 現行ソースの`FORBIDDEN_PATH`は`.envrc`、`.environment`、`.kube/config`を含む上記パスを拒否する。これはmanifest/path guardの回帰証拠であり、最終HEADの実Web/Template/ZIP Artifact全走査や未知PII・画像内容・著作権の監査を代替しない。
+- 2026-11-23時点では最終作業HEADが未確定で、最終HEADのArtifact全実体走査は未実施。B案1.2の判定は未受入のまま維持し、同一最終HEADのCI生成物が利用可能になった場合にのみその実ファイルを監査する。

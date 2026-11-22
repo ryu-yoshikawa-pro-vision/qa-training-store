@@ -136,14 +136,16 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
     expect(exercise).toContain("不正入力や`valid=false`でも終了コード0");
   });
 
-  it("uses valid tutor invocation examples while keeping formal assessment separate", () => {
+  it("keeps tutor practice and formal assessment separate while blocking external sends", () => {
     for (const module of ["M00", "M01", "M02", "M03", "M04"]) {
       const lesson = read(`docs/curriculum/ai-assisted-qa/modules/${module}/README.md`);
-      expect(lesson, module).toContain(`pnpm course:tutor ${module} --model provider/model-id`);
-      expect(lesson, module).not.toContain(
-        `pnpm course:tutor ${module} --model <プロバイダ/モデルID>`,
-      );
+      expect(lesson, module).toContain("**現在の外部AI機能：BLOCKED**");
+      expect(lesson, module).toContain("course:tutor");
+      expect(lesson, module).not.toMatch(/^\s*(?:pnpm\s+)?course:tutor\b/m);
       const exercise = read(`training/ai-assisted-qa-course/exercises/${module}/exercise.md`);
+      expect(exercise, module).toContain("外部AI機能の現在の状態：BLOCKED");
+      expect(exercise, module).toContain("外部AIチューター送信は現在BLOCKEDです");
+      expect(exercise, module).not.toMatch(/^\s*(?:pnpm\s+)?course:tutor\b/m);
       for (const stage of [
         "**説明**",
         "**段階ヒント**",
@@ -154,10 +156,12 @@ describe("Phase 1 fixed Skill and runtime evidence preparation", () => {
         expect(exercise, `${module}: missing tutor practice stage ${stage}`).toContain(stage);
       }
       expect(exercise).toContain("正式採点");
-      expect(exercise).toContain("未実行と記録");
+      expect(exercise).toContain("未実行 / BLOCKED");
     }
     const m04 = read("docs/curriculum/ai-assisted-qa/modules/M04/README.md");
     expect(m04).not.toContain("AIチューター（`pnpm course:tutor M04`）");
     expect(m04).toContain("course:assess");
+    expect(m04).toContain("一次根拠確認待ちで現在BLOCKED");
+    expect(m04).not.toMatch(/^\s*(?:pnpm\s+)?course:assess\b/m);
   });
 });

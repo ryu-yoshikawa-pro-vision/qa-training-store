@@ -12,15 +12,66 @@
 
 | 旧個別条件 | マージ前の完了条件 | 現状 |
 | --- | --- | --- |
-| **1.2** | 最終Web／Template／ZIPの実配布ファイルとCI ArtifactにSecret・PII・模範解答・採点内部資料が混入していないことを実物検査 | 未受入 |
-| **1.3** | 固定Skill全配布ファイルの権利者・一次許諾／ライセンス・必要なLICENSE/NOTICEを確認。許諾不能の素材を配布しない | BLOCKED（一次許諾未確認） |
-| **1.4** | 公開JS・画像・フォント等の配布物と一次ライセンス・表示要件を全件突合 | 未受入 |
-| **7.1** | #199統合差分のコード・セキュリティ・配布・教材の独立レビュー、指摘対応と再検証を保存 | 未実施 |
-| **7.2のマージ前部分** | 正式Caseの未受入／FAIL／BLOCKED、後続移管の正当性、#210の製品不具合、公開・機能利用制限を実行者とは別の確認者がレビュー | 未実施 |
-| **8.3** | 全変更確定後、**同一最終HEAD**の必須Web/Mobile CI、Build・検証Artifact、skipped・failureを確認 | 未受入（前HEADのMobile CIはFAIL） |
-| **8.4** | 権利・安全性・独立レビュー・CI・残リスクの根拠を揃え、マージ可否を判定 | 未実施 |
+| **1.2** | 最終Web／Template／ZIPの実配布ファイルとCI ArtifactにSecret・PII・模範解答・採点内部資料が混入していないことを実物検査 | **未受入**（fbc8e551以前の監査は履歴として保持。今回候補の最終HEAD Artifactと実配布物を未監査） |
+| **1.3** | 固定Skill全配布ファイルの権利者・一次許諾／ライセンス・必要なLICENSE/NOTICEを確認。許諾不能の素材を配布しない | **BLOCKED**（一次許諾未確認） |
+| **1.4** | 公開JS・画像・フォント等の配布物と一次ライセンス・表示要件を全件突合 | **未受入**（一部NOTICEは確認、全配布物・一次権利根拠は未照合） |
+| **7.1** | #199統合差分のコード・セキュリティ・配布・教材の独立レビュー、指摘対応と再検証を保存 | **PASS（候補差分のレビュー範囲）**（独立reviewerがdiff digest `439dad5c…`を確認。P0–P2なし、修正済みP3を再確認。最終CIは別条件） |
+| **7.2のマージ前部分** | 正式Caseの未受入／FAIL／BLOCKED、後続移管の正当性、#210の製品不具合、公開・機能利用制限を実行者とは別の確認者がレビュー | **PASS（マージ前の移管レビュー範囲）**（Case状態・後続12条件・利用制限を独立確認。全正式Case結果のレビューは後続） |
+| **8.3** | 全変更確定後、**同一最終HEAD**の必須Web/Mobile CI、Build・検証Artifact、skipped・failureを確認 | **未確認**（基準HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`のWeb CIはFAIL、Mobile App CIはSUCCESS。修正候補はローカルのみで、最終HEAD CI待ち） |
+| **8.4** | 権利・安全性・独立レビュー・CI・残リスクの根拠を揃え、マージ可否を判定 | **未受入・マージ不可**（1.2/1.3/1.4/8.3が未達。レビュー範囲の完了だけでは受入できない） |
+
+### 2026-11-22 最新証拠チェックポイント
+
+- #210はmainへ統合済み。今回のPR #199 HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`にはmain `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`が含まれる。正式Caseの実受入結果は製品修正だけでは更新しない。
+- [Web CI #45020508148](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45020508148) attempt 1はIntegration 2件、Contracts 16件、Chromium cross-role 1 failed/1 flakyでFAIL。`verify`は必須結果集約のfailure。Web/Template/Spec buildとdistribution verification jobは成功したが、Artifactが存在することだけでは1.2の全バイナリ走査完了を示さない。
+- [Mobile App CI #45020508179](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45020508179) attempt 1はNative Static、Android/iOS Build、Android Maestro、`native-ci / verify`を含めSUCCESS。これはWeb CIのfailureを相殺せず、8.3は未達。
+- Integration 2件はPR専用の`tests/integration/pr219-actor-revocation.test.ts`が修正前の`RESOLVED`を期待し、transaction内再認可の`AUTHENTICATION_REQUIRED`拒否と食い違う。Contractsの16件は、last-admin interleaving 2件（旧`LAST_ADMIN_PROTECTED`期待、実際`PERMISSION_DENIED`）、supported-behaviors validatorの初回証拠不一致を共通原因とする13件、修正済み在庫境界に残った`it.fails` 1件。PR専用stale Cart E2Eは旧`/checkout/payment`期待に対して`/cart`を観測した。
+- main既存`e2e/web/cross-role-lifecycle.spec.ts`のstatus Locator曖昧性はPR差分外の既存製品テストであり、本PRでは変更しない。別の製品テスト保守PRが必要。
+- Supported Behaviorsの歴史的`source_commit=383efc9107ef3d5f78c5659473277166c1bba2de`は保持する。CIが検出した行ずれは52 Use Case methods/205 evidence refs、72 implementation refs、13 behavior source refs、117 behavior IDsに及ぶ。line-only driftと#210の意味変更を分離し、更新後に全79要件・208動作validatorを再実行する。formal Caseの`execution_acceptance=未受入`は維持。
+- 以前の[配布物監査](../reports/2026-11-07_pr199-web-distribution-artifact-audit.md)は過去HEAD固定の履歴であり、最新HEADの未知PII・画素内容・全配布ファイルを保証しない。固定Skill一次許諾は[既存監査](../reports/2026-11-07_pr199-fixed-skill-license-audit.md)のとおりBLOCKED。第三者素材も全件の一次権利根拠が未取得。
+- 独立reviewでTutorは価格確認後もProvider auth/availability/retention確認なしに送信できるP1、親directory symlink race P1が確認されたため、外部AI安全条件は未達。static contractの通常Tutor/正式評価履歴分離・calibration failure拒否は確認範囲の証拠だが、Provider retentionの一次根拠と実Provider認証・料金・保持/削除、本人Private環境のpayloadは未検証。P1修正・拒否テストが成立するまでTutor送信を安全受入しない。
 
 **追加のマージ前安全条件（旧2.4・2.5・5.5・5.6に関する前提）**：本人の明示同意なしにOpenCode／Providerへ送信しないこと、認証・費用・権限・保持が未確認の操作は安全に停止すること、通常チューターが正式評価やLevel 2合格判定へ混入しないことを、実装経路と拒否テストで確認する。実証できない外部送信／正式評価は実行不能とし、その拒否を確認する。安全性が確認できない場合は該当項目をマージ前に戻す。認可・Secret・データ保護に関する重大FAILを後続扱いにしない。
+
+**2026-11-22 review finding（履歴）**: 独立read-only reviewではTutorが公開価格を確認した後、Provider auth/availabilityと権威あるretention policyの検証なしに`opencode run`へ進む経路、およびTutor excerpt/public fileの親directory symlink raceを確認した。したがって外部AI安全条件は当時未達だった。実Provider送信は行わず、retention根拠がない限り送信をfail closedにする。path raceはroot-anchored no-follow処理と決定的contract testの候補修正を行った。今回の修正結果は下記チェックポイントに記録する。
+
+### 2026-11-23 #210後CI修正・独立レビューのチェックポイント
+
+- GitHub上のPR #199はOPEN、remote HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。作業ブランチはPR head、upstreamも同ブランチ。候補変更は未commit／未pushであり、このSHAのCI結果ではない。
+- PR固有の認可失効・last-admin・在庫境界・stale Cartテストを#210後の実装契約へ更新。supported-behaviorsでは行番号だけでなく#210による意味差を照合し、source originと正式Case未受入状態を維持した。
+- Tutor／正式評価のProvider保持根拠が未取得であるため、新しい外部送信・評価開始はfail-closed。Tutorの対象ファイル読取をroot-anchored no-followにし、symlink差替え・FIFO・過大入力を拒否する契約を加えた。実Provider認証・課金・保持の受入には換算しない。
+- 最終候補のfocused testsはLinux ext4上で、distribution + M07 2 files / 91 tests PASS（Prettier PASS、27.25秒）、supported-behaviors 62/62 PASS、Tutor／assessment resume／last-admin／inventory／actor-revocation 5 files / 30 tests PASS。これらは全Contracts、E2E、Build、verify、最終HEAD CIの代替ではない。
+- 独立reviewerは当該diff digestを再確認し、修正済みP3以外にP0–P2なし。7.2マージ前移管レビューでは、CaseをPASSへ変更していないこと、#210修正済み動作と現行FAIL候補、後続12条件、公開・Provider制限を確認。全正式Caseの独立実行結果レビューは後続のまま。
+- main所有`e2e/web/cross-role-lifecycle.spec.ts`の曖昧な`getByRole("status")`は対象差分外。失敗通知とLoading領域が同じroleに一致するため、製品テスト保守PRで通知内容に限定したLocatorへ修正する案を引継ぐ。本PRでは編集も新PR作成もしない。
+- 現在のゲート：1.2は候補HEADのBuild Artifact未走査、1.3は固定Skill権利者の一次許諾待ち、1.4は製品画像9件・生成JS依存閉包等の権利根拠不足で未受入。外部Providerは認証・費用・保持／削除の一次根拠と本人実行が未確認。8.3は新HEAD CI待ち、8.4は**マージ不可**。
+- B案のマージ前7条件は、7.1と7.2マージ前部分を独立レビュー範囲で確認済み。その他の受入を代替しない。後続12条件と本人受入6条件はそのまま維持する。
+
+### 2026-11-23 ローカル全体検証のチェックポイント
+
+- 検証対象は候補差分（PR base HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`）。現候補は未commit／未pushであり、上記GitHub Actions結果は旧HEADに限る。
+- 独立validation runの結果：`test:integration` 16 files / 197 tests PASS、`test:repository` 150 PASS / 1 skip、`test:component` Web 127・Native 92 PASS、`test:hooks` 4 files / 174 tests PASS、`build:web`・`build:spec` PASS。
+- Contracts全体は2 files failed / 123 passed、68 failed / 1,383 passed / 7 skipped。66件の`official-artifact-chain.test.ts`と2件の`spec-agentic-qa.test.ts`が同じ`EISDIR` (`scripts/agentic-qa/benchmark-revision.ts:60`) で失敗した。検証用ext4 checkoutではroot `node_modules` がsymlinkで、`.gitignore`の`node_modules/`に無視されず`?? node_modules`としてstatusへ出る。revision列挙は除外判定前に全status pathを`readFileSync`し、symlink先directoryを通常fileとしてhashしようとする。CIの通常のignored directoryとは異なる一時検証配置が原因とみられる。ソースは変更せず、real directoryを使うext4 checkoutで再検証中。現失敗の正確なpathはroot `node_modules`。
+- `test:e2e:cross-role`（33 browser launch failures）と`test:e2e:chromium`（71 browser launch failures）はChromiumの`libnspr4.so`不足でtest assertion前に起動できず。アプリのE2E結果とは扱わない。
+- `verify`は`typecheck:native-tests`でIntegrationテストのTS18048（`expected.users` / `expected.sessions` optional table snapshot）により失敗。PR専用test helperの型でusers/sessionsを必須化する型修正を実施し、対象Integration 2/2と`pnpm run typecheck:native-tests`を再実行してPASS。`verify`は修正後の最終candidateで再実行待ち。
+- 依存関係は変更していない。先行ext4 snapshotは`expo-router@57.0.30`でlockfile指定`57.0.31`と不一致だったため、依存version差をWeb Build PASSの根拠に混同しない。
+- 以上のローカル結果で1.2実Artifact検査や8.3を完了扱いしない。最終HEADのCI／Artifact、1.3／1.4の一次権利根拠、実Provider契約、本人実受入は未確認またはBLOCKEDのまま。8.4はマージ不可。
+
+#### 04:11 JST 追記：正規ext4配置での再検証
+
+- `node_modules`を実directoryとして配置した新しいext4 snapshotで`pnpm run test:contracts`がPASS（125 files、1,451 passed、7 skipped、exit 0）。前回68件の`EISDIR`は、symlinkの`node_modules`がuntracked pathとしてGit statusへ現れた検証環境配置に起因すると確認できた。benchmark revision生成script自体は変更していない。
+- 同じsnapshotで`pnpm run verify`もPASS。format／Markdown／text lint、curriculum／AI validation、全typecheck、Contracts、全Buildを含む。ESLintは93 warnings、0 errors。Focused Integration 2/2および`typecheck:native-tests`も型だけの修正後にPASS。
+- `test:e2e:cross-role`と`test:e2e:chromium`は初回ローカル試行でChromium `libnspr4.so`不足によりブラウザ起動前に停止。修正後にローカルE2Eを再実行していない。E2E成功は主張せず、最終HEADのCI証拠で判定する。
+- 独立reviewerは最新tracked candidate digest `97e4774a5080850550dd5df1c9f16019e7ed9e8f5086a2f274d0d41844520be7`を読み取り確認。従前レビューdigest `439dad5c…`から追加の実装変更はIntegration testのTableSnapshot型宣言・戻り値注釈だけで、実行時処理に問題なし。Plan／Runは証拠追記。1.2の最新Artifact走査、1.3／1.4一次権利根拠、最終HEAD CIと8.4は未完了／マージ不可。
+
+#### 04:35 JST 追記：最終candidateのverify
+
+- 最新Plan／TASKS／evaluationを含むtracked candidate digest `dd8bf9d54168d7e998f1fb321d4a7fa86c610791354ed61e95a89100ac024186`を新しいLinux ext4 snapshotで`pnpm run verify`し、exit 0。125 Contracts filesで1,451 passed / 7 skipped、Integration 197、Repository 150/1 skipped、Component Web 127 / Native 92、unit 66。全typecheck、format／Markdown／text lint、skill/spec/curriculum/AI validation、security、Web export/docs BuildとSpec Build 22 pagesがPASS。ESLint 93 warnings / 0 errors。
+- これはlocal candidateの検証であり、branch HEAD `fbc8e551...`のGitHub Actions結果ではない。PR #199の最終commit後にWeb/Mobile CIを確認する。1.2最終Artifact、1.3/1.4権利、8.4のマージ判定は未完了。
+
+#### 04:50 JST 追記
+
+- 04:35 JSTの記録・TASKS完了チェックを含むcandidate digest `e66adde670ea0f5120c6f9f7e605992b10b889f18fbb1e41f129a19853038060`で`pnpm run verify`を再度実行し、Linux ext4上でexit 0。結果は上記と同じく全suite・全typecheck・Web/Spec Build PASS、Contracts 1,451 passed / 7 skipped、ESLint 93 warnings / 0 errors。新しい失敗なし。
+- 検証後に追加したのはこのRun／Planの実行結果記録のみ。ソースは変更していない。GitHub Actionsはローカルcommit後の最新HEADで別途確認する。
 
 ### 後続へ移管する12個別条件と7.2の残範囲
 

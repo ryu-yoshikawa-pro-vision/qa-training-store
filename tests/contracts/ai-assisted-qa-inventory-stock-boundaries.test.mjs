@@ -7,7 +7,7 @@ import { createScenarioDataset } from "../../src/seeds/scenarios";
 
 const boundaries = [0, 1, 5, 6];
 
-describe("AI-assisted QA: admin inventory stock boundaries (known product gap)", () => {
+describe("AI-assisted QA: admin inventory stock boundaries", () => {
   let database;
   let repository;
   let selectedIds;
@@ -53,16 +53,9 @@ describe("AI-assisted QA: admin inventory stock boundaries (known product gap)",
       .sort((left, right) => left - right);
   }
 
-  it("keeps zero out of low stock and includes the 1/5 boundary", async () => {
+  it("classifies the zero, low-stock, and available boundaries", async () => {
     expect(await matchingQuantities("out")).toEqual([0]);
     expect(await matchingQuantities("low")).toEqual([1, 5]);
+    expect(await matchingQuantities("available")).toEqual([6]);
   });
-
-  it.fails(
-    "requires available to exclude low stock (BR-ADMININV-001; known divergence)",
-    async () => {
-      // Formal oracle: available is 6+, but current repository also includes 1 and 5.
-      expect(await matchingQuantities("available")).toEqual([6]);
-    },
-  );
 });

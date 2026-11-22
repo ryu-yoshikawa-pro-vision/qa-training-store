@@ -222,3 +222,10 @@
 **結論と未完了の扱い**：横断51/51 Caseに、少なくとも一つの既存テスト成功または固定HEAD実Runtimeの**部分的な照合先**を記録した。これは実行されたテストが正式Caseの全Assertionを満たすという意味ではない。テスト成功はテストの範囲だけを示し、対象Role/Seed/State/Platform、全失敗・競合、業務DB不変性、画像・スクリーンリーダー、独立判定を補完しない。**51/51正式Caseの`execution_acceptance`は引き続き「未受入」、`independent_review`は「未実施」**。作業6.3の959動作Case全数受入は未達であり、個別20/39、上位0/8のまま。
 
 **次の具体的操作**：上記表と以前の959件採否CSVを参照し、Role・State・Versionの失敗時に直接DB副作用が未照合のCase（特に`ROLE-STATUS`、`TRANSITION-ACCOUNT`、`STATE-TERMINAL`）について既存の実Use Case契約を優先して確認する。SUTを変更せず、追加したQA契約テストの全23テーブル比較により拒否時と正常時の変更境界を検証し、最終HEADの実CIとは別に結果を記録する。
+
+## 2026-11-22 最新状態の追記：#210統合後
+
+- 過去の本文中にある「#210未マージ」「修正が#199へ未統合」は、それぞれ当該固定HEAD・確認日時の履歴として維持する。現在はPR #210がmainへ統合され、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`がPR #199 HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`に含まれる。
+- #210後の同HEAD Web CI #45020508148で、PR専用actor revocation 2件、Contracts 16件、PR専用stale Cart復帰テストの差分を再観測した。旧期待`RESOLVED`/`LAST_ADMIN_PROTECTED`/`/checkout/payment`を現在の動的証拠として扱わず、#210の再認可・Cart復帰契約へ沿うPR専用テストへ更新中。main既存cross-role E2Eの曖昧なstatus locatorは本PR変更範囲外。
+- PR #210の実装統合だけでは正式Caseの全条件を動的に満たしたことにならない。採用959動作Case・横断51 Caseの全行で`execution_acceptance=未受入`、`independent_review=未実施`を維持する。主にformal test artifactsを追加したり部分成功を一括PASSへ読み替えない。
+- Current-headとの差分影響を含むcoverage evidence再確認と現行validator再実行、Tutor P1安全修正、同一最終HEAD CI、配布権利/独立レビューは別の未完了条件である。

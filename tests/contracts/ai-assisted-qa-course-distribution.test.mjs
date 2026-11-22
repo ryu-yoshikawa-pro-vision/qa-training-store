@@ -250,7 +250,10 @@ function courseFixture() {
             required_at_terminal_module: index <= 4 ? "M04" : index <= 7 ? "M07" : "M10",
             assessment_is_terminal_only: true,
             mastery_status: "not_evaluated_by_course_check",
-            entry_command: index === 4 || index === 7 || index === 10 ? "pnpm course:assess" : null,
+            entry_command:
+              index === 4 || index === 7 || index === 10
+                ? "BLOCKED (future only; do not execute): pnpm course:assess"
+                : null,
           },
           references: [
             `docs/curriculum/ai-assisted-qa/modules/${moduleId}/README.md`,
@@ -2011,8 +2014,86 @@ describe("AI-assisted QA distribution contract", () => {
     );
     expect(notices).toContain("course/shop/_expo/static/js/web/entry-*.js");
     expect(notices).not.toMatch(/entry-[a-f0-9]{16,}\.js/);
-    expect(guide).toContain("## 正式AI評価での外部送信");
-    expect(guide).toContain("SEND provider/model-id");
+    expect(guide).toContain("## 正式AI評価の外部送信（現在BLOCKED）");
+    expect(guide).toContain("新しいモデル評価は`BLOCKED`として停止します");
+    expect(guide).toContain("`SEND provider/model-id`を入力する手順は現在ありません。");
+  });
+
+  it("marks external tutor and new assessment as currently blocked in every learner module", () => {
+    const manifest = loadCourseManifest(repositoryRoot);
+    const learnerPages = [
+      "docs/curriculum/ai-assisted-qa/start-here.md",
+      ...Array.from(
+        { length: 11 },
+        (_, index) =>
+          `docs/curriculum/ai-assisted-qa/modules/M${String(index).padStart(2, "0")}/README.md`,
+      ),
+    ];
+    const distributedSources = new Set(manifest.local_files.map((entry) => entry.source_path));
+    const currentExecutionClaims = [
+      /(?:pnpm\s+)?course:tutor[^\n]{0,140}(?:実行します|実行できます|実行してください|起動できます|利用できます|利用可能です|質問できます|活用できます)/,
+      /AIチューター[^\n]{0,140}(?:実行できます|起動できます|利用できます|利用可能です|質問できます|活用できます)/,
+      /(?:pnpm\s+)?course:assess[^\n]{0,160}(?:実行します|実行できます|実行してください|起動できます|起動すると|起動する|利用できます|開始できます|評価します|集計します|修了判定を行います)/,
+      /正式(?:AI)?評価[^\n]{0,120}(?:起動すると|起動する|起動します|実行します|評価します|集計します|修了判定を行います)/,
+      /^\s*(?:pnpm\s+)?course:(?:tutor|assess)\b/m,
+    ];
+
+    for (const sourcePath of learnerPages) {
+      expect(distributedSources, sourcePath).toContain(sourcePath);
+      const content = fs.readFileSync(path.join(repositoryRoot, sourcePath), "utf8");
+      expect(content, sourcePath).toContain("**現在の外部AI機能：BLOCKED**");
+      expect(content, sourcePath).toContain("教材中のAI利用例は学習上の説明または条件付きの将来案");
+      expect(content, sourcePath).toContain("Providerへ送信しないでください");
+      for (const pattern of currentExecutionClaims) {
+        expect(content, `${sourcePath}: ${pattern}`).not.toMatch(pattern);
+      }
+    }
+
+    const assessmentGuide = fs.readFileSync(
+      path.join(repositoryRoot, "training/ai-assisted-qa-course/assessment/README.md"),
+      "utf8",
+    );
+    expect(assessmentGuide).toContain("**新しい外部AI正式評価：現在BLOCKED**");
+    expect(assessmentGuide).toContain("完了試行は、保存済み証拠がある場合に限りローカルで再検証");
+    expect(assessmentGuide).toContain("未完了の外部評価を再開してはいけません");
+    expect(assessmentGuide).toContain(
+      "外部Provider呼び出しが必要になった場合は保持条件ゲートがBLOCKEDとして停止します",
+    );
+
+    const phaseRubrics = manifest.local_files.filter((entry) => entry.role === "assessment");
+    expect(phaseRubrics).toHaveLength(3);
+    for (const [index, entry] of phaseRubrics.entries()) {
+      const phase = index + 1;
+      expect(entry.source_path).toBe(
+        `training/ai-assisted-qa-course/assessment/phase-${phase}-rubric.md`,
+      );
+      expect(entry.target_path).toBe(`course/assessment/phase-${phase}-rubric.md`);
+      const rubric = fs.readFileSync(path.join(repositoryRoot, entry.source_path), "utf8");
+      expect(rubric, entry.source_path).toContain("新しい外部AI正式評価はBLOCKEDです");
+      expect(rubric, entry.source_path).toContain("将来の設計基準");
+      expect(rubric, entry.source_path).toContain("起動しないでください");
+      for (const pattern of currentExecutionClaims) {
+        expect(rubric, `${entry.source_path}: ${pattern}`).not.toMatch(pattern);
+      }
+    }
+
+    for (let index = 0; index <= 10; index += 1) {
+      const moduleId = `M${String(index).padStart(2, "0")}`;
+      const terminalModule = index <= 4 ? "M04" : index <= 7 ? "M07" : "M10";
+      const phaseId = index <= 4 ? "P1" : index <= 7 ? "P2" : "P3";
+      const state = JSON.parse(
+        fs.readFileSync(
+          path.join(repositoryRoot, `training/ai-assisted-qa-course/states/${moduleId}/end.json`),
+          "utf8",
+        ),
+      );
+      expect(state.phase_assessment.phase_id, moduleId).toBe(phaseId);
+      expect(state.phase_assessment.terminal_module_id, moduleId).toBe(terminalModule);
+      expect(state.phase_assessment.entry_command, moduleId).toBe(
+        `BLOCKED (future only; do not execute): pnpm course:assess ${terminalModule} --model provider/model-id`,
+      );
+      expect(state.phase_assessment.mastery_status, moduleId).toBe("not_evaluated_by_course_check");
+    }
   });
 
   it("keeps public assessment references out of learner sync and load allowlists", () => {
@@ -3532,6 +3613,16 @@ describe("AI-assisted QA distribution contract", () => {
     });
     expect(firstLoad.moduleId).toBe("M00");
     expect(fs.existsSync(path.join(fixture.target, "workspace/M01/submission.md"))).toBe(false);
+    const m04Load = loadModule({
+      root: fixture.target,
+      moduleId: "M04",
+      now: new Date("2026-10-22T01:04:00.000Z"),
+    });
+    expect(m04Load.moduleId).toBe("M04");
+    expect(m04Load.selectedInput.source).toBe("module-public-sample");
+    const m04Submission = path.join(fixture.target, "workspace/M04/submission.md");
+    fs.appendFileSync(m04Submission, "Learner evidence\n");
+    const m04SubmissionBeforeCheck = fs.readFileSync(m04Submission);
     const start = checkState({ root: fixture.target, moduleId: "M00", stateName: "start" });
     expect(start).toMatchObject({
       status: "ready",
@@ -3558,15 +3649,39 @@ describe("AI-assisted QA distribution contract", () => {
       status_label: "配布・構造一致（実行環境は未確認）",
       execution: { status: "unverified" },
     });
-    expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "end" }).status).toBe(
-      "insufficient",
+    const m04End = checkState({ root: fixture.target, moduleId: "M04", stateName: "end" });
+    expect(m04End.phaseAssessment).toMatchObject({
+      availableHere: false,
+      atTerminalModule: true,
+      command: "BLOCKED (future only; do not execute): pnpm course:assess",
+    });
+    expect(m04End.assessment).toContain("新しい外部AI正式評価は現在BLOCKED");
+    expect(fs.readFileSync(m04Submission)).toEqual(m04SubmissionBeforeCheck);
+    const m04CliOutput = execFileSync(
+      process.execPath,
+      [
+        path.join(repositoryRoot, "scripts/training/ai-assisted-qa-course.mjs"),
+        "check",
+        "M04",
+        "--state",
+        "end",
+      ],
+      { cwd: fixture.target, encoding: "utf8" },
     );
+    const m04CliState = JSON.parse(m04CliOutput);
+    expect(m04CliState.phaseAssessment.command).toBe(
+      "BLOCKED (future only; do not execute): pnpm course:assess",
+    );
+    expect(m04CliState.assessment).toContain("新しい外部AI正式評価は現在BLOCKED");
+    const endState = checkState({ root: fixture.target, moduleId: "M00", stateName: "end" });
+    expect(endState.status).toBe("insufficient");
+    expect(endState.assessment).toContain("新しい外部AI正式評価は現在BLOCKED");
 
     const submission = path.join(fixture.target, "workspace/M00/submission.md");
     fs.appendFileSync(submission, "Learner evidence\n");
     expect(checkState({ root: fixture.target, moduleId: "M00", stateName: "end" })).toMatchObject({
       status: "ready",
-      assessment: "構造照合のみです。Phase末の正式AI評価は別にcourse:assessで起動します",
+      assessment: expect.stringContaining("新しい外部AI正式評価は現在BLOCKED"),
     });
     expect(() =>
       loadModule({

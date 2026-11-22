@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
@@ -8,6 +9,7 @@ import {
   buildTutorConfig,
   buildTutorRunArgs,
   buildTutorTurnPrompt,
+  MAX_TUTOR_FILE_BYTES,
   MAX_TUTOR_QUESTION_BYTES,
   parseTutorArgs,
   readTutorPublicFile,
@@ -20,6 +22,7 @@ import {
   makeIsolatedEnvironment,
   prepareTutorTurnForSend,
   runPriceCheckedTutorTurn,
+  runTutorCli,
   runValidatedTutorTurn,
 } from "../../scripts/training/ai-assisted-qa-course-tutor.mjs";
 
@@ -136,6 +139,92 @@ describe("AI-assisted QA tutor external send boundary", () => {
     );
   });
 
+  it("uses nonblocking leaf opens and rejects FIFOs when the environment can create them", () => {
+    if (process.platform !== "linux") {
+      const root = fixture();
+      const relativePath = documents[1].path;
+      const publishedFiles = new Map([
+        [relativePath, createHash("sha256").update(documents[1].text).digest("hex")],
+      ]);
+      expect(() => readTutorPublicFile(root, "M06", relativePath, publishedFiles)).toThrow(
+        /unsupported on this platform/,
+      );
+      return;
+    }
+    const root = fixture();
+    const relativePath = documents[1].path;
+    const fifoPath = path.join(root, relativePath);
+    fs.rmSync(fifoPath);
+    try {
+      execFileSync("mkfifo", [fifoPath]);
+    } catch (error) {
+      if (!error || !["EPERM", "EACCES", "ENOENT"].includes(error.code)) throw error;
+      const source = fs.readFileSync(
+        path.resolve("scripts/training/ai-assisted-qa-course-tutor-core.mjs"),
+        "utf8",
+      );
+      expect(source).toContain("O_RDONLY | O_NONBLOCK | O_NOFOLLOW");
+      expect(source).toContain("!before.isFile()");
+      return;
+    }
+    const publishedFiles = new Map([
+      [relativePath, createHash("sha256").update(documents[1].text).digest("hex")],
+    ]);
+    const open = fs.openSync.bind(fs);
+    let leafOpenWasNonblocking = false;
+    const openSpy = vi.spyOn(fs, "openSync").mockImplementation((location, flags, ...args) => {
+      if (path.basename(String(location)) === path.basename(fifoPath)) {
+        leafOpenWasNonblocking =
+          typeof flags === "number" && Boolean(flags & fs.constants.O_NONBLOCK);
+        if (!leafOpenWasNonblocking) throw new Error("blocking FIFO open rejected by contract");
+      }
+      return open(location, flags, ...args);
+    });
+    try {
+      expect(() => readTutorPublicFile(root, "M06", relativePath, publishedFiles)).toThrow(
+        /size or type is invalid/,
+      );
+      expect(leafOpenWasNonblocking).toBe(true);
+    } finally {
+      openSpy.mockRestore();
+    }
+  });
+
+  it("bounds descriptor reads when a source grows after its initial stat", () => {
+    const root = fixture();
+    const relativePath = documents[1].path;
+    const target = path.join(root, relativePath);
+    const initial = "A".repeat(MAX_TUTOR_FILE_BYTES - 2);
+    fs.writeFileSync(target, initial);
+    const publishedFiles = new Map([
+      [relativePath, createHash("sha256").update(initial).digest("hex")],
+    ]);
+    const read = fs.readSync.bind(fs);
+    let grew = false;
+    let totalBytesRead = 0;
+    const readSpy = vi
+      .spyOn(fs, "readSync")
+      .mockImplementation((fd, buffer, offset, length, position) => {
+        if (!grew) {
+          grew = true;
+          fs.appendFileSync(target, "XYZ");
+        }
+        const bytesRead = read(fd, buffer, offset, length, position);
+        totalBytesRead += bytesRead;
+        return bytesRead;
+      });
+    try {
+      expect(() => readTutorPublicFile(root, "M06", relativePath, publishedFiles)).toThrow(
+        /changed while being read|changed or exceeds the size limit/,
+      );
+      expect(grew).toBe(true);
+      expect(totalBytesRead).toBeGreaterThan(MAX_TUTOR_FILE_BYTES);
+      expect(totalBytesRead).toBeLessThanOrEqual(MAX_TUTOR_FILE_BYTES + 1);
+    } finally {
+      readSpy.mockRestore();
+    }
+  });
+
   it("rejects public source swapped to a symlink immediately before opening", () => {
     const root = fixture();
     const relativePath = documents[1].path;
@@ -148,7 +237,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
     const open = fs.openSync.bind(fs);
     let swapped = false;
     const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
-      if (!swapped && location === target) {
+      if (!swapped && path.basename(String(location)) === path.basename(target)) {
         swapped = true;
         fs.renameSync(target, target + ".original");
         fs.symlinkSync(outside, target);
@@ -165,6 +254,48 @@ describe("AI-assisted QA tutor external send boundary", () => {
     }
   });
 
+  it("refuses public source when its parent directory is swapped to an outside symlink", () => {
+    const root = fixture();
+    const relativePath = documents[1].path;
+    const modulesPath = path.join(root, "course/modules");
+    const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tutor-outside-public-"));
+    roots.push(outsideRoot);
+    const marker = "OUTSIDE_PUBLIC_MARKER_7f8d1c";
+    const outsideFile = path.join(outsideRoot, "M06/README.md");
+    fs.mkdirSync(path.dirname(outsideFile), { recursive: true });
+    fs.writeFileSync(outsideFile, marker);
+    const publishedFiles = new Map([
+      [relativePath, createHash("sha256").update(marker).digest("hex")],
+    ]);
+    const open = fs.openSync.bind(fs);
+    const read = fs.readSync.bind(fs);
+    let swapped = false;
+    let outsideMarkerRead = false;
+    const openSpy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && path.basename(String(location)) === "modules") {
+        swapped = true;
+        fs.renameSync(modulesPath, modulesPath + ".original");
+        fs.symlinkSync(outsideRoot, modulesPath);
+      }
+      return open(location, ...args);
+    });
+    const readSpy = vi.spyOn(fs, "readSync").mockImplementation((fd, ...args) => {
+      const openedPath = fs.readlinkSync(`/proc/self/fd/${fd}`);
+      if (openedPath.startsWith(path.resolve(outsideRoot) + path.sep)) outsideMarkerRead = true;
+      return read(fd, ...args);
+    });
+    try {
+      expect(() => readTutorPublicFile(root, "M06", relativePath, publishedFiles)).toThrow(
+        /symlink|unsafe path/i,
+      );
+      expect(swapped).toBe(true);
+      expect(outsideMarkerRead).toBe(false);
+    } finally {
+      readSpy.mockRestore();
+      openSpy.mockRestore();
+    }
+  });
+
   it("rejects learner excerpt swapped to a symlink immediately before opening", () => {
     const root = fixture();
     const relativePath = "workspace/M06/notes/submission.md";
@@ -176,7 +307,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
     const open = fs.openSync.bind(fs);
     let swapped = false;
     const spy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
-      if (!swapped && location === target) {
+      if (!swapped && path.basename(String(location)) === path.basename(target)) {
         swapped = true;
         fs.renameSync(target, target + ".original");
         fs.symlinkSync(outside, target);
@@ -190,6 +321,45 @@ describe("AI-assisted QA tutor external send boundary", () => {
       expect(swapped).toBe(true);
     } finally {
       spy.mockRestore();
+    }
+  });
+
+  it("refuses learner excerpt when its parent directory is swapped to an outside symlink", () => {
+    const root = fixture();
+    const relativePath = "workspace/M06/notes/submission.md";
+    const notesPath = path.join(root, "workspace/M06/notes");
+    fs.mkdirSync(notesPath, { recursive: true });
+    fs.writeFileSync(path.join(notesPath, "submission.md"), "# Learner note\ninternal");
+    const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tutor-outside-workspace-"));
+    roots.push(outsideRoot);
+    const marker = "OUTSIDE_WORKSPACE_MARKER_89ab23";
+    fs.writeFileSync(path.join(outsideRoot, "submission.md"), marker);
+    const open = fs.openSync.bind(fs);
+    const read = fs.readSync.bind(fs);
+    let swapped = false;
+    let outsideMarkerRead = false;
+    const openSpy = vi.spyOn(fs, "openSync").mockImplementation((location, ...args) => {
+      if (!swapped && path.basename(String(location)) === "notes") {
+        swapped = true;
+        fs.renameSync(notesPath, notesPath + ".original");
+        fs.symlinkSync(outsideRoot, notesPath);
+      }
+      return open(location, ...args);
+    });
+    const readSpy = vi.spyOn(fs, "readSync").mockImplementation((fd, ...args) => {
+      const openedPath = fs.readlinkSync(`/proc/self/fd/${fd}`);
+      if (openedPath.startsWith(path.resolve(outsideRoot) + path.sep)) outsideMarkerRead = true;
+      return read(fd, ...args);
+    });
+    try {
+      expect(() => readTutorWorkspaceExcerpt(root, "M06", relativePath, 1, 2)).toThrow(
+        /symlink|unsafe path/i,
+      );
+      expect(swapped).toBe(true);
+      expect(outsideMarkerRead).toBe(false);
+    } finally {
+      readSpy.mockRestore();
+      openSpy.mockRestore();
     }
   });
 
@@ -333,16 +503,16 @@ describe("AI-assisted QA tutor external send boundary", () => {
     }
   });
 
-  it("validates each question before invoking a runner or starting any model process", () => {
+  it("validates each question and refuses the unverified Provider before invoking a runner", () => {
     const invoke = vi.fn(() => "model response");
-    const ok = runValidatedTutorTurn({
-      request,
-      question: "この項目を説明して",
-      documents,
-      invoke,
-    });
-    expect(ok).toBe("model response");
-    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(() =>
+      runValidatedTutorTurn({
+        request,
+        question: "この項目を説明して",
+        documents,
+        invoke,
+      }),
+    ).toThrow(/authentication, cost, and data retention\/deletion/i);
     for (const unsafe of [
       "API_KEY=abcdefghijklmnop",
       "user@example.invalid",
@@ -355,7 +525,7 @@ describe("AI-assisted QA tutor external send boundary", () => {
         runValidatedTutorTurn({ request, question: unsafe, documents, invoke }),
       ).toThrow();
     }
-    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("revalidates selected tutor inputs before sending rather than trusting buffered sources", () => {
@@ -396,25 +566,21 @@ describe("AI-assisted QA tutor external send boundary", () => {
     expect(() => prepareTutorTurnForSend(params)).toThrow(/symlink/);
   });
 
-  it("refuses model execution when free pricing is missing or differs from the selected model", async () => {
+  it("blocks Tutor before pricing lookup or model execution without Provider evidence", async () => {
     const invoke = vi.fn(() => "answer");
-    const unavailable = vi.fn().mockRejectedValue(new Error("BLOCKED: pricing unavailable"));
+    const verifyPrice = vi.fn().mockResolvedValue({ model_id: request.modelId });
     await expect(
-      runPriceCheckedTutorTurn({ modelId: request.modelId, verifyPrice: unavailable, invoke }),
-    ).rejects.toThrow(/pricing unavailable/);
+      runPriceCheckedTutorTurn({
+        modelId: request.modelId,
+        verifyPrice,
+        invoke,
+      }),
+    ).rejects.toThrow(/authentication, cost, and data retention\/deletion/i);
+    await expect(runTutorCli(["M06", "--model", request.modelId])).rejects.toThrow(
+      /authentication, cost, and data retention\/deletion/i,
+    );
+    expect(verifyPrice).not.toHaveBeenCalled();
     expect(invoke).not.toHaveBeenCalled();
-
-    const mismatch = vi.fn().mockResolvedValue({ model_id: "opencode/other-model" });
-    await expect(
-      runPriceCheckedTutorTurn({ modelId: request.modelId, verifyPrice: mismatch, invoke }),
-    ).rejects.toThrow(/differs from selected model/);
-    expect(invoke).not.toHaveBeenCalled();
-
-    const valid = vi.fn().mockResolvedValue({ model_id: request.modelId });
-    await expect(
-      runPriceCheckedTutorTurn({ modelId: request.modelId, verifyPrice: valid, invoke }),
-    ).resolves.toBe("answer");
-    expect(invoke).toHaveBeenCalledOnce();
   });
 
   it("isolates OpenCode config, persistence and environment from the user's global settings", () => {

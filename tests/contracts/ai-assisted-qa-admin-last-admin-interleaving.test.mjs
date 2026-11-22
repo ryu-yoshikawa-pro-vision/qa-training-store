@@ -20,9 +20,9 @@ async function tableSnapshot(database) {
 }
 
 // A controlled interleaving, not proof that a real concurrent request has occurred.
-describe("AI-assisted QA: last-admin protection under an authorization interleaving", () => {
+describe("AI-assisted QA: transaction-boundary admin reauthorization", () => {
   it.each(["role", "suspension"])(
-    "rejects a non-self last-admin %s change without mutating the target or its sessions",
+    "rejects a %s change after the actor loses admin authorization without mutating the target or its sessions",
     async (operation) => {
       const database = new ScenarioShopDatabase(
         `training-admin-interleaving-${crypto.randomUUID()}`,
@@ -98,7 +98,9 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
           operation === "role"
             ? useCases.changeRole({ ...command, role: "operator" })
             : useCases.changeSuspension({ ...command, accountStatus: "suspended" });
-        await expect(attempted).rejects.toMatchObject({ code: "LAST_ADMIN_PROTECTED" });
+        // The transaction must reject the demoted actor during reauthorization,
+        // before the last-admin guard or any target mutation can run.
+        await expect(attempted).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
 
         expect(interleaved).toBe(true);
         expect(await database.users.get("user-operator")).toEqual(beforeTarget);
@@ -119,6 +121,102 @@ describe("AI-assisted QA: last-admin protection under an authorization interleav
               : user,
           ),
         );
+      } finally {
+        const name = database.name;
+        database.close();
+        await Dexie.delete(name);
+      }
+    },
+  );
+
+  it.each(["role", "suspension"])(
+    "preserves the %s LAST_ADMIN_PROTECTED guard at an isolated one-admin repository boundary",
+    async (operation) => {
+      const database = new ScenarioShopDatabase(`training-last-admin-guard-${crypto.randomUUID()}`);
+      try {
+        await loadSeedDataset(database, createScenarioDataset("default"), "default");
+        const originalOperator = await database.users.get("user-operator");
+        expect(originalOperator).toBeDefined();
+        await database.users.put({
+          ...originalOperator,
+          role: "admin",
+          membershipRank: null,
+          version: originalOperator.version + 1,
+        });
+        await database.sessions.bulkPut([
+          { id: "actor-session", userId: "user-admin", createdAt: FIXED_TIME },
+          { id: "target-session", userId: "user-operator", createdAt: FIXED_TIME },
+        ]);
+
+        const repositories = createDexieApplicationRepositories(database);
+        expect(await repositories.users.countActiveAdmins()).toBe(2);
+        const beforeTarget = await database.users.get("user-operator");
+        const beforeTargetSessions = await database.sessions
+          .where("userId")
+          .equals("user-operator")
+          .toArray();
+        expect(beforeTarget).toBeDefined();
+        const beforeTables = await tableSnapshot(database);
+
+        // A valid active admin is itself included in countActiveAdmins(), so a
+        // distinct active actor cannot encounter a consistent one-admin state.
+        // Force only the count boundary here to retain the defensive guard
+        // assertion; this is not a formal Case or runtime acceptance scenario.
+        let guardCountCalls = 0;
+        const transactionDelegate = new DexieApplicationTransactionRunner(database);
+        const transactionRunner = {
+          async run(scope, work) {
+            return transactionDelegate.run(scope, async (transactionRepositories) => {
+              const guardedUsers = new Proxy(transactionRepositories.users, {
+                get(target, property) {
+                  if (property === "countActiveAdmins") {
+                    return async () => {
+                      guardCountCalls += 1;
+                      return 1;
+                    };
+                  }
+                  const value = Reflect.get(target, property, target);
+                  return typeof value === "function" ? value.bind(target) : value;
+                },
+              });
+              return work({ ...transactionRepositories, users: guardedUsers });
+            });
+          },
+        };
+        const useCases = new AdminUserUseCases({
+          ...repositories,
+          transactionRunner,
+          currentSessionStore: {
+            async getSessionId() {
+              return "actor-session";
+            },
+            async setSessionId() {},
+            async clear() {},
+          },
+          clock: new TestClock(FIXED_TIME),
+          idGenerator: { generate: () => "training-id" },
+        });
+
+        const attempted =
+          operation === "role"
+            ? useCases.changeRole({
+                userId: "user-operator",
+                role: "operator",
+                expectedVersion: beforeTarget.version,
+              })
+            : useCases.changeSuspension({
+                userId: "user-operator",
+                accountStatus: "suspended",
+                expectedVersion: beforeTarget.version,
+              });
+        await expect(attempted).rejects.toMatchObject({ code: "LAST_ADMIN_PROTECTED" });
+
+        expect(guardCountCalls).toBe(1);
+        expect(await database.users.get("user-operator")).toEqual(beforeTarget);
+        expect(await database.sessions.where("userId").equals("user-operator").toArray()).toEqual(
+          beforeTargetSessions,
+        );
+        expect(await tableSnapshot(database)).toEqual(beforeTables);
       } finally {
         const name = database.name;
         database.close();

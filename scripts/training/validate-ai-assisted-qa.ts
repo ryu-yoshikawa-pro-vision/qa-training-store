@@ -1017,6 +1017,14 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
           .map((node) => node.id as string)
           .sort();
         const phaseAssessment = state.phase_assessment;
+        const expectedEntryCommand =
+          typeof terminalModule === "string"
+            ? `pnpm course:assess ${terminalModule} --model provider/model-id`
+            : undefined;
+        const blockedFutureEntryCommand =
+          typeof expectedEntryCommand === "string"
+            ? `BLOCKED (future only; do not execute): ${expectedEntryCommand}`
+            : undefined;
         requireCondition(
           Boolean(
             modulePhase &&
@@ -1025,8 +1033,8 @@ export function validateAiAssistedQa(rootDir = process.cwd()): AiAssistedQaValid
             phaseAssessment.terminal_module_id === terminalModule &&
             phaseAssessment.required_at_terminal_module === terminalModule &&
             phaseAssessment.assessment_is_terminal_only === true &&
-            phaseAssessment.entry_command ===
-              `pnpm course:assess ${terminalModule} --model provider/model-id` &&
+            typeof phaseAssessment.entry_command === "string" &&
+            phaseAssessment.entry_command === blockedFutureEntryCommand &&
             phaseAssessment.result_root ===
               `workspace/.course-assessments/${modulePhase}/attempts` &&
             phaseAssessment.mastery_status === "not_evaluated_by_course_check" &&

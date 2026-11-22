@@ -1935,7 +1935,8 @@ export function checkState({ root, moduleId, stateName }) {
           phaseId: state.phase_assessment.phase_id,
           terminalModuleId: state.phase_assessment.terminal_module_id,
           requiredAtTerminalModule: state.phase_assessment.required_at_terminal_module,
-          availableHere: moduleId === state.phase_assessment.terminal_module_id,
+          availableHere: false,
+          atTerminalModule: moduleId === state.phase_assessment.terminal_module_id,
           status: "not_evaluated_by_course_check",
           command:
             moduleId === state.phase_assessment.terminal_module_id
@@ -2090,7 +2091,8 @@ export function checkState({ root, moduleId, stateName }) {
       unchanged,
       input,
       phaseAssessment,
-      assessment: "構造照合のみです。正式評価はPhase終端のcourse:assessで行います",
+      assessment:
+        "構造照合のみです。新しい外部AI正式評価は現在BLOCKEDで、明示的に再開されるまで実行できません",
       execution,
     };
   return {
@@ -2105,7 +2107,7 @@ export function checkState({ root, moduleId, stateName }) {
     execution,
     assessment:
       stateName === "end"
-        ? "構造照合のみです。Phase末の正式AI評価は別にcourse:assessで起動します"
+        ? "構造照合のみです。新しい外部AI正式評価は現在BLOCKEDで、明示的に再開されるまで実行できません"
         : "開始前提を照合しました。本人の先行モジュール修了は認定しません",
   };
 }

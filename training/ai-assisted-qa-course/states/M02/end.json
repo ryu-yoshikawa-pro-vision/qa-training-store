@@ -28,7 +28,7 @@
     {
       "id": "M02-END-03",
       "mode": "read-only",
-      "condition": "This module check validates only its own artifacts and references. P1 formal assessment is available only at terminal module M04 and does not change this module-level structural result."
+      "condition": "This module check validates only its own artifacts and references. P1 formal assessment is designed only for terminal module M04; new external model assessment is currently BLOCKED pending primary evidence for Provider retention/deletion terms, required approval and revalidation. Do not execute the future entry_command. This does not change this module-level structural result."
     },
     {
       "id": "M02-END-04",
@@ -83,7 +83,7 @@
       "M04-03",
       "M04-04"
     ],
-    "entry_command": "pnpm course:assess M04 --model provider/model-id",
+    "entry_command": "BLOCKED (future only; do not execute): pnpm course:assess M04 --model provider/model-id",
     "result_root": "workspace/.course-assessments/P1/attempts",
     "mastery_status": "not_evaluated_by_course_check",
     "required_at_terminal_module": "M04",

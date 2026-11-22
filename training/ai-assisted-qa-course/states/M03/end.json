@@ -33,7 +33,7 @@
     {
       "id": "M03-END-03",
       "mode": "read-only",
-      "condition": "This module check validates only its own artifacts and references. P1 formal assessment is available only at terminal module M04 and does not change this module-level structural result."
+      "condition": "This module check validates only its own artifacts and references. P1 formal assessment is designed only for terminal module M04; new external model assessment is currently BLOCKED pending primary evidence for Provider retention/deletion terms, required approval and revalidation. Do not execute the future entry_command. This does not change this module-level structural result."
     },
     {
       "id": "M03-END-04",
@@ -43,7 +43,7 @@
     {
       "id": "M03-END-05",
       "mode": "read-only",
-      "condition": "the fixed Skill runtime verification requests are saved beside the learner's condition and Case artifacts; course:assess reruns the pinned Python 3.11 verifier and does not accept a recorded valid=true claim alone"
+      "condition": "the fixed Skill runtime verification requests are saved beside the learner's condition and Case artifacts; if Phase 1 external assessment is enabled in a future release, course:assess reruns the pinned Python 3.11 verifier and does not accept a recorded valid=true claim alone; the current new external assessment remains BLOCKED and this structural check does not run it"
     }
   ],
   "references": [
@@ -100,7 +100,7 @@
       "M04-03",
       "M04-04"
     ],
-    "entry_command": "pnpm course:assess M04 --model provider/model-id",
+    "entry_command": "BLOCKED (future only; do not execute): pnpm course:assess M04 --model provider/model-id",
     "result_root": "workspace/.course-assessments/P1/attempts",
     "mastery_status": "not_evaluated_by_course_check",
     "required_at_terminal_module": "M04",

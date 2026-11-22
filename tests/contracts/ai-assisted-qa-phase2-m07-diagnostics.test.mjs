@@ -40,8 +40,9 @@ describe("M07-02/04：診断素材と修正対象の実行境界", () => {
     expect(lesson).toContain("AIが提案したAssertionの削除");
     expect(lesson).toContain("本人の独立した診断");
     expect(lesson).toContain("Secret・認証状態・個人情報を含めず");
-    expect(lesson).toContain("pnpm course:tutor M07 --model provider/model-id");
-    expect(lesson).toContain("pnpm course:assess M07");
+    expect(lesson).toContain("外部AIチューター送信と新しい外部正式評価は現在BLOCKEDです");
+    expect(lesson).not.toMatch(/^\s*(?:pnpm\s+)?course:(?:tutor|assess)\b/m);
+    expect(lesson).toContain("Level 2合格の根拠");
   });
 
   it("B/Cは合成ログであり実Trace/実Runの証拠にしない", () => {

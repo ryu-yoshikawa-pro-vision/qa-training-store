@@ -1,10 +1,83 @@
-import { expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { expect, it, vi } from "vitest";
 import { sha256 } from "../../scripts/training/ai-assisted-qa-assessment-core.mjs";
 import {
   assertReusableDeterministicChecks,
   assertReusableFinalizedAnswer,
   assertReusablePreparedInputs,
+  withAssessmentProviderRetentionPolicy,
 } from "../../scripts/training/ai-assisted-qa-assessment.mjs";
+
+it("blocks the injected Provider executor before access or result publication", async () => {
+  const attemptDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "assessment-retention-test-"));
+  const resultPath = path.join(attemptDirectory, "result.json");
+  const providerExecutor = vi.fn(() => {
+    fs.writeFileSync(resultPath, JSON.stringify({ status: "complete", completed: true }));
+  });
+  try {
+    await expect(withAssessmentProviderRetentionPolicy(providerExecutor)).rejects.toThrow(
+      /BLOCKED: primary evidence.*retention and deletion terms.*not been verified/i,
+    );
+    expect(providerExecutor).not.toHaveBeenCalled();
+    expect(fs.existsSync(resultPath)).toBe(false);
+  } finally {
+    fs.rmSync(attemptDirectory, { recursive: true, force: true });
+  }
+
+  const source = fs.readFileSync(
+    path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../scripts/training/ai-assisted-qa-assessment.mjs",
+    ),
+    "utf8",
+  );
+  const start = source.indexOf("async function resumeAttemptUnlocked(request)");
+  const end = source.indexOf("export function exportAssessment(", start);
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+  const gateStart = source.indexOf(
+    "export async function withAssessmentProviderRetentionPolicy(invoke)",
+  );
+  const guard = source.indexOf("assertAssessmentProviderRetentionPolicy();", gateStart);
+  const invoke = source.indexOf("return invoke();", guard);
+  expect(gateStart).toBeGreaterThanOrEqual(0);
+  expect(guard).toBeGreaterThan(gateStart);
+  expect(invoke).toBeGreaterThan(guard);
+
+  const resume = source.slice(start, end);
+  const reconciliation = resume.indexOf("const reconciled = reconcileFinalizedAssessment(");
+  const recoveredResult = resume.indexOf("restored_saved_result: true");
+  const gate = resume.indexOf("withAssessmentProviderRetentionPolicy(async () => {");
+  const providerEffects = [
+    "verifyCurrentFreeModelPrice(request.modelId)",
+    "verifyOpenCodeModelAvailable(request.modelId)",
+    "confirmExternalSend(request.modelId, request.phase, inputs)",
+    "getOpenCodeVersion()",
+    "obtainCalibration({",
+    "runOpenCode({",
+  ].map((marker) => resume.indexOf(marker));
+  expect(gate).toBeGreaterThanOrEqual(0);
+  expect(reconciliation).toBeGreaterThanOrEqual(0);
+  expect(recoveredResult).toBeGreaterThan(reconciliation);
+  expect(recoveredResult).toBeLessThan(gate);
+  expect(providerEffects.every((index) => index > gate)).toBe(true);
+
+  const blockedCatch = resume.indexOf("} catch (error) {", gate);
+  const blockedReturn = resume.indexOf("return;", blockedCatch);
+  const blockedFlow = resume.slice(gate, blockedReturn);
+  const publishResult = resume.indexOf("atomicWriteJson(resultPath, fallback)", gate);
+  const publishPointer = resume.indexOf("updateCurrentPointer(resultPath, fallback)", gate);
+  expect(blockedCatch).toBeGreaterThan(gate);
+  expect(blockedReturn).toBeGreaterThan(blockedCatch);
+  expect(blockedFlow).not.toMatch(
+    /atomicWriteJson|updateCurrentPointer|result\.json|completed:\s*true|status:\s*["']complete["']/,
+  );
+  expect(publishResult).toBeGreaterThan(blockedReturn);
+  expect(publishPointer).toBeGreaterThan(blockedReturn);
+});
 
 function fixture() {
   const inputs = {

@@ -74,11 +74,97 @@ export function isTutorPublicPath(moduleId, relativePath) {
   );
 }
 
-function openTutorFileNoFollow(absolute) {
-  const noFollow = fs.constants.O_NOFOLLOW;
-  if (!Number.isInteger(noFollow) || noFollow === 0)
-    fail("safe no-follow file access is unsupported on this platform");
-  return fs.openSync(absolute, fs.constants.O_RDONLY | noFollow);
+function openTutorFileBeneath(root, parts) {
+  const { O_DIRECTORY, O_NOFOLLOW, O_NONBLOCK, O_RDONLY } = fs.constants;
+  if (
+    process.platform !== "linux" ||
+    !Number.isInteger(O_DIRECTORY) ||
+    O_DIRECTORY === 0 ||
+    !Number.isInteger(O_NOFOLLOW) ||
+    O_NOFOLLOW === 0 ||
+    !Number.isInteger(O_NONBLOCK) ||
+    O_NONBLOCK === 0 ||
+    !fs.existsSync("/proc/self/fd")
+  )
+    fail("descriptor-relative no-follow file access is unsupported on this platform");
+
+  const directoryFlags = O_RDONLY | O_DIRECTORY | O_NOFOLLOW;
+  const fileFlags = O_RDONLY | O_NONBLOCK | O_NOFOLLOW;
+  const directoryFds = [];
+  let fileFd;
+  try {
+    let parentFd = fs.openSync(path.resolve(root), directoryFlags);
+    directoryFds.push(parentFd);
+    for (const part of parts.slice(0, -1)) {
+      if (!/^[a-zA-Z0-9._-]+$/.test(part) || part === "." || part === "..")
+        fail("invalid source path");
+      parentFd = fs.openSync(`/proc/self/fd/${parentFd}/${part}`, directoryFlags);
+      directoryFds.push(parentFd);
+    }
+    const leaf = parts.at(-1);
+    if (!/^[a-zA-Z0-9._-]+$/.test(leaf ?? "") || leaf === "." || leaf === "..")
+      fail("invalid source path");
+    fileFd = fs.openSync(`/proc/self/fd/${parentFd}/${leaf}`, fileFlags);
+    return {
+      fd: fileFd,
+      close() {
+        for (const fd of [fileFd, ...[...directoryFds].reverse()]) {
+          try {
+            fs.closeSync(fd);
+          } catch {
+            // Continue closing the other descriptors on every path.
+          }
+        }
+      },
+    };
+  } catch (error) {
+    if (fileFd !== undefined) {
+      try {
+        fs.closeSync(fileFd);
+      } catch {
+        // Continue closing the directory descriptors.
+      }
+    }
+    for (const fd of directoryFds.reverse()) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // Best-effort cleanup after a failed open.
+      }
+    }
+    if (error instanceof Error && error.message.startsWith("BLOCKED:")) throw error;
+    fail("symlink or unsafe path component in tutor source");
+  }
+}
+
+function sameFileSnapshot(before, after) {
+  return ["dev", "ino", "mode", "size", "mtimeNs", "ctimeNs"].every(
+    (field) => before[field] === after[field],
+  );
+}
+
+function readTutorFileBytes(fd, maximumBytes, label) {
+  const before = fs.fstatSync(fd, { bigint: true });
+  if (!before.isFile() || before.size < 1n || before.size > BigInt(maximumBytes))
+    fail(`${label} size or type is invalid`);
+
+  const readLimit = maximumBytes + 1;
+  const buffer = Buffer.alloc(Math.min(16 * 1024, readLimit));
+  const chunks = [];
+  let totalBytes = 0;
+  while (totalBytes < readLimit) {
+    const requested = Math.min(buffer.length, readLimit - totalBytes);
+    const bytesRead = fs.readSync(fd, buffer, 0, requested, null);
+    if (bytesRead === 0) break;
+    chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
+    totalBytes += bytesRead;
+  }
+
+  const after = fs.fstatSync(fd, { bigint: true });
+  if (!sameFileSnapshot(before, after) || totalBytes !== Number(before.size))
+    fail(`${label} changed while being read`);
+  if (totalBytes > maximumBytes) fail(`${label} changed or exceeds the size limit`);
+  return Buffer.concat(chunks, totalBytes);
 }
 
 export function readTutorPublicFile(root, moduleId, relativePath, publishedFiles) {
@@ -86,19 +172,9 @@ export function readTutorPublicFile(root, moduleId, relativePath, publishedFiles
   if (!isTutorPublicPath(moduleId, relativePath) || !/^[a-f0-9]{64}$/.test(expectedHash ?? ""))
     fail("source is outside verified distribution allowlist");
   const parts = relativePath.split("/");
-  let current = path.resolve(root);
-  for (const part of parts) {
-    if (!/^[a-zA-Z0-9._-]+$/.test(part) || part === "." || part === "..")
-      fail("invalid source path");
-    current = path.join(current, part);
-    if (fs.lstatSync(current).isSymbolicLink()) fail("symlink in public source path");
-  }
-  const fd = openTutorFileNoFollow(current);
+  const opened = openTutorFileBeneath(root, parts);
   try {
-    const stat = fs.fstatSync(fd);
-    if (!stat.isFile() || stat.size < 1 || stat.size > MAX_TUTOR_FILE_BYTES)
-      fail("public source size or type is invalid");
-    const bytes = fs.readFileSync(fd);
+    const bytes = readTutorFileBytes(opened.fd, MAX_TUTOR_FILE_BYTES, "public source");
     if (createHash("sha256").update(bytes).digest("hex") !== expectedHash)
       fail("public source changed since the verified distribution");
     if (bytes.includes(0)) fail("binary public source is forbidden");
@@ -119,7 +195,7 @@ export function readTutorPublicFile(root, moduleId, relativePath, publishedFiles
       .replace(/\.env(?:\.[a-z0-9_-]+)?/gi, "[非公開設定ファイル名を省略]");
     return validateTutorText(redacted, relativePath, MAX_TUTOR_FILE_BYTES);
   } finally {
-    fs.closeSync(fd);
+    opened.close();
   }
 }
 
@@ -147,24 +223,9 @@ export function readTutorWorkspaceExcerpt(root, moduleId, relativePath, firstLin
     )
   )
     fail("learner evidence, logs or private records may not be sent to the model");
-  let location = path.resolve(root);
-  for (const part of parts) {
-    location = path.join(location, part);
-    let stat;
-    try {
-      stat = fs.lstatSync(location);
-    } catch {
-      fail("selected learner file is unavailable");
-    }
-    if (stat.isSymbolicLink()) fail("symlink in learner source path");
-  }
-  let fd;
+  const opened = openTutorFileBeneath(root, parts);
   try {
-    fd = openTutorFileNoFollow(location);
-    const stat = fs.fstatSync(fd);
-    if (!stat.isFile() || stat.size < 1 || stat.size > MAX_TUTOR_FILE_BYTES)
-      fail("selected learner source is empty, oversized or not regular");
-    const bytes = fs.readFileSync(fd);
+    const bytes = readTutorFileBytes(opened.fd, MAX_TUTOR_FILE_BYTES, "selected learner source");
     if (bytes.includes(0)) fail("binary learner source is not allowed");
     let original;
     try {
@@ -184,7 +245,7 @@ export function readTutorWorkspaceExcerpt(root, moduleId, relativePath, firstLin
       text: excerpt,
     };
   } finally {
-    if (fd !== undefined) fs.closeSync(fd);
+    opened.close();
   }
 }
 

@@ -34,6 +34,33 @@ class Ids implements IdGenerator {
   }
 }
 
+type TableSnapshot = Record<string, Array<Record<string, unknown>>> & {
+  users: Array<Record<string, unknown>>;
+  sessions: Array<Record<string, unknown>>;
+};
+
+async function tableSnapshot(database: ScenarioShopDatabase): Promise<TableSnapshot> {
+  const entries = await Promise.all(
+    database.tables.map(async (table) => [table.name, await table.toArray()] as const),
+  );
+  return Object.fromEntries(entries) as TableSnapshot;
+}
+
+function expectedAfterActorRevocation(
+  before: TableSnapshot,
+  revoke: "role" | "status",
+): TableSnapshot {
+  const expected = structuredClone(before);
+  expected.users = expected.users.map((user) => {
+    if (user.id !== "user-admin") return user;
+    return revoke === "role"
+      ? { ...user, role: "operator" }
+      : { ...user, accountStatus: "suspended" };
+  });
+  expected.sessions = expected.sessions.filter((session) => session.userId !== "user-admin");
+  return expected;
+}
+
 class ActorRevocationAtTransactionBoundary implements ApplicationTransactionRunner {
   private interrupted = false;
   private readonly delegate: ApplicationTransactionRunner;
@@ -62,7 +89,7 @@ class ActorRevocationAtTransactionBoundary implements ApplicationTransactionRunn
   }
 }
 
-describe("PR #219: actor revocation between authorization and transaction", () => {
+describe("PR #219: actor reauthorization after revocation at the transaction boundary", () => {
   let database: ScenarioShopDatabase;
 
   beforeEach(async () => {
@@ -91,13 +118,15 @@ describe("PR #219: actor revocation between authorization and transaction", () =
     });
   }
 
-  // This reproduces the observed *unsafe* outcome on the unpatched #199 SUT.
-  // A green test is NOT product acceptance; on the fixed #210 SUT these cases must
-  // instead assert rejection and unchanged target state.
-  it("KNOWN DEFECT REPRO: a demoted actor must not promote another staff user", async () => {
-    const service = useCases("role");
+  // The transaction boundary revokes the actor's role and sessions after the
+  // initial authorization. The use case must reauthorize before changing a target.
+  it("rejects a demoted actor before promoting another staff user", async () => {
+    const revoke = "role" as const;
+    const service = useCases(revoke);
     const targetBefore = await database.users.get("user-operator");
+    expect(targetBefore).toBeDefined();
     const detail = await service.getDetail("user-operator");
+    const beforeTables = await tableSnapshot(database);
 
     const outcome = await service
       .changeRole({
@@ -113,17 +142,20 @@ describe("PR #219: actor revocation between authorization and transaction", () =
     const actorAfter = await database.users.get("user-admin");
     expect(actorAfter?.role).toBe("operator");
     expect(await database.sessions.where("userId").equals("user-admin").count()).toBe(0);
-    expect(outcome).toBe("RESOLVED");
-    expect(await database.users.get("user-operator")).toMatchObject({
-      role: "admin",
-      version: targetBefore!.version + 1,
-    });
+    expect(outcome).toBe("AUTHENTICATION_REQUIRED");
+    expect(await database.users.get("user-operator")).toEqual(targetBefore);
+    expect(await tableSnapshot(database)).toEqual(
+      expectedAfterActorRevocation(beforeTables, revoke),
+    );
   });
 
-  it("KNOWN DEFECT REPRO: a suspended actor must not suspend a customer", async () => {
-    const service = useCases("status");
+  it("rejects a suspended actor before suspending a customer", async () => {
+    const revoke = "status" as const;
+    const service = useCases(revoke);
     const targetBefore = await database.users.get("user-customer-regular");
+    expect(targetBefore).toBeDefined();
     const detail = await service.getDetail("user-customer-regular");
+    const beforeTables = await tableSnapshot(database);
 
     const outcome = await service
       .changeSuspension({
@@ -139,10 +171,10 @@ describe("PR #219: actor revocation between authorization and transaction", () =
     const actorAfter = await database.users.get("user-admin");
     expect(actorAfter?.accountStatus).toBe("suspended");
     expect(await database.sessions.where("userId").equals("user-admin").count()).toBe(0);
-    expect(outcome).toBe("RESOLVED");
-    expect(await database.users.get("user-customer-regular")).toMatchObject({
-      accountStatus: "suspended",
-      version: targetBefore!.version + 1,
-    });
+    expect(outcome).toBe("AUTHENTICATION_REQUIRED");
+    expect(await database.users.get("user-customer-regular")).toEqual(targetBefore);
+    expect(await tableSnapshot(database)).toEqual(
+      expectedAfterActorRevocation(beforeTables, revoke),
+    );
   });
 });

@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "run_id": "20261122-222339-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "flaky_or_env_issue",
+    "review_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "PR #199固有の認可失効、last-admin、在庫境界、stale Cart、Tutor安全停止、79要件・208動作の意味参照を修正した。最終HEADのCI・配布Artifact・権利根拠はまだ確定していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md",
+          "summary": "変更境界、現行ゲート、ローカル検証結果と未受入条件を記録"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "製品SUT、正式仕様、Seed/Reset、main所有E2E、外部Skill本体を変更していない。差分はPR #199専用の教材、テスト、分析、scripts、計画、Run記録に限定。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "git diff --name-onlyとprotected path確認を最終commit前に実施する"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Focused契約、Integration、Repository、Component、Hooks、Contracts全体とverify/Buildは正規directoryを用いたLinux ext4 snapshotでPASS。初回ContractsのEISDIRはuntracked root node_modules symlinkを含む検証fixture配置でのみ発生し、通常directoryを用いた再検証では再現しなかった。ローカルChromiumはlibnspr4.so不足でassertion未実行、GitHub Actionsは最終HEADで未確認。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "local test:contracts, test:e2e:cross-role, test:e2e:chromium, verify, build:web, build:spec"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "外部Provider、認証情報、課金、外部送信を使用せず、根拠未確認のTutor／正式評価経路はfail-closedにした。正式Caseの未受入状態と配布制限を維持している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/training/ai-assisted-qa-course-tutor-core.mjs",
+          "summary": "未確認Providerと安全なroot-anchored読み取り条件を拒否"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "warn",
+      "evidence": "独立reviewerは候補の統合差分を確認し、P0-P2なし、修正済みP3を再確認した。7.2のマージ前移管範囲は確認済みだが、全正式Caseの独立結果レビュー、権利者の一次許諾、最終CIは未完了。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "summary": "independent_pr199_reviewの統合差分・移管範囲レビュー結果"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "warn",
+      "evidence": "PR専用の失効、在庫、Cart期待を現行契約へ整合し、last-admin拒否も別条件で維持。main所有cross-role status Locatorの曖昧さは別の製品テスト保守対象として記録し、変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "e2e/web/pr219-cross-role-lifecycle.spec.ts",
+          "summary": "PR専用stale Cart回帰assertionを現行のCart復帰へ更新"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Linux ext4 snapshotの通常directory依存配置でContractsとverifyがPASS。初回Contractsはroot node_modules symlinkがstatusに未追跡pathとして現れる別fixture配置でのみEISDIRになった。Chromium共有ライブラリ不足のためローカルE2E assertionsは未実行。最終PR SHAでGitHub Actionsを確認する必要がある。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "pnpm run test:contractsおよびpnpm run verifyは正規ext4 checkoutで再実行中"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "対象候補はまだPR branchへcommit/pushされておらず、8.3のWeb CIとMobile App CIを同一最終HEADで確認していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": "runs/20261122-222339-JST/run.json",
+          "summary": "Run開始時のPR branchと検証実行状態"
+        }
+      ],
+      "detail": "候補をローカルで修正・検証後にcommitし、通常pushして最新HEADだけをwait_for_required_ciで一度確認する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "最初のContracts snapshotではroot node_modules symlinkがuntracked status pathとなりbenchmark-revisionの除外前hashでEISDIR。real directoryを用いたContracts再実行とverifyではこの失敗は再現せずPASS。ローカルE2Eはlibnspr4.so不足でbrowser起動前に停止。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "node_modulesを通常directoryにしたext4 snapshotでContractsとverifyを再検証中。E2E失敗はChromium依存ライブラリ不足。"
+        }
+      ],
+      "detail": "Contractsの検証fixture差を切り分け済み。E2Eのローカル環境制約は最終head GitHub CIの結果と分けて報告する。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "固定Skillの一次再配布許諾、第三者素材の全件権利根拠、最終HEADの配布バイナリ全走査は確認できていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reports/2026-11-07_pr199-fixed-skill-license-audit.md",
+          "summary": "固定Skill権利監査の歴史的根拠と不足事項"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/reports/2026-11-07_pr199-web-distribution-artifact-audit.md",
+          "summary": "Web配布物・第三者素材監査の現状と不足事項"
+        }
+      ],
+      "detail": "1.2は最終実Artifact全走査まで未受入、1.3は権利者の一次許諾待ちでBLOCKED、1.4は出典とライセンス閉包が不足。8.4のマージ可判定を行わない。"
+    },
+    {
+      "category": "review_gap",
+      "severity": "high",
+      "evidence": "独立レビューで統合修正範囲とマージ前移管範囲を確認したが、全正式Caseの独立結果レビューと本人のマージ後6条件は後続条件。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-11-04_143600_pr199-integration-acceptance-tasks.md",
+          "summary": "B案7条件、後続12条件、本人受入6条件の別状態を保持"
+        }
+      ],
+      "detail": "7.1はレビュー対象範囲内でPASS、7.2のマージ前移管部分はPASS。これらを全Caseの受入や8.4へ拡張しない。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "scripts/agentic-qa/benchmark-revision.ts のworking-tree status path処理",
+      "evidence": "初回一時ext4 snapshotのroot node_modules symlinkがuntracked pathとして返り、除外判定より先にreadFileSyncされたことでEISDIR。real directoryを用いた再検証でContracts全体がPASSし、正規CI checkoutでの再現は確認されていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "test:contractsのEISDIRとgit status --porcelain -- node_modulesの照合"
+        }
+      ],
+      "expected_impact": "除外対象directory symlinkが混ざる一時checkoutでもrevision collectionが誤ったファイルhashを試みない。",
+      "recommendation": "PR #199では修正不要と判断した。再発する場合はHarness改善として独立評価し、除外判定をhash前に行うcontractを検討する。"
+    }
+  ]
+}

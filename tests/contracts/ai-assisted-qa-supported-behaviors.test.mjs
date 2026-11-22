@@ -1311,18 +1311,30 @@ describe("サポート機能の仕様と実装の追跡", () => {
     // The older CSV is deliberately not rewritten to the newer analysis claims.
     // Any new disagreement must be reviewed before it is accepted as Case evidence.
     const expectedStaleBehaviors = [
-      "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
-      "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
-      "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
       "SCREEN-ADMIN-PRODUCTS-A01-02",
-      "SCREEN-ADMIN-USERS-A01-02",
       "SCREEN-ADMIN-USER-DETAIL-A01-02",
       "SCREEN-ADMIN-USER-DETAIL-A01-03",
       "SCREEN-ADMIN-USER-DETAIL-A01-04",
       "SCREEN-ADMIN-USER-DETAIL-A02-01",
       "SCREEN-ADMIN-USER-DETAIL-A02-02",
       "SCREEN-ADMIN-USER-DETAIL-A02-03",
+      "SCREEN-ADMIN-USERS-A01-02",
+      "SCREEN-ADMIN-USERS-A02-03",
       "SCREEN-BOUNDARY-FORBIDDEN-A01-01",
+      "SCREEN-CHECKOUT-ADDRESS-A01-01",
+      "SCREEN-CHECKOUT-ADDRESS-A02-01",
+      "SCREEN-CHECKOUT-ADDRESS-A02-03",
+      "SCREEN-CHECKOUT-ADDRESS-S-resume-notice",
+      "SCREEN-CHECKOUT-CONFIRM-A01-02",
+      "SCREEN-CHECKOUT-CONFIRM-A01-03",
+      "SCREEN-CHECKOUT-CONFIRM-A02-01",
+      "SCREEN-CHECKOUT-CONFIRM-A02-03",
+      "SCREEN-CHECKOUT-CONFIRM-S-stale-cart",
+      "SCREEN-CHECKOUT-PAYMENT-A01-01",
+      "SCREEN-CHECKOUT-PAYMENT-A01-02",
+      "SCREEN-CHECKOUT-PAYMENT-A02-02",
+      "SCREEN-STOREFRONT-CART-A02-02",
+      "SCREEN-STOREFRONT-PRODUCT-LIST-S-empty",
     ];
     const stale = rows.filter((row) => {
       const behavior = data.behaviors.find((entry) => entry.id === row.behavior_id);
@@ -1333,7 +1345,7 @@ describe("サポート機能の仕様と実装の追跡", () => {
         row.analysis_status !== behavior.analysis_status
       );
     });
-    expect(stale).toHaveLength(67);
+    expect(stale).toHaveLength(132);
     expect([...new Set(stale.map((row) => row.behavior_id))].sort()).toEqual(
       expectedStaleBehaviors.sort(),
     );

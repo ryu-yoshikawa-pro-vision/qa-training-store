@@ -516,13 +516,13 @@ async function openCheckoutStaleCartConflict(page: Page) {
 }
 
 test.describe("PR #219: Checkout confirm-ready stale Cart boundary", () => {
-  test("KNOWN DEFECT REPRO: confirmed Checkout returns to payment instead of Cart", async ({
+  test("SCREEN-CHECKOUT-CONFIRM-S-stale-cart: recovery returns to Cart", async ({
     page,
     scenario,
   }) => {
     await scenario("regular-member");
     const recovery = await openCheckoutStaleCartConflict(page);
-    await expect(recovery).toHaveAttribute("href", "/checkout/payment");
+    await expect(recovery).toHaveAttribute("href", "/cart");
   });
 
   test("SCREEN-CHECKOUT-CONFIRM-S-stale-cart: rejected confirmation preserves DB transaction tables", async ({

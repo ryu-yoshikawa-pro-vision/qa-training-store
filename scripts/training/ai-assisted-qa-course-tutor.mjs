@@ -31,6 +31,16 @@ function fail(message) {
   throw new Error("BLOCKED: " + message);
 }
 
+function assertTutorProviderPolicy(modelId) {
+  if (typeof modelId !== "string" || !modelId)
+    fail("an explicit model is required before checking Provider policy");
+  // No Provider currently has primary evidence for account authentication,
+  // billing conditions, and retention/deletion. Keep external Tutor sending off.
+  fail(
+    "external Tutor sending is disabled until this Provider's authentication, cost, and data retention/deletion conditions are verified",
+  );
+}
+
 export function makeIsolatedEnvironment(directory, request) {
   for (const subdir of ["home", "config", "data", "cache"]) {
     fs.mkdirSync(path.join(directory, subdir), { mode: 0o700 });
@@ -58,13 +68,14 @@ export function makeIsolatedEnvironment(directory, request) {
 }
 
 export function runValidatedTutorTurn({ request, question, documents, history = [], invoke }) {
-  // The sole entry to the model subprocess: validation happens before invoke.
+  // Validate learner input first, then fail closed before the runner can send it.
   const prompt = buildTutorTurnPrompt({
     moduleId: request.moduleId,
     question,
     documents,
     history,
   });
+  assertTutorProviderPolicy(request.modelId);
   if (typeof invoke !== "function") fail("model runner is missing");
   return invoke(prompt);
 }
@@ -131,6 +142,7 @@ export async function runPriceCheckedTutorTurn({
   verifyPrice = verifyCurrentFreeModelPrice,
   invoke,
 }) {
+  assertTutorProviderPolicy(modelId);
   if (typeof invoke !== "function") fail("model runner is missing");
   const pricing = await verifyPrice(modelId);
   if (pricing?.model_id !== modelId) fail("verified model differs from selected model");
@@ -139,6 +151,7 @@ export async function runPriceCheckedTutorTurn({
 
 export async function runTutorCli(argv = process.argv.slice(2)) {
   const request = parseTutorArgs(argv);
+  assertTutorProviderPolicy(request.modelId);
   const verifiedDistribution = verifySyncedCourseDistribution({ root: ROOT });
   const distribution = JSON.parse(
     fs.readFileSync(path.join(ROOT, ".course", "distribution-manifest.json"), "utf8"),

@@ -203,7 +203,9 @@ describe("Phase 3 quiz and understanding coverage", () => {
       }
       expect(state.phase_assessment.phase_id).toBe("P3");
       expect(state.phase_assessment.terminal_module_id).toBe("M10");
-      expect(state.phase_assessment.entry_command).toContain("course:assess M10");
+      expect(state.phase_assessment.entry_command).toMatch(
+        /^BLOCKED \(future only; do not execute\): pnpm course:assess M10 --model provider\/model-id$/,
+      );
       expect(state.phase_assessment.mastery_status).toBe("not_evaluated_by_course_check");
     }
   });

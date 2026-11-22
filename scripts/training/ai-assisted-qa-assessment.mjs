@@ -77,6 +77,17 @@ function fail(message) {
   throw new Error(message);
 }
 
+export function assertAssessmentProviderRetentionPolicy() {
+  fail(
+    "BLOCKED: primary evidence for the selected Provider's data retention and deletion terms has not been verified; external formal assessment is disabled",
+  );
+}
+
+export async function withAssessmentProviderRetentionPolicy(invoke) {
+  assertAssessmentProviderRetentionPolicy();
+  return invoke();
+}
+
 function readJson(filePath, description) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -2148,8 +2159,11 @@ async function resumeAttemptUnlocked(request) {
   }
   let pricing;
   try {
-    pricing = await verifyCurrentFreeModelPrice(request.modelId);
-    await verifyOpenCodeModelAvailable(request.modelId);
+    pricing = await withAssessmentProviderRetentionPolicy(async () => {
+      const currentPrice = await verifyCurrentFreeModelPrice(request.modelId);
+      await verifyOpenCodeModelAvailable(request.modelId);
+      return currentPrice;
+    });
   } catch (error) {
     console.log(
       JSON.stringify(

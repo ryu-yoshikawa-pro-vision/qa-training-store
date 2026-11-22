@@ -19,10 +19,12 @@ Web Buildの `course/shop/_expo/static/css/files/` に含まれる以下のフ�
 
 | 出典 | 対象画像 | 元の著作権表示 | ライセンス |
 | --- | --- | --- | --- |
-| [Expo Router](https://github.com/expo/expo/tree/main/packages/expo-router)（使用版 `expo-router@57.0.30`） | `assets/expo-router/` 直下のPNG7件 | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) | [MIT](https://github.com/expo/expo/blob/main/LICENSE) |
+| [Expo Router](https://github.com/expo/expo/tree/sdk-57/packages/expo-router)（使用版 `expo-router@57.0.31`） | `assets/expo-router/` 直下のPNG7件 | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) | [MIT](https://github.com/expo/expo/blob/sdk-57/LICENSE) |
 | [React Navigation Elements](https://github.com/react-navigation/react-navigation/tree/main/packages/elements) | `assets/expo-router/react-navigation/elements/` のPNG5件 | Copyright (c) 2017 React Navigation Contributors | [MIT](https://github.com/react-navigation/react-navigation/blob/main/packages/elements/LICENSE) |
 
 この表示は該当する配布画像の出典を示すものであり、生成WebのJavaScript依存物すべての権利確認や、教材内の商品画像・仕様画面の素材利用権限を証明するものではありません。
+
+React Navigation Elements配布画像の固定元revisionと、そのrevisionでの権利表示は未確認です。上記の`main`参照は固定版の一次根拠ではなく、当該画像の権利確認が完了したことを示しません。
 
 ## Web JavaScriptに含まれる第三者コード
 

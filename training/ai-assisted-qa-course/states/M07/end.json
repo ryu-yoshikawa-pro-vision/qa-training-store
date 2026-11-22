@@ -33,7 +33,7 @@
     {
       "id": "M07-END-03",
       "mode": "phase-assessment-reference",
-      "condition": "This read-only end-state check does not rate mastery. P2 objectives are evaluated together by course:assess M07; Node.js finalizes only after calibrated AI candidate, evidence/version validation, and all required objective checks."
+      "condition": "This read-only end-state check does not rate mastery. P2 objectives are designed for joint evaluation at terminal M07, but new external model assessment is currently BLOCKED pending primary evidence for Provider retention/deletion terms, required approval and revalidation; do not execute the future entry_command. A future evaluator could finalize only after a calibrated AI candidate, evidence/version validation, and all required objective checks."
     },
     {
       "id": "M07-END-04",
@@ -98,7 +98,7 @@
       "M07-04",
       "M07-05"
     ],
-    "entry_command": "pnpm course:assess M07 --model provider/model-id",
+    "entry_command": "BLOCKED (future only; do not execute): pnpm course:assess M07 --model provider/model-id",
     "result_root": "workspace/.course-assessments/P2/attempts",
     "mastery_status": "not_evaluated_by_course_check",
     "required_at_terminal_module": "M07",

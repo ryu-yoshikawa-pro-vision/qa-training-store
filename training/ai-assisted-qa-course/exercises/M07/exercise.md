@@ -1,5 +1,7 @@
 # M07 実技：失敗原因を証拠で分ける
 
+> **外部AI機能の現在の状態：BLOCKED** — 外部AIチューター送信と新しい外部AI正式評価は現在実施しません。モデルへの送信を伴わない本人の予測・根拠照合・手動演習は続けてください。
+
 ## 入力
 
 `failure-cases.md`のAは意図的に誤ったAssertionを持つ実行可能なspecです。BはReset metadataの違いを表す説明用ログ、Cは待ち時間の仮説です。B/Cを実アプリで観測済みの事実として扱いません。
@@ -42,7 +44,7 @@ Page Objectとfixtureの実装後に**3件目の回帰testを追加してから*
 pnpm course:run M07 maintenance.spec.ts --label after
 ```
 
-`course:run`は検証済み配布manifestの`source_sha`と実行specの`spec_sha256`を含むreceipt、spec snapshot、JSON reportと、生成されたattachmentを一意のRun directoryに保存します。**現行receiptの`spec_sha256`とsnapshotが保存するのは対象spec単体**であり、受講者が別ファイルに作ったPage Objectやfixtureの実装まで同一性を証明しません。教材の`maintenance.spec.ts`内に定義したPage Object・fixtureが対象であること、before/afterで異なるspec SHAとtest件数を確認します。別ファイルへ切り出した場合は、それぞれのファイルを実行前後に保全し、対応するSHAとimport関係を別途照合しない限り完了証拠にしません。新課程Configは`trace: "retain-on-failure"`、`screenshot: "only-on-failure"`のため、PASSしたRunに自動Trace・Screenshotがなくても、それだけで未実行とは判断しません。再挑戦しても前の結果は上書きされません。`course:assess M07`は同じ配布`source_sha`に属し、修正前後で異なるspec SHAを持つ別Runを照合します。
+`course:run`は検証済み配布manifestの`source_sha`と実行specの`spec_sha256`を含むreceipt、spec snapshot、JSON reportと、生成されたattachmentを一意のRun directoryに保存します。**現行receiptの`spec_sha256`とsnapshotが保存するのは対象spec単体**であり、受講者が別ファイルに作ったPage Objectやfixtureの実装まで同一性を証明しません。教材の`maintenance.spec.ts`内に定義したPage Object・fixtureが対象であること、before/afterで異なるspec SHAとtest件数を確認します。別ファイルへ切り出した場合は、それぞれのファイルを実行前後に保全し、対応するSHAとimport関係を別途照合しない限り完了証拠にしません。新課程Configは`trace: "retain-on-failure"`、`screenshot: "only-on-failure"`のため、PASSしたRunに自動Trace・Screenshotがなくても、それだけで未実行とは判断しません。再挑戦しても前の結果は上書きされません。将来、Phase 2正式評価の外部送信が再開された場合は、同じ配布`source_sha`に属し、修正前後で異なるspec SHAを持つ別Runを照合する設計です。
 
 ## 提出物
 
@@ -177,7 +179,7 @@ Phase 1/2の提出物やTraceを公開リポジトリへpushしません。保�
 
 ### OpenCodeの段階ヒントと失敗後の復習
 
-通常のOpenCodeや`pnpm course:tutor M07 --model provider/model-id`は学習用の相談先であり、`pnpm course:assess M07`の正式評価とは別です。使えない環境ではその事実を記録し、AIによる分析を受けたと偽りません。ログやTraceを渡す際はSecret・認証状態・個人情報を含めず、必要な失敗行と仕様条件だけを提示してください。
+通常のOpenCodeによる学習相談と正式評価は別の役割ですが、外部AIチューター送信と新しい外部正式評価は現在BLOCKEDです。この演習ではAI分析を依頼せず、未実行と理由を記録し、AIによる分析を受けたと偽りません。通常OpenCodeの会話を正式評価やLevel 2合格の根拠に流用しません。以下の相談手順は将来、利用再開が明示され、本人の送信承認とProviderの認証・保持条件が確認された場合の設計例です。ログやTraceにSecret・認証状態・個人情報を含めず、必要な失敗行と仕様条件だけを対象にしてください。
 
 - **最初の相談**：本人が先にAの失敗行、正式な期待結果、考えた原因候補を記録します。AIには「観測した事実と仮説を分け、次に確かめる証拠を一つ提案する。コードや完成答案は書かない」と依頼します。
 - **追加のヒント**：本人が示したTrace・Reset・仕様との不一致に限って、Locator、初期状態、Assertionのうち次に確認すべき点を尋ねます。別の失敗原因や合成B/Cを、Aで観測した事実に混ぜません。

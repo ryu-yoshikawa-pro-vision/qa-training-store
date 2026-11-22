@@ -240,7 +240,10 @@ describe("M10-01 spec and dependency closure", () => {
     expect(m10).toContain("第2段階");
     expect(m10).toContain("第3段階");
     expect(m10).toContain("独立したM10正式評価");
-    expect(m10).toContain("pnpm course:assess M10 --model provider/model-id");
+    expect(m10).toContain("新しい正式評価は外部AI送信を伴うため現在BLOCKED");
+    expect(m10).not.toMatch(/^\s*(?:pnpm\s+)?course:assess\b/m);
+    expect(exercise).toContain("新しい外部AI正式評価は現在BLOCKED");
+    expect(exercise).not.toMatch(/^\s*(?:pnpm\s+)?course:assess\b/m);
     expect(m10).toContain("Tokenや非公開履歴をAIモデルへ送信せず");
     expect(exercise).toContain("API tokenはAIへ送信しません");
   });
