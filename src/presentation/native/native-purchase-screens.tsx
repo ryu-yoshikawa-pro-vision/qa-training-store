@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Link, router, useLocalSearchParams, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/react-navigation";
 import {
@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import type { TextInputProps } from "react-native";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   CustomerOrderDetailDto,
@@ -108,6 +109,7 @@ function PurchaseTextInput({
   testID,
   secureTextEntry = false,
   maxLength,
+  onFocus,
 }: {
   value: string;
   onChangeText: (value: string) => void;
@@ -115,12 +117,14 @@ function PurchaseTextInput({
   testID: string;
   secureTextEntry?: boolean;
   maxLength?: number;
+  onFocus?: TextInputProps["onFocus"];
 }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
       maxLength={maxLength}
       onChangeText={onChangeText}
+      onFocus={onFocus}
       placeholder={placeholder}
       placeholderTextColor={nativeColors.muted}
       secureTextEntry={secureTextEntry}
@@ -143,7 +147,15 @@ function ErrorMessage({ message }: { message: string | null }) {
   );
 }
 
-function PurchaseKeyboardScrollView({ children, testID }: { children: ReactNode; testID: string }) {
+function PurchaseKeyboardScrollView({
+  children,
+  testID,
+  scrollViewRef,
+}: {
+  children: ReactNode;
+  testID: string;
+  scrollViewRef?: RefObject<ScrollView | null>;
+}) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -153,6 +165,7 @@ function PurchaseKeyboardScrollView({ children, testID }: { children: ReactNode;
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
+        ref={scrollViewRef}
         testID={testID}
       >
         {children}
@@ -782,6 +795,7 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
 
 export function NativeCheckoutAddressScreen() {
   const state = useCheckoutSession("address");
+  const scrollViewRef = useRef<ScrollView | null>(null);
   const [address, setAddress] = useState<ShippingAddressSnapshot>(emptyAddress);
   const [savedAddresses, setSavedAddresses] = useState<
     Awaited<ReturnType<NonNullable<typeof state.services>["account"]["listAddresses"]>>
@@ -822,7 +836,10 @@ export function NativeCheckoutAddressScreen() {
       .finally(() => setBusy(false));
   };
   return (
-    <PurchaseKeyboardScrollView testID="native-checkout-address-screen">
+    <PurchaseKeyboardScrollView
+      scrollViewRef={scrollViewRef}
+      testID="native-checkout-address-screen"
+    >
       <Text style={styles.heading}>Checkout：配送先</Text>
       <Text style={styles.body}>Step 1 / 3</Text>
       {state.sessionOrigin === "started" && (
@@ -910,6 +927,16 @@ export function NativeCheckoutAddressScreen() {
         <PurchaseTextInput
           value={address.addressLine2 ?? ""}
           onChangeText={(value) => setAddress({ ...address, addressLine2: value || null })}
+          onFocus={(event) => {
+            const scrollView = scrollViewRef.current;
+            scrollView?.getNativeScrollRef()?.measureInWindow((_x, scrollViewWindowY) => {
+              scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+                event.nativeEvent.target,
+                scrollViewWindowY + nativeSpacing.md,
+                true,
+              );
+            });
+          }}
           placeholder="建物名・部屋番号（任意）"
           maxLength={INPUT_LIMITS.addressLine2}
           testID="native-checkout-line2"

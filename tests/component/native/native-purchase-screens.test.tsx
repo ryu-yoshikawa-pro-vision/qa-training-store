@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { ScrollView } from "react-native";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
@@ -18,6 +19,7 @@ import {
   NativeProfileScreen,
   NativeReviewScreen,
 } from "@/presentation/native/native-purchase-screens";
+import { nativeSpacing } from "@/presentation/native/native-components";
 import { useNativeRuntime } from "@/presentation/native/native-runtime-provider";
 
 jest.mock("expo-router", () => ({
@@ -1063,6 +1065,54 @@ describe("Native customer purchase screens", () => {
       ),
     );
     expect(mockRouterPush).toHaveBeenCalledWith("/checkout/payment");
+  });
+
+  it("scrolls the focused optional checkout address field above the keyboard", async () => {
+    const scrollToKeyboard = jest
+      .spyOn(ScrollView.prototype, "scrollResponderScrollNativeHandleToKeyboard")
+      .mockImplementation(() => {});
+    const scrollViewWindowY = 64;
+    const measureInWindow = jest.fn(
+      (callback: (x: number, y: number, width: number, height: number) => void) =>
+        callback(0, scrollViewWindowY, 390, 600),
+    );
+    const getNativeScrollRef = jest
+      .spyOn(ScrollView.prototype, "getNativeScrollRef")
+      .mockReturnValue({
+        measureInWindow,
+      } as unknown as NonNullable<ReturnType<ScrollView["getNativeScrollRef"]>>);
+    runtime({
+      account: { listAddresses: jest.fn().mockResolvedValue([]) },
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          addressSnapshot: null,
+          unlockedStep: "address",
+        }),
+      },
+    });
+
+    try {
+      const screen = await render(<NativeCheckoutAddressScreen />);
+      await waitFor(() =>
+        expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy(),
+      );
+      await act(async () => {
+        fireEvent(screen.getByTestId("native-checkout-line2"), "focus", {
+          nativeEvent: { target: 123 },
+        });
+      });
+
+      expect(measureInWindow).toHaveBeenCalledTimes(1);
+      expect(scrollToKeyboard).toHaveBeenCalledWith(
+        123,
+        scrollViewWindowY + nativeSpacing.md,
+        true,
+      );
+    } finally {
+      getNativeScrollRef.mockRestore();
+      scrollToKeyboard.mockRestore();
+    }
   });
 
   it("renders order payment, shipment, address, price, and item snapshots", async () => {

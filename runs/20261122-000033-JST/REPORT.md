@@ -198,3 +198,26 @@
   - Result: pinされたMaestro 2.8.0でUnicode `inputText`を使用可能と確認。既存Flowは入力・CTA scroll・再表示・session再開・確認画面のassertionを持ち、独立review findingなし。
   - 親Agentの判断: 現行Maestro contractどおりのFlowを保持。実行時スクリーンショットの証拠なしに日本語入力や画面レイアウトをPASSにしない。
 - Progress: 50% (4/8)
+
+## 2026-11-22 11:24 (JST) - 新HEAD Android runtime visual finding
+
+- Summary: HEAD `f96a45e3feda3e50880a2a90a4d6e5b57484d63f`のWeb CIとMobile App CIはsuccess。Mobile Android Runtime / Maestro artifactから、日本語住所2行目の入力・戻り・再起動後復元・注文確認画面を実行証拠で確認した。同じ画像で、Android IMEがfocused line-2 fieldの下部と入力文字の一部を覆う不具合を検出した。
+- Evidence: Web CI `44972608948` / Mobile App CI `44972608972`、Android Runtime job `137059323442`。artifact `native-android-runtime-evidence-44972608972` (`14735250989`)。確認画像は`purchase/.../native-purchase-address-line2-keyboard.png`、`...-returned.png`、`...-confirmation.png`、`session-checkout-restart/...-address-line2-restored.png`。購入・restart Maestro XMLはいずれもSUCCESS。確認画面には住所行1/2が順序どおり表示され、価格は小計・割引・送料・合計の4明細で税額行なし。
+- Changes: PR本文にf96のWeb/Mobile結果とcapture未完了を記録した。製品コード修正・canonical画像更新はまだしていない。
+- Root cause: 独立read-only UI reviewerが、`PurchaseKeyboardScrollView`は`KeyboardAvoidingView`と`ScrollView`を持つがfocused inputをIME上へ移動する調整がなく、`PurchaseTextInput`からfocus/refを協調できないことを確認した。固定paddingだけでは最後のline-2 input下部がkeyboardに重なる。
+- Repair: 正式spec上の任意line-2入力は保持する。既存Native primitivesを用いたfocused-input scroll修正とcomponent regressionを、別workerへ対象2ファイルに限定して委任中。flow assertionを緩めない。修復後の独立read-only review、Native component、最新HEAD Mobile CIが必要。
+- 未完了: この通常push CIではScreen Catalog visual capture stepsがskipのため、canonical raw PNG/manifest/APKの同一run証明は未取得。現在のcanonicalは旧画像のまま。IME修復後HEADからWeb/Mobile CIを取り直してから、GitHub UIでvisual dispatchを依頼する。
+- Subagent:
+  - Delegation: `/root/review_ui_native`へartifact screenshotを示し、source/testをread-only調査。
+  - Result: focused-input scroll欠落を原因とする実画面不具合を確認。対象component testにfocus時scroll assertionがないことも確認。修正はしていない。
+  - 親Agentの判断: ユーザー要求のkeyboard visibility契約に反するため、既存実装を最小修正し、実Android CIで再検証する。
+- Progress: 50% (5/10)
+
+## 2026-11-22 11:41 (JST) - Android IME scroll repair iteration 2
+
+- Finding: independent reviewer #1 confirmed the original IME overlap; first repair iteration called React Native's `scrollResponderScrollNativeHandleToKeyboard` with only a fixed 16dp inset. Independent reviewer #2 found that React Native 0.86.3 measures the target relative to the ScrollView but compares it with keyboard screen Y, while NativeShell places that ScrollView below the header. The missing ScrollView window-origin offset could leave part of line 2 covered.
+- Repair: `NativeCheckoutAddressScreen` measures `getNativeScrollRef().measureInWindow()` and adds that window Y to the desired spacing before invoking the existing helper. The change is limited to the two implementation/test files; address semantics and screen contract are unchanged.
+- Validation: Native customer purchase screen test file PASS, 48 tests; independent second review reports no new finding. Coordinate regression supplies a non-zero ScrollView window Y (`64`) and verifies it is included with the spacing. `pnpm run typecheck` PASS (`typecheck:app`, `typecheck:native-tests`, `typecheck:training`). `pnpm run format:check`, `pnpm run security:check`, and diff checks PASS. Android Runtime pixel evidence is pending and remains the deciding proof of keyboard visibility.
+- Repair loop: finding classified `must_fix` (Native input usability / user acceptance). Iteration 1 was not accepted because review exposed an origin mismatch. Iteration 2 passed source review and component test; decision `continue` to post-push Android runtime validation. No assertion, timeout, security control, or address validation was weakened.
+- Delegation: implementation `/root/maestro_line2_flow` (two allowed files only); independent read-only re-review `/root/review_ui_native` found no new issue; validation `/root/native_line2_validation` confirmed targeted component, typecheck, format, security, and diff checks.
+- Progress: 60% (6/10)

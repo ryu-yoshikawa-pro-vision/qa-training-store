@@ -18,10 +18,12 @@
 - [x] 2. 税額表示の承認済み方針を現行仕様、DTO、pricing、Web/Nativeの表示、既存テストと照合する。仕様・実装の一致を確認し、受入記録を更新する。
 - [x] 3. `maestro/native-purchase.yaml`の住所2行目入力・IME中/確認画面の証拠追加を独立read-only reviewし、既存assertionを保ったままflow契約テストを実行する。
 - [x] 4. Follow-up/受入計画/Run記録を住所2行目・税額方針に同期し、sanitizer/security/format/spec validationを実行する。
-- [ ] 5. 対象ファイルのみstageし、通常commit/push、PR本文の更新、最新HEADのWeb/Mobile required CIを完了する。
-- [ ] 6. GitHub UIでユーザーが最終HEADから単発Android visual captureをdispatchした後、同一runのvisual artifact/APKを取得・検証する。
-- [ ] 7. canonical画像と正式仕様を比較し、必要なら登録済み`default`画像のみpromote、実行・仕様検証を再実行する。
-- [ ] 8. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。
+- [x] 5. 受入記録と既存Maestro flowを8ファイルのみstageし、通常commit/pushとPR本文更新を行い、HEAD `f96a45e3`のWeb/Mobile required CIを確認する。両方success。
+- [x] 6. Android keyboard screenshotで確認した住所2行目のIME重なりを既存UI primitivesで修復し、Native component回帰と独立再レビューを完了する。React Native helperのScrollView相対/keyboard screen相対座標差をレビューで指摘され、測定したwindow Yを加算する第2反復を実施。Native component 48件PASS、独立再レビュー新規findingなし。
+- [ ] 7. 修復差分のみstageし通常commit/push後、最新HEADのWeb/Mobile required CIと住所入力Maestro flowを確認する。
+- [ ] 8. 修復済み最終HEADからGitHub UIでユーザーが単発Android visual captureをdispatchし、同一runのvisual artifact/APKを取得・検証する。
+- [ ] 9. canonical画像と正式仕様を比較し、必要なら登録済み`default`画像のみpromote、実行・仕様検証を再実行する。
+- [ ] 10. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。
 
 ## Discovered
 
@@ -37,8 +39,9 @@
 - `docs/spec/features/checkout-and-payment.md` already records the approved no-separate-tax-line display policy. Existing pricing DTO and Web/Native UI use subtotal, member discount, shipping, and total only. No tax implementation change is authorized or needed.
 - `SCREEN-CHECKOUT-ADDRESS/default/android.webp` was visually inspected and is stale: it omits the current empty optional `建物名・部屋番号（任意）` input between line 1 and phone. The registered case is an empty default state; the existing purchase/restart flows add supplemental Japanese input, keyboard, return/restart and confirmation evidence. The flow reviewer found no issue and the 78 targeted flow-contract tests passed; Android runtime evidence is pending the latest Mobile CI.
 - The workflow pins Maestro 2.8.0. Current official `inputText` documentation and the pinned implementation support Japanese Unicode on Android since 2.7.0. An older compatibility page/search result said Unicode was unsupported; that statement does not apply to this pinned version. No clipboard workaround or flow change is needed; Mobile CI must still confirm execution.
+- The first pushed visual-evidence head `f96a45e3feda3e50880a2a90a4d6e5b57484d63f` passed Web/Mobile CI. Runtime artifact screenshots confirm Japanese line-2 entry, return, app-restart restoration, and confirmation rendering, but the keyboard-open screenshot shows the IME overlaying the field's lower edge and part of the input text. This is a confirmed Native UI issue and is now in a bounded repair loop; repeat Android CI after the repair.
 
 ## Blocked
 
-- Android canonical visual capture用workflow dispatchはGitHub MCP/CLIから実行できない（connectorはread-only、保存済み`gh` credential無効）。最新HEADのWeb/Mobile CI後にGitHub UIからユーザーが単発dispatchし、そのrun IDを返す必要がある。visual artifact/APK未取得のため比較とcanonical更新は保留。
+- Android canonical visual capture用workflow dispatchはGitHub MCP/CLIから実行できない（connectorはread-only、保存済み`gh` credential無効）。keyboard repair後の最新HEAD CIを確認してからGitHub UIでユーザーが単発dispatchし、そのrun IDを返す必要がある。canonical visual artifact/APK未取得のため比較とcanonical更新は保留。
 - Android/iOS実機、Android SDK/emulator、iOS simulatorがWSL環境にない。physical-device / iOS runtime受入は未実施。
