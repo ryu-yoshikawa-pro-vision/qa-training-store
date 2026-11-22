@@ -24,6 +24,7 @@
 - [ ] 8. 修復済み最終HEADからGitHub UIでユーザーが単発Android visual captureをdispatchし、同一runのvisual artifact/APKを取得・検証する。
 - [ ] 9. canonical画像と正式仕様を比較し、必要なら登録済み`default`画像のみpromote、実行・仕様検証を再実行する。
 - [ ] 10. PR本文とRunへcapture/CI結果・未実施項目を記録し、最終の作業ツリー・PR HEAD・マージ前判定を確認する。
+- [ ] 11. `13ee1f9a`で失敗したNative PurchaseのIME/Back状態依存をMaestro flowだけで修復し、通常commit/push後に最新HEADのWeb/Mobile CIとAndroid Runtime artifactを再取得・確認する。
 
 ## Discovered
 
@@ -42,8 +43,9 @@
 - The first pushed visual-evidence head `f96a45e3feda3e50880a2a90a4d6e5b57484d63f` passed Web/Mobile CI. Runtime artifact screenshots confirm Japanese line-2 entry, return, app-restart restoration, and confirmation rendering, but the keyboard-open screenshot shows the IME overlaying the field's lower edge and part of the input text. This is a confirmed Native UI issue and is now in a bounded repair loop; repeat Android CI after the repair.
 - Latest repair HEAD `d30fd725f29898701b726b3dc5413c235bdda539` passed Web CI #44981409676 and Mobile App CI #44981409641; Android Runtime/Maestro job `137085547600` succeeded, including purchase and session-restart flows. Same-run artifact `native-android-runtime-evidence-44981409641` (ID `14738885970`) is tied to this source SHA. The typed Japanese value survives return/restart and is shown once after address line 1 in confirmation. Its keyboard-open screenshot still has the line-2 field and part of its text behind the IME; its SHA-256 is identical to the prior repair screenshot.
 - The `commands.json` sequence shows input and the screenshot while the keyboard is open. Maestro/device log records IME `onShown` at 03:59:03.820 and 03:59:05.470; the screenshot starts at 03:59:06.757, so this is not an early-capture artifact. No app callback/scroll trace is present to distinguish callback non-delivery from a still-incorrect scroll calculation. The three scoped scroll repairs have made no pixel progress; repair decision is `stop_no_progress`, with no further speculative scrolling change.
+- On docs-only HEAD `13ee1f9a`, Web CI #44984564223 succeeded; Mobile CI #44984564190 failed when `native-purchase` looked for the address-next CTA after `hideKeyboard`. The screenshot before that command showed the Checkout CTA while the IME was already hidden; the later failure hierarchy was Cart. A flow-only retap/wait repair passed 78 related contract tests and independent review, but awaits new Android Runtime evidence.
 
 ## Blocked
 
-- Android canonical visual capture用workflow dispatchはGitHub MCP/CLIから実行できない（connectorはread-only、保存済み`gh` credential無効）。keyboard repair後の最新HEAD CIを確認してからGitHub UIでユーザーが単発dispatchし、そのrun IDを返す必要がある。canonical visual artifact/APK未取得のため比較とcanonical更新は保留。
+- Android canonical visual capture用workflow dispatchはGitHub MCP/CLIから実行できない（connectorはread-only、保存済み`gh` credential無効）。ユーザーからdispatch run IDは受領していない。canonical visual artifact/APK未取得のため比較とcanonical更新は保留。
 - Android/iOS実機、Android SDK/emulator、iOS simulatorがWSL環境にない。physical-device / iOS runtime受入は未実施。

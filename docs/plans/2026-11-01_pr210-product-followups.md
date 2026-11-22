@@ -148,3 +148,11 @@ PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用�
 - Android keyboard-open screenshotではIMEが任意住所2行目の入力欄下部と一部文字に重なり、受入条件は未達。日本語入力値は戻り・再起動後に保持され、confirmationでは住所1行目の次に一度表示される。価格表示は小計・会員割引・送料・合計の4項目。
 - `commands.json` / `maestro.log` / device logcatの時系列ではIME `onShown`後に撮影されており、早撮りが原因ではない。同じ画面のSHA-256は直前repair runのscreenshotと同一。app内callback/scroll実行はartifact logに出ないため、callback未発火と座標計算の誤りは判別できない。
 - 3回の限定scroll修復後もpixel進展がなく、repair-loopを`stop_no_progress`として停止した。新しい原因証拠なしに追加修復しない。GitHub UIによる登録済み`SCREEN-CHECKOUT-ADDRESS/default/android` captureのmanifest/raw PNG/APK/profile検証とcanonical比較はまだ未実施。現行canonicalは住所2行目欄が欠けているため、正規artifact確認後にdefault画像のみ更新を判断する。物理Android/iOS runtimeも未実施で、PR #210のmergeは推奨しない。
+
+### 2026-11-22 最新HEADのMaestro flow失敗
+
+- `13ee1f9a8f484a7ed4d1c38a5e8f50063de1faee`のWeb CI #44984564223はsuccess。Mobile CI #44984564190はAndroid Runtime/MaestroのNative Purchaseで失敗し、その他のNative Static/Automation、Android/iOS build、Bundle Guardは成功。Android Production-validation BuildはGradle plugin resolutionで初回失敗したが、同じ失敗jobの再実行`137099066375`でAPK build・検証・artifact保存がsuccessした。
+- 同一run artifact `native-android-runtime-evidence-44984564190` (14740727971)の`native-purchase`では、日本語住所2行目入力と値assertが成功。その直後のscreenshotは住所2行目の値と「次へ：支払い」CTAを表示し、IMEは既に非表示だった。端末logcatはIME `onHidden`を`05:12:06.809`、Maestroの`hideKeyboard`後にAndroid Backを`05:12:08.062`と記録する。直後のCTA検索でCheckout住所画面ではなくCart画面のhierarchy/screenshotが保存され、`native-checkout-address-next`が見つからず失敗した。
+- 原因はNative画面実装ではなく、Unicode `inputText`後に既にIMEが閉じている場合でも`hideKeyboard`を実行するflow状態依存が有力。Maestro 2.8.0のAndroid実装はBack eventを送るため、既に閉じたIMEに対する操作がCartへの戻り操作として伝播した可能性が高い。製品ソース、住所値assert、CTA scroll/tapや後続確認assertionは変えない。
+- 限定修正として、値assert後に住所2行目を再tapし、`waitForAnimationToEnd`（5000ms）の後に従来のkeyboard screenshotを撮る。続く`hideKeyboard`、CTAの100%可視までのscroll、tapと注文確認assertionを保持する。対象差分は`maestro/native-purchase.yaml`のみ。flow契約78 tests、Prettier check、対象diff checkはPASS。独立read-only re-reviewは新findingなし（確信度は中〜高）。Android RuntimeによるIME再表示・CTA遷移の再確認は新HEAD CI待ち。
+- 住所2行目がIMEに一部隠れるd30の視覚不具合は解決していない。3回の製品scroll修正後の`stop_no_progress`判断を維持し、推測に基づく製品変更は追加しない。登録済みdefault captureのworkflow_dispatchも取得できていないため、canonical比較・promoteは未完了である。

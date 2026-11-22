@@ -251,3 +251,16 @@
   - Result: line2をfocusする前の明示scrollに続き、日本語入力・値assert・keyboard-open screenshotの順。IME onShownはscreenshotより前で、captureがIME表示前ではないと確認。logにはアプリ内callback/scroll呼び出しの記録なし。
   - 親Agentの判断: 3回の対象修復後も同一pixel failureであり`stop_no_progress`。推測修正を追加せず、未受入とGitHub UI capture blockerを明示する。
 - Progress: 60% (6/10)
+
+## 2026-11-22 14:35 (JST) - 最新HEADのMaestro失敗を限定修復
+
+- Summary: `13ee1f9a8f484a7ed4d1c38a5e8f50063de1faee`のWeb CIはsuccess、Mobile App CIはNative PurchaseのMaestro操作でfail。Artifactの画面・階層・時系列からflow上のIME/Back状態問題を確認し、製品実装ではなく既存Maestro flowを限定修正した。
+- Changes: `maestro/native-purchase.yaml`で住所2行目の入力値assert後に同じfieldを再tapし、`waitForAnimationToEnd`（5000ms）後に既存keyboard screenshotを撮る。入力値assert、`hideKeyboard`、CTA scroll/tap、戻り後の住所保持・注文確認assertionは維持。製品コード・canonical画像・住所仕様は変更していない。受入計画とfollow-upへ検証結果を追記。
+- 判断 / 理由: artifactではUnicode入力後`05:12:06.809`にIMEが閉じ、画面captureは住所2行目と次CTAを表示。続く`hideKeyboard`後`05:12:08.062`にAndroid Backが記録され、CTA検索時の階層/screenshotはCartへ戻っていた。これをMaestro 2.8.0 Android keyeventとflow順序の状態依存として扱い、製品仕様変更・assertion緩和は行わない。なお、d30で確認済みのIMEによる入力欄の一部隠れは未解決のまま。
+- Validation: Web CI #44984564223 success。Mobile CI #44984564190 failure。Android Production-validation Buildは初回Gradle plugin resolution failure後、job `137099066375`のrerunでsuccess。失敗したAndroid Runtime job `137101612095`の`native-purchase` sequence 51はCTA不在でfail。正しいVitestコマンド`pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1`は2 files / 78 tests PASS。Jest設定を使った初回の探索コマンドはcontract testsを発見せず（No tests found）、テスト実行結果としては扱っていない。`validate:spec`、`validate:spec-visuals:final`、`build:spec`、`format:check`、`security:check`、Run sanitizerとdiff checkもPASS。修正後Android Runtime、latest-head CI、registered visual captureは未実行。
+- Blocker / remaining: GitHub Actions workflow_dispatchの実行操作はこの環境で利用できず、ユーザーからrun IDは受領していないため、`SCREEN-CHECKOUT-ADDRESS/default/android` capture artifact/APK/manifest/profileの検証とcanonical比較は未完了。物理Android/iOS runtimeも未実施。
+- Subagent:
+  - Delegation: `/root/review_ui_native`へ失敗artifactのread-only解析と修正後flowの独立レビュー、`/root/maestro_line2_flow`へ`maestro/native-purchase.yaml`の限定実装、`/root/native_line2_validation`へVitest/仕様/形式/security validationを依頼。
+  - Result: independent reviewはCart遷移と`hideKeyboard`順序を中〜高確信で関連付け、修正差分に新findingなしとした。実装担当は既存assertionsを維持。修正後のIME再表示は次のAndroid CIで実証が必要。
+  - 親Agentの判断: flow修復を受け入れ、stage前の最終差分を確認する。修正後CI結果を取得するまで完了扱いにしない。
+- Progress: 55% (6/11)

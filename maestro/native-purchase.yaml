@@ -100,6 +100,10 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertVisible:
     id: "native-checkout-line2"
     text: "青山ビル101"
+- tapOn:
+    id: "native-checkout-line2"
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: native-purchase-address-line2-keyboard
 - hideKeyboard
 - scrollUntilVisible:
