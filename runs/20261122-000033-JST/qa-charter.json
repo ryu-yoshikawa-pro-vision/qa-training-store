@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-210",
+  "spec_refs": [
+    "BR-CHECKOUT-001",
+    "BR-NATIVE-001"
+  ],
+  "mission": "On the registered Android API 34 canonical emulator, inspect the regular-member Checkout address default screen and exercise optional Japanese address line 2 through address entry, back navigation, session restart, and confirmation.",
+  "risk": "A missing, clipped, duplicated, or unpersisted optional address line can cause an incomplete delivery address; an outdated canonical image can hide a difference between the required UI and the current app.",
+  "role": "customer",
+  "seed": "regular-member",
+  "platform": "android",
+  "viewport_or_device": "GitHub Actions Android Emulator: API 34 google_apis x86_64 pixel_2, ja-JP, font scale 1, Light, Portrait, 1080x1920, density 440.",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "Capture the registered empty-default address screen and visually verify line 2's optional placeholder appears between address line 1 and phone, with text and CTA within the scrollable screen.",
+      "role": "customer",
+      "seed": "regular-member",
+      "platform": "android",
+      "viewport_or_device": "GitHub Actions Android Emulator API 34 google_apis x86_64 pixel_2 canonical profile.",
+      "required_evidence_types": [
+        "screenshot",
+        "screen"
+      ]
+    },
+    {
+      "coverage_id": "COV-002",
+      "mission": "Enter 青山ビル101, inspect the field with the Japanese IME visible, dismiss the keyboard and reach the CTA, verify the value after back navigation and app restart, and confirm it appears once on the checkout confirmation screen after address line 1.",
+      "role": "customer",
+      "seed": "regular-member",
+      "platform": "android",
+      "viewport_or_device": "GitHub Actions Android Emulator API 34 google_apis x86_64 pixel_2 canonical profile.",
+      "required_evidence_types": [
+        "screenshot",
+        "screen"
+      ]
+    }
+  ],
+  "allowed_runtime_controls": [
+    "seed_reset",
+    "deep_link",
+    "app_restart"
+  ],
+  "exploration_budget": {
+    "max_duration_seconds": 1200,
+    "max_tool_actions": 40
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+}

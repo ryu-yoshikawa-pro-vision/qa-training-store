@@ -16,6 +16,16 @@ import type {
 } from "@/application/repositories";
 
 export interface TransactionScopeMap {
+  "admin-category-write": {
+    categories: CategoryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
+  };
+  "admin-brand-write": {
+    brands: BrandRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
+  };
   "register-and-merge-cart": {
     users: UserRepository;
     sessions: SessionRepository;
@@ -55,33 +65,49 @@ export interface TransactionScopeMap {
     categories: CategoryRepository;
     brands: BrandRepository;
     reviewSummaries: ReviewSummaryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "update-product-aggregate": {
     products: ProductRepository;
     inventory: InventoryRepository;
     categories: CategoryRepository;
     brands: BrandRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "change-product-status": {
     products: ProductRepository;
     inventory: InventoryRepository;
     categories: CategoryRepository;
     brands: BrandRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "change-category-active-state": {
     categories: CategoryRepository;
     products: ProductRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "change-brand-active-state": {
     brands: BrandRepository;
     products: ProductRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "delete-draft-product": {
     products: ProductRepository;
     inventory: InventoryRepository;
     reviewSummaries: ReviewSummaryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
-  "adjust-inventory": { inventory: InventoryRepository };
+  "adjust-inventory": {
+    inventory: InventoryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
+  };
   "change-user-access": {
     users: UserRepository;
     sessions: SessionRepository;
@@ -114,18 +140,26 @@ export interface TransactionScopeMap {
   "start-order-preparation": {
     orders: OrderRepository;
     shipments: ShipmentRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "ship-order": {
     orders: OrderRepository;
     shipments: ShipmentRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "complete-delivery": {
     orders: OrderRepository;
     shipments: ShipmentRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
   "review-change": {
     reviews: ReviewRepository;
     reviewSummaries: ReviewSummaryRepository;
+    users: UserRepository;
+    sessions: SessionRepository;
   };
 }
 

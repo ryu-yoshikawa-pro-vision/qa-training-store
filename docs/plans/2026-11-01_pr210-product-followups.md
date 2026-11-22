@@ -1,0 +1,181 @@
+# PR #210：Scenario Shop製品側の残課題と検証条件
+
+## 対象と扱い
+
+[PR #199](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/199) の全サポート動作分析で得られた製品側の修正・確認候補を、[PR #210](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/210) の継続作業として管理する。製品実装・正式製品仕様・既存製品テストの変更は `product/scenario-shop-maintenance` で行い、教材PRへ戻さない。
+
+これは **製品側の対応先を確定する管理文書**。問題の重大度・実行再現・製品修正の妥当性・CI成功を認定したものではない。ユーザーが確定済みの仕様回答と、コードの静的照合を区別する。認可・金額・決済関連の再現詳細は必要以上に公開せず、検証は権限が限定された環境で行う。未確認の事項を根拠に製品本体を変更せず、意味を変える仕様変更や影響の大きい修正には必要な承認を得る。
+
+**正本の分担**：個々の操作ID・BR/AC・Role/State/Data・教材への影響と未実行理由は [#199の製品改善レポート](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/reports/pr199-product-improvements.md) と [全機能分析レポート](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/docs/plan-ai-agent-qa-curriculum-redesign/docs/reports/2026-10-30_pr199-supported-behavior-analysis.md) に保持する。この文書では **#210で検証・修正すべき製品経路**と受入条件だけを追跡する。#199の分析が続く間は新証拠を照合して更新し、元の調査を重複して始めない。
+
+## 2026-11-01 仕様確定2件の実装と検証
+
+[コミット `ec5785d2`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ec5785d23604cd26467275037ee605eda3fc3ec6) で管理ユーザー一覧のRankフィルター、Checkoutと保存配送先の入力文字検証、component/integration回帰を追加した。RankはRole・Statusとの併用とページ番号のリセットを検証し、住所は有効なハイフン付き入力を正規化、英字・空白・不正な区切り文字を拒否して保存済み状態を変更しない契約をテストする。配送先登録・編集の`AccountUseCases`でも検証しないと不正値が先に正規化されるため、両境界を変更した。
+
+**実装コミット済みと製品受入は別**。変更直後のWeb CIではVitest integration・componentとCode Qualityが成功したが、追加テストのPrettier違反でStyle Qualityが失敗したため、本追記と同じコミットで書式を修正する。最新HEADの必須CI・Web実画面・Native実機回帰・独立レビューが成功するまでは2項目とも最終受入は未完了とする。
+
+## 仕様回答済み：製品側の修正対象
+
+| 項目・操作ID | #210 HEADの静的根拠 | #210側で必要な検証・対応 |
+| --- | --- | --- |
+| **管理ユーザー一覧の会員Rank絞り込み** `SCREEN-ADMIN-USERS-A01-02` | `src/presentation/pages/review-user-pages.tsx` の `AdminUsersContent` はメール・Role・Statusのみ。 `AdminUserUseCases.search` は `membershipRanks` を受け付ける。 | 2026-11-01の本人回答で **Rankを含む4種の絞り込みが必須**。一覧のRank選択と検索条件・ページ位置、Role/Status併用を検証し、UIとcomponent/統合回帰を整合させる。実Webでの絞込・不正Roleからの拒否も確認する。 |
+| **Checkoutの郵便番号・電話の不要文字の拒否** `SCREEN-CHECKOUT-*` | `src/application/use-cases/checkout-order-use-cases.ts` の `validateAddress` は `replace(/\D/g, "")` で非数字をすべて取り除いてから長さを検証する。 | 本人回答は **数字と形式上必要なハイフンのみ許可、英字等は拒否**。正常値・ハイフン・英字/記号混入、エラー情報、保存済みSession/Cart/version不変を既存 `tests/integration/checkout-order-use-cases.test.ts` 等で検証。Web/Nativeの入力UIと共通Use Caseの信頼境界を整理する。 |
+
+上記2件は **期待仕様が確定**しており、実装との差を静的に確認済み。ただし実Web/Nativeと、どの修正案が安全かの直接検証は未完了。既存の`docs/spec/features/checkout-and-payment.md`に含まれる別の意味変更は、この2件の仕様回答によって自動承認されたものではない。
+
+## 2026-11-01 購入上限縮小後の再検証
+
+Web DexieとNative SQLiteのCart DTOは、既存明細の数量が変更後の購入上限を超えていても、在庫数が不足していなければ `blockingIssues` に問題を追加しないことを静的に確認した。これはカート画面・Checkout開始・確認・注文作成の再検証に影響する。
+
+両Repositoryで現在の最大数量を超過した明細を `QUANTITY_LIMIT_EXCEEDED` として扱い、Checkout開始・確認・注文作成を拒否する。カートの数量やversionを自動変更しない。Webの数量選択では保存済みの超過数量と減量先を表示し、Nativeにも減量案内を表示する。Dexie/SQLite、Checkoutの状態不変、Web componentの回帰テストを追加した。
+
+**受入状態**：本変更のコミット後にCI・Native実ビルド・端末上の回帰が成功するまで、製品としての最終受入は未完了。ほかの高リスク候補の不具合確定とは区別する。
+
+## 2026-11-01 管理ユーザー更新の認可競合と決済並行再開
+
+- 管理ユーザーのランク・ロール・停止/再開は、認可直後に別の更新で操作者のRole/Sessionが失効すると、以前の認可結果だけで更新し得ることを確認した。対象3経路に対し、同じ `change-user-access` transaction内で操作者のSession/Role/状態を読み直す処理と、失効後に対象User/version・Session・Checkoutが変わらない4つのintegration Caseを追加した。ほかの管理更新経路の対策状況は2026-11-02の節で管理し、CI・実画面受入とは区別する。
+- 決済処理の `resumePayment` は同一 `gatewayIdempotencyKey` による重複呼出しを許容し、`finalizePayment` はtransaction内のPayment状態で重複確定を防ぐ設計。片方のGateway応答を保留した並行再開をintegration Caseに追加し、Payment 1件、在庫引当1回、成功履歴1件、同一キーを検証する。追加CaseのCI成功・Native実行は確認待ち。外部Gatewayによる実課金のテストではない。
+
+## 2026-11-02 管理操作の認可競合対策
+
+- 管理ユーザーの3経路に加え、在庫調整、注文の準備開始・出荷・配送完了、商品作成・更新・公開状態変更・下書き削除、レビュー公開状態変更で、対象更新と同じtransaction内に操作者のSession/Role/アカウント状態の再認可を追加した。共通処理は `src/application/identity/session-identity-resolver.ts#assertActorStillAuthorized` を使用する。これらの変更を含む [`525d600`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/525d60062b0cd882dc9d06579878b0ef771f54b5) の [Web CI](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41321467765) と [Mobile App CI](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41321467970) は成功した。
+- [`e9bf129`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/e9bf129f51680e76f57bc633bbc322e740e4432a) および [`20b1cce`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/20b1cce5162c3f47d251e9e701791a11ca8be56a) で、カテゴリーの作成・名称変更・並び替え・有効状態変更と、ブランドの作成・名称変更・有効状態変更の7経路に同じ再認可を追加した。既存のカテゴリーRepository内transactionを保持し、外側のtransactionに `users` / `sessions` / `categories` または `brands` を含める。各経路で、認可後・更新前にSessionを失効させてもカテゴリー・ブランド・商品が変化しない7つのintegration Caseを追加した。
+- `20b1cce` のWeb CIではStyle QualityとVitest integrationの成功を直接確認した。Web CI全体、Mobile App CI、実Web/Native端末、独立レビューの最終受入は別途確認する。全管理操作を一律に対応済みとせず、対象外の認可経路や認可後の返却処理は後続レビューで確認する。
+
+## 2026-11-02 Nativeログイン・登録のエラー表示
+
+`src/presentation/native/native-purchase-screens.tsx` の `asPurchaseError` は、`ApplicationError.message` に格納された `messageKey` をそのまま返していた。Webの `auth-pages.tsx#useAuthError` には認証失敗・利用停止・退会・保存失敗などの利用者向けメッセージがあることを確認した。Nativeのログイン・会員登録のエラー表示にも、エラーコードごとの利用者向け日本語と未知の例外の一般的な案内を追加した（[`ce22cf3`](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/commit/ce22cf3c5d2b0e359249e5415fd51e5a20a434ff)）。Native componentに拒否・保存失敗・会員登録失敗・未知の例外のCaseを追加し、既存のCheckout復帰時の読み取り失敗Caseも表示内容を確認するよう強化した。Nativeのほかの画面が持つ全エラー表示まで対応済みとは扱わない。最新HEADのCIと実端末受入は別途確認する。
+
+## 2026-11-02 管理在庫の状態分類
+
+`docs/spec/features/admin-inventory.md#BR-ADMININV-001` は0件を `out_of_stock`、1〜5件を `low_stock`、6件以上を `available` とする。SKU単位の在庫を検索する `DexieInventoryRepository.search` の `available` 条件だけが1件以上であり、低在庫と重複していた。SKU在庫一覧の条件を6件以上へ修正し、4境界値を `tests/integration/admin-operations-use-cases.test.ts` に追加した。商品一覧の別契約 `in_stock` (1件以上) は変更しない。最新HEADのCIと実Web画面の受入は確認待ち。
+
+## 高リスク経路：現在の受入状況
+
+| 対象 | 静的根拠・現在の限界 | #210側の検証観点 |
+| --- | --- | --- |
+| **管理者・顧客の認可失効と更新** `BR-ADMINUSER-001 / AC-ADMINUSER-001` | 管理者更新は2026-11-02の記録どおり更新transaction内で再認可する。今回、顧客レビューの作成・更新・削除にも同じ境界を追加した。 | 失効・停止・role変更をtransaction開始前に挿入するintegration testで拒否を再現し、レビュー、summary、履歴、対象order itemの不変を確認する。単一DB transaction内の決定的interleavingであり、複数実機の同時操作を試した証拠とは区別する。 |
+| **購入上限縮小後のCart/Checkout再検証** `BR-CART-001/003 / AC-CART-001/003` | Web Dexie / Native SQLiteで上限超過を `QUANTITY_LIMIT_EXCEEDED` として扱う修正と回帰は2026-11-01の節に記録済み。 | 現在の差分では、住所・支払方法保存直前にCart versionを変更するintegration / SQLite contract casesを追加し、Session・Order・Payment・Stockの拒否時不変を確認した。 |
+| **決済再試行・冪等性** `BR-CHECKOUT-003 / AC-CHECKOUT-003` | `CheckoutOrderUseCases` は処理中Paymentをtransactionで確定する。無効な実行時支払コードは処理開始前に拒否する修正を今回追加した。 | local mock gatewayの並行resume testと、無効method retry時のOrder / Payment / history / Stock不変testを実行する。外部決済・実課金は使用しない。 |
+
+上表は過去の候補状態を反映し、2026-11-22の実行結果で更新した。transaction testは具体的な境界での拒否・不変を検証するが、物理端末での操作や複数プロセス間の並行実行を証明するものではない。
+
+## UI/UX・状態表示：実Web/Nativeと正式仕様の照合待ち
+
+以下も製品側の修正候補として #210 が対応先となる。**実装を自動変更する確定仕様ではない**。
+
+| 候補 | #210で確認すること |
+| --- | --- |
+| Nativeログイン・Checkout拒否の利用者向け表示 | 認証・入力エラーのmessage key漏えいを日本語案内へ修正済み。Checkout価格・在庫・数量・状態エラーも個別案内とCart復帰を追加し、component回帰を追加。実Androidの画面確認は残る。 |
+| 管理在庫の0/1/5/6以上の区分 | `BR-ADMININV-001`の分類に合わせ、Dexie SKU一覧の`available`を6以上に修正。0/1/5/6のintegrationテストを追加。最新HEADのCI・実Web表示は確認待ち |
+| 商品一覧empty時の復帰導線 | Web Breadcrumbs、条件解除CTA、Native空状態が正式な「戻る導線」を満たすか |
+| 管理商品絞り込み後のページ位置 | ページ2以降でフィルター変更した際の再検索・結果非表示の有無 |
+| Native注文一覧のステータス表示 | 利用者向け日本語表示と内部status表記のPlatform差 |
+| Homeカテゴリー商品0件と会員特典表示 | Web/Nativeにおける0件カテゴリー・件数上限・特典表示の期待 |
+| 商品詳細の12/13 SKU選択UIと在庫0 | Web button/selectとNative chipsの正式Platform契約、実画面 |
+| 商品詳細Cartへの追加数量・上限超過エラー | Web複数点指定とNative1点追加の妥当性、拒否後Cart/version不変 |
+| Nativeカテゴリー画面の見出し | カテゴリー実名が必要か、正式視覚・Android実画面 |
+| 検索対象の範囲 | 商品名・商品コード以外のカテゴリー/ブランド/SKU一致を期待するか |
+| Signup確認・注意事項同意と完了先 | Web/Nativeの入力/同意UI・遷移先・Session状態の仕様差 |
+
+新しい製品候補が #199 の分析から見つかった場合も、具体的な変更・回帰検証の管理先は #210 に追加する。#199側には証拠と教材・分析への影響を記録する。
+
+## 2026-11-22 PR #210 独立レビュー・受入更新
+
+- **仕様判断**：ユーザーはNative Checkoutで未保存住所を直接入力してSessionと注文スナップショットに使用することを正式に承認した。Webは本人の登録済み住所を選択する。`docs/spec/features/checkout-and-payment.md`へ記録し、Nativeの任意の住所2行目入力・確認・注文保存も回帰で検証する。
+- **修復したレビュー指摘**：runtimeの無効な支払方法コード拒否、variant削除判定が読むDexie transaction scope、顧客レビューのtransaction内再認可、Dexie/SQLiteでの住所・支払保存時Cart version再確認、Web Checkout開始通知、Nativeの内部error key漏えいと失敗後の復帰導線、E2E guest/session identity assertionを修正した。Native拒否理由を個別の日本語にし、住所行1/2を別表示する追加reviewも修正した。拒否系テストは関連Order/Payment/Stock/history/versionの不変を比較する。
+- **独立レビュー**：backendおよびWeb/Nativeのread-onlyレビュアーが修正前後を確認した。最新の再レビューで追加コードfindingはなく、Android視覚参照の更新/実機表示は未確認事項として残る。GitHub上のreview threadは0件。CodeRabbit等の外部レビューは起動していない。
+- **ローカル検証**：WSL2 Ubuntu / Bash、Node.js 24.22.2、pnpm 10.34.5。作業ツリー上の `pnpm run verify` は成功し、typecheck、unit、integration 158、Web component 123、Native component 88、repository 150 PASS / 1 SKIP、contracts 803 PASS / 7 SKIP、security、build:web / Expo export、build:specを含む。`pnpm run format:check`、`git diff --check`、sanitizer、security checkも成功した。ESLintは0 errors / 63 warnings。
+- **E2E環境制約**：ローカルChromium required suiteは36件ともブラウザー起動時の `libnspr4.so` 等不足で止まり、製品操作へ到達しなかった。cross-role、a11y、mobile-boundaryのローカル実行は未実施。timeout延長・テストskip・OS権限変更は行っていない。CIは修正を含むcommitの最新SHAでWeb/Mobileを再実行し、CIのみで通過した範囲を区別して記録する。
+- **Native視覚参照の相違**：`SCREEN-CHECKOUT-ADDRESS/default/android.webp` は任意の住所2行目を含まないため、今回承認された入力仕様を表していない。Canonical Android screenshotを作り直すには既存 `native-ci.yml` のvisual-capture workflowを最新SHAで実行し、生成artifactを確認してから `android-visual-capture.ts promote` を使う。実行用GitHub CLI認証/ネットワークが利用できない場合は画像を変更せずvisual acceptanceを未完了とする。
+- **実機 / 未決事項**：WSLにAndroid SDK、emulator、adb、iOS simulatorはなく、物理Android/iOS操作とiOS runtimeを実施できない。既存のAndroid API 34 emulator / MaestroとAndroid/iOS build結果は実機受入に数えない。Web/NativeのCI・component結果だけで実画面・視覚gateをPASSとしない。
+- **最新HEAD required E2Eの修復**：commit `37d5977c33b05e4c1cbd590fce9ae27c83e8b8fd`のWeb CI #44925761465は`e2e/web/ui-ux-improvements.spec.ts:98`で失敗した。Cart transfer toastとCheckout開始通知の2つの`role=status`に対して、古いテストが通知を限定せずlocator strict-mode errorとなった。製品の両通知と両方のassertionを維持し、テストを通知別に識別するよう更新。独立再レビューは追加findingなし。修正を含む最新HEAD CIは確認待ちであり、これをPASSとは扱わない。
+- **最新HEAD Android Maestro blocker**：commit `054749f34d83eee2a7ccd018352b6ca655c934b7`のMobile CI #44927140741で、Android Runtime / Maestro job `136922330221`の`native-purchase`、`native-payment-retry`、`native-session-checkout-restart`が`native-checkout-address-next`不在で失敗。製品画面には同testIDのボタンがあるが、flow側のaddress session-ready待ちとCTAへの明示scrollが不足している。任意住所2行目追加後にCTAがviewport外となった可能性があるものの、failure hierarchy未取得のため直接原因は未確定。3 flowにsession-ready待ちとCTA scrollを追加し、全assertionを維持した。独立read-only再レビュー指摘なし、対象flow contract 78件・format check PASS。新HEAD CIで再確認する。
+
+## 2026-11-22 修復後のCI結果
+
+- Code SHA `e3a9d130dd2ab9f79e6399f3df055e70465a18ce`のWeb CI [#44931433280](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44931433280)とMobile App CI [#44931433660](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44931433660)はsuccess。Android Runtime / Maestro job `136933362584`の17 flowすべてがsuccessし、更新した3つのCheckout flowも含む。Android automation/production builds、iOS automation/production-validation simulator builds、Native Static、Production Bundle Guard、iOS Native CI Verifyもsuccess。
+- Web CIは27 success / 2 skipped（Extended mobile Chromium E2E、production deploy）。このCIではrequired Chromium E2E・cross-role・accessibility・mobile-boundaryを実行しsuccess。ローカルWSL E2EはChromium host library不足のため未実行であり、CI結果と区別する。
+- Emulator/build結果は実機・iOS runtime証拠ではない。Native canonical screenshotは任意住所2行目がなく、visual acceptanceは未完了。Native未保存住所の直接入力はユーザー承認済みで仕様へ反映済み。Checkout税額を独立明細に表示しない方針も2026-11-22に承認済みであり、現行の小計・会員割引・送料・合計のDTO/表示契約を維持する。税額計算・税額フィールドは追加しない。この表示判断を税務要件一般の結論として扱わない。
+
+## 既存19ファイルの変更受入
+
+PR #210の作成時点で、製品実装9・正式仕様1・既存製品テスト9の内容を #199 の旧HEADから移した。**「どちらのPRに置くか」の判断は完了**。ただし各変更の必要性、正式仕様との適合、非default状態、認可、金額、Web/Native、CIは個別に未検証事項がある。特にCheckout正式仕様の意味変更は自動受入しない。
+
+今後は`main`との差分に対して、通常のWeb/Mobile CIと対象直接テスト、必要な独立レビューを実施する。実行なしのPASS・旧HEADの結果の流用・#199の学習用contractを製品実機回帰に代用することは禁止。製品コードの修正/意味変更は必要な承認の範囲で行い、このPRのマージはユーザーの別指示を要する。
+
+## 2026-11-02 PR #199 required Checkout E2E failure diagnosis
+
+- **Reproduction**: PR #199 `e2e/web/phase1-required.spec.ts:189-199` calls `scenario("cart-version-invalidates-checkout")`, logs in as `regular@example.com`, then opens `/checkout/confirm`. Runs [#41411886158](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41411886158), [#41416246383](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41416246383), and [#41422210721](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41422210721) failed the same visible-message assertion on all three attempts; the last run used PR #199 HEAD `8c36c75fb88d738dd3277e77d3e156a86889fa32`. The assertion expects `カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。`; the following link assertion was not reached.
+- **Reset / Seed**: `e2e/web/fixtures.ts` waits for `window.__TEST_API__`, resets the named scenario, reloads, and verifies scenario metadata and session identity. `src/seeds/scenarios.ts#checkoutScenario` changes the active cart to version 2 while the checkout session remains at `cartVersion: 1`, `addressSnapshot: null`, `unlockedStep: "address"`, and `orderId: null`. This is a deterministic mismatch seed; no Seed/Reset change is indicated by the failure.
+- **Trace / screenshot**: Playwright artifact [#13125658755](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41411886158) shows navigation to `/checkout/confirm` and a 7,500 ms wait for the expected text. The screenshot instead shows title `購入手続きを続けられません`, body `カートまたは前のステップが更新されました。内容を確認してください。`, and `戻って確認する` linking to `/checkout/payment`. This confirms a UI / E2E contract mismatch, not a browser-start or seed-load failure. The test fails before checking the link target.
+- **Use Case / formal contract**: `CheckoutConfirmContent` calls `services.checkout.getConfirmation()`. A stale cart produces `CART_VERSION_CHANGED`; the error branch renders the generic `CheckoutLoadError` with `/checkout/payment`. It does not call `beginOrder`; the test does not take a database snapshot after this failure, so non-creation of Order/Payment is supported by the seed and call path rather than directly measured by this E2E. `BR-CHECKOUT-002` / `AC-CHECKOUT-002` require stale cart or price changes to block Order/Payment and return to the cart or an incomplete step; the `stale-cart` screen state also requires explaining the mismatch. Whether the current generic text and payment link violate the full recovery contract needs direct product acceptance, but the CI failure is repeatable and not consistent with an environment-only cause.
+- **PR #210 candidate / status**: Current PR #210 HEAD `58249dd52b6e2fddeeb033bc5715a5d6041b2c7d` already recognizes cart-review errors in `checkoutNeedsCartReview`, renders the specific cart-change message and `/cart` recovery link, and updates the existing E2E to assert them. In Web CI [#41362980277](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/41362980277), `Chromium E2E (required)` succeeded, while Style Quality, Code Quality, and Vitest component failed. Treat the Checkout candidate as present on the branch, not as overall PR #210 acceptance. Keep PR #199's existing product E2E, product SUT, formal product specification, and Seed/Reset unchanged; re-evaluate the candidate against the BR/AC and current-head CI in PR #210.
+
+## 2026-11-03 PR #199に残っていた製品テスト・共通処理の追加移管
+
+PR #199の最終差分監査で、既存製品E2Eへの変更と、教材専用ではない共通処理が残っていた。これらはPR #199から除き、ユーザー指定に従って本PRで管理する。
+
+- `e2e/web/phase1-required.spec.ts`：CheckoutのCart version不一致時の表示と`/cart`復帰の期待値変更。既に本PRで同じ差分を保有しているため、重複追加しない。
+- 同ファイル：PR #199の学習用E2Eに含まれていた未知URLからのホーム復帰・Guest/Session維持、および深い未知URLとForbiddenの境界2 Caseを製品E2Eへ移した。
+- `scripts/serve-web-dist.ts`と`tests/contracts/serve-web-dist.test.ts`：faviconが存在しない場合のHTTP 204応答と回帰テスト。
+- `scripts/lib/codex-artifact-sanitizer.mjs`とCodex関連契約テスト3ファイル：実pathの正規化とWindows/WSLの検証期待値。
+- `scripts/pre-commit-quality-check.mjs`と`tests/contracts/pre-commit-quality.test.ts`：大きなstaged assetを読み取るための`maxBuffer`変更と回帰テスト。
+
+後半3件は製品業務ロジックではなく共通ツールの変更である。PR #199の教材・分析に必須であることを確認できない共通変更も、今回の明示指示に従って本PRへ集約した。製品テストの受入と共通ツールの互換性・セキュリティ検証はそれぞれ独立して行う。PR #199の教材ビルドやクイズ、学習用評価・分析の処理は移管対象としない。変更を移しただけではCI成功や製品受入完了を意味しない。
+
+## 2026-11-22 Android視覚受入追記
+
+- **税額表示**：ユーザーはCheckoutに独立税額行を表示しない方針を承認した。正式仕様（`checkout-and-payment.md`）、`calculateOrderTotals()`、`CheckoutConfirmationDto`およびWeb/Native確認画面は商品小計・会員割引・送料・合計の4項目で一致する。実装・DTO変更は不要で、税額計算や税額フィールドも追加しない。これは本プロダクトの画面表示契約の決定であり、税務一般の結論ではない。
+- **住所2行目の画面契約**：正式仕様はNativeで任意の住所2行目を入力・確認し、確認/注文snapshotへ保持することを定める。現行画面は`native-checkout-line2`を住所1行目と電話の間に表示し、確認画面は別行で出す。既存component/integration/SQLite契約は入力値・snapshot・注文保存・住所録不変を確認するが、旧Android canonical `SCREEN-CHECKOUT-ADDRESS/default/android.webp`には空欄の任意入力欄がない。
+- **実行証拠**：登録済みdefault captureは未入力状態を表すため同じ状態のまま正本更新する。入力済み状態は別のcanonical stateとして登録せず、既存Native purchase Maestro flowの補助的な入力/確認画面証拠にする。該当画面のCI実行・artifact・canonical比較は本Runの結果が得られるまで未完了とする。
+- **環境**：本Runでは`describe-case`をWSL2/Bashで実行し、`SCREEN-CHECKOUT-ADDRESS/default/android`、`regular-member`、`/checkout/address`、`customer-seeded-session`、viewport capture、期待canonical pathを確認した。WSLにAndroid SDK/ADB/Emulatorはなく、`gh auth status`は無効credential、GitHub connectorはworkflow dispatchを提供しない。Actionsの単発dispatchが必要な場合、最終HEAD push後にGitHub UIをユーザーへ依頼し、資格情報は求めない。
+- **Maestro Unicode入力**：CIはMaestro 2.8.0をpinし、2.7.0以降はAndroidの日本語を含むnon-ASCIIを`inputText`で入力できる。現行公式仕様と2.8.0実装を確認し、既存の日本語入力flowを維持する。古い互換性記述の「AndroidではUnicode非対応」はこのpinには適用されない。対象flow contract testsは78件PASS。実Android CIによる日本語入力・IME後の表示・確認画面は最新HEADの実行待ち。
+
+## 2026-11-22 Android Runtime visual finding
+
+- PR HEAD `f96a45e3feda3e50880a2a90a4d6e5b57484d63f` の[Web CI #44972608948](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44972608948)と[Mobile App CI #44972608972](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44972608972)はsuccess。Android Runtime / Maestro job `137059323442`で`native-purchase`と`native-session-checkout-restart`を含む全flowがsuccess。
+- `native-android-runtime-evidence-44972608972` artifact (`14735250989`)のpurchase screenshotは、日本語住所2行目`青山ビル101`の入力後・画面戻り・注文確認を示す。restart flowのscreenshotではアプリ再起動後のSessionから値が復元されている。確認画面は住所1行目の後に住所2行目を一度表示し、金額は小計・会員割引・送料・合計の4項目のみ。
+- **実画面の不具合**：keyboard-open screenshot `native-purchase-address-line2-keyboard.png`ではAndroid IMEが住所2行目入力欄の下部と文字の一部に重なっている。旧canonical比較ではなく、実行時に再現したNative UI問題である。read-only reviewerは`PurchaseKeyboardScrollView`にfocused-input scroll coordinationがなく、`PurchaseTextInput`からfocus/refを渡せない点を原因と評価。実機利用者が入力内容を見失うおそれがあるため、既存Native primitivesでbounded repair中。住所入力契約やassertionは変更しない。
+- 通常pushのMobile workflowでは`Capture Android Screen Catalog baseline`とvisual uploadがskipされた。既存runtime evidence artifactは取得・目視確認済みだが、canonical capture artifact、manifest、profile/APK hashの証明はまだない。IME修復後のHEADでWeb/Mobile CIを取り直し、その後にGitHub UIのvisual-capture dispatchを依頼する。現canonicalは未変更。
+- 独立再レビューでは、最初の修正の16dp固定offsetがNativeShellのScrollView開始Yを補わないため、IME重なりが残り得ると指摘された。第2反復では`getNativeScrollRef().measureInWindow()`でwindow Yを得て余白と合算する。対応component test 48件とtypecheckはPASSし、第2回read-only reviewで追加findingなし。修復後Android Runtime pixel確認・canonical artifact/manifest/APK照合は未完了。
+- PR HEAD `75f649a35d8d646e5d9e0e4342d21f1b92312c84`のWeb CI #44977825833とMobile App CI #44977825780はsuccess。Android Runtime/Maestro job `137075464249`のpurchase/restart flowもsuccessし、同一run Artifact `native-android-runtime-evidence-44977825780`から修復後の画像を取得した。しかしkeyboard-open PNGでもIMEが住所2行目欄と日本語文字に重なり、視認性の受入条件は未達。CI greenやhelper呼出しassertionはpixel受入を意味しない。React Native `ScrollView`のkeyboardDidShow handlerがkeyboard metricsを設定するため、focus時だけのscrollに加えてkeyboardDidShow後の再測定・再スクロールを加える最終限定修正を行い、Android Runtimeを再取得する。
+- 最終限定反復では、focus targetを保持してblurで消去し、React Nativeの`onKeyboardDidShow`後（RN 0.86.3がkeyboard metricsを設定した後）にScrollView window Yを含む同じスクロール処理を再実行する。すでにkeyboard metricsが存在する場合のfocus即時経路も維持。Native focused-screen 49 tests / Native component 90 tests / typecheck / formatはPASSし、独立read-only reviewで新規findingなし。修復後Android screenshotのみ未確認。
+
+### 2026-11-22 d30 Android Runtime keyboard visual結果
+
+- d30 `d30fd725f29898701b726b3dc5413c235bdda539`のWeb CI #44981409676、Mobile App CI #44981409641、Android Runtime/Maestro job `137085547600`はsuccess。artifact `native-android-runtime-evidence-44981409641` (14738885970)は当該SHAに紐づく。
+- Android keyboard-open screenshotではIMEが任意住所2行目の入力欄下部と一部文字に重なり、受入条件は未達。日本語入力値は戻り・再起動後に保持され、confirmationでは住所1行目の次に一度表示される。価格表示は小計・会員割引・送料・合計の4項目。
+- `commands.json` / `maestro.log` / device logcatの時系列ではIME `onShown`後に撮影されており、早撮りが原因ではない。同じ画面のSHA-256は直前repair runのscreenshotと同一。app内callback/scroll実行はartifact logに出ないため、callback未発火と座標計算の誤りは判別できない。
+- 3回の限定scroll修復後もpixel進展がなく、repair-loopを`stop_no_progress`として停止した。新しい原因証拠なしに追加修復しない。GitHub UIによる登録済み`SCREEN-CHECKOUT-ADDRESS/default/android` captureのmanifest/raw PNG/APK/profile検証とcanonical比較はまだ未実施。現行canonicalは住所2行目欄が欠けているため、正規artifact確認後にdefault画像のみ更新を判断する。物理Android/iOS runtimeも未実施で、PR #210のmergeは推奨しない。
+
+### 2026-11-22 最新HEADのMaestro flow失敗
+
+- `13ee1f9a8f484a7ed4d1c38a5e8f50063de1faee`のWeb CI #44984564223はsuccess。Mobile CI #44984564190はAndroid Runtime/MaestroのNative Purchaseで失敗し、その他のNative Static/Automation、Android/iOS build、Bundle Guardは成功。Android Production-validation BuildはGradle plugin resolutionで初回失敗したが、同じ失敗jobの再実行`137099066375`でAPK build・検証・artifact保存がsuccessした。
+- 同一run artifact `native-android-runtime-evidence-44984564190` (14740727971)の`native-purchase`では、日本語住所2行目入力と値assertが成功。その直後のscreenshotは住所2行目の値と「次へ：支払い」CTAを表示し、IMEは既に非表示だった。端末logcatはIME `onHidden`を`05:12:06.809`、Maestroの`hideKeyboard`後にAndroid Backを`05:12:08.062`と記録する。直後のCTA検索でCheckout住所画面ではなくCart画面のhierarchy/screenshotが保存され、`native-checkout-address-next`が見つからず失敗した。
+- 原因はNative画面実装ではなく、Unicode `inputText`後に既にIMEが閉じている場合でも`hideKeyboard`を実行するflow状態依存が有力。Maestro 2.8.0のAndroid実装はBack eventを送るため、既に閉じたIMEに対する操作がCartへの戻り操作として伝播した可能性が高い。製品ソース、住所値assert、CTA scroll/tapや後続確認assertionは変えない。
+- 限定修正として、値assert後に住所2行目を再tapし、`waitForAnimationToEnd`（5000ms）の後に従来のkeyboard screenshotを撮る。続く`hideKeyboard`、CTAの100%可視までのscroll、tapと注文確認assertionを保持する。対象差分は`maestro/native-purchase.yaml`のみ。flow契約78 tests、Prettier check、対象diff checkはPASS。独立read-only re-reviewは新findingなし（確信度は中〜高）。Android RuntimeによるIME再表示・CTA遷移の再確認は新HEAD CI待ち。
+- 住所2行目がIMEに一部隠れるd30の視覚不具合は解決していない。3回の製品scroll修正後の`stop_no_progress`判断を維持し、推測に基づく製品変更は追加しない。登録済みdefault captureのworkflow_dispatchも取得できていないため、canonical比較・promoteは未完了である。
+
+### 2026-11-22 修正後Android Runtime再確認
+
+- HEAD `07ec39347ef764260eac6b90b26081665b5610a2`のWeb CI #44990802514とMobile App CI #44990802546はsuccess。Android Runtime/Maestro job `137114080802` successし、Native PurchaseとNative Session Checkout Restartも完了した。run artifact `native-android-runtime-evidence-44990802546`（14741574872）はGitHub metadataでbranch/head `product/scenario-shop-maintenance` / `07ec3934`に紐づく。実行deviceは`native-api34`。同artifactの`apk-sha256.txt`はAutomation APK `edf36c83ccba7a0260257dd03ab839889aaeb324d6b1283cd3451d9d0691a439`を記録する。
+- Native Purchaseのsequence 49–72はすべてCOMPLETED。住所2行目を再tapした後のIME中screenshotはPNG 1080×1920で、SHA-256 `049b7ea08ea0ad2c3f630667d559a71a46d5dbdc6a69f52f5e8525cd4d57587c`。IMEが再表示され`hideKeyboard`後も住所画面に留まり、CTAから支払い・確認・注文完了へ進めた。住所の戻り後保持・注文確認表示もassertion/screenshotで確認。確認画面では住所2行目`青山ビル101`が一度表示され、金額は小計・会員割引・送料・合計のみ。
+- **視覚条件は引き続きFAIL**：IME中screenshotでは住所2行目欄の下部と入力文字がキーボードに隠れる。Native Purchase Maestro flowのCTA失敗は解消したが、製品画面のIME重なりは解消していない。3回の製品scroll修正でpixel進展がなかった`stop_no_progress`判断を維持し、今回も製品コードは変更しない。
+- 登録済み`SCREEN-CHECKOUT-ADDRESS/default/android`のworkflow_dispatchはこの実行環境から起動できず、run IDはない。通常Mobile CIではScreen Catalog capture/visual profileがskip。Runtime artifactはcanonical capture用raw PNG/manifestではなく、正式profile/APK hash/source SHAを揃えたdefault captureの代替にはならない。既存canonicalは空欄の住所2行目欄を欠き、更新・promoteは行っていない。
+
+### 2026-11-22 Android視覚受入・CI最終追記
+
+- Checkoutの税額表示は独立行を設けず、小計・会員割引・送料・合計を表示する方針で承認済み。正式仕様、`calculateOrderTotals()`、`CheckoutConfirmationDto`、Web/Native画面、既存テストと一致し、実装変更は不要。
+- Latest checked HEAD `0ea9cd3315f9331fe1115985733948b3889a47f6`: Web CI [#44993416238](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44993416238) success; Mobile App CI [#44993416249](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/44993416249) final success with expected/observed SHA match. The first attempt failed both Android builds because Gradle could not resolve required plugins/artifacts; retrying only the failed jobs passed. Android Runtime/Maestro job `137129234648`, iOS Simulator builds, Bundle Guard, and Native verify passed. The initial logs did not record HTTP response status; this is classified as a transient dependency-resolution failure because the same jobs succeeded on retry, not as a confirmed service outage.
+- Android Runtime artifact `native-android-runtime-evidence-44993416249` (`14744372796`) is linked by GitHub metadata to the latest docs HEAD. The code path is unchanged from runtime code HEAD `07ec3934`, whose inspected keyboard-open screenshot SHA-256 is `049b7ea08ea0ad2c3f630667d559a71a46d5dbdc6a69f52f5e8525cd4d57587c` (1080×1920). It shows the IME covering the lower edge of the optional line-2 field and part of the entered text. Japanese input, return, and one-time display in confirmation work, but the keyboard-open visibility contract remains **FAIL**.
+- The registered GitHub UI `workflow_dispatch` for `SCREEN-CHECKOUT-ADDRESS/default/android` could not be run in this environment; there is no run ID. WSL `gh` authentication was unavailable and the connected GitHub tool has no workflow-dispatch action; the user also confirmed they could not initiate the UI run. No registered-capture raw PNG/manifest/profile/APK/source SHA exists, so no canonical comparison or promotion was done. Existing `default/android.webp` remains unchanged and stale (it omits the empty optional line-2 field). Do not treat runtime artifact screenshots as registered canonical captures.
+- Physical Android and iOS runtime acceptance remain unverified. **Do not merge** until the IME overlap is resolved from new root-cause evidence and the registered default capture is validated/compared; iOS build and Android emulator evidence are not physical-device acceptance.
+
+### 2026-11-22 Android IME修復・視覚受入の更新
+
+- 上記の未完了判定は当時のHEADまでの履歴。修復HEAD `79eadf9fc0479f9c63ef5e64bd6caeffcc8b3f`でAndroid Emulator上のIME重なりを修正・再確認し、登録済み`SCREEN-CHECKOUT-ADDRESS/default/android`を同run manifest/APK検証後にcanonicalへpromoteした。詳細なrun ID、SHA、profile、画面所見は[製品受入レビュー記録](2026-11-21_235837_pr210-product-acceptance-review.md)の2026-11-22追記と`runs/20261122-000033-JST/REPORT.md`を参照。
+- Tax表示方針は承認済みで、独立税額行なし。実装・DTO・計算変更は不要。
+- Native line 2は任意の直接入力、IME中視認、戻り/session restartでの保持、注文確認表示をCI Emulator/Maestroで確認。Webの登録済み住所選択契約は変更していない。
+- PR専用の一時capture条件は撮影後にworkflow_dispatch専用へ復元済み。最終push後のWeb/Mobile CIを改めて確認してから、この追記時点のCI状態を確定する。
+- Android Emulator受入は完了。物理Android/iOS runtimeは未実施であり、build/emulator evidenceと混同しない。

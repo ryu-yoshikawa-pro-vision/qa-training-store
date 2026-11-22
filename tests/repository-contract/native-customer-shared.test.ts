@@ -296,6 +296,117 @@ describe("Native SQLite Node runtime contract", () => {
     database.close();
   });
 
+  it("rolls back earlier Native price updates when a later item exceeds stock", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("regular-member"),
+    );
+    const second = await database.getFirstAsync<Row>(
+      "SELECT variant_id FROM cart_items WHERE id = ?",
+      "cart-item-member-mug",
+    );
+    expect(second).not.toBeNull();
+    await database.runAsync(
+      "UPDATE cart_items SET unit_effective_price_at_add = 999 WHERE id = ?",
+      "cart-item-member-shirt",
+    );
+    await database.runAsync(
+      "UPDATE cart_items SET quantity = 2 WHERE id = ?",
+      "cart-item-member-mug",
+    );
+    await database.runAsync(
+      "UPDATE product_variants SET stock_quantity = 1 WHERE id = ?",
+      second!.variant_id,
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    await expect(
+      repositories.carts.acceptPriceChangesAndTouchCart({
+        cartId: "cart-member-user-customer-regular",
+        cartExpectedVersion: 1,
+        itemExpectedVersions: { "cart-item-member-shirt": 1, "cart-item-member-mug": 1 },
+        now: "2026-07-15T03:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "QUANTITY_LIMIT_EXCEEDED" });
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT unit_effective_price_at_add, version FROM cart_items WHERE id = ?",
+        "cart-item-member-shirt",
+      ),
+    ).toMatchObject({ unit_effective_price_at_add: 999, version: 1 });
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT quantity, version FROM cart_items WHERE id = ?",
+        "cart-item-member-mug",
+      ),
+    ).toMatchObject({ quantity: 2, version: 1 });
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT version FROM carts WHERE id = ?",
+        "cart-member-user-customer-regular",
+      ),
+    ).toMatchObject({ version: 1 });
+    database.close();
+  });
+
+  it("reports reduced purchase limits in the Native Cart DTO without mutating stored quantities", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("regular-member"),
+    );
+    const item = (await database.getFirstAsync<Row>(
+      "SELECT variant_id FROM cart_items WHERE id = ?",
+      "cart-item-member-shirt",
+    ))!;
+    await database.runAsync(
+      "UPDATE cart_items SET quantity = 2 WHERE id = ?",
+      "cart-item-member-shirt",
+    );
+    await database.runAsync(
+      "UPDATE product_variants SET stock_quantity = 10, purchase_limit = 5 WHERE id = ?",
+      item.variant_id,
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    const input = {
+      cartId: "cart-member-user-customer-regular",
+      viewer: {
+        kind: "customer" as const,
+        userId: "user-customer-regular",
+        membershipRank: "regular" as const,
+      },
+      now: "2026-07-15T03:00:00.000Z",
+    };
+    const before = await repositories.carts.getCartDto(input);
+    expect(before.blockingIssues).not.toContain("QUANTITY_LIMIT_EXCEEDED");
+
+    await database.runAsync(
+      "UPDATE product_variants SET purchase_limit = 1 WHERE id = ?",
+      item.variant_id,
+    );
+    const after = await repositories.carts.getCartDto(input);
+    expect(after.items.find((line) => line.variantId === item.variant_id)).toMatchObject({
+      quantity: 2,
+      maximumQuantity: 1,
+      issues: ["QUANTITY_LIMIT_EXCEEDED"],
+    });
+    expect(after.blockingIssues).toContain("QUANTITY_LIMIT_EXCEEDED");
+    expect(after.cartVersion).toBe(before.cartVersion);
+    expect(
+      await database.getFirstAsync<Row>(
+        "SELECT quantity, version FROM cart_items WHERE id = ?",
+        "cart-item-member-shirt",
+      ),
+    ).toMatchObject({ quantity: 2, version: 1 });
+    database.close();
+  });
+
   it("translates SQLite lock errors at the Native transaction boundary", async () => {
     const lockedDatabase = {
       withExclusiveTransactionAsync: async () => {
@@ -426,6 +537,142 @@ describe("Native SQLite Node runtime contract", () => {
     ).resolves.toEqual({ status: "expired", version: ready.version + 1 });
     database.close();
   });
+
+  it.each(["address", "payment"] as const)(
+    "rejects a Cart version change immediately before the Native %s repository save",
+    async (step) => {
+      const database = new NodeSQLiteDatabase();
+      await database.execAsync(CUSTOMER_SCHEMA_SQL);
+      await seedNativeDataset(
+        database as unknown as SQLiteDatabase,
+        createScenarioDataset("regular-member"),
+      );
+      const repositories = createNativeCustomerApplicationRepositories(
+        database as unknown as SQLiteDatabase,
+      );
+      const userId = "user-customer-regular";
+      const sessionId = "native-checkout-race-session";
+      await database.runAsync(
+        "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, ?)",
+        sessionId,
+        userId,
+        "2026-07-01T03:00:00.000Z",
+      );
+      const currentSessionStore: CurrentSessionStore = {
+        getSessionId: async () => sessionId,
+        setSessionId: async () => undefined,
+        clear: async () => undefined,
+      };
+      let nextId = 0;
+      const dependencies = {
+        ...repositories,
+        currentSessionStore,
+        clock: { now: () => "2026-07-01T04:00:00.000Z" },
+        idGenerator: { generate: () => `native-checkout-race-${++nextId}` },
+        paymentGateway: new MockPaymentGateway(0),
+      };
+      const useCases = new CheckoutOrderUseCases(dependencies);
+      const cart = await repositories.carts.getActiveByUser(userId);
+      expect(cart).not.toBeNull();
+      const started = await useCases.start({ cartVersion: cart!.version });
+      const sessionBeforeSave =
+        step === "payment"
+          ? await useCases.setAddress({
+              checkoutSessionId: started.session.id,
+              checkoutExpectedVersion: started.session.version,
+              address: {
+                recipientName: "Native Checkout Customer",
+                postalCode: "1000001",
+                prefecture: "東京都",
+                city: "千代田区",
+                addressLine1: "1-1",
+                addressLine2: null,
+                phone: "09000000000",
+              },
+            })
+          : started.session;
+      const beforeSession = await database.getFirstAsync<Row>(
+        "SELECT * FROM checkout_sessions WHERE id = ?",
+        started.session.id,
+      );
+      const ordersBefore = await database.getAllAsync<Row>("SELECT * FROM orders ORDER BY id");
+      const paymentsBefore = await database.getAllAsync<Row>("SELECT * FROM payments ORDER BY id");
+      const inventoryBefore = await database.getAllAsync<Row>(
+        "SELECT * FROM inventory_histories ORDER BY id",
+      );
+      const variantsBefore = await database.getAllAsync<Row>(
+        "SELECT id, stock_quantity, version FROM product_variants ORDER BY id",
+      );
+      const cartBefore = await repositories.carts.getById(cart!.id);
+      const targetCheckouts = repositories.checkouts;
+      const racingCheckouts = Object.create(targetCheckouts) as typeof targetCheckouts;
+      const bumpCartVersion = async () => {
+        await database.runAsync("UPDATE carts SET version = version + 1 WHERE id = ?", cart!.id);
+      };
+      if (step === "address") {
+        const saveAddress = targetCheckouts.setAddress.bind(targetCheckouts);
+        racingCheckouts.setAddress = async (command) => {
+          await bumpCartVersion();
+          return saveAddress(command);
+        };
+      } else {
+        const savePayment = targetCheckouts.setPayment.bind(targetCheckouts);
+        racingCheckouts.setPayment = async (command) => {
+          await bumpCartVersion();
+          return savePayment(command);
+        };
+      }
+      const raceRequestUseCases = new CheckoutOrderUseCases({
+        ...dependencies,
+        checkouts: racingCheckouts,
+      });
+      const save =
+        step === "address"
+          ? raceRequestUseCases.setAddress({
+              checkoutSessionId: sessionBeforeSave.id,
+              checkoutExpectedVersion: sessionBeforeSave.version,
+              address: {
+                recipientName: "Native Checkout Customer",
+                postalCode: "1000001",
+                prefecture: "東京都",
+                city: "千代田区",
+                addressLine1: "1-1",
+                addressLine2: null,
+                phone: "09000000000",
+              },
+            })
+          : raceRequestUseCases.setPayment({
+              checkoutSessionId: sessionBeforeSave.id,
+              checkoutExpectedVersion: sessionBeforeSave.version,
+              paymentMethodCode: "TEST-SUCCESS",
+            });
+
+      await expect(save).rejects.toMatchObject({ code: "CART_VERSION_CHANGED" });
+
+      expect(
+        await database.getFirstAsync<Row>(
+          "SELECT * FROM checkout_sessions WHERE id = ?",
+          started.session.id,
+        ),
+      ).toEqual(beforeSession);
+      expect(await database.getAllAsync<Row>("SELECT * FROM orders ORDER BY id")).toEqual(
+        ordersBefore,
+      );
+      expect(await database.getAllAsync<Row>("SELECT * FROM payments ORDER BY id")).toEqual(
+        paymentsBefore,
+      );
+      expect(
+        await database.getAllAsync<Row>("SELECT * FROM inventory_histories ORDER BY id"),
+      ).toEqual(inventoryBefore);
+      expect(
+        await database.getAllAsync<Row>(
+          "SELECT id, stock_quantity, version FROM product_variants ORDER BY id",
+        ),
+      ).toEqual(variantsBefore);
+      expect((await repositories.carts.getById(cart!.id))!.version).toBe(cartBefore!.version + 1);
+      database.close();
+    },
+  );
 
   it("migrates the v1 Native schema metadata without resetting customer data", async () => {
     const database = new NodeSQLiteDatabase();
@@ -594,34 +841,45 @@ describe("Native SQLite Node runtime contract", () => {
     const customerCart = await cart.getCart();
     expect(customerCart.items.length).toBeGreaterThan(0);
 
-    const address = {
+    const savedAddress = {
       recipientName: "Native Repository Customer",
       postalCode: "1000001",
       prefecture: "東京都",
       city: "千代田区千代田",
       addressLine1: "1-1",
-      addressLine2: null,
+      addressLine2: "登録済みマンション",
       phone: "09000000000",
     } as const;
-    await account.createAddress({ label: "契約テスト", ...address, makeDefault: true });
+    const address = {
+      ...savedAddress,
+      addressLine2: "青山ビル101",
+    } as const;
+    await account.createAddress({ label: "契約テスト", ...savedAddress, makeDefault: true });
+    const savedAddressesBefore = await account.listAddresses();
     const started = await checkout.start({ cartVersion: customerCart.cartVersion });
     const addressed = await checkout.setAddress({
       checkoutSessionId: started.session.id,
       checkoutExpectedVersion: started.session.version,
       address,
     });
+    expect(addressed.addressSnapshot).toEqual(address);
     const payment = await checkout.setPayment({
       checkoutSessionId: addressed.id,
       checkoutExpectedVersion: addressed.version,
       paymentMethodCode: "TEST-SUCCESS",
     });
     const confirmation = await checkout.getConfirmation(payment.id);
+    expect(confirmation.address).toEqual(address);
+    expect(await account.listAddresses()).toEqual(savedAddressesBefore);
     const processing = await checkout.beginOrder({
       checkoutSessionId: confirmation.checkoutSessionId,
       checkoutActionVersion: confirmation.checkoutActionVersion,
     });
     await expect(checkout.resumePayment(processing.orderId)).resolves.toMatchObject({
       orderStatus: "paid",
+    });
+    await expect(checkout.getMyOrder(processing.orderId)).resolves.toMatchObject({
+      shippingAddress: { addressLine2: "青山ビル101" },
     });
 
     const delivered = await checkout.getMyCustomerOrder("order-delivered");

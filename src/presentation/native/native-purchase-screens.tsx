@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Link, router, useLocalSearchParams, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/react-navigation";
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import type { KeyboardEvent, ScrollViewProps, TextInputProps } from "react-native";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   CustomerOrderDetailDto,
@@ -25,6 +27,8 @@ import {
   PAYMENT_METHODS,
   resolveCheckoutResultKind,
 } from "@/application/use-cases/checkout-order-use-cases";
+import { FREE_SHIPPING_THRESHOLD, membershipDiscountRate } from "@/domain/services/pricing";
+import { labels } from "@/presentation/content/dictionary";
 import { resolveCustomerLoginDestination } from "@/presentation/return-to";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
@@ -37,6 +41,10 @@ import {
   styles,
 } from "./native-components";
 
+type PurchaseScrollViewProps = ScrollViewProps & {
+  onKeyboardDidShow?: (event: KeyboardEvent) => void;
+};
+
 const REVIEW_RATINGS = [1, 2, 3, 4, 5] as const;
 const CHECKOUT_RETURN_PATHS: Record<
   CheckoutSession["unlockedStep"],
@@ -46,6 +54,32 @@ const CHECKOUT_RETURN_PATHS: Record<
   payment: "/checkout/payment",
   confirm: "/checkout/confirm",
 };
+
+function nativePaymentMethodLabel(code: string): string {
+  return code === "TEST-SUCCESS" ? "成功" : code.replace("TEST-", "失敗：");
+}
+
+function nativeAuthErrorMessage(caught: unknown): string {
+  if (!(caught instanceof ApplicationError)) return "予期しないエラーが発生しました。";
+  switch (caught.code) {
+    case "AUTHENTICATION_FAILED":
+      return "メールアドレスまたはパスワードが正しくありません。";
+    case "ACCOUNT_SUSPENDED":
+      return "このアカウントは利用停止中です。管理者へ確認してください。";
+    case "ACCOUNT_WITHDRAWN":
+      return "このアカウントは退会済みです。";
+    case "EMAIL_ALREADY_EXISTS":
+      return "このメールアドレスはすでに登録されています。";
+    case "STORAGE_WRITE_FAILED":
+      return "端末へログイン状態を保存できませんでした。設定を確認してください。";
+    case "STORAGE_READ_FAILED":
+      return "端末からログイン状態を読み込めませんでした。設定を確認してください。";
+    case "LOGIN_TRANSACTION_FAILED":
+      return "ログイン処理を完了できませんでした。カートは変更されていません。";
+    default:
+      return "処理を完了できませんでした。";
+  }
+}
 
 function usePurchaseServices() {
   const { ready, error, retry, services } = useNativeRuntime();
@@ -80,6 +114,8 @@ function PurchaseTextInput({
   testID,
   secureTextEntry = false,
   maxLength,
+  onFocus,
+  onBlur,
 }: {
   value: string;
   onChangeText: (value: string) => void;
@@ -87,12 +123,16 @@ function PurchaseTextInput({
   testID: string;
   secureTextEntry?: boolean;
   maxLength?: number;
+  onFocus?: TextInputProps["onFocus"];
+  onBlur?: TextInputProps["onBlur"];
 }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
       maxLength={maxLength}
       onChangeText={onChangeText}
+      onBlur={onBlur}
+      onFocus={onFocus}
       placeholder={placeholder}
       placeholderTextColor={nativeColors.muted}
       secureTextEntry={secureTextEntry}
@@ -115,7 +155,19 @@ function ErrorMessage({ message }: { message: string | null }) {
   );
 }
 
-function PurchaseKeyboardScrollView({ children, testID }: { children: ReactNode; testID: string }) {
+function PurchaseKeyboardScrollView({
+  children,
+  testID,
+  scrollViewRef,
+  onKeyboardDidShow,
+}: {
+  children: ReactNode;
+  testID: string;
+  scrollViewRef?: RefObject<ScrollView | null>;
+  onKeyboardDidShow?: PurchaseScrollViewProps["onKeyboardDidShow"];
+}) {
+  const scrollViewProps: PurchaseScrollViewProps =
+    onKeyboardDidShow === undefined ? {} : { onKeyboardDidShow };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -123,8 +175,10 @@ function PurchaseKeyboardScrollView({ children, testID }: { children: ReactNode;
       testID={`${testID}-keyboard`}
     >
       <ScrollView
+        {...scrollViewProps}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
+        ref={scrollViewRef}
         testID={testID}
       >
         {children}
@@ -183,7 +237,7 @@ export function NativeLoginScreen() {
         });
         return router.replace(destination);
       })
-      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .catch((caught: unknown) => setMessage(nativeAuthErrorMessage(caught)))
       .finally(() => setBusy(false));
   };
   return (
@@ -247,7 +301,7 @@ export function NativeSignupScreen() {
     void services.auth
       .register({ email, password, displayName })
       .then(() => router.replace("/account/profile"))
-      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .catch((caught: unknown) => setMessage(nativeAuthErrorMessage(caught)))
       .finally(() => setBusy(false));
   };
   return (
@@ -353,6 +407,27 @@ export function NativeProfileScreen() {
     <PurchaseKeyboardScrollView testID="native-profile-screen">
       <Text style={styles.heading}>アカウント</Text>
       <Text style={styles.body}>{profile.email}</Text>
+      <View
+        style={{ gap: nativeSpacing.xs, marginTop: nativeSpacing.md }}
+        testID="native-profile-benefits"
+      >
+        <Text style={styles.subheading}>会員ランクと特典</Text>
+        <Text style={styles.body} testID="native-profile-account-status">
+          アカウント状態：{labels.account(profile.accountStatus)}
+        </Text>
+        <Text style={styles.body} testID="native-profile-membership-rank">
+          会員ランク：{profile.membershipRank === null ? "—" : labels.rank(profile.membershipRank)}
+        </Text>
+        <Text style={styles.body} testID="native-profile-discount">
+          会員割引：{Math.round(membershipDiscountRate(profile.membershipRank) * 100)}%
+        </Text>
+        <Text style={styles.body} testID="native-profile-shipping-benefit">
+          送料特典：
+          {profile.membershipRank === "platinum"
+            ? "いつでも送料無料"
+            : `商品小計${FREE_SHIPPING_THRESHOLD.toLocaleString("ja-JP")}円以上で送料無料`}
+        </Text>
+      </View>
       <View style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}>
         <PurchaseTextInput
           value={displayName}
@@ -661,11 +736,15 @@ export function NativeAddressesScreen() {
 function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
   const { ready, error, retry, services } = usePurchaseServices();
   const [session, setSession] = useState<CheckoutSession | null>(null);
-  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | null>(null);
+  const [sessionOrigin, setSessionOrigin] = useState<"started" | "resumed" | "replaced" | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
+  const [recoveryAction, setRecoveryAction] = useState<"address" | "cart" | null>(null);
   const load = useCallback(() => {
     if (services === null) return;
     setMessage(null);
+    setRecoveryAction(null);
     void services.checkout
       .getActive(requiredStep)
       .then((active) => {
@@ -680,7 +759,24 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
           });
           return;
         }
-        if (requiredStep !== "address") {
+        if (requiredStep === "payment" && caught instanceof ApplicationError) {
+          if (caught.code === "CHECKOUT_STEP_INCOMPLETE") {
+            setMessage(asPurchaseError(caught).message);
+            setRecoveryAction("address");
+            return;
+          }
+          if (caught.code === "CART_VERSION_CHANGED") {
+            setMessage(asPurchaseError(caught).message);
+            setRecoveryAction("cart");
+            return;
+          }
+        }
+        const recoverableCheckoutError =
+          caught instanceof ApplicationError &&
+          (caught.code === "CHECKOUT_STEP_INCOMPLETE" ||
+            caught.code === "CART_VERSION_CHANGED" ||
+            caught.code === "CHECKOUT_EXPIRED");
+        if (requiredStep !== "address" || !recoverableCheckoutError) {
           setMessage(asPurchaseError(caught).message);
           return;
         }
@@ -688,7 +784,7 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
           const cart = await services.cart.getCart();
           const started = await services.checkout.start({ cartVersion: cart.cartVersion });
           setSession(started.session);
-          setSessionOrigin(started.result === "resumed" ? "resumed" : "started");
+          setSessionOrigin(started.result === "created" ? "started" : started.result);
         } catch (startError) {
           setMessage(asPurchaseError(startError).message);
         }
@@ -705,12 +801,16 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
     setSession,
     message,
     setMessage,
+    recoveryAction,
     reload: load,
   };
 }
 
 export function NativeCheckoutAddressScreen() {
   const state = useCheckoutSession("address");
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const focusedAddressLine2Target = useRef<number | null>(null);
+  const addressLine2KeyboardFrame = useRef<number | null>(null);
   const [address, setAddress] = useState<ShippingAddressSnapshot>(emptyAddress);
   const [savedAddresses, setSavedAddresses] = useState<
     Awaited<ReturnType<NonNullable<typeof state.services>["account"]["listAddresses"]>>
@@ -718,6 +818,38 @@ export function NativeCheckoutAddressScreen() {
   const [busy, setBusy] = useState(false);
   const services = state.services;
   const setMessage = state.setMessage;
+  const scrollAddressLine2ToKeyboard = useCallback((target: number) => {
+    const scrollView = scrollViewRef.current;
+    scrollView?.getNativeScrollRef()?.measureInWindow((_x, scrollViewWindowY) => {
+      if (focusedAddressLine2Target.current !== target) return;
+      scrollViewRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        target,
+        scrollViewWindowY + nativeSpacing.md,
+        true,
+      );
+    });
+  }, []);
+  const handleKeyboardDidShow = useCallback(
+    (_event: KeyboardEvent) => {
+      const target = focusedAddressLine2Target.current;
+      if (target === null) return;
+      if (addressLine2KeyboardFrame.current !== null)
+        cancelAnimationFrame(addressLine2KeyboardFrame.current);
+      addressLine2KeyboardFrame.current = requestAnimationFrame(() => {
+        addressLine2KeyboardFrame.current = null;
+        if (focusedAddressLine2Target.current !== target) return;
+        scrollAddressLine2ToKeyboard(target);
+      });
+    },
+    [scrollAddressLine2ToKeyboard],
+  );
+  useEffect(() => {
+    return () => {
+      focusedAddressLine2Target.current = null;
+      if (addressLine2KeyboardFrame.current !== null)
+        cancelAnimationFrame(addressLine2KeyboardFrame.current);
+    };
+  }, []);
   useEffect(() => {
     if (state.session?.addressSnapshot !== null && state.session?.addressSnapshot !== undefined)
       setAddress(state.session.addressSnapshot);
@@ -751,7 +883,11 @@ export function NativeCheckoutAddressScreen() {
       .finally(() => setBusy(false));
   };
   return (
-    <PurchaseKeyboardScrollView testID="native-checkout-address-screen">
+    <PurchaseKeyboardScrollView
+      onKeyboardDidShow={handleKeyboardDidShow}
+      scrollViewRef={scrollViewRef}
+      testID="native-checkout-address-screen"
+    >
       <Text style={styles.heading}>Checkout：配送先</Text>
       <Text style={styles.body}>Step 1 / 3</Text>
       {state.sessionOrigin === "started" && (
@@ -762,6 +898,11 @@ export function NativeCheckoutAddressScreen() {
       {state.sessionOrigin === "resumed" && (
         <Text style={styles.productMeta} testID="native-checkout-session-resumed">
           Checkoutを再開しました
+        </Text>
+      )}
+      {state.sessionOrigin === "replaced" && (
+        <Text style={styles.productMeta} testID="native-checkout-session-replaced">
+          カートの更新により、購入手続きを最新の内容へ置き換えました。
         </Text>
       )}
       {savedAddresses.length > 0 && (
@@ -832,6 +973,23 @@ export function NativeCheckoutAddressScreen() {
           testID="native-checkout-line1"
         />
         <PurchaseTextInput
+          value={address.addressLine2 ?? ""}
+          onChangeText={(value) => setAddress({ ...address, addressLine2: value || null })}
+          onBlur={() => {
+            focusedAddressLine2Target.current = null;
+          }}
+          onFocus={(event) => {
+            const target = event.nativeEvent.target;
+            focusedAddressLine2Target.current = target;
+            const keyboardMetrics = Keyboard.metrics();
+            if (keyboardMetrics !== undefined && keyboardMetrics !== null)
+              scrollAddressLine2ToKeyboard(target);
+          }}
+          placeholder="建物名・部屋番号（任意）"
+          maxLength={INPUT_LIMITS.addressLine2}
+          testID="native-checkout-line2"
+        />
+        <PurchaseTextInput
           value={address.phone}
           onChangeText={(value) => setAddress({ ...address, phone: value })}
           placeholder="電話番号"
@@ -851,13 +1009,14 @@ export function NativeCheckoutAddressScreen() {
 
 export function NativeCheckoutPaymentScreen() {
   const state = useCheckoutSession("payment");
-  const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]>("TEST-SUCCESS");
+  const [methodOverride, setMethod] = useState<(typeof PAYMENT_METHODS)[number] | null>(null);
   const [busy, setBusy] = useState(false);
   if (!state.ready || state.services === null)
     return (
       <RuntimePanel title="支払いを初期化できません" error={state.error} retry={state.retry} />
     );
   const services = state.services;
+  const method = methodOverride ?? state.session?.paymentMethodCode ?? "TEST-SUCCESS";
   const submit = () => {
     if (state.session === null) return;
     setBusy(true);
@@ -886,7 +1045,7 @@ export function NativeCheckoutPaymentScreen() {
         {PAYMENT_METHODS.map((candidate) => (
           <NativeButton
             key={candidate}
-            label={candidate === "TEST-SUCCESS" ? "成功" : candidate.replace("TEST-", "失敗：")}
+            label={nativePaymentMethodLabel(candidate)}
             variant={method === candidate ? "primary" : "secondary"}
             onPress={() => setMethod(candidate)}
             testID={`native-payment-method-${candidate}`}
@@ -899,6 +1058,22 @@ export function NativeCheckoutPaymentScreen() {
           testID="native-checkout-payment-next"
         />
       </View>
+      {state.recoveryAction === "address" && (
+        <NativeButton
+          label="配送先からやり直す"
+          variant="secondary"
+          onPress={() => router.replace("/checkout/address")}
+          testID="native-checkout-payment-recover-address"
+        />
+      )}
+      {state.recoveryAction === "cart" && (
+        <NativeButton
+          label="カートを確認する"
+          variant="secondary"
+          onPress={() => router.replace("/cart")}
+          testID="native-checkout-payment-review-cart"
+        />
+      )}
       <ErrorMessage message={state.message} />
     </ScrollView>
   );
@@ -913,12 +1088,21 @@ export function NativeCheckoutConfirmScreen() {
   const services = state.services;
   const setMessage = state.setMessage;
   useEffect(() => {
-    if (services !== null)
-      void services.checkout
-        .getConfirmation()
-        .then(setConfirmation)
-        .catch((caught: unknown) => setMessage(asPurchaseError(caught).message));
-  }, [services, setMessage]);
+    if (services === null || state.session === null) return;
+    let cancelled = false;
+    setConfirmation(null);
+    void services.checkout
+      .getConfirmation(state.session.id)
+      .then((result) => {
+        if (!cancelled) setConfirmation(result);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setMessage(asPurchaseError(caught).message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [services, state.session, setMessage]);
   if (!state.ready || services === null)
     return <RuntimePanel title="確認を初期化できません" error={state.error} retry={state.retry} />;
   const submit = () => {
@@ -936,7 +1120,27 @@ export function NativeCheckoutConfirmScreen() {
       .catch((caught: unknown) => state.setMessage(asPurchaseError(caught).message))
       .finally(() => setBusy(false));
   };
-  if (confirmation === null) return <NativeStatePanel title="注文内容を読み込み中…" />;
+  if (confirmation === null) {
+    if (state.message !== null) {
+      return (
+        <NativeStatePanel
+          title="注文内容を確認できません"
+          body={state.message}
+          action={
+            <View style={{ gap: nativeSpacing.sm }}>
+              <NativeButton label="カートを確認する" onPress={() => router.replace("/cart")} />
+              <NativeButton
+                label="配送先からやり直す"
+                variant="secondary"
+                onPress={() => router.replace("/checkout/address")}
+              />
+            </View>
+          }
+        />
+      );
+    }
+    return <NativeStatePanel title="注文内容を読み込み中…" />;
+  }
   return (
     <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-confirm-screen">
       <Text style={styles.heading}>Checkout：確認</Text>
@@ -947,15 +1151,30 @@ export function NativeCheckoutConfirmScreen() {
             <View key={item.variantId} style={{ marginBottom: nativeSpacing.sm }}>
               <Text style={styles.productName}>{item.productName}</Text>
               <Text style={styles.body}>
-                {item.quantity}点　{formatNativeYen(item.lineTotalAmount)}
+                {item.optionValue ?? "単一SKU"}・{item.quantity}点　
+                {formatNativeYen(item.lineTotalAmount)}
               </Text>
             </View>
           ))}
+          <Text style={styles.body}>配送先：{confirmation.address.recipientName} 様</Text>
           <Text style={styles.body}>
-            配送先：{confirmation.address.prefecture}
+            〒{confirmation.address.postalCode} {confirmation.address.prefecture}
             {confirmation.address.city}
+          </Text>
+          <Text style={styles.body} testID="native-checkout-confirm-address-line1">
             {confirmation.address.addressLine1}
           </Text>
+          {confirmation.address.addressLine2 !== null && (
+            <Text style={styles.body} testID="native-checkout-confirm-address-line2">
+              {confirmation.address.addressLine2}
+            </Text>
+          )}
+          <Text style={styles.body}>
+            支払方法：{nativePaymentMethodLabel(confirmation.paymentMethodCode)}
+          </Text>
+          <Text style={styles.body}>商品小計：{formatNativeYen(confirmation.subtotalAmount)}</Text>
+          <Text style={styles.body}>会員割引：-{formatNativeYen(confirmation.discountAmount)}</Text>
+          <Text style={styles.body}>送料：{formatNativeYen(confirmation.shippingAmount)}</Text>
           <Text style={[styles.price, { marginTop: nativeSpacing.sm }]}>
             合計 {formatNativeYen(confirmation.totalAmount)}
           </Text>
@@ -968,6 +1187,14 @@ export function NativeCheckoutConfirmScreen() {
         testID="native-checkout-confirm-submit"
       />
       <ErrorMessage message={state.message} />
+      {state.message !== null && (
+        <NativeButton
+          label="カートを確認する"
+          variant="secondary"
+          onPress={() => router.replace("/cart")}
+          testID="native-checkout-confirm-review-cart"
+        />
+      )}
     </ScrollView>
   );
 }
@@ -1063,7 +1290,7 @@ function NativeCheckoutResultScreen() {
         <Text style={styles.heading}>注文完了</Text>
         <Text style={styles.body}>ご注文を受け付けました。</Text>
         <Text style={styles.body} testID="native-complete-order-id">
-          注文ID：{order.orderId}
+          注文番号：{order.orderNumber}
         </Text>
         <NativeButton
           label="注文一覧を見る"
@@ -1455,5 +1682,59 @@ export function NativeReviewScreen() {
 }
 
 function asPurchaseError(caught: unknown): Error {
-  return caught instanceof Error ? caught : new Error(String(caught));
+  if (!(caught instanceof ApplicationError)) {
+    return new Error("予期しないエラーが発生しました。問題が続く場合は、もう一度お試しください。");
+  }
+  switch (caught.code) {
+    case "AUTHENTICATION_REQUIRED":
+      return new Error("ログインしてください。");
+    case "ACCOUNT_SUSPENDED":
+      return new Error("このアカウントは利用停止中です。管理者へ確認してください。");
+    case "ACCOUNT_WITHDRAWN":
+      return new Error("このアカウントは退会済みです。");
+    case "PERMISSION_DENIED":
+      return new Error("この操作を行う権限がありません。");
+    case "VALIDATION":
+      return new Error(
+        Object.keys(caught.fieldErrors ?? {}).some((field) =>
+          [
+            "recipientName",
+            "postalCode",
+            "prefecture",
+            "city",
+            "addressLine1",
+            "addressLine2",
+            "phone",
+          ].includes(field),
+        )
+          ? "配送先の入力内容を確認してください。"
+          : "入力内容を確認してください。",
+      );
+    case "CHECKOUT_STEP_INCOMPLETE":
+      return new Error(
+        caught.messageKey === "checkout.address.required"
+          ? "先に配送先を保存してください。"
+          : "購入手続きの前のステップを完了してください。",
+      );
+    case "CART_VERSION_CHANGED":
+      return new Error("カートの内容が更新されました。カートを確認してください。");
+    case "PRICE_CHANGED":
+      return new Error("商品の価格が変更されました。カートで内容を確認してください。");
+    case "INSUFFICIENT_STOCK":
+      return new Error("在庫が不足しています。カートで数量を確認してください。");
+    case "QUANTITY_LIMIT_EXCEEDED":
+      return new Error("購入数量が上限を超えています。カートで数量を確認してください。");
+    case "INVALID_STATE":
+      return new Error("カートの内容を確認して、購入手続きをやり直してください。");
+    case "CHECKOUT_EXPIRED":
+      return new Error("購入手続きの有効期限が切れました。配送先からやり直してください。");
+    case "STORAGE_READ_FAILED":
+      return new Error("端末から保存データを読み込めませんでした。設定を確認してください。");
+    case "STORAGE_WRITE_FAILED":
+      return new Error("端末へ保存できませんでした。設定を確認してください。");
+    case "CONFLICT":
+      return new Error("ほかの操作で情報が更新されました。画面を再読み込みしてください。");
+    default:
+      return new Error("処理を完了できませんでした。入力内容や接続を確認してください。");
+  }
 }

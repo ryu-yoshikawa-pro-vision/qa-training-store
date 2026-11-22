@@ -82,6 +82,76 @@ appId: com.ryuyoshikawa.scenarioshop
     visible:
       id: "native-checkout-address-screen"
     timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-session-ready"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-checkout-line2"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-checkout-line2"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: native-purchase-address-line2-focused-keyboard
+- inputText: "青山ビル101"
+- assertVisible:
+    id: "native-checkout-line2"
+    text: "青山ビル101"
+- tapOn:
+    id: "native-checkout-line2"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: native-purchase-address-line2-keyboard
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "native-checkout-address-next"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-checkout-address-next"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-payment-screen"
+    timeout: 30000
+- back
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-screen"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-session-ready"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-checkout-line2"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- assertVisible:
+    id: "native-checkout-line2"
+    text: "青山ビル101"
+- takeScreenshot: native-purchase-address-line2-returned
+- scrollUntilVisible:
+    element:
+      id: "native-checkout-address-next"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
 - tapOn:
     id: "native-checkout-address-next"
 - extendedWaitUntil:
@@ -96,6 +166,13 @@ appId: com.ryuyoshikawa.scenarioshop
     visible:
       id: "native-checkout-confirm-screen"
     timeout: 30000
+- assertVisible:
+    id: "native-checkout-confirm-address-line1"
+    text: "1-1"
+- assertVisible:
+    id: "native-checkout-confirm-address-line2"
+    text: "青山ビル101"
+- takeScreenshot: native-purchase-address-line2-confirmation
 - tapOn:
     id: "native-checkout-confirm-submit"
 - extendedWaitUntil:
