@@ -189,8 +189,14 @@ test.describe("Phase 1 required E2E", () => {
     await scenario("cart-version-invalidates-checkout");
     await page.goto("/checkout/confirm");
     await expect(
-      page.getByText("カートまたは前のステップが更新されました。内容を確認してください。"),
+      page.getByText(
+        "カートの内容または価格が変更されています。カートを確認して購入手続きをやり直してください。",
+      ),
     ).toBeVisible();
+    await expect(page.getByRole("link", { name: "戻って確認する" })).toHaveAttribute(
+      "href",
+      "/cart",
+    );
   });
 
   test("07 Order一覧・詳細・処理中Route再読込", async ({ page, scenario }) => {
@@ -420,5 +426,54 @@ test.describe("Phase 1 required E2E", () => {
     await expectSessionIdCleared(page);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("15 未知URLから安全なホームへ戻り、Guest/Session pointerを維持する", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("regular-member");
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: "決定的なシナリオで、確かなテストを。" }),
+    ).toBeVisible();
+    const before = await page.evaluate(() => ({
+      guestId: localStorage.getItem("scenario-shop.guest-id"),
+      sessionId: localStorage.getItem("scenario-shop.session-id"),
+    }));
+    expect(before.guestId).toBe("guest-default-001");
+    expect(before.sessionId).not.toBeNull();
+
+    await page.goto("/__ai_qa_missing_route__");
+    await expect(page.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
+    const homeLink = page.getByRole("link", { name: "ホームへ戻る" });
+    await expect(homeLink).toHaveAttribute("href", "/");
+    await homeLink.click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("heading", { name: "決定的なシナリオで、確かなテストを。" }),
+    ).toBeVisible();
+    const after = await page.evaluate(() => ({
+      guestId: localStorage.getItem("scenario-shop.guest-id"),
+      sessionId: localStorage.getItem("scenario-shop.session-id"),
+    }));
+    expect(after.guestId).toBe(before.guestId);
+    expect(after.sessionId).toBe(before.sessionId);
+  });
+
+  test("16 未検出の深いURLをアプリ境界で表示し、既知の拒否画面と区別する", async ({ page }) => {
+    await page.goto("/__ai_qa_missing_route__/nested");
+    await expect(page.locator("section.state-panel--not-found")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
+    await expect(page.getByText("URLが正しいか確認するか、ホームへ戻ってください。")).toBeVisible();
+    await expect(page.locator("section.state-panel--forbidden")).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.locator("section.state-panel--not-found")).toBeVisible();
+
+    await page.goto("/forbidden");
+    await expect(page.locator("section.state-panel--forbidden")).toBeVisible();
+    await expect(page.locator("section.state-panel--not-found")).toHaveCount(0);
   });
 });

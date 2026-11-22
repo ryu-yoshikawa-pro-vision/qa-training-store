@@ -151,6 +151,14 @@ function nativeNotFound(messageKey: string): ApplicationError {
   return new ApplicationError({ code: "NOT_FOUND", messageKey, retryable: false });
 }
 
+function nativeCheckoutCartChanged(): ApplicationError {
+  return new ApplicationError({
+    code: "CART_VERSION_CHANGED",
+    messageKey: "checkout.cart.changed",
+    retryable: false,
+  });
+}
+
 function nativeUnsupported(): ApplicationError {
   return new ApplicationError({
     code: "PERMISSION_DENIED",
@@ -1393,6 +1401,17 @@ class NativeCartRepository implements CartRepository {
         const variant = await new NativeInventoryRepository(context).getVariant(item.variantId);
         if (variant === null) throw nativeNotFound("errors.variant.notFound");
         await repository.assertPurchasable(cart, variant);
+        if (
+          !Number.isInteger(item.quantity) ||
+          item.quantity < 1 ||
+          item.quantity > maximumCartQuantity(variant)
+        ) {
+          throw new ApplicationError({
+            code: "QUANTITY_LIMIT_EXCEEDED",
+            messageKey: "cart.quantity.limit",
+            retryable: false,
+          });
+        }
         const updated = {
           ...item,
           unitEffectivePriceAtAdd: effectiveUnitPrice(variant, input.now),
@@ -1602,6 +1621,10 @@ class NativeCartRepository implements CartRepository {
       if (!variant.isActive) issues.push("INACTIVE");
       if (variant.stockQuantity === 0) issues.push("OUT_OF_STOCK");
       else if (item.quantity > variant.stockQuantity) issues.push("INSUFFICIENT_STOCK");
+      const maximumQuantity = maximumCartQuantity(variant);
+      if (item.quantity > maximumQuantity && item.quantity <= variant.stockQuantity) {
+        issues.push("QUANTITY_LIMIT_EXCEEDED");
+      }
       if (item.unitEffectivePriceAtAdd !== currentPrice) issues.push("PRICE_CHANGED");
       const imageSnapshot = assetSnapshot(
         image?.asset_id ?? null,
@@ -1618,7 +1641,7 @@ class NativeCartRepository implements CartRepository {
         optionValue: variant.optionValue,
         image: imageSnapshot,
         quantity: item.quantity,
-        maximumQuantity: maximumCartQuantity(variant),
+        maximumQuantity,
         unitEffectivePriceAtAdd: item.unitEffectivePriceAtAdd,
         currentUnitEffectivePrice: currentPrice,
         currentViewerUnitPrice: lineTotals.lines[0]?.viewerUnitPrice ?? currentPrice,
@@ -1780,6 +1803,8 @@ class NativeCheckoutSessionRepository implements CheckoutSessionRepository {
           retryable: false,
         });
       assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      const cart = await new NativeCartRepository(context).getById(current.cartId);
+      if (cart === null || cart.version !== current.cartVersion) throw nativeCheckoutCartChanged();
       const updated = {
         ...current,
         addressSnapshot: command.address,
@@ -1817,6 +1842,8 @@ class NativeCheckoutSessionRepository implements CheckoutSessionRepository {
           retryable: false,
         });
       assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      const cart = await new NativeCartRepository(context).getById(current.cartId);
+      if (cart === null || cart.version !== current.cartVersion) throw nativeCheckoutCartChanged();
       const updated = {
         ...current,
         paymentMethodCode: command.paymentMethodCode,
@@ -1904,7 +1931,9 @@ class NativeCheckoutSessionRepository implements CheckoutSessionRepository {
           ? "PRICE_CHANGED"
           : cartDto.blockingIssues.includes("INSUFFICIENT_STOCK")
             ? "INSUFFICIENT_STOCK"
-            : "INVALID_STATE",
+            : cartDto.blockingIssues.includes("QUANTITY_LIMIT_EXCEEDED")
+              ? "QUANTITY_LIMIT_EXCEEDED"
+              : "INVALID_STATE",
         messageKey: "checkout.cart.invalid",
         retryable: false,
       });

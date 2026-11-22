@@ -1,6 +1,7 @@
 import Dexie from "dexie";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import { AdminMasterUseCases } from "@/application/use-cases/admin-master-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
@@ -108,6 +109,23 @@ describe("admin overview and master application integration", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
+  it("lists and reorders all categories when more than 50 exist", async () => {
+    for (let index = 0; index < 47; index += 1) {
+      await useCases.createCategory({ name: `追加カテゴリ${index}` });
+    }
+    const all = await useCases.listAllCategoriesForReorder();
+    expect(all).toHaveLength(51);
+    const reversed = [...all].reverse();
+    const updated = await useCases.reorderCategories({
+      orderedIds: reversed.map((item) => item.categoryId),
+      expectedVersions: Object.fromEntries(reversed.map((item) => [item.categoryId, item.version])),
+    });
+    expect(updated).toHaveLength(51);
+    expect((await useCases.listAllCategoriesForReorder()).map((item) => item.categoryId)).toEqual(
+      reversed.map((item) => item.categoryId),
+    );
+  });
+
   it("blocks deactivation referenced by a published product without changing the category", async () => {
     const category = (await useCases.searchCategories()).items.find(
       (item) => item.publishedProductCount > 0,
@@ -175,5 +193,86 @@ describe("admin overview and master application integration", () => {
         expectedVersion: unused.version,
       }),
     ).toMatchObject({ isActive: false });
+  });
+
+  it.each([
+    "category-create",
+    "category-update",
+    "category-reorder",
+    "category-disable",
+    "brand-create",
+    "brand-update",
+    "brand-disable",
+  ] as const)("rejects %s after Session revocation without master data changes", async (action) => {
+    const original = new DexieApplicationTransactionRunner(database);
+    const transactionRunner: ApplicationTransactionRunner = {
+      async run(scope, work) {
+        if (
+          scope === "admin-category-write" ||
+          scope === "admin-brand-write" ||
+          scope === "change-category-active-state" ||
+          scope === "change-brand-active-state"
+        ) {
+          await database.sessions.delete("operator-session");
+        }
+        return original.run(scope, work);
+      },
+    };
+    const restricted = new AdminMasterUseCases({
+      ...createDexieApplicationRepositories(database),
+      transactionRunner,
+      currentSessionStore: new SessionStore("operator-session"),
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new Ids(),
+    });
+    const category = (await database.categories.get("category-home"))!;
+    const brand = (await database.brands.get("brand-scenario-basics"))!;
+    const ordered = await useCases.listAllCategoriesForReorder();
+    const categoriesBefore = await database.categories.toArray();
+    const brandsBefore = await database.brands.toArray();
+    const productsBefore = await database.products.toArray();
+    const operation = (() => {
+      switch (action) {
+        case "category-create":
+          return restricted.createCategory({ name: "権限失効後の作成" });
+        case "category-update":
+          return restricted.updateCategory({
+            categoryId: category.id,
+            name: "権限失効後の更新",
+            expectedVersion: category.version,
+          });
+        case "category-reorder":
+          return restricted.reorderCategories({
+            orderedIds: [...ordered].reverse().map((item) => item.categoryId),
+            expectedVersions: Object.fromEntries(
+              ordered.map((item) => [item.categoryId, item.version]),
+            ),
+          });
+        case "category-disable":
+          return restricted.changeCategoryActiveState({
+            categoryId: category.id,
+            targetIsActive: false,
+            expectedVersion: category.version,
+          });
+        case "brand-create":
+          return restricted.createBrand({ name: "権限失効後の作成" });
+        case "brand-update":
+          return restricted.updateBrand({
+            brandId: brand.id,
+            name: "権限失効後の更新",
+            expectedVersion: brand.version,
+          });
+        case "brand-disable":
+          return restricted.changeBrandActiveState({
+            brandId: brand.id,
+            targetIsActive: false,
+            expectedVersion: brand.version,
+          });
+      }
+    })();
+    await expect(operation).rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+    expect(await database.categories.toArray()).toEqual(categoriesBefore);
+    expect(await database.brands.toArray()).toEqual(brandsBefore);
+    expect(await database.products.toArray()).toEqual(productsBefore);
   });
 });

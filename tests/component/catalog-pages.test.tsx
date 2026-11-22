@@ -357,4 +357,15 @@ describe("storefront catalog pages", () => {
     expect(screen.queryByText(/送料無料/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "カートに追加" })).toBeDisabled();
   });
+
+  it("shows both remaining stock and the purchase limit for a low-stock variant", () => {
+    const lowStock = detail(1);
+    lowStock.variants[0]!.stockQuantity = 3;
+    lowStock.variants[0]!.purchaseLimit = 5;
+
+    render(<ProductDetailView product={lowStock} />);
+
+    expect(screen.getByText("残り3点", { exact: true })).toBeVisible();
+    expect(screen.getByText("1回の購入上限は5点です。", { exact: true })).toBeVisible();
+  });
 });

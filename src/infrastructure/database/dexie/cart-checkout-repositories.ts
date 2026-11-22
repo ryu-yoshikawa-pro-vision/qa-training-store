@@ -289,6 +289,17 @@ export class DexieCartRepository implements CartRepository {
       );
       const variant = fromVariantRecord(variantRecord);
       await this.assertPurchasableForCart(cart, variant);
+      if (
+        !Number.isInteger(item.quantity) ||
+        item.quantity < 1 ||
+        item.quantity > maximumCartQuantity(variant)
+      ) {
+        throw new ApplicationError({
+          code: "QUANTITY_LIMIT_EXCEEDED",
+          messageKey: "cart.quantity.limit",
+          retryable: false,
+        });
+      }
       updatedItems.push({
         ...item,
         unitEffectivePriceAtAdd: effectiveUnitPrice(variant, input.now),
@@ -482,6 +493,10 @@ export class DexieCartRepository implements CartRepository {
       if (!variant.isActive) issues.push("INACTIVE");
       if (variant.stockQuantity === 0) issues.push("OUT_OF_STOCK");
       else if (item.quantity > variant.stockQuantity) issues.push("INSUFFICIENT_STOCK");
+      const maximumQuantity = maximumCartQuantity(variant);
+      if (item.quantity > maximumQuantity && item.quantity <= variant.stockQuantity) {
+        issues.push("QUANTITY_LIMIT_EXCEEDED");
+      }
       if (item.unitEffectivePriceAtAdd !== currentPrice) issues.push("PRICE_CHANGED");
       lines.push({
         itemId: item.id,
@@ -497,7 +512,7 @@ export class DexieCartRepository implements CartRepository {
           altText: image?.altText ?? `${product.name}の画像`,
         },
         quantity: item.quantity,
-        maximumQuantity: maximumCartQuantity(variant),
+        maximumQuantity,
         unitEffectivePriceAtAdd: item.unitEffectivePriceAtAdd,
         currentUnitEffectivePrice: currentPrice,
         currentViewerUnitPrice: totals.lines[0]?.viewerUnitPrice ?? currentPrice,
@@ -658,55 +673,72 @@ export class DexieCheckoutSessionRepository implements CheckoutSessionRepository
   }
 
   async setAddress(command: SetCheckoutAddressCommand): Promise<CheckoutSession> {
-    const current = requireEntity(
-      await this.db.checkout_sessions.get(command.checkoutSessionId),
-      "errors.checkout.notFound",
-    );
-    if (current.userId !== command.userId || current.status !== "active") {
-      throw new ApplicationError({
-        code: "PERMISSION_DENIED",
-        messageKey: "errors.forbidden",
-        retryable: false,
-      });
-    }
-    assertExpectedVersion(current.version, command.checkoutExpectedVersion);
-    const updated = {
-      ...current,
-      addressSnapshot: command.address,
-      unlockedStep: "payment" as const,
-      updatedAt: command.now,
-      version: current.version + 1,
-    };
-    await this.db.checkout_sessions.put(updated);
-    return updated;
+    return this.db.transaction("rw", this.db.checkout_sessions, this.db.carts, async () => {
+      const current = requireEntity(
+        await this.db.checkout_sessions.get(command.checkoutSessionId),
+        "errors.checkout.notFound",
+      );
+      if (current.userId !== command.userId || current.status !== "active") {
+        throw new ApplicationError({
+          code: "PERMISSION_DENIED",
+          messageKey: "errors.forbidden",
+          retryable: false,
+        });
+      }
+      assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      await this.assertCurrentCartVersion(current);
+      const updated = {
+        ...current,
+        addressSnapshot: command.address,
+        unlockedStep: "payment" as const,
+        updatedAt: command.now,
+        version: current.version + 1,
+      };
+      await this.db.checkout_sessions.put(updated);
+      return updated;
+    });
   }
 
   async setPayment(command: SetCheckoutPaymentCommand): Promise<CheckoutSession> {
-    const current = requireEntity(
-      await this.db.checkout_sessions.get(command.checkoutSessionId),
-      "errors.checkout.notFound",
-    );
-    if (
-      current.userId !== command.userId ||
-      current.status !== "active" ||
-      current.addressSnapshot === null
-    ) {
+    return this.db.transaction("rw", this.db.checkout_sessions, this.db.carts, async () => {
+      const current = requireEntity(
+        await this.db.checkout_sessions.get(command.checkoutSessionId),
+        "errors.checkout.notFound",
+      );
+      if (
+        current.userId !== command.userId ||
+        current.status !== "active" ||
+        current.addressSnapshot === null
+      ) {
+        throw new ApplicationError({
+          code: "CHECKOUT_STEP_INCOMPLETE",
+          messageKey: "checkout.address.required",
+          retryable: false,
+        });
+      }
+      assertExpectedVersion(current.version, command.checkoutExpectedVersion);
+      await this.assertCurrentCartVersion(current);
+      const updated = {
+        ...current,
+        paymentMethodCode: command.paymentMethodCode,
+        unlockedStep: "confirm" as const,
+        updatedAt: command.now,
+        version: current.version + 1,
+      };
+      await this.db.checkout_sessions.put(updated);
+      return updated;
+    });
+  }
+
+  private async assertCurrentCartVersion(session: CheckoutSession): Promise<void> {
+    const cart = await this.db.carts.get(session.cartId);
+    if (cart === undefined || cart.version !== session.cartVersion) {
       throw new ApplicationError({
-        code: "CHECKOUT_STEP_INCOMPLETE",
-        messageKey: "checkout.address.required",
+        code: "CART_VERSION_CHANGED",
+        messageKey: "checkout.cart.changed",
         retryable: false,
       });
     }
-    assertExpectedVersion(current.version, command.checkoutExpectedVersion);
-    const updated = {
-      ...current,
-      paymentMethodCode: command.paymentMethodCode,
-      unlockedStep: "confirm" as const,
-      updatedAt: command.now,
-      version: current.version + 1,
-    };
-    await this.db.checkout_sessions.put(updated);
-    return updated;
   }
 
   async getConfirmation(
@@ -764,7 +796,9 @@ export class DexieCheckoutSessionRepository implements CheckoutSessionRepository
           ? "PRICE_CHANGED"
           : cartDto.blockingIssues.includes("INSUFFICIENT_STOCK")
             ? "INSUFFICIENT_STOCK"
-            : "INVALID_STATE",
+            : cartDto.blockingIssues.includes("QUANTITY_LIMIT_EXCEEDED")
+              ? "QUANTITY_LIMIT_EXCEEDED"
+              : "INVALID_STATE",
         messageKey: "checkout.cart.invalid",
         retryable: false,
       });

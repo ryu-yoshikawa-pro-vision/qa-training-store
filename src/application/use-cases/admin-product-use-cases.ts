@@ -19,7 +19,10 @@ import type {
   UpdateProductRequest,
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
-import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import {
+  assertActorStillAuthorized,
+  SessionIdentityResolver,
+} from "@/application/identity/session-identity-resolver";
 import type {
   Clock,
   CurrentSessionStore,
@@ -126,12 +129,14 @@ export class AdminProductUseCases {
 
   async create(request: CreateProductRequest): Promise<ProductEditDto> {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     this.validateMinimum(request);
     await this.validateImages(request.images, new Set());
     const result = await this.dependencies.transactionRunner.run(
       "create-product-aggregate",
-      ({ products }) =>
-        products.createAggregate({
+      async ({ products, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return products.createAggregate({
           productId: this.dependencies.idGenerator.generate(),
           product: normalizedProduct(request.product),
           variants: request.variants.map((variant) => ({
@@ -147,7 +152,8 @@ export class AdminProductUseCases {
           })),
           actorUserId: actor.id,
           now,
-        }),
+        });
+      },
     );
     const dto = await this.query.getEditDto({ productId: result.product.id, now });
     if (dto === null) throw this.notFound();
@@ -160,6 +166,7 @@ export class AdminProductUseCases {
       this.now(),
       this.products.getAggregateForAdmin(request.productId),
     ]);
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
     if (current === null) throw this.notFound();
     this.validateMinimum({
       product: request.product,
@@ -177,46 +184,55 @@ export class AdminProductUseCases {
       request.images,
       new Set(current.images.map((image) => image.assetId)),
     );
-    await this.dependencies.transactionRunner.run("update-product-aggregate", ({ products }) =>
-      products.updateAggregate({
-        productId: request.productId,
-        productExpectedVersion: request.productExpectedVersion,
-        product: normalizedProduct(request.product),
-        createVariants: request.createVariants.map((variant) => ({
-          ...withoutClientKey(variant),
-          id: this.dependencies.idGenerator.generate(),
-        })),
-        updateVariants: request.updateVariants.map((variant) => ({
-          id: variant.variantId,
-          sku: normalizeProductIdentifier(variant.sku, "products.variant.invalid"),
-          optionValue: variant.optionValue?.trim() || null,
-          regularPrice: variant.regularPrice,
-          salePrice: variant.salePrice,
-          saleStartAt: variant.saleStartAt,
-          saleEndAt: variant.saleEndAt,
-          purchaseLimit: variant.purchaseLimit,
-          isActive: variant.isActive,
-          expectedVersion: variant.expectedVersion,
-        })),
-        removeVariantIds: request.removeVariantIds,
-        images: request.images.map((image, index) => ({
-          id: image.relationshipId ?? this.dependencies.idGenerator.generate(),
-          assetId: image.assetId,
-          altText: image.altText.trim(),
-          sortOrder: (index + 1) * 10,
-          isPrimary: image.isPrimary,
-        })),
-        actorUserId: actor.id,
-        now,
-      }),
+    await this.dependencies.transactionRunner.run(
+      "update-product-aggregate",
+      async ({ products, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return products.updateAggregate({
+          productId: request.productId,
+          productExpectedVersion: request.productExpectedVersion,
+          product: normalizedProduct(request.product),
+          createVariants: request.createVariants.map((variant) => ({
+            ...withoutClientKey(variant),
+            id: this.dependencies.idGenerator.generate(),
+          })),
+          updateVariants: request.updateVariants.map((variant) => ({
+            id: variant.variantId,
+            sku: normalizeProductIdentifier(variant.sku, "products.variant.invalid"),
+            optionValue: variant.optionValue?.trim() || null,
+            regularPrice: variant.regularPrice,
+            salePrice: variant.salePrice,
+            saleStartAt: variant.saleStartAt,
+            saleEndAt: variant.saleEndAt,
+            purchaseLimit: variant.purchaseLimit,
+            isActive: variant.isActive,
+            expectedVersion: variant.expectedVersion,
+          })),
+          removeVariantIds: request.removeVariantIds,
+          images: request.images.map((image, index) => ({
+            id: image.relationshipId ?? this.dependencies.idGenerator.generate(),
+            assetId: image.assetId,
+            altText: image.altText.trim(),
+            sortOrder: (index + 1) * 10,
+            isPrimary: image.isPrimary,
+          })),
+          actorUserId: actor.id,
+          now,
+        });
+      },
     );
     return this.getEdit(request.productId);
   }
 
   async changeStatus(request: ChangeProductStatusRequest) {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
-    return this.dependencies.transactionRunner.run("change-product-status", ({ products }) =>
-      products.changeStatus({ ...request, actorUserId: actor.id, now }),
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    return this.dependencies.transactionRunner.run(
+      "change-product-status",
+      async ({ products, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return products.changeStatus({ ...request, actorUserId: actor.id, now });
+      },
     );
   }
 
@@ -251,9 +267,14 @@ export class AdminProductUseCases {
   }
 
   async deleteDraft(productId: string, expectedVersion: number): Promise<void> {
-    await this.requireStaff();
-    await this.dependencies.transactionRunner.run("delete-draft-product", ({ products }) =>
-      products.deleteDraftAggregate(productId, expectedVersion),
+    const actor = await this.requireStaff();
+    const sessionId = await this.dependencies.currentSessionStore.getSessionId();
+    await this.dependencies.transactionRunner.run(
+      "delete-draft-product",
+      async ({ products, users, sessions }) => {
+        await assertActorStillAuthorized(actor, sessionId, "staff", users, sessions);
+        return products.deleteDraftAggregate(productId, expectedVersion);
+      },
     );
   }
 

@@ -118,6 +118,7 @@ export class AccountUseCases {
   }
 
   async suggestAddress(postalCode: string): Promise<AddressSuggestion | null> {
+    await this.requireCustomer();
     return this.dependencies.addressLookup.suggest(postalCode);
   }
 
@@ -145,7 +146,7 @@ export class AccountUseCases {
     if (recipientName.length === 0 || recipientName.length > INPUT_LIMITS.recipientName) {
       fieldErrors.recipientName = "validation.required";
     }
-    if (!/^\d{7}$/.test(request.postalCode.replace(/\D/g, ""))) {
+    if (!/^(?:\d{7}|\d{3}-\d{4})$/.test(request.postalCode)) {
       fieldErrors.postalCode = "validation.postalCode";
     }
     if (prefecture.length === 0 || prefecture.length > INPUT_LIMITS.prefecture) {
@@ -160,7 +161,10 @@ export class AccountUseCases {
     if (addressLine2.length > INPUT_LIMITS.addressLine2) {
       fieldErrors.addressLine2 = "validation.required";
     }
-    if (!/^\d{10,11}$/.test(request.phone.replace(/\D/g, ""))) {
+    if (
+      !/^(?:\d{10,11}|\d{2,4}-\d{1,4}-\d{3,4})$/.test(request.phone) ||
+      !/^\d{10,11}$/.test(request.phone.replace(/\D/g, ""))
+    ) {
       fieldErrors.phone = "validation.phone";
     }
     if (Object.keys(fieldErrors).length > 0) {
