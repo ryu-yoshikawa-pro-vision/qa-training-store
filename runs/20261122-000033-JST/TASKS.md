@@ -23,8 +23,8 @@
 - [x] 7. `wait_for_required_ci`で`79eadf9f`のWeb/Mobile CIを確認し、同Mobile runのAndroid Runtime/Maestro、Screen Catalog capture、Artifact uploadを確認する。
 - [x] 8. 同一runのraw PNG/manifest/APKを取得し、source SHA・run・case・canonical profile・APK SHA-256・画像デコードを検証してIME中/確認画面を目視する。
 - [x] 9. default canonicalを現仕様・同一profile raw imageと比較し、必要な場合だけ登録済みcaseの`promote`で更新する。capture後に一時workflow guardと一時contractを復元する。
-- [ ] 10. 最終コード/画像/文書に対してspec validation・visual final・spec build・format/security・verify・sanitizerを実行し、PR branchへ通常commit/pushして最終HEAD CIを待つ。
-- [ ] 11. 既存follow-up/acceptance/Run/PR本文を最終証拠で更新し、差分・HEAD・CI・残る受入条件とmerge推奨を報告する。PR #210自体はmergeしない。
+- [x] 10. 最終コード/画像/文書に対してspec validation・visual final・spec build・format/security・verify・sanitizerを実行し、PR branchへ通常commit/pushして最終HEAD CIを待つ（commit `36c35d82`、Web/Mobile CI #45014084909 / #45014084993 success）。
+- [x] 11. 既存follow-up/acceptance/Run/PR本文を最終証拠で更新し、差分・HEAD・CI・残る受入条件とmerge推奨を報告する。PR #210自体はmergeしない（PR本文はhead `36c35d82`で更新）。
 
 ## Discovered
 
