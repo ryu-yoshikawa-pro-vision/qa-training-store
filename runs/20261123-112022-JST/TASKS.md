@@ -19,8 +19,8 @@
 - [x] 15. focused contract後にformat/markdown/text/security/build/verify、差分確認、Run sanitizer/strict collectorを実行する。focused 10/10、修正後`pnpm run verify`（125 contract files、1,456 pass／7 skip、全Build含む）PASS。Run sanitizerは5 filesを走査し5 replacements/0 residual、strict collector exit 0。
 - [x] 16. NOTICE generator/test/doc差分を独立レビュアーが確認した。旧P1/P3（OFL表示、empty JS、inventory重複）は解消。新P2 dangling symlink出力指摘もlstat guardと2負例で修正し、reviewerは再確認後P0–P2なしと報告。
 - [x] 17. 最終差分・Run Artifactを検証し、既存`24944a73…`を維持した追加ローカルcommitを作成する。元checkoutの`.git`はread-onlyのため変更せず、`<TEMP_ROOT>`の専用cloneで実施した。commit `dc9408b90f8009cb8d87de2e774306e4ca392682`。
-- [x] 18. 最新PR stateとremote headを再照合後、許可されたPR branchへ通常pushする。GitHub PR API/branch参照でremote `24944a73…`、PR OPEN、fast-forward祖先関係を確認し、commit `dc9408b9…`を通常pushした。
-- [ ] 19. local/remote/PRの同一SHAでWeb CI、Mobile CI、必須Artifact/jobを確認する。`dc9408b9…`のWeb run `45172067403`はFAIL、Mobile run `45172067487`は初回job照会時にin_progress。NOTICE修正commitのCIを待ち、waiterは新headに対し1回使用する。
+- [ ] 18. 最新PR stateとremote headを再照合後、許可されたPR branchへ通常pushする。commit `dc9408b9…`は通常push済み。NOTICE repair/evidence commit `0324dbd2…`はlocalで、PR APIの直前確認後に同branchへ通常pushする。
+- [ ] 19. local/remote/PRの同一SHAでWeb CI、Mobile CI、必須Artifact/jobを確認する。`dc9408b9…`のWeb run `45172067403`はFAIL、Mobile run `45172067487`は後続API照会でSUCCESS。修正commit `0324dbd2…`のpush後、最終headのCIを確認し、waiterは新headに対し1回使用する。
 - [ ] 20. PR本文に最終SHA・CI・1.4・8.4結果を追記し、未受入条件を維持する。PR OPEN状態と既存受入履歴を保持する。
 
 ## 完了処理の参照先
@@ -45,4 +45,4 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 ## Blocked（ブロック中）
 
 - Current license blocker: `standard-navigation@0.0.5` MIT metadata is present, but the bundled 186-byte source has no copyright notice and the fixed upstream tree contains no LICENSE. This is a specific attribution gap; no infringement finding is made. Obtain a first-party applicable notice or an approved product change that excludes the module before external distribution.
-- Current pending work: commit and push the reviewed NOTICE privacy fix plus updated evidence, run `course:sync` and `verify-distribution` on the clean committed tree, verify the new-head Web/Mobile workflows and Web production Artifact, and update the PR body. The original checkout remains unchanged; the writable clone is in `<REPO_ROOT>`.
+- Current pending work: push local NOTICE repair/evidence commit `0324dbd2…` after checking PR remote ancestry, verify the new-head Web/Mobile workflows and Web production Artifact, and update the PR body. The original checkout remains unchanged; the writable clone is in `<REPO_ROOT>`.

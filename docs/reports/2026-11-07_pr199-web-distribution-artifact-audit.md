@@ -182,7 +182,10 @@ Web CI [#45172067403](https://github.com/ryu-yoshikawa-pro-vision/qa-training-st
 | `OFL-1.1.txt` | 4,004 | `92df93e7fa51c9c96dea4f8d3149f79be3407162f805595e60c7c2a17e314deb` |
 
 このCI Artifactの`THIRD_PARTY_NOTICES.md`に含まれたGmail連絡先が、`Full learner distribution (#199)`と`M06/M07 actual course:run`で同じpublic-content guardに拒否された。`verify`はrequired-result依存エラーであり、独立した3つ目の原因ではない。NOTICE作成変更に直接起因する入力内容上の不整合として分類し、scannerやセキュリティ条件は変更せず、公開側の帰属表から連絡先メールだけを除く。各copyright holder、年、package/source表示は残す。
-
 その候補を使ったlocal `pnpm run build:web`はexit 0。生成JS SHA-256は`611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`、`THIRD_PARTY_NOTICES.md`は23,898 bytes/SHA-256 `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`、OFL全文は4,004 bytesでsourceとbyte-identical。Template/生成NOTICEでemail patternは0。`tests/contracts/web-public-build.test.ts`は10/10 PASS。course syncはdirty worktreeを拒否したため、修正後のdistribution gateは新しいclean commit上で再確認する。
 
 依存分析の限界：同じSHAのproduction ZIPにはsource mapがない。61 package-version／2,326 source-entry inventoryは同SHAと同じfrozen lockfileを用いたlocal source-map Buildから得た証拠であり、GitHub production artifactにsource mapが含まれるとは主張しない。具体的な1.4 blockerは引き続き、実bundleにある186-byte `standard-navigation@0.0.5/lib/src/index.js`と、固定source/packageに適用できるcopyright noticeを確認できないこと。侵害の認定ではないため、外部配布は停止し、rightsholderの一次通知または承認された除外変更を再開条件とする。
+
+## 2026-11-23 clean learner distribution revalidation
+
+Commit `0324dbd260043fd356178262159d917ec0cad606`のclean source treeで`pnpm course:sync --source-sha 0324dbd260043fd356178262159d917ec0cad606 --target <TEMP_ROOT>/pr199-course-sync-0324dbd2`を実行。初回はsandboxのraw GitHub fetchが失敗したが、固定公開revision／同一HEAD assessmentへのread-only networkアクセスを許可した再実行でexit 0。配布先の`verify-distribution`もexit 0（569 distribution files、Shop 322、state 22、assessment references 17）。同期済みWeb NOTICE SHA-256は`2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`、entry JS SHA-256は`611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`。配布先NOTICEのemail patternは0 hits。これはlocal candidate evidenceであり、最終PR HEADのproduction Artifactではない。1.4の`standard-navigation@0.0.5`著作権表示はなお未特定のため、外部配布を停止してBLOCKEDを維持する。

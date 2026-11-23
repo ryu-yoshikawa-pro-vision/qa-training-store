@@ -119,3 +119,16 @@
 - Build evidence: source learner NOTICE 34,057 bytes/SHA-256 `43b16a6d3352f93d58a5bd2968afe5b87f832b8093c7cb20cda20df6a9a8bc5b`; generated Web NOTICE 23,898 bytes/SHA-256 `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`; JS 3,739,226 bytes/SHA-256 `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`; OFL 4,004 bytes, source/output identical SHA-256 `92df93e7fa51c9c96dea4f8d3149f79be3407162f805595e60c7c2a17e314deb`. Source and generated learner NOTICE email pattern scan: 0 hits. This is local candidate Build, not final-head GitHub Artifact evidence.
 - Exact old-head CI follow-up: GitHub workflow-run API confirmed Web run `45172067403` FAILURE and Mobile run `45172067487` SUCCESS for `dc9408b9…`. Mobile success does not offset the Web failure. The repair commit is not yet committed or pushed; clean-worktree `course:sync`/`verify-distribution`, final-head CI/Artifact, and PR-body update remain pending.
 - Acceptance: 1.4 BLOCKED by unresolved applicable copyright attribution for bundled `standard-navigation@0.0.5`; no infringement finding. 8.3 is not PASS; 8.4 remains unaccepted and merge unavailable. Issue #228 (1.2), fixed user-authored Skills (1.3 PASS), existing limited 7.1/7.2 review, Provider fail-closed/out-of-scope status, later 12 conditions and user six acceptance conditions remain unchanged.
+
+
+## 2026-11-23 21:50 JST clean distribution gate
+
+- `course:sync` first attempt on clean commit `0324dbd260043fd356178262159d917ec0cad606` failed at the fixed-source fetch because default sandbox network access could not reach raw GitHub. The failure came from `externalSkillBytes()` fetching the pinned public `qa-workflow-skills` commit; no source or validator error was indicated.
+- After approved read-only network access, the same command completed with exit 0 and produced a private `<TEMP_ROOT>` candidate; no public artifact was uploaded. The destination `verify-distribution` command also exited 0: 569 distribution files, 322 Shop files, 22 state files, 17 assessment references. Synced course Shop NOTICE hash `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6` and Web JS hash `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799` match the source candidate build; email-pattern scan of synced notice returned zero.
+- Exact current candidate SHA local distribution validation is complete. Final pushed SHA may include only evidence updates; final-head GitHub Web/Mobile CI and production artifact remain required. 1.4 remains BLOCKED by standard-navigation attribution, so 8.4 is not accepted.
+
+
+## 2026-11-23 21:54 JST Markdown lint repair
+
+- Initial `pnpm run lint:markdown` after appending distribution evidence found two MD012 duplicate-blank-line issues, one in the continuation Plan and one in the distribution audit. A first correction removed the checkpoint separator but the audit still had one duplicate blank line; the remaining blank line was removed.
+- Final `pnpm run lint:markdown` exited 0: 653 Markdown files, 0 issues. `format:check`, changed/full text lint, security, diff check and focused contract results remain PASS from the same candidate; no assertion or security rule changed.

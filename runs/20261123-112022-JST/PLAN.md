@@ -115,3 +115,10 @@
 - A narrow NOTICE candidate removes only email contact fields, retaining holder, year, package/source attribution. Local `pnpm run build:web` passed; its generated JS is 3,739,226 bytes/SHA-256 `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`; NOTICE 23,898 bytes/SHA-256 `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`; OFL remains source-identical. Source and generated NOTICE had zero email-pattern hits. `web-public-build.test.ts` passed 10/10.
 - `pnpm course:sync` refused the dirty worktree, so the learner distribution check is not yet verified after the correction. The Web CI waiter was called once for `dc9408b9…` and returned Web failure / Mobile `in_progress`; Mobile's latest result for this SHA is not final in the current evidence. Local changes and final repair-head CI remain pending.
 - Current acceptance: 1.2 stays open in Issue #228 until external publication; 1.3 fixed user-authored 13 Skills remains PASS; 1.4 remains BLOCKED by `standard-navigation@0.0.5`; 7.1/7.2 existing limited review scope remains PASS; 8.3 not PASS; 8.4 not accepted and merge unavailable. No merge, close, publication or Provider use.
+
+
+## 2026-11-23 clean distribution gate
+
+- Clean commit `0324dbd260043fd356178262159d917ec0cad606`上でcourse syncを実行。既定sandboxはfixed raw GitHub content fetchで失敗したが、承認されたread-only networkの再実行で完了。sync後`verify-distribution` exit 0（569 files、Shop 322、states 22、assessment refs 17）。
+- 配布candidate NOTICE SHA `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`、JS SHA `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`、Notice email pattern 0。ローカル検証であり外部公開ではない。
+- Next: Run checkpointをsanitizer／strict collectorで確定し、追加記録commit・通常push後、最終PR SHAのWeb/Mobile CIとproduction Artifactを確認する。

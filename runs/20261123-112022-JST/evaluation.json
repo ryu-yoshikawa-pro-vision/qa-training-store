@@ -9,7 +9,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "元read-only checkoutを維持し、10ファイルをpatch SHA-256照合して専用cloneへ復元。React Navigation PNG5件の固定出典と、frozen lockfile Web source mapに基づく61 package/version解析を記録。commit dc9408b90f8009cb8d87de2e774306e4ca392682は通常push済み。Web CI 45172067403はNOTICEメールpatternでFAIL、Mobile 45172067487は最終SUCCESS。連絡先メールのみを除き、swmansion.com出典を保持したNOTICE修正を作成。再Build、format/markdown/text/security、focused contract 10/10はPASS。clean distribution gate、修正head CI、PR本文更新は未完了。standard-navigation@0.0.5の適用copyright notice未確認で1.4 BLOCKED。"
+      "evidence": "元read-only checkoutを維持し、10ファイルをpatch SHA-256照合して専用cloneへ復元。React Navigation PNG5件の固定出典とfrozen lockfile Web source mapの61 package/version解析を記録。commit dc9408b90f8009cb8d87de2e774306e4ca392682は通常push済み。notice guard failure修正として、メール連絡先のみを省略し非メール出典swmansion.comを保持。clean candidate 0324dbd260043fd356178262159d917ec0cad606のcourse:syncとverify-distributionがPASS（569 files、Shop322/state22/assessment refs17）。修正commitはlocal未push。final-head CI/Artifact、PR本文は未完了。standard-navigation@0.0.5のcopyright notice未確認で1.4 BLOCKED。"
     },
     "scope_control": {
       "rating": "pass",
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "修正後candidateでpnpm run build:web exit 0、NOTICEの生成hash確認、email pattern scan 0 hits、web-public-build contract 10/10、format:check、lint:markdown 653/0、lint:text changed 4、lint:text:all 232、security:check 236 runtime/549 credential scan、diff check PASS。修正前にpnpm run verify全体もpassしているが、email-only NOTICE修正後のfull verifyとclean course distribution gateは未実施。final-head CIはまだ未実施。"
+      "evidence": "candidate pnpm run build:web、NOTICE email scan 0 hits、web-public-build contract 10/10、format:check、lint:markdown 653/0、lint:text changed4、lint:text:all232、security check 236 runtime/549 credential files、diff check PASS。Clean candidate 0324dbd260043fd356178262159d917ec0cad606 course:syncと配布先verify-distribution PASS、569 files/Shop322/state22/assessment refs17。NOTICE修正後のpnpm run verify全体は未実行。final-head GitHub CIは未実施。 Markdown lint first found 2 MD012 blank-line issues in newly appended records; both were corrected and rerun at 653 files/0 issues."
     },
     "safety_compliance": {
       "rating": "pass",
@@ -33,15 +33,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "dc9408b90f8009cb8d87de2e774306e4ca392682のWeb production Artifact 14817077162を実取得、ZIP SHA-256はAPI digestと一致、322 entries/CRC errorなし。修正candidate local BuildのJS SHA-256 611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799、生成NOTICE 2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6、OFL source/output SHA一致。GitHub old-head Mobile run 45172067487はSUCCESS、Web 45172067403はFAIL。最終修正headのArtifactはまだ未取得。"
+      "evidence": "dc9408b90f8009cb8d87de2e774306e4ca392682 Web Artifact 14817077162を取得しAPI digestとZIP SHA一致、322 entries/CRC errorなし。old-head Web run 45172067403はFAIL、Mobile run 45172067487はSUCCESS。candidate local BuildのJS/NOTICE/OFL hashを取得。Clean commit 0324dbd260043fd356178262159d917ec0cad606のcourse:syncとverify-distribution pass（569 files、Shop322）。Final PR SHAのCI Artifactは未取得。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "修正前HEAD dc9408b90f8009cb8d87de2e774306e4ca392682のWeb run 45172067403はfailure、Mobile run 45172067487は最終success。NOTICE修正headは作成中で、PR HEAD/remoteへの反映とCIは未確認。",
-      "detail": "NOTICE repairとRun evidenceをcommit・通常push後、新HEADのWeb/Mobile CI・required jobs・production Artifactを確認しPR本文へ記録する。"
+      "evidence": "Repair/evidence commit 0324dbd260043fd356178262159d917ec0cad606はlocalでclean、PR remote/PR headはまだdc9408b90f8009cb8d87de2e774306e4ca392682。dc9408b9のWeb run 45172067403 failure、Mobile 45172067487 success。",
+      "detail": "PR remote refがdc9408b9を指し、PR OPENとfast-forwardを確認してから0324dbd2を通常push。その新SHAのWeb/Mobile CI required jobs/production artifactを確認しPR本文へ記録する。"
     },
     {
       "category": "missing_validation",
@@ -53,7 +53,7 @@
       "category": "missing_validation",
       "severity": "high",
       "evidence": "Web CI 45172067403のFull learner distributionとM06/M07 course runが、THIRD_PARTY_NOTICES.mdに含む第三者パッケージ著作者のメール連絡先をpublic-content personal-email guardが検出し失敗した。",
-      "detail": "security guardを変えずlearner-facing summaryからメールcontact fieldsのみ除去し、copyright holder/year/sourceを保持。reviewで非メール出典swmansion.comの保持を指摘され復元。candidate build、focused contract、format/lint/securityはpass。clean worktree distribution verificationと修正head CIは必要。"
+      "detail": "Public guardは維持。learner summaryからstandalone email fieldsだけを除き、holder/year/sourceとnon-email swmansion.com attributionを残した。candidate Build/focused contract/clean course distribution/quality checks pass。修正SHAのGitHub CIは未実施。"
     }
   ],
   "improvement_candidates": []
