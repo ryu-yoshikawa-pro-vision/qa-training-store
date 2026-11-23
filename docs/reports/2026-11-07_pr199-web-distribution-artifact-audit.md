@@ -189,3 +189,20 @@ Web CI [#45172067403](https://github.com/ryu-yoshikawa-pro-vision/qa-training-st
 ## 2026-11-23 clean learner distribution revalidation
 
 Commit `0324dbd260043fd356178262159d917ec0cad606`のclean source treeで`pnpm course:sync --source-sha 0324dbd260043fd356178262159d917ec0cad606 --target <TEMP_ROOT>/pr199-course-sync-0324dbd2`を実行。初回はsandboxのraw GitHub fetchが失敗したが、固定公開revision／同一HEAD assessmentへのread-only networkアクセスを許可した再実行でexit 0。配布先の`verify-distribution`もexit 0（569 distribution files、Shop 322、state 22、assessment references 17）。同期済みWeb NOTICE SHA-256は`2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`、entry JS SHA-256は`611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`。配布先NOTICEのemail patternは0 hits。これはlocal candidate evidenceであり、最終PR HEADのproduction Artifactではない。1.4の`standard-navigation@0.0.5`著作権表示はなお未特定のため、外部配布を停止してBLOCKEDを維持する。
+
+## 2026-11-24 `standard-navigation@0.0.5` の一次根拠更新
+
+対象はWeb Bundle分析で特定済みの`standard-navigation@0.0.5/lib/src/index.js` 186 bytesのみ。全61 package-versionの依存解析は再実施していない。
+
+| 証拠 | 確認結果 |
+| --- | --- |
+| PRの固定依存 | `pnpm-lock.yaml`は`standard-navigation@0.0.5`とintegrity `sha512-YAmzwAiiQVocZxO/VGPFiQHcu5pKiz09QIGC0MK6aRMoa3E0QkoTQgcqJr7ZZ3OMiNhu4DkaGElFI5htjOIDbw==`を記録。lockfile dependency graphでは`expo-router@57.0.31`配下。 |
+| 旧版source | [commit `0016fae7800b9f27bab91326697b740a6d2266dc`](https://github.com/react-navigation/standard-navigation/tree/0016fae7800b9f27bab91326697b740a6d2266dc)の`package.json`はversion `0.0.5`、`license: MIT`。author欄はあるがcopyright欄はなく、旧treeにもpackage tarballにもLICENSEはない。install済み`lib/src/index.js`のSHA-1は`d40cb46e4c2d14fda8b6868c5f7c61ece44c27d1`。author metadataだけをcopyright evidenceには使わない。 |
+| LICENSE追加 | [commit `33f3d3c976a24bad9fe32583939318bc143fa41b`](https://github.com/react-navigation/standard-navigation/commit/33f3d3c976a24bad9fe32583939318bc143fa41b)は2026-08-06にLICENSEを追加し、`Copyright (c) 2026 React Navigation Contributors`とMIT全文を記録。旧版との差分にはLICENSE以外にpackage.json、pnpm-lock.yaml、src/index.tsxも含まれ、versionは0.0.7へ進み、sourceも変化している。したがって、同一repositoryの履歴や後発LICENSEだけから旧版への適用は推定しない。 |
+| 旧版への適用 | 公式[Issue #7](https://github.com/react-navigation/standard-navigation/issues/7#issuecomment-6474665803)の質問は`0.0.5`に対する現行MITとcopyright表示の適用を明示的に尋ね、LICENSE追加者`@satya164`が「all previous versions of `standard-navigation`」に適用すると回答。これが旧版へ適用する一次根拠。 |
+| Issue #8 | [Issue #8](https://github.com/react-navigation/standard-navigation/issues/8)は2026-11-10作成時点で旧版のnoticeとrepository／今後のnpm packageへのlicense同梱を依頼し、2026-11-24確認時もOPEN・コメント0件。Issue #7はdownstreamの`0.0.5`への適用確認に直接回答しているが、上流repository／将来packageへの同梱依頼は未回答。 |
+| NOTICE | learner NOTICEに`Copyright (c) 2026 React Navigation Contributors`、固定upstream LICENSE commit、Issue #7の回答を追加。既存public Web NOTICEに含まれるMIT全文を利用し、他の通知やsecurity guardは変更していない。 |
+
+公式回答により、`standard-navigation@0.0.5`へ現行MITとcopyright lineを適用する根拠は確認でき、NOTICEの帰属不足は解消した。local Web Buildでは生成NOTICEとBundleを照合済み。**B案1.4全体は、commit/push後に最終HEADのproduction ArtifactでBundle/NOTICEを照合するまで最終PASSにしない。** Issue #8のupstream repository／将来npm packageへの同梱依頼は未回答だが、downstream NOTICEの適用根拠を損なわない。これは権利侵害の認定ではなく、未監査配布物の公開を許可しない。1.2のIssue #228公開前制限は独立して維持する。
+
+2026-11-24時点の既存CI基準HEAD `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`：Web CI [#45179550863](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45179550863)は29成功・条件付きskip 1でSUCCESS。Mobile App CI [#45179551007](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45179551007)はExpo Doctorで`expo-sqlite expected ~57.0.6, found 57.0.5`、`native-ci / verify`がFAIL。Android/iOS BuildとAndroid MaestroはSUCCESS。この依存差はmainにも存在し、このPRでは依存・workflowを変更しない。変更後HEADのCIとArtifactは当該SHAのrunが確定後に追記する。

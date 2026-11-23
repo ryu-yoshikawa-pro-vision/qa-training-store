@@ -132,3 +132,30 @@
 
 - Initial `pnpm run lint:markdown` after appending distribution evidence found two MD012 duplicate-blank-line issues, one in the continuation Plan and one in the distribution audit. A first correction removed the checkpoint separator but the audit still had one duplicate blank line; the remaining blank line was removed.
 - Final `pnpm run lint:markdown` exited 0: 653 Markdown files, 0 issues. `format:check`, changed/full text lint, security, diff check and focused contract results remain PASS from the same candidate; no assertion or security rule changed.
+
+
+## 2026-11-24 standard-navigation確認とExpo待ちの切り分け
+
+- **Summary:** `standard-navigation@0.0.5`の旧版へ現行MIT LICENSEを適用する公式一次回答をIssue #7で確認し、copyright lineをlearner NOTICEへ追加した。Issue #8は未回答で、upstream repository／将来npm packageへのLICENSE同梱依頼が残る。Issue #7はdownstreamの0.0.5 notice確認に回答している。B案1.4の帰属疑問は解消したが、最終production Artifact照合が残る。
+- **Evidence:** `pnpm-lock.yaml`のversion/integrity、`pnpm why`の依存元`expo-router@57.0.31`、旧source commit package metadata、LICENSE追加commitと比較差分を確認。旧版の履歴から適用を推測せず、maintainerの明示回答を根拠とした。local `pnpm run build:web` PASS、出力Bundleに186-byte package implementationがあることを確認。生成NOTICEはsource public markerとbyte-identicalで、Copyright (c) 2026 React Navigation Contributors、Issue/commit/source links、MIT全文を含み、email patternは0。
+- **Validation:** `tests/contracts/web-public-build.test.ts` 10/10 PASS。direct `node --import tsx scripts/training/validate-ai-assisted-qa.ts`と`node scripts/training/validate-supported-behaviors.mjs` PASS（188/188）。`pnpm run security:check` PASS（236 runtime / 549 credential-scan files）。`pnpm run verify`はformat, markdown (653/0), changed/full text (4/232), skills, spec, visual spec, curriculumまで通過したが、`validate:ai-assisted-qa`の`tsx` CLI起動がsandbox socket `<TEMP_ROOT>/tsx-1000/249.pipe`でEPERMとなりexit 1。直接Node importによる同validatorはPASSしたが、verify後半は未到達のためverify全体はFAIL/未完了として扱う。
+- **Git/source preservation:** writable `<TEMP_ROOT>` checkoutはPR HEAD `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`。元workspace HEAD `24944a73f769d32f38061a26fce5911e2cbb8bc5`の10 tracked-file未commit差分は元checkoutに残した。patch backup `<TEMP_ROOT>/pr199-e026-uncommitted.patch`は61,386 bytes、SHA-256 `29f8e8a2f395e28784b7467f388f9c08fb735dc653ad1ab7f00f96865f7db04e`。両checkoutのbase差異でapply-checkが失敗し、e026 branchに同じ10パスへの3後続commitが既にあるためstale patchを重ねない。
+- **CI separation:** e026 Web CI `45179550863` SUCCESS (29 jobs + 1 conditional skip); Mobile `45179551007` FAILURE at Expo Doctor (`expo-sqlite expected ~57.0.6, found 57.0.5`) and dependent `native-ci / verify`; Android/iOS builds and Android Maestro PASS. Main has same dependency mismatch. PR #199 dependency/lock/workflow files were not changed. New-head CI and artifact remain pending.
+- **Acceptance:** 1.2 remains Issue #228 external-publication gate; 1.3 fixed Skills PASS; 1.4 primary applicability evidence + local notice/build verified, final pushed-head artifact comparison pending; 7.1/7.2 existing limited review PASS; 8.3 new-head pending and latest baseline failing Mobile; 8.4 remains unaccepted/merge unavailable. No PR merge/close, external Provider invocation, or publication.
+- **Progress:** 20/27 tracked tasks; **Next:** finish independent read-only review, finalize/sanitize Run, normal commit/push, one exact-head CI wait and production artifact check, then PR-body update.
+
+## 2026-11-24 独立レビュー完了
+
+- 独立reviewerが作業者と分離して8ファイルの文書・NOTICE・Run差分をread-onlyで確認した。レビュー中の指摘は、Plan/continuation/audit間の1.4受入状態不一致（P2）、Issue #8の上流同梱依頼をIssue #7回答済みと広く表現した点（P3）、Runのレビュー依頼中表記（P3）。
+- 1.4は全文書で「旧版へのライセンス適用根拠とlocal Buildは確認済み、最終HEAD production Artifact照合待ち」に統一。Issue #7はdownstream `0.0.5` notice適用確認へ回答し、Issue #8のrepository／今後のnpm packageへのLICENSE同梱依頼は未回答と区別。TASKS項目24はレビュー完了へ更新した。
+- 最終再レビュー対象はbase `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74` + 8-file diff SHA-256 `b603f1b7086e3dd959461e7b7bf775421b977f7df4fcdf74ce658fed2f88c319`。reviewerは指摘が解消し、残存レビューfindingなしと確認した。reviewerはテストを実行していない。
+- レビュー範囲は今回の限定文書・NOTICE・Run差分であり、PR全体、正式Case全件の移管レビュー、本人実受入を置き換えない。
+
+## 2026-11-24 ローカル最終検証checkpoint
+
+- GitHub APIでPR #199 OPEN、branch `docs/plan-ai-agent-qa-curriculum-redesign`、HEAD `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`、base/main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`を再確認。GitHub branch APIも`e026ac1c…`を返した。shell `git fetch origin`と`gh pr view`はDNS/ネットワーク接続失敗のため、API情報でremoteを照合した。変更は8個の文書／NOTICE/Run fileだけで、package/lock、Expo workflow、SUT、製品テストは変更なし。
+- `pnpm run build:web` exit 0。Web JS SHA-256 `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`。生成NOTICE SHA-256 `51c168eaa76be0f72f6402f57a33bd0ba53998f36d51f7d13cb699983e260e7d`はpublic notice marker抽出とbyte-for-byte一致し、`standard-navigation@0.0.5`のMIT/copyright・Issue #7/8の範囲説明・MIT全文を含む。
+- `tests/contracts/web-public-build.test.ts`: 10/10 PASS。`format:check` PASS、`lint:markdown` exit 0（653 files、0 issues）、`lint:text` 4 changed Markdown PASS、`lint:text:all` 232 Markdown PASS、`security:check` 236 runtime/549 credential-scan files PASS。`git diff --check` PASS。
+- Run sanitizerは4 agent-managed fileを走査、変更0・残留0。`collect-run-artifacts.sh --run-id 20261123-112022-JST --strict` exit 0。Runの`verify`検証履歴は別候補のPASSを履歴とし、今回の環境では`tsx` CLIの`listen EPERM <TEMP_ROOT>/tsx-1000/249.pipe`によるexit 1を保持する。verify全体をPASSとは扱わない。
+- 現行判断：Issue #7で旧versionのdownstream notice根拠を解決。Issue #8の上流repository／将来npm同梱依頼は未回答。1.4は最終HEAD production Artifact確認待ち。e026基準のWeb CIはsuccess、Mobile CIはmainにもあるExpo Doctor不一致でfailure。今回の新HEAD CI/Artifact、通常push、PR本文更新は未実施。
+- Progress: 22/27 tracked tasks; Next:今回の差分を明示stageしてPR branchへcommit・通常pushし、新HEADのWeb/Mobile CIとproduction Artifactで1.4/8.3/8.4を確認してPR本文を更新する。

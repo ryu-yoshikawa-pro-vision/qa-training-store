@@ -9,7 +9,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "元read-only checkoutを維持し、10ファイルをpatch SHA-256照合して専用cloneへ復元。React Navigation PNG5件の固定出典とfrozen lockfile Web source mapの61 package/version解析を記録。commit dc9408b90f8009cb8d87de2e774306e4ca392682は通常push済み。notice guard failure修正として、メール連絡先のみを省略し非メール出典swmansion.comを保持。clean candidate 0324dbd260043fd356178262159d917ec0cad606のcourse:syncとverify-distributionがPASS（569 files、Shop322/state22/assessment refs17）。修正commitはlocal未push。final-head CI/Artifact、PR本文は未完了。standard-navigation@0.0.5のcopyright notice未確認で1.4 BLOCKED。"
+      "evidence": "2026-11-24に公式Issue #7のメンテナー回答でstandard-navigation@0.0.5へMIT/copyright lineを適用できると確認し、learner NOTICE・統合Plan・継続手順・distribution auditを更新。local buildと生成NOTICE照合、既存契約10/10、AI validators、security:checkはPASS。最終新HEADのPR CI/ArtifactとPR本文更新はこれから。元の24944a73 checkoutの10-file差分をbackupし、e026作業checkoutに重複適用せず保持。"
     },
     "scope_control": {
       "rating": "pass",
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "candidate pnpm run build:web、NOTICE email scan 0 hits、web-public-build contract 10/10、format:check、lint:markdown 653/0、lint:text changed4、lint:text:all232、security check 236 runtime/549 credential files、diff check PASS。Clean candidate 0324dbd260043fd356178262159d917ec0cad606 course:syncと配布先verify-distribution PASS、569 files/Shop322/state22/assessment refs17。NOTICE修正後のpnpm run verify全体は未実行。final-head GitHub CIは未実施。 Markdown lint first found 2 MD012 blank-line issues in newly appended records; both were corrected and rerun at 653 files/0 issues."
+      "evidence": "最終local pnpm run build:web PASS、Web JS SHA-256 611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799、生成NOTICE SHA-256 51c168eaa76be0f72f6402f57a33bd0ba53998f36d51f7d13cb699983e260e7dでsource public markerとbyte一致。web-public-build.test.ts 10/10、format、markdown 653/0、changed/full text 4/232、security:check 236 runtime/549 credential-scan files PASS。AI validatorとsupported-behaviors 188/188はPASS。pnpm run verifyはtsx CLIのlisten EPERM <TEMP_ROOT>/tsx-1000/249.pipeで停止しexit 1。直接Node import validatorはPASSしたがverify後半は未到達。新HEAD GitHub CIとproduction Artifactは未確認。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -25,7 +25,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "独立レビュアーがP1/P3修正と最終symlink P2修正を再確認し、2拒否ケースを含む現行経路にP0-P2指摘なしと報告。レビュー側はテスト未実行、親がfocused 10/10を確認。"
+      "evidence": "独立reviewerが今回の8ファイル文書・NOTICE・Run差分をread-only確認。P2の1.4状態差とP3のIssue #8範囲、Runのレビュー依頼中表記を修正し、最終再レビューで指摘解消・残存findingなしを確認（対象diff SHA-256 b603f1b7086e3dd959461e7b7bf775421b977f7df4fcdf74ce658fed2f88c319）。この範囲レビューはPR全体・正式Case全件レビューではない。"
     },
     "maintainability": {
       "rating": "pass",
@@ -33,27 +33,21 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "dc9408b90f8009cb8d87de2e774306e4ca392682 Web Artifact 14817077162を取得しAPI digestとZIP SHA一致、322 entries/CRC errorなし。old-head Web run 45172067403はFAIL、Mobile run 45172067487はSUCCESS。candidate local BuildのJS/NOTICE/OFL hashを取得。Clean commit 0324dbd260043fd356178262159d917ec0cad606のcourse:syncとverify-distribution pass（569 files、Shop322）。Final PR SHAのCI Artifactは未取得。"
+      "evidence": "Web local buildのentry JS SHA-256 611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799、generated NOTICE SHA-256 47995b81f5e20f4157c95c37265a5b02cf2197379d9f8c934b1ded9967e7d6b1を取得。official issue #7/commit #33f3d3c evidence recorded. e026ac1c baseline Web CI success, Mobile CI Expo Doctor failure. New-head CI/Artifact pending."
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "Repair/evidence commit 0324dbd260043fd356178262159d917ec0cad606はlocalでclean、PR remote/PR headはまだdc9408b90f8009cb8d87de2e774306e4ca392682。dc9408b9のWeb run 45172067403 failure、Mobile 45172067487 success。",
-      "detail": "PR remote refがdc9408b9を指し、PR OPENとfast-forwardを確認してから0324dbd2を通常push。その新SHAのWeb/Mobile CI required jobs/production artifactを確認しPR本文へ記録する。"
+      "evidence": "Current completed CI baseline e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74 has Web CI 45179550863 success and Mobile App CI 45179551007 failure: Expo Doctor expects expo-sqlite ~57.0.6 but lock/install has 57.0.5; the same mismatch is on main. This task does not change dependencies or Expo workflow.",
+      "detail": "Commit and normally push the current permitted Notice/docs/Run changes. Verify Web/Mobile CI and production artifact on that exact new SHA. If the Expo Doctor failure recurs, keep 8.3 FAIL and 8.4 unaccepted; fix belongs to a separate Expo maintenance PR."
     },
     {
       "category": "missing_validation",
-      "severity": "high",
-      "evidence": "Web source mapでstandard-navigation@0.0.5 lib/src/index.js 186 bytesを特定。package metadataはMIT/authorを示すが、解決済みpackageと固定source treeで適用可能なcopyright notice/LICENSE根拠は見つからない。",
-      "detail": "権利者の一次copyright notice根拠を取得するか、別途承認された製品変更でbundleからmoduleを除く必要がある。外部配布を停止し、権利侵害と断定せずB案1.4をBLOCKEDに保つ。"
-    },
-    {
-      "category": "missing_validation",
-      "severity": "high",
-      "evidence": "Web CI 45172067403のFull learner distributionとM06/M07 course runが、THIRD_PARTY_NOTICES.mdに含む第三者パッケージ著作者のメール連絡先をpublic-content personal-email guardが検出し失敗した。",
-      "detail": "Public guardは維持。learner summaryからstandalone email fieldsだけを除き、holder/year/sourceとnon-email swmansion.com attributionを残した。candidate Build/focused contract/clean course distribution/quality checks pass。修正SHAのGitHub CIは未実施。"
+      "severity": "medium",
+      "evidence": "pnpm run verify exited 1 at validate:ai-assisted-qa because tsx CLI could not listen on <TEMP_ROOT>/tsx-1000/249.pipe (EPERM). Earlier verify steps passed; direct node --import tsx AI validator and supported-behaviors validator passed, but verify did not reach later lint/typecheck/test/build steps.",
+      "detail": "Keep verify recorded as FAIL/environment-blocked, not PASS. Exact-head CI supplies the repository gate; do not weaken tests or dependencies to bypass the sandbox IPC restriction."
     }
   ],
   "improvement_candidates": []

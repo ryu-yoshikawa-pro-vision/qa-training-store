@@ -122,3 +122,40 @@
 - Clean commit `0324dbd260043fd356178262159d917ec0cad606`上でcourse syncを実行。既定sandboxはfixed raw GitHub content fetchで失敗したが、承認されたread-only networkの再実行で完了。sync後`verify-distribution` exit 0（569 files、Shop 322、states 22、assessment refs 17）。
 - 配布candidate NOTICE SHA `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`、JS SHA `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`、Notice email pattern 0。ローカル検証であり外部公開ではない。
 - Next: Run checkpointをsanitizer／strict collectorで確定し、追加記録commit・通常push後、最終PR SHAのWeb/Mobile CIとproduction Artifactを確認する。
+
+
+## 2026-11-24 追加：`standard-navigation@0.0.5` とExpo CI切り分け
+
+### 目的
+
+既存のB案1.4の具体的なライセンス疑問を一次資料で解消し、受入Plan、learner NOTICE、監査履歴を更新する。Expo Doctorの依存不一致は別PR対象として維持し、1.4とその他の可能な作業を止めない。
+
+### 作業開始状態・未commit差分
+
+- GitHub PR APIはPR #199 OPEN、base `main` `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`、head branch `docs/plan-ai-agent-qa-curriculum-redesign`、HEAD `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`。書き込み可能checkoutもcleanで同じSHA。
+- 元WSL checkoutはHEAD `24944a73f769d32f38061a26fce5911e2cbb8bc5`で10ファイルに未commit差分がある。元checkoutには一切書き込まず、patchを`<TEMP_ROOT>/pr199-e026-uncommitted.patch`へ保全（61,386 bytes、SHA-256 `29f8e8a2f395e28784b7467f388f9c08fb735dc653ad1ab7f00f96865f7db04e`）。statusに未追跡ファイルなし。source/diff commandはWindows-mounted checkoutのI/O遅延で終了が遅れたが、最終的にstatus、10パス、patch、hashを取得した。
+- patchのforward/reverse apply-checkはいずれも書き込み可能checkoutへ適用不可。両checkoutのbase差異と同パスの後続commitによりhunkがずれている。GitHub/local e026のcommit範囲には10パスすべてが含まれ、`dc9408b9`／`0324dbd2`／`e026ac1c`の変更としてPRに反映済み。stale patchを重ねず、元checkoutとpatch backupを保全した。
+
+### 公式一次根拠
+
+- `pnpm-lock.yaml`は`standard-navigation@0.0.5`とintegrity `sha512-YAmzwAiiQVocZxO/VGPFiQHcu5pKiz09QIGC0MK6aRMoa3E0QkoTQgcqJr7ZZ3OMiNhu4DkaGElFI5htjOIDbw==`を記録。`pnpm why --recursive standard-navigation`は依存元を`expo-router@57.0.31`と示す。installed packageの`package.json`は0.0.5／MIT、`lib/src/index.js` 186 bytes。
+- 旧upstream source [`0016fae7800b9f27bab91326697b740a6d2266dc`](https://github.com/react-navigation/standard-navigation/tree/0016fae7800b9f27bab91326697b740a6d2266dc)にはLICENSEとcopyright lineがない。author metadataから権利者を推定していない。
+- 現LICENSEは[`33f3d3c976a24bad9fe32583939318bc143fa41b`](https://github.com/react-navigation/standard-navigation/commit/33f3d3c976a24bad9fe32583939318bc143fa41b)で2026-08-06に追加、noticeは`Copyright (c) 2026 React Navigation Contributors`。旧commitからの5-commit compareでは4 filesが変化（LICENSE addition、package.json、pnpm-lock、src/index.tsx）しversionは0.0.7へ進むため、repository continuityだけで適用を推測しない。
+- [Issue #7](https://github.com/react-navigation/standard-navigation/issues/7#issuecomment-6474665803)には、0.0.5へ当該MIT/copyright lineが適用されるかの質問に対してLICENSE追加者が`all previous versions of standard-navigation`へ適用と明示回答。これを旧版への適用に関する一次根拠とし、Noticeにcopyrightと出典を記録した。[Issue #8](https://github.com/react-navigation/standard-navigation/issues/8)はOPEN・コメント0で、upstream repositoryと将来npm packageへLICENSE/noticeを同梱する依頼が残る。#7はdownstreamの0.0.5適用確認には回答しているが、Issue #8の上流同梱依頼は未回答。
+- B案1.4のこの具体的な未解決事項は解消。1.2 Issue #228の配布安全性制限とは分離。
+
+### NOTICE / local Build
+
+- `learner-THIRD_PARTY_NOTICES.md`では該当inventory rowと説明のみを更新。既存MIT本文、他のライセンス通知、generator/security guardは変更なし。
+- `pnpm run build:web` exit 0。bundle `dist/_expo/static/js/web/entry-2eacba5967e32f773219f7b9a8ab134a.js`は3,739,226 bytes、SHA-256 `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`、minified code内に`standard-navigation`実装あり。生成NOTICE SHA-256 `47995b81f5e20f4157c95c37265a5b02cf2197379d9f8c934b1ded9967e7d6b1`はTemplateのpublic marker部分とbyte-for-byte一致し、Copyright line、Issue/commit/source links、MIT全文を含みemail patternは0。
+- `tests/contracts/web-public-build.test.ts` 10/10 PASS。
+
+### Verification
+
+- `pnpm run verify` exit 1。Prettier、Markdown lint（653 files / 0 issues）、changed text（4 Markdown files）、full text（232 files）、Skill/spec/spec visuals/curriculum validations PASS。最初の異常は`validate:ai-assisted-qa`の`tsx` CLI起動時に`listen EPERM <TEMP_ROOT>/tsx-1000/249.pipe`。同じAI validationを`node --import tsx scripts/training/validate-ai-assisted-qa.ts`で直接実行しPASS、supported-behaviorsも188/188 complete PASS。`security:check`は236 runtime files/549 credential-scan filesでPASS。`verify`はこのstartup異常で停止し、その後のrepository lint/typecheck/test/buildは未到達。原因はsandboxのIPC socket制限と分類し、CI exact-head verificationに委ねる。
+- No dependency update; no Expo package, lockfile, maintenance workflow, SUT, specs, Seed/Reset, or existing product test changed.
+
+### Existing CI baseline and next work
+
+- e026 Web CI `45179550863`: SUCCESS, 29 successful jobs and one conditional skip. e026 Mobile `45179551007`: FAILURE. `Native Static / Run Expo Doctor` reports `expo-sqlite expected ~57.0.6, found 57.0.5`; `native-ci / verify` fails dependently. Android/iOS Builds and Android Maestro succeeded. The same dependency mismatch is present on main; PR #199 is prohibited from changing dependency/workflow, so classify as separate Expo repair.
+- New doc/NOTICE commit and normal push remain. Then use the required exact-head waiter once, inspect Web/Mobile jobs and `web-dist-production` output, compare bundled code and emitted notice, and update PR body. If the same Expo Doctor failure occurs, 8.3 stays FAIL and 8.4 remains not accepted / merge unavailable. No merge, close, external distribution or Provider call.
