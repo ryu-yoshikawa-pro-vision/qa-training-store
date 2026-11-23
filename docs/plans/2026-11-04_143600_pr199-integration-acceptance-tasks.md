@@ -4,23 +4,35 @@
 
 **新規セッションの再開入口**：[PR #199 継続作業手順](./2026-11-08_101200_pr199-continuation.md)。実行順、既存証拠、BLOCKED時の進め方と引継ぎ先は同文書にまとめる。受入条件とチェック状態は本Planが正本。
 
-## 2026-11-08 B案：マージ前受入と後続受入（承認済み）
+## B案：マージ前受入と後続受入（2026-11-08承認、2026-11-23本人決定反映）
 
-ユーザーの指示に従い、PR #199の追加QA契約実装を原則停止し、マージ前の配布安全性・第三者権利・独立レビュー・最終CIに集中する。**検証条件の削除・無条件PASS化ではなく、受入期限の変更**とする。元44条件（既済10・元マージ前28・本人のマージ後6）および旧39個別検証（実証済み20／未完了19）の履歴は保持する。
+PR #199の追加QA契約実装を原則停止し、マージ前受入と後続受入を分ける。元44条件（既済10・元マージ前28・本人のマージ後6）および旧39個別検証（実証済み20／未完了19）の履歴は保持する。2026-11-23の本人決定により、一部の受入時点を明確化した。未受入の条件をIssueへ移しただけでPASSにはしない。
 
-### マージ前に完了させる7個別条件
+### B案の7個別条件と現在の受入時点
 
-| 旧個別条件 | マージ前の完了条件 | 現状 |
+7項目の識別子と履歴を保つ。以下の「受入時点」と「現在の状態」が現行判断であり、古いチェックポイントや旧詳細行と食い違う場合は本節を優先する。
+2026-11-23決定で時点を変更したのは1.2のみ（マージ前から公開前へ）。1.3は本人決定で固定Skill分を受入済み。1.4は従来どおりマージ前の確認対象であり、生成画像以外の具体的な第三者素材が残っている。
+
+| 旧個別条件 | 現在の受入条件・時点 | 現状 |
 | --- | --- | --- |
-| **1.2** | 最終Web／Template／ZIPの実配布ファイルとCI ArtifactにSecret・PII・模範解答・採点内部資料が混入していないことを実物検査 | **BLOCKED（部分検査）**（HEAD `49af44d7…`のWeb／Spec ZIPと配布証拠Artifactを走査。既知Secret・危険パスは0件。ただしCI Artifactにlearner template本体がなく、画像内容・全template内容は未検査） |
-| **1.3** | 固定Skill全配布ファイルの権利者・一次許諾／ライセンス・必要なLICENSE/NOTICEを確認。許諾不能の素材を配布しない | **BLOCKED**（固定Skill全件の権利者による一次許諾・再配布条件を確認できていない） |
-| **1.4** | 公開JS・画像・フォント等の配布物と一次ライセンス・表示要件を全件突合 | **BLOCKED**（製品画像9件、React Navigation画像の取得revision、生成JS依存閉包の権利根拠が不足） |
+| **1.2** | 実配布ファイルとCI ArtifactにSecret・PII・模範解答・採点内部資料がないことを実物確認する。**PRマージ前ではなく、Public Template／その他の外部配布前に完了する** | **未受入・Issue #228で継続**。Issueへの分離はPASSではない。最終HEAD `00670f8c…` の既存Artifactでは既知pattern/pathの走査は0件だが、learner template本体と画像内容は未検査。Issueが完了するまで未監査のTemplate・ZIP・配布Artifactを公開しない。 |
+| **1.3** | 固定 `qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324` の本人作成13 Skillに既存learner MIT Licenseを適用し、配布意思を記録する。第三者由来の具体的ファイルが判明した場合だけ個別に扱う | **PASS（固定13 Skillに限る）**。2026-11-23本人決定を[固定Skill監査](../reports/2026-11-07_pr199-fixed-skill-license-audit.md)と[配布通知](../../training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md)へ記録。旧監査のBLOCKEDは当時の履歴。 |
+| **1.4** | **マージ前**に、実際に配布する第三者JS・画像・フォント等について一次出典・ライセンス・必要表示を照合する。本人指示でCodex生成した商品画像9件は第三者取得素材の未確認リストに含めない | **BLOCKED（具体的な証拠不足。権利侵害は確認していない）**。本人決定が扱う生成画像9件は対象外。実配布素材として既存通知が特定するReact Navigation Elements PNG5件（`course/shop/assets/expo-router/react-navigation/elements/`）は`main`のLICENSE参照だけで、同梱画像の元revisionと一致する一次根拠がない。生成Bundle `course/shop/_expo/static/js/web/entry-*.js`には既存runでReact/関連packageおよび`bezier-easing`のライセンス表示が確認されているが、その履歴HEAD `708c7be0…`は現行配布HEAD `00670f8c…`ではなく、現行Bundleの完全な依存閉包と各表示の対応を示さない。必要なのは同梱PNGの出典revision・そのrevisionのLICENSE、および現行HEADの実配布Bundleから依存package・ライセンス・必須表示への照合記録。これがない間は該当の第三者素材を含む成果物の1.4を受入済みとせず、外部配布しない。根拠が得られない場合は当該素材・依存Bundleを公開物から除外するか、一次根拠が確認できる素材へ置換する。詳細は既存[配布通知](../../training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md)を参照。 |
 | **7.1** | #199統合差分のコード・セキュリティ・配布・教材の独立レビュー、指摘対応と再検証を保存 | **PASS（レビュー対象範囲）**（独立reviewerが統合差分を確認。P0–P2なし、P3を修正・再確認。後続Case全件レビューは別条件） |
 | **7.2のマージ前部分** | 正式Caseの未受入／FAIL／BLOCKED、後続移管の正当性、#210の製品不具合、公開・機能利用制限を実行者とは別の確認者がレビュー | **PASS（マージ前の移管レビュー範囲）**（Case状態・後続12条件・利用制限を独立確認。全正式Case結果のレビューは後続） |
-| **8.3** | 全変更確定後、**同一最終HEAD**の必須Web/Mobile CI、Build・検証Artifact、skipped・failureを確認 | **PASS（コードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`）**（Web `45063620677`、Mobile `45063620660` が同一SHAでSUCCESS。後続の記録専用commitには別途最新HEAD CIが必要） |
-| **8.4** | 権利・安全性・独立レビュー・CI・残リスクの根拠を揃え、マージ可否を判定 | **未受入・マージ不可**（1.2/1.3/1.4が未達。CI成功と限定レビューだけでは受入できない） |
+| **8.3** | 全変更確定後、**同一最終HEAD**の必須Web/Mobile CI、Build・検証Artifact、skipped・failureを確認 | **PASS（HEAD `00670f8ca016845e288f019ae5ad160ca1eca051`）**（Web `45071575804`、Mobile `45071575859` が同一SHAでSUCCESS。今回の文書更新後HEADへは自動継承せず、後続CIで確認する） |
+| **8.4** | 現行のマージ前条件、独立レビュー、CI、残リスクを根拠付きで判定 | **未受入・マージ不可**。1.4の具体的な第三者素材根拠が未完了。1.2は未受入のまま外部配布前条件としてIssue #228で継続し、1.3は固定13 SkillについてPASS。実Providerの認証・料金・保持／削除の実受入は本PRのマージ前条件ではない。 |
 
-### 2026-11-22 最新証拠チェックポイント
+### 2026-11-23 本人確定事項（現行ルール）
+
+- **固定Skill**：固定commitの13 Skillは本人作成の著作物で、既存の学習者用MIT Licenseを適用し学習者Templateへ配布する本人意思がある。著作権者や本人からの再配布許諾を繰り返し確認しない。第三者から取り込まれた具体的なファイルが実際に確認された場合に限り、そのファイル名・出典・根拠を示して個別に扱う。
+- **生成画像**：`config/product-image-assets.json`が参照する商品画像9件は、本人指示でCodexを使用して生成した。外部画像サイト由来として権利調査を繰り返さない。第三者既存作品の使用・複製を示す具体的な証拠が出た場合だけ、対象画像に限定して扱う。Expo Router／React Navigation等の既存配布素材や外部ライブラリは別の第三者素材である。
+- **外部Provider**：実OpenCode／外部Providerの接続、認証、料金、保持／削除の受入および正式AI評価の利用開始はPR #199のマージ前実施対象・完了条件から除外する。外部送信・実Provider利用・正式評価の利用開始は承認されていない。未承認送信を防ぐ既存のfail-closed実装と拒否テストは維持し、これらの拒否契約を実Provider受入へ読み替えない。
+- **配布安全性**：未完了の1.2は[Issue #228](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/228)で独立追跡する。Issueへの分離はPASSではなく、Issueの検査と受入が完了するまでlearner Template・配布ZIP等の未監査物を公開しない。1.2は公開前条件であり、PR #199のマージ前条件にはしない。
+
+従前の監査・判断は実施当時の履歴として残す。現在の受入条件と状態はこの表が正本であり、下記の古いチェックポイントおよび元28条件の履歴より優先する。PR本文もこの状態へ合わせる。
+
+### 2026-11-22 当時の証拠チェックポイント（履歴）
 
 - #210はmainへ統合済み。今回のPR #199 HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`にはmain `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`が含まれる。正式Caseの実受入結果は製品修正だけでは更新しない。
 - [Web CI #45020508148](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45020508148) attempt 1はIntegration 2件、Contracts 16件、Chromium cross-role 1 failed/1 flakyでFAIL。`verify`は必須結果集約のfailure。Web/Template/Spec buildとdistribution verification jobは成功したが、Artifactが存在することだけでは1.2の全バイナリ走査完了を示さない。
@@ -28,14 +40,14 @@
 - Integration 2件はPR専用の`tests/integration/pr219-actor-revocation.test.ts`が修正前の`RESOLVED`を期待し、transaction内再認可の`AUTHENTICATION_REQUIRED`拒否と食い違う。Contractsの16件は、last-admin interleaving 2件（旧`LAST_ADMIN_PROTECTED`期待、実際`PERMISSION_DENIED`）、supported-behaviors validatorの初回証拠不一致を共通原因とする13件、修正済み在庫境界に残った`it.fails` 1件。PR専用stale Cart E2Eは旧`/checkout/payment`期待に対して`/cart`を観測した。
 - main既存`e2e/web/cross-role-lifecycle.spec.ts`のstatus Locator曖昧性はPR差分外の既存製品テストであり、本PRでは変更しない。別の製品テスト保守PRが必要。
 - Supported Behaviorsの歴史的`source_commit=383efc9107ef3d5f78c5659473277166c1bba2de`は保持する。CIが検出した行ずれは52 Use Case methods/205 evidence refs、72 implementation refs、13 behavior source refs、117 behavior IDsに及ぶ。line-only driftと#210の意味変更を分離し、更新後に全79要件・208動作validatorを再実行する。formal Caseの`execution_acceptance=未受入`は維持。
-- 以前の[配布物監査](../reports/2026-11-07_pr199-web-distribution-artifact-audit.md)は過去HEAD固定の履歴であり、最新HEADの未知PII・画素内容・全配布ファイルを保証しない。固定Skill一次許諾は[既存監査](../reports/2026-11-07_pr199-fixed-skill-license-audit.md)のとおりBLOCKED。第三者素材も全件の一次権利根拠が未取得。
-- 独立reviewでTutorは価格確認後もProvider auth/availability/retention確認なしに送信できるP1、親directory symlink race P1が確認されたため、外部AI安全条件は未達。static contractの通常Tutor/正式評価履歴分離・calibration failure拒否は確認範囲の証拠だが、Provider retentionの一次根拠と実Provider認証・料金・保持/削除、本人Private環境のpayloadは未検証。P1修正・拒否テストが成立するまでTutor送信を安全受入しない。
+- 以前の[配布物監査](../reports/2026-11-07_pr199-web-distribution-artifact-audit.md)は過去HEAD固定の履歴であり、最新HEADの未知PII・画素内容・全配布ファイルを保証しない。固定Skill一次許諾は[既存監査](../reports/2026-11-07_pr199-fixed-skill-license-audit.md)で当時未確認だった。第三者素材も当時は全件の一次権利根拠が未取得だった。現在の1.3判断は冒頭の2026-11-23本人決定を適用する。
+- 独立reviewでTutorは価格確認後もProvider auth/availability/retention確認なしに送信できるP1、親directory symlink race P1が確認されたため、外部AI安全条件は当時未達だった。static contractの通常Tutor/正式評価履歴分離・calibration failure拒否は確認範囲の証拠だが、Provider retentionの一次根拠と実Provider認証・料金・保持/削除、本人Private環境のpayloadは未検証だった。P1修正・拒否テストが成立するまでTutor送信を安全受入しないという当時の対応は、fail-closed実装と拒否テストを維持する現在の条件へ引き継ぐ。実Provider実受入はマージ前条件ではない。
 
-**追加のマージ前安全条件（旧2.4・2.5・5.5・5.6に関する前提）**：本人の明示同意なしにOpenCode／Providerへ送信しないこと、認証・費用・権限・保持が未確認の操作は安全に停止すること、通常チューターが正式評価やLevel 2合格判定へ混入しないことを、実装経路と拒否テストで確認する。実証できない外部送信／正式評価は実行不能とし、その拒否を確認する。安全性が確認できない場合は該当項目をマージ前に戻す。認可・Secret・データ保護に関する重大FAILを後続扱いにしない。
+**追加のマージ前安全条件の旧記録（2026-11-23決定で範囲調整）**：本人の明示同意なしにOpenCode／Providerへ送信しないこと、認証・費用・権限・保持が未確認の操作は安全に停止すること、通常チューターが正式評価やLevel 2合格判定へ混入しないことを、実装経路と拒否テストで確認する。現在もfail-closed処理と拒否テストは維持する。一方、実OpenCode／Providerの接続、認証、料金、保持／削除の実受入および正式AI評価の利用開始はPR #199のマージ前条件から除外する。これらの実利用は承認されておらず、拒否テストPASSを実Provider受入へ読み替えない。
 
 **2026-11-22 review finding（履歴）**: 独立read-only reviewではTutorが公開価格を確認した後、Provider auth/availabilityと権威あるretention policyの検証なしに`opencode run`へ進む経路、およびTutor excerpt/public fileの親directory symlink raceを確認した。したがって外部AI安全条件は当時未達だった。実Provider送信は行わず、retention根拠がない限り送信をfail closedにする。path raceはroot-anchored no-follow処理と決定的contract testの候補修正を行った。今回の修正結果は下記チェックポイントに記録する。
 
-### 2026-11-23 #210後CI修正・独立レビューのチェックポイント
+### 2026-11-23 #210後CI修正・独立レビューのチェックポイント（本人決定前の履歴）
 
 - GitHub上のPR #199はOPEN、remote HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。作業ブランチはPR head、upstreamも同ブランチ。候補変更は未commit／未pushであり、このSHAのCI結果ではない。
 - PR固有の認可失効・last-admin・在庫境界・stale Cartテストを#210後の実装契約へ更新。supported-behaviorsでは行番号だけでなく#210による意味差を照合し、source originと正式Case未受入状態を維持した。
@@ -43,7 +55,7 @@
 - 最終候補のfocused testsはLinux ext4上で、distribution + M07 2 files / 91 tests PASS（Prettier PASS、27.25秒）、supported-behaviors 62/62 PASS、Tutor／assessment resume／last-admin／inventory／actor-revocation 5 files / 30 tests PASS。これらは全Contracts、E2E、Build、verify、最終HEAD CIの代替ではない。
 - 独立reviewerは当該diff digestを再確認し、修正済みP3以外にP0–P2なし。7.2マージ前移管レビューでは、CaseをPASSへ変更していないこと、#210修正済み動作と現行FAIL候補、後続12条件、公開・Provider制限を確認。全正式Caseの独立実行結果レビューは後続のまま。
 - main所有`e2e/web/cross-role-lifecycle.spec.ts`の曖昧な`getByRole("status")`は対象差分外。失敗通知とLoading領域が同じroleに一致するため、製品テスト保守PRで通知内容に限定したLocatorへ修正する案を引継ぐ。本PRでは編集も新PR作成もしない。
-- 現在のゲート：1.2は候補HEADのBuild Artifact未走査、1.3は固定Skill権利者の一次許諾待ち、1.4は製品画像9件・生成JS依存閉包等の権利根拠不足で未受入。外部Providerは認証・費用・保持／削除の一次根拠と本人実行が未確認。8.3は新HEAD CI待ち、8.4は**マージ不可**。
+- 当時のゲート：1.2は候補HEADのBuild Artifact未走査、1.3は固定Skill権利者の一次許諾待ち、1.4は商品画像9件・生成JS依存閉包等の権利根拠不足で未受入だった。外部Providerは認証・費用・保持／削除の一次根拠と本人実行が未確認で、8.3は新HEAD CI待ちだった。現行判定は冒頭の2026-11-23本人決定後の表を参照する。
 - B案のマージ前7条件は、7.1と7.2マージ前部分を独立レビュー範囲で確認済み。その他の受入を代替しない。後続12条件と本人受入6条件はそのまま維持する。
 
 ### 2026-11-23 ローカル全体検証のチェックポイント
@@ -73,7 +85,7 @@
 - 04:35 JSTの記録・TASKS完了チェックを含むcandidate digest `e66adde670ea0f5120c6f9f7e605992b10b889f18fbb1e41f129a19853038060`で`pnpm run verify`を再度実行し、Linux ext4上でexit 0。結果は上記と同じく全suite・全typecheck・Web/Spec Build PASS、Contracts 1,451 passed / 7 skipped、ESLint 93 warnings / 0 errors。新しい失敗なし。
 - 検証後に追加したのはこのRun／Planの実行結果記録のみ。ソースは変更していない。GitHub Actionsはローカルcommit後の最新HEADで別途確認する。
 
-#### 2026-11-23 最新Web/Mobile CI・配布Artifactの調査（コードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`）
+#### 2026-11-23 Web/Mobile CI・配布Artifactの調査（コードHEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`、当時の履歴）
 
 - PR #199はOPEN、base `main`、HEAD `49af44d72a4fcbd14e393e56b3e07c2346b0cd03`。#210を含むmainは`b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。このPlan／Run更新後に記録用commitを作成する場合、新しい最終HEADのCIを別途確認する。
 - [Web CI #45063620677](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45063620677) と [Mobile App CI #45063620660](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45063620660) は同一HEADでSUCCESS。Web Integration 197 PASS、Contracts 1,452 PASS / 6 skipped（125 files）、Windows PowerShell Run-root contract 7 PASS / 12 platform skips、required Chromium 71 PASS、PR専用cross-role 33 PASS。Mobile Native Static、Expo Doctor、Android/iOS Build、Android Maestro、`native-ci / verify`もSUCCESS。条件付きMobile Chromiumと成功時failure-only uploadはskip。
@@ -81,7 +93,7 @@
 - 同一runのBuild/検証ArtifactはWeb production `14770088637`（ZIP SHA-256 `dc6eaf3c…`）、Automation `14770687052`（`9fd3f229…`）、Spec `14770501644`（`405eded…`）、course distribution evidence `14770806464`、course run evidence `14770443312`、cross-role DB digest `14769908244`／visual `14769958159`、Android production APK `14771290788`、iOS production app `14771073123`等。
 - Web production／automation各320件、Spec 116件、course evidence 7件のZIPはCRC正常。重複・unsafe path・symlink・禁止名・既知GitHub/OpenAI/Anthropic/AWS/Google/Slack/GitLab token・秘密鍵・主要個人メールpatternは0件。course manifestはHEAD一致、567配布file（Shop 320／local 142／external Skill 105）、同期前後hash一覧568行一致、manifest path重複・unsafe/forbidden pathは0件。別Build間ではShop 318/320のパスとSHAが一致し、hashed JS pathが1件欠落、`index.html`のSHAが不一致。完全な同一生成物比較とは扱わない。
 - course artifactはlearner template本体ではなくmanifest／hash一覧／knowledge graph evidenceのみ。画像118件のpixel/metadata確認は未実施。WSLからの再生成はcheckout外のLinux依存package pathがtargetへ混入してpath guardで停止し、CI Web ZIPをshopBuildとして使う再生成も`raw.githubusercontent.com`のDNS `EAI_AGAIN`により固定Skill取得で停止した。したがって1.2は部分走査のみで未受入。
-- Tutor／正式評価のfail-closed契約は最新ContractsでPASS。ただしProvider認証・料金・保持／削除条件の一次根拠と本人確認がないため、外部AIの実利用受入はBLOCKED。1.3/1.4の権利根拠は不足。7.1/7.2のマージ前review scopeはPASS、全正式Case独立結果reviewは後続。8.3はこのコードHEADでPASS、8.4は**未受入・マージ不可**。
+- Tutor／正式評価のfail-closed契約は当時のContractsでPASS。Provider認証・料金・保持／削除条件の一次根拠と本人確認は未確認だったが、2026-11-23本人決定により実Provider受入はPR #199のマージ前対象から除外した。固定Skillの1.3は本人決定でPASSへ更新し、生成商品画像9件を第三者権利未確認対象から除いた。1.4の現行未解決対象は冒頭の表に限定して記載する。7.1/7.2のマージ前review scopeはPASS、全正式Case独立結果reviewは後続。8.3はこのコードHEADでPASS、8.4は当時未受入だった。
 
 ### 後続へ移管する12個別条件と7.2の残範囲
 
@@ -183,13 +195,13 @@
 - [ ] **8.3** 作業1〜7の全変更が確定した**最終HEAD**の必須Web/Mobile CI・Artifactを照合する。（旧行183）
 - [ ] **8.4** 最終受入・公開権利・独立レビューとBLOCKED/FAILを整理し、マージ可否を根拠付きで判定する。（旧行185）
 
-## 元のマージ前受入条件（旧詳細・後続移管の根拠）
+## 元の受入条件（旧詳細・後続移管の履歴）
 
-以下は元の28条件の検証要件を保存した記録であり、B案で全項目をマージ前に完了するという意味ではない。マージ前の判断は冒頭の「B案：マージ前受入」に従う。
+以下は元の28条件と当時の受入時点を保存した記録であり、現行のマージ前条件を定める表ではない。1.2の受入時点、1.3の固定Skill判断、1.4の対象、実Provider受入の範囲については冒頭の2026-11-23本人決定を優先する。B案の現行マージ可否も冒頭の表を正本とする。
 
 - [ ] **1. 公開・配布成果物の非公開情報除外と第三者権利を受け入れる**（旧行137、178、226）
   - 同じ最終HEADの実Web Build、Template、配布manifest、CI Artifactを照合し、`assessment/reference-solutions/**`、`scoring-tests/**`、`completed-states/**`、完成spec・正式workflow・旧教材・個人成績、`.env`・認証情報・個人データの混入を検査する。既存の禁止パス・負例テストを再利用する。ファイルの存在を確認できない場合は安全と判定しない。
-  - 固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`と配布済みJS/フォント/画像等について、再配布できる権利者・出典・一次ライセンス・LICENSE/NOTICEの全件監査と配布先の表示を確認する。[固定Skill監査](../reports/2026-11-07_pr199-fixed-skill-license-audit.md)で許諾を確認できていないため、現在の公開判断は**BLOCKED**。不存在を権利侵害の証明とも許諾の証明とも扱わない。
+  - 当時は固定`qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324`等の許諾が未確認と記録した。固定13 Skillは2026-11-23の本人決定で本人著作物・learner MIT対象・配布意思ありと確定し、現在の1.3はPASS。第三者由来と示す具体的ファイルが確認された場合だけ個別に扱う。JS・フォント・Expo Router／React Navigation既存画像の第三者素材は1.4として別に扱う。不存在を侵害・許諾いずれかの証明としない。
   - **完了条件**：最終配布ファイルの一覧・除外/負例結果、第三者権利の一次根拠と必要通知、未許諾/BLOCKEDの解消。実際のPublic Template作成はマージ後の本人作業。
 
 - [ ] **2. 通常AIの送信・権限・保存と独立正式評価の分離を受け入れる**（旧行138、140、170、246、247）
@@ -243,7 +255,7 @@
 | 224 | Phase 1/2の本人提出物・非公開評価履歴をGit/PRなしでエクスポート/復元 | 本人ダウンロード、同一revision、既存ファイル非破壊、Secret拒否 |
 | 225 | 本人環境での11教材/22状態・Shop・SkillとWeb/Templateの版一致・操作 | 最終配布SHA/manifest、版不一致・画面幅・キーボード/a11y実操作 |
 
-第三者権利の**監査は作業1のマージ前必須条件**。本人の最終公開判断・Public Templateの実作成はマージ後。本人の実OpenCode会話・Provider保持条件・料金判断も、作業2/5で可能な開発側検証とは別に実受入する。後続項目を前倒しでPASSにしたり、開発側の残検証ごと後送りしたりしない。
+2026-11-23本人決定後の受入時点：1.2の未完了な配布物検査は[Issue #228](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/228)で継続し、Issueの完了はPASSへ自動換算しないが、**受入時点をPRマージ前からPublic Template等の外部配布前へ移す**。Issueで必要な実体検査と受入が済むまで未監査のTemplate・ZIP等を公開しない。1.3の固定13 Skillは本人決定と既存MITで受入済み。1.4の第三者素材確認は冒頭の表にある具体的な未解決対象に限って継続する。実OpenCode／Provider接続、認証、料金、保持／削除の実受入はPR #199のマージ前条件・実施範囲から除外し、未承認送信を拒否するfail-closed処理と拒否テストを維持する。後続12条件と本人受入6条件は別状態のまま保持し、今回の決定でPASSにしない。
 
 ## 完了済みの条件（再作業しない）
 

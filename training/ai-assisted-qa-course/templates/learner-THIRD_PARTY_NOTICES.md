@@ -1,6 +1,22 @@
 # 第三者ライセンス・著作権表示
 
-この配布物の `LICENSE` は、`ryu-yoshikawa-pro-vision` が許諾する権利を持つ独自の教材・コード・Skillに適用するMIT Licenseです。第三者の著作物や依存パッケージのライセンスをMITへ変更するものではありません。配布元のGitHub所有者名は個々の著作権者を証明しません。
+この配布物の `LICENSE` は、本人が権利を持つプロジェクト独自の教材・コード・Skillに適用するMIT Licenseです。ユーザー本人が作成した固定 `qa-workflow-skills` の13 Skill（commit `7cc6cba7772de549841a39d71694cbafbc783324`）も本人の著作物としてこのMIT Licenseの対象とし、本人は学習者Templateへの配布を承認しています。第三者の著作物や依存パッケージのライセンスをMITへ変更するものではありません。その他の素材については、配布元のGitHub所有者名だけで個々の著作権者を判断しません。
+
+## Codexによる生成画像の出典
+
+次の商品画像9件は、ユーザー本人の指示に基づきCodexを使用して生成したものです。この生成経緯を出典情報として記録し、外部画像サイトから取得した素材として扱いません。
+
+- `public/images/products/basic-shirt-front.a1b2c3.webp`
+- `public/images/products/basic-shirt-back.d4e5f6.webp`
+- `public/images/products/color-pouch.webp`
+- `public/images/products/compact-towel.webp`
+- `public/images/products/mug.11aa22.webp`
+- `public/images/products/premium-bag.webp`
+- `public/images/products/retired.55cc66.webp`
+- `public/images/products/running-shoes.33bb44.webp`
+- `public/images/products/training-wear.webp`
+
+第三者の既存作品を具体的に使用・複製した証拠が確認された場合に限り、その画像に対象を絞って出典と根拠を記録します。抽象的な可能性だけで同じ出典確認を繰り返しません。この扱いは、次節に記載するExpo Router／React Navigation等が配布する既存画像や、外部ライブラリのコード・素材には適用しません。
 
 ## 配布済みWebフォント
 
@@ -39,7 +55,7 @@ MITの全文はこの配布物の`LICENSE`にも含まれますが、元の著�
 
 ## その他の配布物
 
-- `.agents/skills/**` は[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)の[固定commit `7cc6cba7772de549841a39d71694cbafbc783324`](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/tree/7cc6cba7772de549841a39d71694cbafbc783324)から取得します。MIT対象となるのは権利者が許諾可能な自作部分のみです。外部から採用したコード・資料が含まれる場合は、その元ライセンスと表示を維持します。
+- `.agents/skills/**` は[qa-workflow-skills](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills)の[固定commit `7cc6cba7772de549841a39d71694cbafbc783324`](https://github.com/ryu-yoshikawa-pro-vision/qa-workflow-skills/tree/7cc6cba7772de549841a39d71694cbafbc783324)から取得する本人作成の13 Skillです。本人の決定により既存MIT Licenseの対象として学習者Templateへ配布します。第三者由来と確認できる個別ファイルがあれば、そのファイルの元ライセンス・表示を分けて扱います。
 - `course/shop/**` のJS/CSS/画像、依存ライブラリ、その他の第三者素材にはそれぞれの元ライセンスが適用されます。依存物と素材の全件確認は公開前監査の受入条件であり、この文書だけで全件の権利確認が完了したことにはなりません。
 
 公開・再配布前に、実際に生成した `course/shop/**` と配布manifestを照合し、含まれる第三者ファイルの表示とライセンスを確認してください。
