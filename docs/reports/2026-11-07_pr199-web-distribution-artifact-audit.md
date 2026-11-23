@@ -103,3 +103,70 @@
 - local regenerationも試した。通常`course:sync`はWSL checkout外のLinux依存package pathをShop assets由来のtarget pathへ変換し、distribution path guardが`course/shop/assets/______home/...`を拒否した。CI Web ZIPをShop buildに指定した再生成は、external fixed Skill fetchの`raw.githubusercontent.com` DNS `EAI_AGAIN`で停止。どちらもソース変更やArtifact内容の変換をせず、環境制約として記録。
 
 **B案1.2判定：未受入（BLOCKED、部分実検査のみ）。** Web/Specの取得ZIPとcourse evidenceの既知pattern・path検査は完了したが、実learner template payloadがCI Artifactに存在せず、template全体・画像の表示内容/metadataを検査できていない。再開条件は、最終HEADの実template/ZIPを再現可能なCI Artifactとして取得し、同一HEADでそのpayload全体と画像内容を確認すること。1.3/1.4の権利監査とは独立し、許諾を推測しない。
+
+## 2026-11-23 B案1.4：第三者ライセンス現行確認
+
+この追記はB案1.4の第三者ライセンス確認だけを扱う。配布物全体のSecret／PII監査である1.2は未受入のままIssue #228で継続する。
+
+### Expo Routerへ同梱されたReact Navigation画像5件
+
+候補HEAD `24944a73f769d32f38061a26fce5911e2cbb8bc5`のroot `pnpm-lock.yaml`は`expo-router@57.0.31`をtarball integrity `sha512-a1JskzAVbIFi9POmayde7U7TkvQHiK5NR2vqTeu4PbU+6oNg9dnsBRmP1kNimDjJJCj6VrGlKPhXASICeFOyYA==`で固定する。Expoの固定source commit `76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6`にある`packages/expo-router/package.json`はversion `57.0.31`・MITを示し、同commitの`src/react-navigation/elements/index.tsx`が下記の5 PNGをimportする。Expo package配下のPNGとReact Navigationの固定版`@react-navigation/elements@2.9.10`の各source PNGはGit blob SHA-1が全件一致した。
+
+React Navigationのversion tag `@react-navigation/elements@2.9.10`は署名検証済みannotated tagで、そのtag object `b4349722e9560f2ddbe8f2e6097b0605f053aec8`はcommit `69573410534dc9a467ace6e749e82d32058b3092`を指す。同commitの`packages/elements/package.json`はversion `2.9.10`・MIT、同directoryの`LICENSE`はCopyright (c) 2017 React Navigation ContributorsとMIT全文を示す。root lockfileにこのpackageの直接依存はなく、Expo Routerに同梱された画像sourceとして扱った。
+
+| PNG source | React NavigationとExpo Routerで一致したGit blob SHA-1 |
+| --- | --- |
+| `back-icon-mask.png` | `7c1fd8493d91711b33e87bd36d6e9ae4363ed656` |
+| `back-icon.png` | `17e52e8550e5668f7117bcb755beb70c3a21c9e9` |
+| `clear-icon.png` | `d9af7b68070ef97abf8b805a32b99bdb7e2c340d` |
+| `close-icon.png` | `34396d478f85572dd50c67a708cd3a752d785005` |
+| `search-icon.png` | `87a30caff95ccb0bc812f8ee77abbe8a7a8f0ac6` |
+
+一次根拠：[Expo Router 57.0.31 package metadata](https://github.com/expo/expo/blob/76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6/packages/expo-router/package.json)、[ExpoのReact Navigation Elements import](https://github.com/expo/expo/blob/76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6/packages/expo-router/src/react-navigation/elements/index.tsx)、[Expo root MIT LICENSE](https://github.com/expo/expo/blob/76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6/LICENSE)、[React Navigation Elements 2.9.10 metadata](https://github.com/react-navigation/react-navigation/blob/69573410534dc9a467ace6e749e82d32058b3092/packages/elements/package.json)、[同versionのLICENSE](https://github.com/react-navigation/react-navigation/blob/69573410534dc9a467ace6e749e82d32058b3092/packages/elements/LICENSE)。5件の個別比較は[learner NOTICE](../../training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md)にも記録した。
+
+`learner NOTICE`と`scripts/docs/repair-expo-router-web-assets.ts`が生成する`assets/expo-router/LICENSE`を同じ固定source／versionへ更新した。Build処理はpackage名・version `57.0.31`・MITのいずれかが一致しなければ停止し、contract testはNOTICEの固定commitとpackage version guardを確認する。
+
+### 現行Web Bundleの依存閉包
+
+現checkoutに`course/shop/**`はなく、既存ignored `dist/`のentry bundleを候補HEADから生成したとは確認できず、source mapも存在しない。候補HEAD `24944a73…`のGit archiveで`pnpm install --offline --frozen-lockfile --ignore-scripts`を試したが、pnpm storeに`@expo/metro-runtime@57.0.18`がなく`ERR_PNPM_NO_OFFLINE_TARBALL`で停止した。旧remote HEAD `00670f8ca016845e288f019ae5ad160ca1eca051`のWeb CI run `45071575804` artifact `14773985467`はGitHub download APIから一時file URIを取得できたものの、checkoutのツール群から内容を読み出せず、shell経由のsigned URL取得もhostのDNS解決に失敗した。artifactは候補HEADと異なり、候補由来source mapもない。したがってbundleのmodule closure、含有packageごとのfixed version、license本文とNOTICEの完全な対応は未確認。履歴HEAD `708c7be0…`のReact関連・`bezier-easing`表示を最新Bundleの全依存へ転用しない。
+
+**B案1.4判定：部分確認。React Navigation PNG5件の出典・version・MIT・著作権表示はPASS。Web Bundle依存閉包が未確認のため1.4全体はBLOCKED。** 必要な再開証拠は最終HEADのWeb production bundleとsource map（または同じ依存閉包を確定できるBuild証拠）、含有package一覧、versionごとのlicense／copyright／NOTICE対応である。未確認依存をMITと推定しない。商品画像9件のCodex生成出典および固定13 Skillの本人決定はこの監査に戻さない。
+
+### 2026-11-23 後続確認：凍結依存のWeb Bundle解析
+
+以下は先行節の「Bundle/source mapを確認できない」という当時の結果を保持したうえで、同日後続の追加確認を記録する。PR branchは`24944a73f769d32f38061a26fce5911e2cbb8bc5`を基点とし、lockfileを変更せず`pnpm install --frozen-lockfile --store-dir /tmp/qa-training-store-pr199-store`でNode `v24.22.2`／pnpm `10.34.5`を用意してWeb exportした。依存物のsource mapは一時領域にのみ生成し、CI/public artifactへsource mapを追加していない。
+
+| 証拠 | 実測 |
+| --- | --- |
+| Web export bundle | `entry-2eacba5967e32f773219f7b9a8ab134a.js`、source-map buildで3,739,363 bytes、SHA-256 `638f0265cceeb3aebe140366eb9b7af33d2696933f6550a68a183b8f633277bc` |
+| Source map | 13,936,040 bytes、SHA-256 `0b6bc4b6c3b7b9294c64621923fd29b4b03bcd8bad5a3b8e513e60e6841d4027`、2,326 source entries、61 package/version |
+| frozen dependency records | root `pnpm-lock.yaml` tarball integrityと解決済み`node_modules` metadata／LICENSE・NOTICEを照合。MIT、Apache-2.0、BSD-3-Clauseのライセンス全文と確認できた著作権表示をlearner NOTICEへ記録 |
+| 旧HEADのCI Web Artifact | Run `45135921223`、artifact `14799488416`、GitHub SHA-256 `b2adea79b56a1686c542537e2f746da84209a345b452ca20bb6767e7ab4823d1`と取得ZIPのhashが一致。320 entries、symlinkなし、source mapなし。`_expo/static/js/web/entry-570e4a28f5ddd4b416fb29b6de7f6f8e.js`は3,739,296 bytes、SHA-256 `4ae89b2284098840098997e3c6455667daddc55f8d7739ed30c5963ab881e455` |
+
+source-mapped local buildは調査用の再現可能な解析出力であり、GitHub production artifactとbyte-identicalとは扱わない。旧HEADのGitHub artifactにはWeb entry bundleと画像用`assets/expo-router/LICENSE`だけがあり、全依存のnotice/mapは含まない。新しい`repairExpoRouterWebAssets`はTemplateの固定区画を`dist/THIRD_PARTY_NOTICES.md`へ生成するため、今回追加commitのWeb CI Artifactで実出力を確認する。
+
+Bundle source mapで確認した`client-only@0.0.1`は空の`index.js`のみで、`error.js`は含まれず、当該package由来のsource byteはない。対して`standard-navigation@0.0.5`の`lib/src/index.js`は186 bytesでBundleに含まれる。package metadataはMIT・author `Satyajit Sahoo`を示すが、解決済みpackage内にLICENSE／著作権表示がなく、固定source tree [commit `0016fae7800b9f27bab91326697b740a6d2266dc`](https://github.com/react-navigation/standard-navigation/tree/0016fae7800b9f27bab91326697b740a6d2266dc)にもLICENSEがない。author metadataを著作権根拠へ読み替えない。これが現時点で特定した具体的な未解決対象であり、権利侵害を確認したとの結論ではない。
+
+**2026-11-23現行1.4判定：BLOCKED。** 依存閉包の大部分、実バージョン、宣言ライセンス、確認できた著作権表示と必要ライセンス全文は通知へ反映したが、`standard-navigation@0.0.5`に適用する著作権表示を特定できない。外部Web配布は行わない。再開条件は当該packageの権利者による一次著作権表示根拠を取得して通知へ記録するか、承認済み製品変更で当該コードがBundleから除外されたことを新しい最終HEADで確認すること。後者はPR #199の製品SUT変更境界外である。
+
+### 2026-11-23 追加review指摘：OFLフォント通知出力
+
+独立の差分reviewで、Web Buildが同梱する`@fontsource/inter@5.3.0`および`@fontsource/noto-sans-jp@5.3.0`の12 font filesについて、`learner NOTICE`のOFL-1.1節が公開通知markerの外にあり、Build生成物にライセンス全文が含まれない指摘を受けた。OFL本文は既存の`learner-OFL-1.1.txt`を正本としている。
+
+修正ではWeb font 2系統の版・12ファイルpattern・元copyright／Reserved Font Name・OFL-1.1をpublic Web notice区画へ追加し、postprocessorが固定Templateの区画を`dist/THIRD_PARTY_NOTICES.md`へ、OFL本文を検証後`dist/OFL-1.1.txt`へ出力するようにした。空のWeb JS directoryではbundle通知を出力しない。contract testはmarker抽出、OFL file copy、empty JS directory、Expo Router 12画像と既存拒否ケースを含む8/8 PASS。実Web Buildでdist内の両通知ファイルと12 font assetsが揃うことは、この追記時点では未実行で、後続`build:web`で確認する。
+
+この追加表示契約は先行1.4判定の根拠を更新するが、`standard-navigation@0.0.5`の著作権表示不足を解消しない。したがって1.4は引き続きBLOCKEDで、外部配布は不可。
+
+### 2026-11-23 local candidate Web Buildの出力確認
+
+復元した10ファイルを含むlocal candidateを、frozen-lockfile依存で`pnpm run verify`後に`pnpm run build:web`で再生成した。NOTICE重複行整理後のBuildもexit 0。Web JavaScriptは`dist/_expo/static/js/web/entry-2eacba5967e32f773219f7b9a8ab134a.js`（3,739,226 bytes、SHA-256 `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`）。`dist/THIRD_PARTY_NOTICES.md`は24,009 bytes（SHA-256 `4a0970b8770c771bd759a8cd5a63adf834a8132f2d6a39d4c157e858536d2fc8`）で、public marker内の配布通知を生成した。`dist/OFL-1.1.txt`は4,004 bytes、SHA-256 `92df93e7fa51c9c96dea4f8d3149f79be3407162f805595e60c7c2a17e314deb`で、Templateの`learner-OFL-1.1.txt`とbyte-identical。12 font assetsとReact Navigation PNG5件がdistに存在した。
+
+生成NOTICE inventoryは61 unique package/versionに重複がなく、`client-only@0.0.1`と`standard-navigation@0.0.5`の記載は各1行。`client-only`のpackage source bytesはBundleにない一方、`standard-navigation@0.0.5`の186-byte sourceはBundleに含まれる。このpackageのMIT metadataは確認済みだが、適用可能なcopyright noticeを確認できないため、外部配布を停止しB案1.4はBLOCKEDのまま。権利侵害を確認したとの判断ではない。
+
+このBuildはGitHub CI Artifactではなく、push前のlocal candidateの証拠である。最終commit後の同一HEAD CI Artifact／SHAは別途8.3で確認し、旧HEAD `24944a73…` のCI結果・Artifactを転用しない。
+
+### 2026-11-23 symlink出力先review指摘と修正
+
+独立レビューで、`existsSync`がdangling symlinkをfalseと扱うため、NOTICE/OFLの`writeFileSync`がlink targetへ書き込める経路を指摘された。`repairExpoRouterWebAssets`に出力dirとJS出力までの各path componentを`lstat`で確認するguardを追加し、生成NOTICE/OFLのdestinationも`lstat`で存在確認してsymlink・非regular fileを拒否する。ENOENTだけを未存在として扱う。契約テストにdangling NOTICE symlinkおよびsymlink dist rootの拒否・外部targetが作られないassertionを追加した。focused `web-public-build.test.ts`は10/10 PASS。独立レビュアーは修正後の2負例と出力経路を確認し、P0–P2指摘なしと報告。修正後`pnpm run verify`もexit 0（Contracts 125 files、1,456 passed／7 skipped、unit 66、integration 197、repository 150／1 skip、component web 127／native 92、Build含む）。
+
+修正前の`pnpm run verify`はexit 0（125 files、1,454 pass／7 skip、Web/Spec Build含む）だったが、その後にこのP2修正を加えたため、修正後結果で置き換えず別の実行証拠として扱う。GitHub CI Artifactはまだ追加commit前で未確認。

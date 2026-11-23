@@ -33,16 +33,25 @@ function fixture(): string {
   roots.push(root);
   fs.mkdirSync(path.join(root, "node_modules/expo-router/assets"), { recursive: true });
   fs.mkdirSync(path.join(root, "dist/_expo/static/js/web"), { recursive: true });
+  fs.mkdirSync(path.join(root, "training/ai-assisted-qa-course/templates"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md"),
+    "Before\n<!-- BEGIN PUBLIC WEB THIRD-PARTY NOTICES -->\n# Web notices\nNotice text\n<!-- END PUBLIC WEB THIRD-PARTY NOTICES -->\nAfter\n",
+  );
+  fs.writeFileSync(
+    path.join(root, "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt"),
+    "SIL OPEN FONT LICENSE Version 1.1\nFull license text\n",
+  );
   fs.writeFileSync(
     path.join(root, "node_modules/expo-router/package.json"),
-    JSON.stringify({ name: "expo-router", license: "MIT" }),
+    JSON.stringify({ name: "expo-router", version: "57.0.31", license: "MIT" }),
   );
   return root;
 }
 
 function imageUri(name: string): string {
   return (
-    "/assets/node_modules/.pnpm/expo-router@57.0.29_abcd/node_modules/expo-router/assets/" +
+    "/assets/node_modules/.pnpm/expo-router@57.0.31_abcd/node_modules/expo-router/assets/" +
     name +
     "." +
     metroHash +
@@ -59,6 +68,59 @@ afterEach(() => {
 });
 
 describe("public Web export dependencies", () => {
+  it("copies only the marked third-party notice section for every Web bundle", () => {
+    const root = fixture();
+    bundle(root, "const value = 1;");
+    expect(repairExpoRouterWebAssets(root)).toBe(0);
+    expect(fs.readFileSync(path.join(root, "dist/THIRD_PARTY_NOTICES.md"), "utf8")).toBe(
+      "# Web notices\nNotice text\n",
+    );
+    expect(fs.readFileSync(path.join(root, "dist/OFL-1.1.txt"), "utf8")).toBe(
+      "SIL OPEN FONT LICENSE Version 1.1\nFull license text\n",
+    );
+  });
+
+  it("does not publish bundle notices when the Web JavaScript directory is empty", () => {
+    const root = fixture();
+    expect(repairExpoRouterWebAssets(root)).toBe(0);
+    expect(fs.existsSync(path.join(root, "dist/THIRD_PARTY_NOTICES.md"))).toBe(false);
+    expect(fs.existsSync(path.join(root, "dist/OFL-1.1.txt"))).toBe(false);
+  });
+
+  it("rejects a dangling notice symlink without writing through it", () => {
+    const root = fixture();
+    bundle(root, "const value = 1;");
+    const destination = path.join(root, "dist/THIRD_PARTY_NOTICES.md");
+    const outside = path.join(root, "outside-notices.md");
+    fs.symlinkSync(outside, destination, "file");
+    expect(() => repairExpoRouterWebAssets(root)).toThrow(/Invalid Web notice destination/);
+    expect(fs.existsSync(outside)).toBe(false);
+    expect(fs.lstatSync(destination).isSymbolicLink()).toBe(true);
+  });
+
+  it("rejects a symlinked Web output directory before writing through it", () => {
+    const root = fixture();
+    const dist = path.join(root, "dist");
+    const originalDist = path.join(root, "original-dist");
+    const outsideDist = path.join(root, "outside-dist");
+    fs.renameSync(dist, originalDist);
+    fs.mkdirSync(path.join(outsideDist, "_expo/static/js/web"), { recursive: true });
+    fs.symlinkSync(outsideDist, dist, process.platform === "win32" ? "junction" : "dir");
+    expect(() => repairExpoRouterWebAssets(root)).toThrow(/Invalid Web output directory/);
+    expect(fs.existsSync(path.join(outsideDist, "THIRD_PARTY_NOTICES.md"))).toBe(false);
+  });
+
+  it("rejects ambiguous third-party notice markers", () => {
+    const root = fixture();
+    bundle(root, "const value = 1;");
+    const source = path.join(
+      root,
+      "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md",
+    );
+    fs.appendFileSync(source, "\n<!-- BEGIN PUBLIC WEB THIRD-PARTY NOTICES -->\n");
+    expect(() => repairExpoRouterWebAssets(root)).toThrow(/exactly one start and end marker/);
+  });
+
   it("rewrites all 12 known Expo Router image URIs and includes their MIT license", () => {
     const root = fixture();
     for (const image of expoAssets) {
@@ -82,8 +144,35 @@ describe("public Web export dependencies", () => {
     }
     expect(rewritten).not.toContain("/assets/node_modules/");
     expect(fs.existsSync(path.join(root, "dist/assets/node_modules"))).toBe(false);
-    expect(fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8")).toContain(
-      "React Navigation Contributors",
+    const notice = fs.readFileSync(path.join(root, "dist/assets/expo-router/LICENSE"), "utf8");
+    expect(notice).toBe(
+      [
+        "Expo Router 57.0.31 source: https://github.com/expo/expo/tree/76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6/packages/expo-router",
+        "React Navigation Elements 2.9.10 source: https://github.com/react-navigation/react-navigation/tree/69573410534dc9a467ace6e749e82d32058b3092/packages/elements",
+        "MIT License",
+        "",
+        "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
+        "Copyright (c) 2017 React Navigation Contributors",
+        "",
+        "Permission is hereby granted, free of charge, to any person obtaining a copy",
+        'of this software and associated documentation files (the "Software"), to deal',
+        "in the Software without restriction, including without limitation the rights",
+        "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell",
+        "copies of the Software, and to permit persons to whom the Software is",
+        "furnished to do so, subject to the following conditions:",
+        "",
+        "The above copyright notice and this permission notice shall be included in all",
+        "copies or substantial portions of the Software.",
+        "",
+        'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR',
+        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,",
+        "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE",
+        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER",
+        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+        "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE",
+        "SOFTWARE.",
+        "",
+      ].join("\n"),
     );
     expect(repairExpoRouterWebAssets(root)).toBe(0);
   });
@@ -112,12 +201,17 @@ describe("public Web export dependencies", () => {
     fs.writeFileSync(path.join(root, "node_modules/expo-router/assets/error.png"), png);
     fs.writeFileSync(
       path.join(root, "node_modules/expo-router/package.json"),
-      JSON.stringify({ name: "expo-router", license: "unknown" }),
+      JSON.stringify({ name: "expo-router", version: "57.0.31", license: "unknown" }),
     );
-    expect(() => repairExpoRouterWebAssets(root)).toThrow(/license/);
+    expect(() => repairExpoRouterWebAssets(root)).toThrow(/pinned version and MIT license/);
     fs.writeFileSync(
       path.join(root, "node_modules/expo-router/package.json"),
-      JSON.stringify({ name: "expo-router", license: "MIT" }),
+      JSON.stringify({ name: "expo-router", version: "57.0.30", license: "MIT" }),
+    );
+    expect(() => repairExpoRouterWebAssets(root)).toThrow(/pinned version/);
+    fs.writeFileSync(
+      path.join(root, "node_modules/expo-router/package.json"),
+      JSON.stringify({ name: "expo-router", version: "57.0.31", license: "MIT" }),
     );
     bundle(root, 'uri:"/assets/node_modules/.pnpm/unknown@1.0/node_modules/unknown/file.png"');
     expect(() => repairExpoRouterWebAssets(root)).toThrow(/Unresolved internal/);

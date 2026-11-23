@@ -58,3 +58,51 @@
 - PR #199/Issue #228の現在情報を取得。PRはOPEN、head `00670f8ca016845e288f019ae5ad160ca1eca051`、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。ローカルHEADとPR HEADは一致。`git fetch origin`は`.git/worktrees/.../FETCH_HEAD` read-onlyのため通常実行失敗。リモート状態はGitHub PR APIで一致を確認した。
 - Issue #228はOPENで、旧本文は1.2を「マージ前必須」としていたため、本人決定に合わせ受入時点を公開前へ訂正。Issueは閉じていない。
 - 2026-11-23本人決定に基づく解釈は、1.2を公開前条件として保持しつつマージ前条件から除外すること。1.3は固定Skillに限りPASS、1.4は具体的に記載した第三者素材のみ継続。
+
+## 2026-11-23 継続：B案1.4・push・最新CI・8.4
+
+### Goal（目的）
+
+- 固定されたReact Navigation PNG5件の出典・MIT表示を確定し、1.4の残るWeb Bundle依存閉包を証拠に基づいて判定する。既存commit `24944a73f769d32f38061a26fce5911e2cbb8bc5`を保持し、必要な変更を通常pushして最新HEADの必須CIとマージ前可否を確認する。
+
+### 対象と除外
+
+- In: `scripts/docs/repair-expo-router-web-assets.ts`、`tests/contracts/web-public-build.test.ts`、learner NOTICE、既存統合受入Plan・継続手順・Web distribution audit、active Run。push対象は既存PR branchのみ。最終CI記録はPR本文へ追記する。
+- Out: PR #199 merge/close、main変更、force/reset/rebase、外部公開、Provider接続・課金、SUT・正式仕様・Seed/Reset・既存製品テスト、1.2配布物の再監査、固定Skill・Codex生成画像の再確認。
+
+### 確認済み事実と未知点
+
+- PRはOPEN、remote head `00670f8ca016845e288f019ae5ad160ca1eca051`、local candidate `24944a73f769d32f38061a26fce5911e2cbb8bc5`、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。GitHub APIでhead/baseを確認。`git fetch`は`.git` read-only、`git ls-remote`はこの環境のGitHub DNS解決失敗。remote updateはAPIで照合を続け、latest SHAが予期せず変わればpushしない。
+- React Navigation source tag `@react-navigation/elements@2.9.10`は署名検証済みtag objectで、commit `69573410534dc9a467ace6e749e82d32058b3092`を指す。5 PNG blob SHA-1はExpo Router 57.0.31 source commit `76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6`と一致。両LICENSEと著作権表示はMITで一致する。
+- `course/shop/**`は現在のcheckoutに存在せず、ignored `dist/`はcandidate HEAD由来と確認できずsource mapなし。isolated archiveの`pnpm install --offline --frozen-lockfile --ignore-scripts`は`@expo/metro-runtime@57.0.18` tarball欠落で失敗。旧remote HEAD `00670f8c…`のWeb CI run `45071575804` artifact `14773985467`はGitHub download APIから一時file URIを得たが、このcheckoutで読み出す経路がなく、shellからsigned URLを取得する試みはDNS解決失敗。旧SHAのartifactで候補HEADの依存閉包は証明できず、1.4全体はBLOCKED。
+- User explicitly authorizes ordinary push to existing PR branch in this turn. Push前にGitHub APIでOPEN/head/base、ancestor、clean scopeを確認する。`git fetch`/`ls-remote`の環境制約を権限変更で回避しない。
+
+### 変更・検証方針
+
+- Buildが誤ったversionのMIT noticeを出力しないよう、generatorにExpo Router 57.0.31/version guardと固定source linksを保持し、contract testで生成NOTICEと不一致version拒否を確認する。
+- PNG5件とWeb Bundle依存閉包の判定を統合Plan/NOTICE/既存監査記録へ分けて記録する。独立reviewerはこの限定差分だけを確認する。
+- focused contract、format/markdown/text/security、diff、Run sanitizer/strict collectorを実行する。`verify`はlockfile依存が正確にインストール済みの場合のみ実行し、実施・終了コードを記録する。
+- scope内変更をcommitした後、現在のPR branchへ通常pushする。push後にhead SHAを3経路で照合し、`wait_for_required_ci`をそのSHAで1回使用する。Web/Mobileのjob・artifact・Windows/Linux関連テスト・skipを同一SHAで確認する。
+- 1.2はIssue #228に未受入のまま残す。1.3は固定13 SkillのPASS、Provider実受入は除外、7.1/7.2既存レビューは範囲を維持する。最新差分の独立確認と8.3が揃わない場合8.4は未受入／マージ不可。
+
+### 次の再開条件
+
+- 1.4全体のBLOCKED解消には、最終HEADから生成されたWeb production Bundleとsource mapまたは同等の全依存証拠の取得が必要。これがない間、Web依存closureはPASSにしない。
+
+### 2026-11-23 push後の確認
+
+- ユーザー報告後にGitHub PR APIでPR OPEN、remote HEAD `24944a73f769d32f38061a26fce5911e2cbb8bc5`、base/main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`を確認。元のローカルcommitがPRへpushされた。
+- このRunで作成した追加10ファイル差分は未commit・未push。sandboxは`.git`をread-onlyにしており、`git add`はlock存在時とread-only filesystemの両方で失敗。権限変更、lock削除、API ref更新をせず保持。
+- `wait_for_required_ci`を最新remote SHA `24944a73…`で1回実行したが長時間結果が返らず停止。Web/Mobile run ID・conclusion・Artifactは未取得。独自ポーリングへ切り替えない。
+- PR本文冒頭にremote HEADの確認、CI未確認、1.4/8.4未受入、ローカル追加差分未反映を追記。既存受入履歴は履歴として残した。
+- 受入状態：1.2 Issue #228の公開前未受入、1.3固定Skill 13件PASS、1.4 BLOCKED、8.3未確認、8.4未受入・マージ不可。
+
+
+## 2026-11-23 21:08 JST 最終local検証checkpoint
+
+- PR #199のremote/PR HEADは作業開始時点で`24944a73f769d32f38061a26fce5911e2cbb8bc5`、OPEN、branch/upstream一致、main `b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`。元checkout `.git`はread-only。未commit 10ファイルをsha256 `29f8e8a2f395e28784b7467f388f9c08fb735dc653ad1ab7f00f96865f7db04e`のpatchで`<REPO_ROOT>`へ復元し、元checkoutは未変更。
+- lockfile準拠のNode `v24.22.2`／pnpm `10.34.5`依存を使用。`pnpm run verify`修正後最終実行はexit 0。Contracts 125 files、1,456 passed／7 skipped、unit 66、Integration 197、Repository 150／1 skip、Component Web 127／Native 92。typecheck／validation／security／Web Build／Spec Buildを含み、ESLint 93 warnings／0 errors。
+- `web-public-build.test.ts` 10/10。新規symlink findingに対し出力dir path componentと生成通知先を`lstat`で確認し、dangling file symlinkおよびdist root symlinkを拒否。独立レビュアーは修正後2経路を確認し、P0–P2指摘なし。固定NOTICE/OFL入力は現在通常file。レビューで残ったTOCTOU注意はdistを同時変更可能な別processを前提とするもので、今回build契約の失敗とは判定されていない。
+- 最終local Web BuildのJSは`entry-2eacba5967e32f773219f7b9a8ab134a.js` 3,739,226 bytes、SHA-256 `611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`。distのNOTICE SHA-256 `4a0970b8770c771bd759a8cd5a63adf834a8132f2d6a39d4c157e858536d2fc8`はpublic marker部分と完全一致し、package/version inventory 61行／61 unique。OFL本文4,004 bytesは正本とbyte-identical、OFL font 12 filesとReact Navigation PNG 5 filesを確認。
+- 1.4は`standard-navigation@0.0.5`の186-byte moduleがBundleに存在するがcopyright noticeを確認できずBLOCKED。MIT metadataとpackage authorだけでは必要なcopyright displayを補わない。権利侵害を断定しない。公開・配布停止を保持する。8.3/8.4はlocalでは判定せず、追加commit/push後の同一PR HEAD CIが必要。
+- Scope: 10 files、製品SUT／docs/spec／Seed/Reset／main-owned tests／lockfile変更なし。Run sanitizerは5 files、5 replacements、residual 0でPASS。strict collectorもexit 0。次は明示stage・commit、直前PR API/remote head確認後の通常push、new SHAのWeb/Mobile CI、PR本文先頭更新。

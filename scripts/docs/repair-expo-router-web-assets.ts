@@ -6,9 +6,15 @@ import path from "node:path";
 const ASSET_URI = /\/assets\/node_modules\/\.pnpm\/expo-router@[^/"'\s]+\/node_modules\/expo-router\/assets\/((?:[a-z0-9_-]+\/)*[a-z0-9_-]+)\.[a-f0-9]{32}\.png/g;
 const PNG_HEADER = Buffer.from("89504e470d0a1a0a", "hex");
 const EXPORTED_ROUTER_PNG = /^\.pnpm\/expo-router@[^/]+\/node_modules\/expo-router\/assets\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.[a-f0-9]{32}(?:@[0-9.]+x)?\.png$/;
+const EXPO_ROUTER_VERSION = "57.0.31";
+const THIRD_PARTY_NOTICE_MARKERS = {
+  start: "<!-- BEGIN PUBLIC WEB THIRD-PARTY NOTICES -->",
+  end: "<!-- END PUBLIC WEB THIRD-PARTY NOTICES -->",
+};
+const WEB_FONT_LICENSE = "SIL OPEN FONT LICENSE Version 1.1";
 const NOTICE = [
-  "Expo Router: https://github.com/expo/expo/tree/main/packages/expo-router",
-  "React Navigation: https://github.com/react-navigation/react-navigation",
+  "Expo Router 57.0.31 source: https://github.com/expo/expo/tree/76abe9f526cfd8f035d26f9b46ef2c6586b0c1f6/packages/expo-router",
+  "React Navigation Elements 2.9.10 source: https://github.com/react-navigation/react-navigation/tree/69573410534dc9a467ace6e749e82d32058b3092/packages/elements",
   "MIT License",
   "",
   "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
@@ -33,6 +39,70 @@ const NOTICE = [
   "SOFTWARE.",
   "",
 ].join("\n");
+
+function lstatIfPresent(filePath: string): fs.Stats | undefined {
+  try {
+    return fs.lstatSync(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+function assertSafeDirectoryPath(baseDir: string, directory: string, label: string): boolean {
+  const relative = path.relative(baseDir, directory);
+  if (path.isAbsolute(relative) || relative === ".." || relative.startsWith(".." + path.sep)) {
+    throw new Error("Web " + label + " escapes the output directory");
+  }
+  let current = baseDir;
+  for (const part of relative ? relative.split(path.sep) : []) {
+    current = path.join(current, part);
+    const metadata = lstatIfPresent(current);
+    if (!metadata) return false;
+    if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
+      throw new Error("Invalid Web " + label + " directory");
+    }
+  }
+  return true;
+}
+
+function writeGeneratedFile(destination: string, content: string, label: string): void {
+  const metadata = lstatIfPresent(destination);
+  if (metadata && (metadata.isSymbolicLink() || !metadata.isFile())) {
+    throw new Error("Invalid Web " + label + " destination");
+  }
+  fs.writeFileSync(destination, content, "utf8");
+}
+
+function copyWebThirdPartyNotices(rootDir: string, distDir: string): void {
+  const source = path.join(
+    rootDir,
+    "training/ai-assisted-qa-course/templates/learner-THIRD_PARTY_NOTICES.md",
+  );
+  const markdown = fs.readFileSync(source, "utf8");
+  const startMatches = markdown.split(THIRD_PARTY_NOTICE_MARKERS.start).length - 1;
+  const endMatches = markdown.split(THIRD_PARTY_NOTICE_MARKERS.end).length - 1;
+  if (startMatches !== 1 || endMatches !== 1) {
+    throw new Error("Web third-party notice must contain exactly one start and end marker");
+  }
+  const start = markdown.indexOf(THIRD_PARTY_NOTICE_MARKERS.start);
+  const contentStart = start + THIRD_PARTY_NOTICE_MARKERS.start.length;
+  const end = markdown.indexOf(THIRD_PARTY_NOTICE_MARKERS.end);
+  if (end <= contentStart) throw new Error("Web third-party notice markers are out of order");
+  const content = markdown.slice(contentStart, end).trim();
+  if (!content) throw new Error("Web third-party notice section is empty");
+  writeGeneratedFile(path.join(distDir, "THIRD_PARTY_NOTICES.md"), content + "\n", "notice");
+
+  const fontLicenseSource = path.join(
+    rootDir,
+    "training/ai-assisted-qa-course/templates/learner-OFL-1.1.txt",
+  );
+  const fontLicense = fs.readFileSync(fontLicenseSource, "utf8");
+  if (!fontLicense.startsWith(WEB_FONT_LICENSE)) {
+    throw new Error("Web font OFL-1.1 license could not be verified");
+  }
+  writeGeneratedFile(path.join(distDir, "OFL-1.1.txt"), fontLicense, "font license");
+}
 
 function bundledJavaScript(directory: string): string[] {
   const files: string[] = [];
@@ -76,9 +146,12 @@ function removeInternalExpoRouterImages(distDir: string): void {
 }
 
 export function repairExpoRouterWebAssets(rootDir: string, distDir = path.join(rootDir, "dist")): number {
+  if (!assertSafeDirectoryPath(rootDir, distDir, "output")) return 0;
   const jsRoot = path.join(distDir, "_expo/static/js/web");
-  if (!fs.existsSync(jsRoot)) return 0; // build:docs may run without Expo export
+  if (!assertSafeDirectoryPath(distDir, jsRoot, "JavaScript output")) return 0; // build:docs may run without Expo export
   const scripts = bundledJavaScript(jsRoot);
+  if (scripts.length === 0) return 0; // an empty directory is not a Web bundle
+  copyWebThirdPartyNotices(rootDir, distDir);
   if (
     !scripts.some((script) => fs.readFileSync(script, "utf8").includes("/assets/node_modules/")) &&
     !fs.existsSync(path.join(distDir, "assets/node_modules"))
@@ -88,10 +161,15 @@ export function repairExpoRouterWebAssets(rootDir: string, distDir = path.join(r
   const packageRoot = fs.realpathSync(path.join(rootDir, "node_modules/expo-router"));
   const metadata = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")) as {
     name?: string;
+    version?: string;
     license?: string;
   };
-  if (metadata.name !== "expo-router" || metadata.license !== "MIT") {
-    throw new Error("Expo Router's MIT license could not be verified");
+  if (
+    metadata.name !== "expo-router" ||
+    metadata.version !== EXPO_ROUTER_VERSION ||
+    metadata.license !== "MIT"
+  ) {
+    throw new Error("Expo Router's pinned version and MIT license could not be verified");
   }
   const assetsRoot = fs.realpathSync(path.join(packageRoot, "assets"));
   const published = new Set<string>();

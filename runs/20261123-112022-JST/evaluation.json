@@ -2,15 +2,14 @@
   "schema_version": 1,
   "run_id": "20261123-112022-JST",
   "result": "partial",
-  "primary_failure_category": "unsafe_action_blocked",
+  "primary_failure_category": "missing_validation",
   "failure_categories": [
-    "unsafe_action_blocked",
     "missing_validation"
   ],
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "本人確定事項をPlan、継続手順、監査記録、learner NOTICE、AGENTS、Issue #228、PR本文へ反映した。ローカルcommit後のPR branch pushと同一HEAD CIは、過去の明示承認条件のため保留。"
+      "evidence": "未commit 10ファイルを保護して書き込み可能cloneへhash照合復元し、PNG5件・Web 61 package/version・NOTICE/OFL生成とsymlink拒否を実装／文書化した。修正後pnpm run verifyはexit 0、focused contract 10/10。commit/push、新SHA GitHub CI、PR本文更新は未実施。standard-navigation@0.0.5の適用copyright noticeは未確認のためB案1.4 BLOCKED。 Run sanitizer 5 files/5 replacements/0 residual、strict collector exit 0。"
     },
     "scope_control": {
       "rating": "pass",
@@ -18,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Prettier、Markdownlint、lint:text、security:check、git diff --checkはPASS。PR branchへ変更をpushしていないため、新HEADのGitHub Actions結果はない。"
+      "evidence": "lockfile準拠Node 24.22.2/pnpm 10.34.5でpnpm run verify exit 0、125 contract files 1,456 pass/7 skipped、Unit 66、Integration 197、Repository 150/1 skip、Component Web 127/Native 92、typecheck、security、Web/Spec Buildを確認。追加差分のGitHub CIは未実行で8.3未達。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -26,7 +25,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "現行本人決定、過去監査、現行受入判定をPlan・監査文書・NOTICEで区別し、PR本文にも旧HEADのCI・受入結果を履歴として維持した。"
+      "evidence": "独立レビュアーがP1/P3修正と最終symlink P2修正を再確認し、2拒否ケースを含む現行経路にP0-P2指摘なしと報告。レビュー側はテスト未実行、親がfocused 10/10を確認。"
     },
     "maintainability": {
       "rating": "pass",
@@ -34,15 +33,21 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "文書品質・security scanとRun sanitizerを再実行可能なコマンドで確認した。git fetchはread-only .gitのため失敗し、GitHub PR APIでremote SHAを確認した。push後CIは未実施。"
+      "evidence": "同一local candidate・frozen lockfileでbuildとverifyを再実行し、生成NOTICE/OFL byte/hashを確認。GitHub PR SHAは作業開始時点で24944a73、最終追加commit前のためGitHub run/artifact証拠は未取得。"
     }
   },
   "findings": [
     {
-      "category": "unsafe_action_blocked",
-      "severity": "medium",
-      "evidence": "以前のPR #199継続指示はremote pushに当該操作の明示承認を求めており、今回の指示はPR merge/close/publication/force pushを禁止する一方、通常pushを明示承認していない。",
-      "detail": "通常pushおよび新HEAD CIを保留し、ローカルcandidateとPR本文の未同期状態を明記する。再開にはPR branchへの通常pushの明示承認が必要。"
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "PR開始時のHEAD 24944a73f769d32f38061a26fce5911e2cbb8bc5に対するWeb/Mobile CI successは旧SHA限定。今回の追加差分は未commit/pushで、同一SHA CIは未実行。",
+      "detail": "通常commit/push後にPR HEADと一致するWeb CI、Mobile App CIおよび必要Artifactを確認し、PR本文へ記録する。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "Web source mapでstandard-navigation@0.0.5 lib/src/index.js 186 bytesを特定。package metadataはMIT/authorを示すが、解決済みpackageと固定source treeで適用可能なcopyright notice/LICENSE根拠は見つからない。",
+      "detail": "権利者の一次copyright notice根拠を取得するか、別途承認された製品変更でbundleからmoduleを除く必要がある。外部配布を停止し、権利侵害と断定せずB案1.4をBLOCKEDに保つ。"
     }
   ],
   "improvement_candidates": []
