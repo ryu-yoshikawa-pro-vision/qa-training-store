@@ -9,7 +9,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "未commit 10ファイルを保護して書き込み可能cloneへhash照合復元し、PNG5件・Web 61 package/version・NOTICE/OFL生成とsymlink拒否を実装／文書化した。修正後pnpm run verifyはexit 0、focused contract 10/10。commit/push、新SHA GitHub CI、PR本文更新は未実施。standard-navigation@0.0.5の適用copyright noticeは未確認のためB案1.4 BLOCKED。 Run sanitizer 5 files/5 replacements/0 residual、strict collector exit 0。"
+      "evidence": "元read-only checkoutを維持し、10ファイルをpatch SHA-256照合して専用cloneへ復元。React Navigation PNG5件の固定出典と、frozen lockfile Web source mapに基づく61 package/version解析を記録。commit dc9408b90f8009cb8d87de2e774306e4ca392682は通常push済み。Web CI 45172067403はNOTICEメールpatternでFAIL、Mobile 45172067487は最終SUCCESS。連絡先メールのみを除き、swmansion.com出典を保持したNOTICE修正を作成。再Build、format/markdown/text/security、focused contract 10/10はPASS。clean distribution gate、修正head CI、PR本文更新は未完了。standard-navigation@0.0.5の適用copyright notice未確認で1.4 BLOCKED。"
     },
     "scope_control": {
       "rating": "pass",
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "lockfile準拠Node 24.22.2/pnpm 10.34.5でpnpm run verify exit 0、125 contract files 1,456 pass/7 skipped、Unit 66、Integration 197、Repository 150/1 skip、Component Web 127/Native 92、typecheck、security、Web/Spec Buildを確認。追加差分のGitHub CIは未実行で8.3未達。"
+      "evidence": "修正後candidateでpnpm run build:web exit 0、NOTICEの生成hash確認、email pattern scan 0 hits、web-public-build contract 10/10、format:check、lint:markdown 653/0、lint:text changed 4、lint:text:all 232、security:check 236 runtime/549 credential scan、diff check PASS。修正前にpnpm run verify全体もpassしているが、email-only NOTICE修正後のfull verifyとclean course distribution gateは未実施。final-head CIはまだ未実施。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -33,21 +33,27 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "同一local candidate・frozen lockfileでbuildとverifyを再実行し、生成NOTICE/OFL byte/hashを確認。GitHub PR SHAは作業開始時点で24944a73、最終追加commit前のためGitHub run/artifact証拠は未取得。"
+      "evidence": "dc9408b90f8009cb8d87de2e774306e4ca392682のWeb production Artifact 14817077162を実取得、ZIP SHA-256はAPI digestと一致、322 entries/CRC errorなし。修正candidate local BuildのJS SHA-256 611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799、生成NOTICE 2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6、OFL source/output SHA一致。GitHub old-head Mobile run 45172067487はSUCCESS、Web 45172067403はFAIL。最終修正headのArtifactはまだ未取得。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "PR開始時のHEAD 24944a73f769d32f38061a26fce5911e2cbb8bc5に対するWeb/Mobile CI successは旧SHA限定。今回の追加差分は未commit/pushで、同一SHA CIは未実行。",
-      "detail": "通常commit/push後にPR HEADと一致するWeb CI、Mobile App CIおよび必要Artifactを確認し、PR本文へ記録する。"
+      "evidence": "修正前HEAD dc9408b90f8009cb8d87de2e774306e4ca392682のWeb run 45172067403はfailure、Mobile run 45172067487は最終success。NOTICE修正headは作成中で、PR HEAD/remoteへの反映とCIは未確認。",
+      "detail": "NOTICE repairとRun evidenceをcommit・通常push後、新HEADのWeb/Mobile CI・required jobs・production Artifactを確認しPR本文へ記録する。"
     },
     {
       "category": "missing_validation",
       "severity": "high",
       "evidence": "Web source mapでstandard-navigation@0.0.5 lib/src/index.js 186 bytesを特定。package metadataはMIT/authorを示すが、解決済みpackageと固定source treeで適用可能なcopyright notice/LICENSE根拠は見つからない。",
       "detail": "権利者の一次copyright notice根拠を取得するか、別途承認された製品変更でbundleからmoduleを除く必要がある。外部配布を停止し、権利侵害と断定せずB案1.4をBLOCKEDに保つ。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "Web CI 45172067403のFull learner distributionとM06/M07 course runが、THIRD_PARTY_NOTICES.mdに含む第三者パッケージ著作者のメール連絡先をpublic-content personal-email guardが検出し失敗した。",
+      "detail": "security guardを変えずlearner-facing summaryからメールcontact fieldsのみ除去し、copyright holder/year/sourceを保持。reviewで非メール出典swmansion.comの保持を指摘され復元。candidate build、focused contract、format/lint/securityはpass。clean worktree distribution verificationと修正head CIは必要。"
     }
   ],
   "improvement_candidates": []

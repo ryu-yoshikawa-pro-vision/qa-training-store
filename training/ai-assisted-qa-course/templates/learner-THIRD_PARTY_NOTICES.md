@@ -55,7 +55,7 @@ React Navigationの5画像は、固定されたExpo Routerソースが参照す�
 <!-- BEGIN PUBLIC WEB THIRD-PARTY NOTICES -->
 # Web Build third-party notices
 
-This notice covers third-party code present in the generated Web JavaScript bundle and the bundled Web fonts. Exact package versions and registry tarball integrity values are pinned in the repository root `pnpm-lock.yaml`; JavaScript package rows below were selected from the bundle's source map. Available package LICENSE/NOTICE files were read from the corresponding frozen installed packages. Packages without those files are called out with their source or package metadata evidence. The own-project `learner-LICENSE` does not replace these notices.
+This notice covers third-party code present in the generated Web JavaScript bundle and the bundled Web fonts. Exact package versions and registry tarball integrity values are pinned in the repository root `pnpm-lock.yaml`; JavaScript package rows below were selected from the bundle's source map. Available package LICENSE/NOTICE files were read from the corresponding frozen installed packages. Packages without those files are called out with their source or package metadata evidence. Copyright holder names and years are retained; standalone email contact fields present in upstream copyright metadata are omitted from this learner-facing summary. The own-project `learner-LICENSE` does not replace these notices.
 
 ## Web fonts
 
@@ -68,7 +68,7 @@ The Web build includes the following 12 font files from `@fontsource/inter@5.3.0
 
 ## Bundled package inventory
 
-| Package and version | SPDX license | Copyright notice recorded by the package |
+| Package and version | SPDX license | Copyright holder and year recorded by the package |
 | --- | --- | --- |
 | `@babel/runtime@7.29.7` | MIT | Copyright (c) 2014-present Sebastian McKenzie and other contributors |
 | `@expo/cli@57.0.34` | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) |
@@ -83,15 +83,15 @@ The Web build includes the following 12 font files from `@fontsource/inter@5.3.0
 | `@react-native/normalize-colors@0.74.89` | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
 | `@swc/helpers@0.5.23` | Apache-2.0 | Copyright 2024 SWC contributors. |
 | `client-only@0.0.1` | MIT | No package code bytes are included in the browser bundle (empty index.js); error.js is not mapped |
-| `clsx@2.1.1` | MIT | Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com) |
+| `clsx@2.1.1` | MIT | Copyright (c) Luke Edwards (lukeed.com) |
 | `color@4.2.3` | MIT | Copyright (c) 2012 Heather Arthur |
-| `color-convert@2.0.1` | MIT | Copyright (c) 2011-2016 Heather Arthur <fayearthur@gmail.com> |
+| `color-convert@2.0.1` | MIT | Copyright (c) 2011-2016 Heather Arthur |
 | `color-name@1.1.4` | MIT | Copyright (c) 2015 Dmitry Ivanov |
-| `color-string@1.9.1` | MIT | Copyright (c) 2011 Heather Arthur <fayearthur@gmail.com> |
+| `color-string@1.9.1` | MIT | Copyright (c) 2011 Heather Arthur |
 | `css-in-js-utils@3.1.0` | MIT | Copyright (c) 2017 Robin Frischmann |
-| `decode-uri-component@0.2.2` | MIT | Copyright (c) 2017, Sam Verschueren <sam.verschueren@gmail.com> (github.com/SamVerschueren) |
+| `decode-uri-component@0.2.2` | MIT | Copyright (c) 2017, Sam Verschueren (github.com/SamVerschueren) |
 | `dexie@4.4.4` | Apache-2.0 | Copyright (c) 2014-2017 David Fahlander |
-| `escape-string-regexp@4.0.0` | MIT | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> ([sindresorhus.com](https://sindresorhus.com)) |
+| `escape-string-regexp@4.0.0` | MIT | Copyright (c) Sindre Sorhus ([sindresorhus.com](https://sindresorhus.com)) |
 | `expo@57.0.33` | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) |
 | `expo-constants@57.0.24` | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) |
 | `expo-glass-effect@57.0.5` | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) |
@@ -100,16 +100,16 @@ The Web build includes the following 12 font files from `@fontsource/inter@5.3.0
 | `expo-router@57.0.31` | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo) |
 | `fast-deep-equal@3.1.3` | MIT | Copyright (c) 2017 Evgeny Poberezkin |
 | `fbjs@3.0.5` | MIT | Copyright (c) 2013-present, Facebook, Inc. |
-| `filter-obj@1.1.0` | MIT | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
+| `filter-obj@1.1.0` | MIT | Copyright (c) Sindre Sorhus (sindresorhus.com) |
 | `hyphenate-style-name@1.1.0` | BSD-3-Clause | Copyright (c) 2015, Espen Hovlandsdal |
 | `inline-style-prefixer@7.0.1` | MIT | Copyright (c) 2015 Robin Frischmann |
 | `invariant@2.2.4` | MIT | Copyright (c) 2013-present, Facebook, Inc. |
 | `is-arrayish@0.3.4` | MIT | Copyright (c) 2015 JD Ballard |
 | `memoize-one@6.0.0` | MIT | Copyright (c) 2019 Alexander Reardon |
-| `nanoid@3.3.18` | MIT | Copyright 2017 Andrey Sitnik <andrey@sitnik.ru> |
+| `nanoid@3.3.18` | MIT | Copyright 2017 Andrey Sitnik (sitnik.ru) |
 | `nullthrows@1.1.1` | MIT | Copyright (c) 2016 Andres Suarez |
-| `postcss-value-parser@4.2.0` | MIT | Copyright (c) Bogdan Chadkin <trysound@yandex.ru> |
-| `query-string@7.1.3` | MIT | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> ([sindresorhus.com](http://sindresorhus.com)) |
+| `postcss-value-parser@4.2.0` | MIT | Copyright (c) Bogdan Chadkin |
+| `query-string@7.1.3` | MIT | Copyright (c) Sindre Sorhus ([sindresorhus.com](http://sindresorhus.com)) |
 | `react@19.2.3` | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
 | `react-aria@3.50.0` | Apache-2.0 | Copyright 2020–2025 Adobe. All rights reserved. |
 | `react-aria-components@1.19.0` | Apache-2.0 | Copyright 2022–2025 Adobe. All rights reserved. |
@@ -118,15 +118,15 @@ The Web build includes the following 12 font files from `@fontsource/inter@5.3.0
 | `react-hook-form@7.83.0` | MIT | Copyright (c) 2019-present Beier(Bill) Luo |
 | `react-is@19.3.0` | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
 | `react-native-safe-area-context@5.7.0` | MIT | Copyright (c) 2019 Th3rd Wave |
-| `react-native-screens@4.26.0` | MIT | Copyright (c) 2018 Software Mansion <swmansion.com> |
+| `react-native-screens@4.26.0` | MIT | Copyright (c) 2018 Software Mansion (swmansion.com) |
 | `react-native-web@0.21.2` | MIT | Copyright (c) Nicolas Gallagher.<br>Copyright (c) Meta Platforms, Inc. and affiliates. |
 | `react-stately@3.48.0` | Apache-2.0 | Copyright 2020, 2022–2024, 2026 Adobe. All rights reserved. |
 | `scheduler@0.27.0` | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
-| `shallowequal@1.1.0` | MIT | Copyright (c) 2017 Alberto Leal <mailforalberto@gmail.com> (github.com/dashed) |
+| `shallowequal@1.1.0` | MIT | Copyright (c) 2017 Alberto Leal (github.com/dashed) |
 | `simple-swizzle@0.2.4` | MIT | Copyright (c) 2015 Josh Junon |
-| `split-on-first@1.1.0` | MIT | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
+| `split-on-first@1.1.0` | MIT | Copyright (c) Sindre Sorhus (sindresorhus.com) |
 | `standard-navigation@0.0.5` | MIT | **Copyright notice unresolved.** The locked package metadata lists author Satyajit Sahoo but has no copyright line or LICENSE file; its bundled `lib/src/index.js` is 186 bytes. The fixed source repository tree contains no LICENSE file. The author's name is not treated as proof of copyright ownership. Do not externally distribute this Web Build until an applicable copyright notice is confirmed or this code is absent from the bundle. |
-| `strict-uri-encode@2.0.0` | MIT | Copyright (c) Kevin Martensson <kevinmartensson@gmail.com> (github.com/kevva) |
+| `strict-uri-encode@2.0.0` | MIT | Copyright (c) Kevin Martensson (github.com/kevva) |
 | `styleq@0.1.3` | MIT | Copyright (c) Nicolas Gallagher |
 | `use-sync-external-store@1.6.0` | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
 | `warn-once@0.1.1` | MIT | Copyright (c) 2022 Satyajit Sahoo |

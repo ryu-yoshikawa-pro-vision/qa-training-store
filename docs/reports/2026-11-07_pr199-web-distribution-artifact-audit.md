@@ -170,3 +170,19 @@ Bundle source mapで確認した`client-only@0.0.1`は空の`index.js`のみで�
 独立レビューで、`existsSync`がdangling symlinkをfalseと扱うため、NOTICE/OFLの`writeFileSync`がlink targetへ書き込める経路を指摘された。`repairExpoRouterWebAssets`に出力dirとJS出力までの各path componentを`lstat`で確認するguardを追加し、生成NOTICE/OFLのdestinationも`lstat`で存在確認してsymlink・非regular fileを拒否する。ENOENTだけを未存在として扱う。契約テストにdangling NOTICE symlinkおよびsymlink dist rootの拒否・外部targetが作られないassertionを追加した。focused `web-public-build.test.ts`は10/10 PASS。独立レビュアーは修正後の2負例と出力経路を確認し、P0–P2指摘なしと報告。修正後`pnpm run verify`もexit 0（Contracts 125 files、1,456 passed／7 skipped、unit 66、integration 197、repository 150／1 skip、component web 127／native 92、Build含む）。
 
 修正前の`pnpm run verify`はexit 0（125 files、1,454 pass／7 skip、Web/Spec Build含む）だったが、その後にこのP2修正を加えたため、修正後結果で置き換えず別の実行証拠として扱う。GitHub CI Artifactはまだ追加commit前で未確認。
+
+## 2026-11-23 追加HEAD `dc9408b90f8009cb8d87de2e774306e4ca392682` Web Artifact／配布ガード調査
+
+Web CI [#45172067403](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45172067403)のproduction Artifact `14817077162`を取得。APIのartifact digestとZIP SHA-256 `21292446a3709f8294c46c465a5f429dd6d0e9e3551a8fdce4f6d23fbff47668`が一致した。ZIPは322 entries、CRC failureなし。source mapは含まれていなかった。
+
+| 実ファイル | bytes | SHA-256 |
+| --- | ---: | --- |
+| `_expo/static/js/web/entry-819ddc18c83e19678e8b437f7e98480a.js` | 3,739,296 | `0475df1591a675c3c936a0a358680293e8b439c3515716544ad640d508102378` |
+| `THIRD_PARTY_NOTICES.md` | 24,009 | `4a0970b8770c771bd759a8cd5a63adf834a8132f2d6a39d4c157e858536d2fc8` |
+| `OFL-1.1.txt` | 4,004 | `92df93e7fa51c9c96dea4f8d3149f79be3407162f805595e60c7c2a17e314deb` |
+
+このCI Artifactの`THIRD_PARTY_NOTICES.md`に含まれたGmail連絡先が、`Full learner distribution (#199)`と`M06/M07 actual course:run`で同じpublic-content guardに拒否された。`verify`はrequired-result依存エラーであり、独立した3つ目の原因ではない。NOTICE作成変更に直接起因する入力内容上の不整合として分類し、scannerやセキュリティ条件は変更せず、公開側の帰属表から連絡先メールだけを除く。各copyright holder、年、package/source表示は残す。
+
+その候補を使ったlocal `pnpm run build:web`はexit 0。生成JS SHA-256は`611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799`、`THIRD_PARTY_NOTICES.md`は23,898 bytes/SHA-256 `2b6a3998b3d3f4ca8a7adcf5d0b7111046c80b38c0918b94037041b5550af8b6`、OFL全文は4,004 bytesでsourceとbyte-identical。Template/生成NOTICEでemail patternは0。`tests/contracts/web-public-build.test.ts`は10/10 PASS。course syncはdirty worktreeを拒否したため、修正後のdistribution gateは新しいclean commit上で再確認する。
+
+依存分析の限界：同じSHAのproduction ZIPにはsource mapがない。61 package-version／2,326 source-entry inventoryは同SHAと同じfrozen lockfileを用いたlocal source-map Buildから得た証拠であり、GitHub production artifactにsource mapが含まれるとは主張しない。具体的な1.4 blockerは引き続き、実bundleにある186-byte `standard-navigation@0.0.5/lib/src/index.js`と、固定source/packageに適用できるcopyright noticeを確認できないこと。侵害の認定ではないため、外部配布は停止し、rightsholderの一次通知または承認された除外変更を再開条件とする。
