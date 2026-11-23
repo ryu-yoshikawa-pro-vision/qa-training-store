@@ -11,7 +11,7 @@
 - [x] 7. Run Artifactをfinal commit前状態まで更新・検証する。
 - [x] 8. 変更差分・対象ブランチ・commit対象を確認する。
 - [x] 9. 現ユーザー指示で許可された通常pushについて、直前にremote/PR状態とfast-forward条件を確認して実行する。元の10ファイルを`24944a73…`基点の書き込み可能な`<REPO_ROOT>`へpatch復元し、hashと全10ファイルの内容を照合した。差分を保持する。
-- [ ] 10. 今回のNOTICE・Plan記録を含む新しいPR HEADのWeb/Mobile CIとproduction Artifactを確認し、PR本文へ結果を記録する。直近完了HEAD `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`のWeb `45179550863`はSUCCESS、Mobile `45179551007`はExpo Doctorの`expo-sqlite ~57.0.6 / 57.0.5`不一致でFAIL。今回の新HEADで再確認する。
+- [ ] 10. 今回のNOTICE・Plan記録を含む最終PR HEADのWeb/Mobile CIとproduction Artifactを確認し、PR本文へ結果を記録する。HEAD `d0bd9ac903042e9c6b9a982a85a08a187123a92a`ではWeb run `45221560995`が全30 jobs中29 success／条件付きskip 1でSUCCESS、Mobile run `45221560580`のrequired Expo Doctor jobは`expo-sqlite expected ~57.0.7, found 57.0.5`でFAIL。Artifact `14840456705`のdigest/ZIP SHAが一致し、NOTICEはlocal Buildとbyte-identical。d0bd9aより後の最終HEADのrunとPR本文記録は未確認。
 - [x] 11. React Navigation PNG5件を固定version/source/LICENSEと照合し、個別blob SHA-1を比較する。
 - [x] 12. Build生成NOTICEの固定リンク・version guard・Web依存NOTICE出力契約を追加し、contract testとlearner NOTICEを更新する。新contractは7/7 PASS。
 - [x] 13. 統合Plan、継続手順、既存distribution auditへ現行1.4判断と残る不足を記録する。
@@ -20,7 +20,7 @@
 - [x] 16. NOTICE generator/test/doc差分を独立レビュアーが確認した。旧P1/P3（OFL表示、empty JS、inventory重複）は解消。新P2 dangling symlink出力指摘もlstat guardと2負例で修正し、reviewerは再確認後P0–P2なしと報告。
 - [x] 17. 最終差分・Run Artifactを検証し、既存`24944a73…`を維持した追加ローカルcommitを作成する。元checkoutの`.git`はread-onlyのため変更せず、`<TEMP_ROOT>`の専用cloneで実施した。commit `dc9408b90f8009cb8d87de2e774306e4ca392682`。
 - [x] 18. 既存のNOTICE repair/evidence commits `dc9408b9…`と`0324dbd2…`は通常push済み。さらにPR branchは`e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`まで進み、PR APIとlocal tracking refのheadが一致することを確認した。
-- [ ] 19. local/remote/PRの同一SHAでWeb CI、Mobile CI、必須Artifact/jobを確認する。`dc9408b9…`のWeb run `45172067403`はFAIL、Mobile run `45172067487`は後続API照会でSUCCESS、`0324dbd2…`と`e026ac1c…`もpush済みの旧履歴として扱う。今回のNOTICE/受入記録commitを含む最新HEADに対し、waiterを1回使用してCIと必須Artifactを確認する。
+- [ ] 19. local/remote/PRの同一最終SHAでWeb CI、Mobile CI、必須Artifact/jobを確認する。d0bd9aのWeb/Artifactは確認済み、Mobile required Expo DoctorはFAIL。最終HEADのworkflow conclusionと全必須jobはpush後に確認し、結果をPR本文へ記録する。`wait_for_required_ci`はd0bd9aに対して1回呼び出したが8分後も返答がなく停止したため、新HEADでは1回だけ使用する。
 - [ ] 20. PR本文に最終SHA・CI・1.4・8.4結果を追記し、未受入条件を維持する。PR OPEN状態と既存受入履歴を保持する。
 
 ## 2026-11-24 `standard-navigation@0.0.5` 最終確認
@@ -28,10 +28,10 @@
 - [x] 21. 既存の一次資料で旧0.0.5への現行MIT適用を確認する。
 - [x] 22. learner NOTICE、統合受入Plan、継続手順、既存distribution auditへ根拠と現在判定を反映する。
 - [x] 23. local Web BuildとNOTICE出力、対象契約、直接実行可能な検証を確認する。
-- [x] 24. 今回の限定差分を既存の独立reviewerにread-only reviewさせ、指摘を処理する。初回P2（1.4状態の文書差）とP3（Issue #8の説明範囲）を修正。最終read-only再レビューで両指摘の解消を確認し、残ったP3（レビュー依頼状態のRun task記載）も完了状態へ更新した。最新reviewer報告はdiff SHA-256 `b603f1b7086e3dd959461e7b7bf775421b977f7df4fcdf74ce658fed2f88c319`を対象とし、他にP0–P3なし。
+- [x] 24. 今回の限定差分を既存の独立reviewerにread-only reviewさせ、指摘を処理する。初回P2（1.4状態の文書差）とP3（Issue #8の説明範囲）を修正。d0bd9a記録のWeb CI件数は30 jobs／29 success／1 skipへ訂正。read-only reviewerは修正前7-file content diff SHA-256 `5d4b2724c2dfffee221447cb9f769ff2cab56e0711a84cc6ab833464ce76fa54`を確認し、別P3として前回review digestの参照が旧candidate `d9466ae5…`のままと指摘。今回の記録・evaluationで5d4 reviewと当該指摘を履歴に正確に記し、P0–P2 findingなしを保持。review findingの記録修正のみで受入内容は変更していない。
 - [x] 25. Runを更新し、sanitizer／strict collector／security scanでcommit前確認する。4個のRun file sanitizerは変更0・残存0、strict collector exit 0、`security:check` 236 runtime／549 credential-scan files PASS。Web Buildと公開NOTICE契約10/10、format・Markdown・text検証もPASS。
-- [ ] 26. 最新PR HEADとの祖先関係を確認して文書変更をcommit・通常pushする。
-- [ ] 27. 新HEADのWeb/Mobile CI、Web production Artifact、PR本文を確定し、8.3/8.4を判定する。
+- [x] 26. NOTICE・primary source evidenceと現行1.4記録を含む8-file差分をcommit `d0bd9ac903042e9c6b9a982a85a08a187123a92a`として通常pushした。GitHub APIでPR OPEN、local/remote/PR HEAD一致を確認。新しいartifact/CI検証結果を反映する受入記録commitは次項で扱う。
+- [ ] 27. 最終記録commitを通常push後、その正確なHEADのWeb/Mobile CIとproduction Artifactを確認し、PR本文へ結果を記録する。d0bd9aでの1.4 PASS、Web SUCCESS、Mobile required Expo Doctor FAILはPlan・監査記録へ反映済み。d0bd9aのMobile workflow terminal conclusionは未取得であり、最終HEADのrunを別に確認する。
 
 ### 実行結果
 
@@ -66,5 +66,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## Blocked（ブロック中）
 
-- `standard-navigation@0.0.5`の適用不確実性は公式Issue #7の一次回答で解消し、NOTICEへ反映済み。現在の1.4 license blockerではない。新HEADのproduction ArtifactでBundle/NOTICEを最終照合する作業は8.3のArtifact確認に残る。
-- Remaining work: independent reviewerの最終再確認、Runのstrict commit前確認後に今回の文書差分をPR branchへ通常commit/push、新HEADのWeb/Mobile CIとproduction Artifactを確認しPR本文を更新する。8.3は現baselineのMobile Expo Doctor mismatchがFAIL、修正は別PR対象。元checkoutは変更せず、10-file patch backupを保持する。
+- B案1.4は公式Issue #7のmaintainer回答、NOTICE、最終確認済みproduction Artifactとのbyte比較によりPASS。Issue #8のupstream repository／将来npm packageへのLICENSE同梱依頼は未回答だが、downstream noticeの受入とは別範囲。
+- 現在のCI blockerはMobile App CI必須job `Native Static / Run Expo Doctor`の不一致。HEAD `d0bd9ac903042e9c6b9a982a85a08a187123a92a`で`expo-sqlite expected ~57.0.7, found 57.0.5`。Expo依存・workflowはこのPRで変更せず、別PRでの修正・main統合が再開条件。d0bd9a runのworkflow全体terminal conclusion、および後続の受入記録commitに対するCI/PR本文記録が未確認。
+- `pnpm run verify`はsandboxの`tsx` CLI socket作成`EPERM`でexit 1。原因の異なる回避や再試行はせず、verify全体をPASSとしない。現在の差分は受入文書とRun記録のみで、該当するformat／Markdown／text／securityとsanitizer／collectorを再検証する。
+- 元checkoutは変更せず、10-file patch backupを保持する。

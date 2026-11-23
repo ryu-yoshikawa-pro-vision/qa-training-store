@@ -206,3 +206,18 @@ Commit `0324dbd260043fd356178262159d917ec0cad606`のclean source treeで`pnpm co
 公式回答により、`standard-navigation@0.0.5`へ現行MITとcopyright lineを適用する根拠は確認でき、NOTICEの帰属不足は解消した。local Web Buildでは生成NOTICEとBundleを照合済み。**B案1.4全体は、commit/push後に最終HEADのproduction ArtifactでBundle/NOTICEを照合するまで最終PASSにしない。** Issue #8のupstream repository／将来npm packageへの同梱依頼は未回答だが、downstream NOTICEの適用根拠を損なわない。これは権利侵害の認定ではなく、未監査配布物の公開を許可しない。1.2のIssue #228公開前制限は独立して維持する。
 
 2026-11-24時点の既存CI基準HEAD `e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74`：Web CI [#45179550863](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45179550863)は29成功・条件付きskip 1でSUCCESS。Mobile App CI [#45179551007](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45179551007)はExpo Doctorで`expo-sqlite expected ~57.0.6, found 57.0.5`、`native-ci / verify`がFAIL。Android/iOS BuildとAndroid MaestroはSUCCESS。この依存差はmainにも存在し、このPRでは依存・workflowを変更しない。変更後HEADのCIとArtifactは当該SHAのrunが確定後に追記する。
+
+## 2026-11-24 PR HEAD `d0bd9ac903042e9c6b9a982a85a08a187123a92a` のArtifact・CI確認
+
+Web CI [#45221560995 attempt 1](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45221560995)はSUCCESS（30 jobs中29 success、条件付き`Extended E2E (mobile-chromium)` 1件skip）。production Artifact `web-dist-production` [#14840456705](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45221560995/artifacts/14840456705)のAPI SHA-256 digest `ff0a0533c9e69755b9ae31b7b4973a1e517416c0623dd33bcbf02298a86026e1`と実ZIP SHA-256が一致した。ZIPは322 entriesでCRC errorなし、source mapなし。
+
+| 実ファイル | bytes | SHA-256 | 確認 |
+| --- | ---: | --- | --- |
+| `_expo/static/js/web/entry-db8c13f14c3a340a7803e37a57eec1e7.js` | 3,739,296 | `dc222004d1a3abf04c9cc51c5f7d52d3d80a299e4c8c06a3adb1438a4dc0c096` | `standard-navigation`実装を含む |
+| `THIRD_PARTY_NOTICES.md` | 24,637 | `51c168eaa76be0f72f6402f57a33bd0ba53998f36d51f7d13cb699983e260e7d` | local production Buildとbyte-identical。MIT全文、`Copyright (c) 2026 React Navigation Contributors`、固定Issue/commit/source linksを含む |
+
+production Artifactにはsource mapがない。2,326 source entry／61 package-versionの依存closureは、既存の同一lockfile/frozen dependency local source-map解析記録であり、Artifact内source mapとして扱わない。production Artifactの実bundle・NOTICE、lockfile固定の依存closure、各依存通知を照合したため、B案1.4はPASS。Issue #7のmaintainer回答が旧0.0.5へのcopyright適用根拠。Issue #8の上流repository／将来npm packageへのLICENSE同梱依頼はOPENのまま残るが、downstream notice根拠とは別範囲。
+
+Mobile App CI [#45221560580 attempt 1](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/45221560580)は、確認時点でworkflow status `queued`／job実行中だった。必須`Native Static / Run Expo Doctor`はFAILし、ログは`expo-sqlite expected ~57.0.7, found 57.0.5`（以前のe026 runに記録された`~57.0.6`とは表示差がある）。同時点でAndroid production／automation BuildはSUCCESS、iOS Build jobはqueued、Android Maestroはin progress。全workflowのterminal conclusionと`native-ci / verify`結果は取得できていないため補完推測しない。required job failureに基づき8.3はFAIL。package、lockfile、Expo workflowは変更しておらず、修正は別PR対象。
+
+1.4はPASS、8.3はFAIL、8.4は未受入・マージ不可。1.2 Issue #228の未受入／未監査配布物の公開禁止、1.3本人作成SkillのPASS、7.1／7.2の限定範囲PASS、Provider fail-closed、後続12条件と本人受入6条件を維持する。

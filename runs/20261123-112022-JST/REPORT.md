@@ -159,3 +159,23 @@
 - Run sanitizerは4 agent-managed fileを走査、変更0・残留0。`collect-run-artifacts.sh --run-id 20261123-112022-JST --strict` exit 0。Runの`verify`検証履歴は別候補のPASSを履歴とし、今回の環境では`tsx` CLIの`listen EPERM <TEMP_ROOT>/tsx-1000/249.pipe`によるexit 1を保持する。verify全体をPASSとは扱わない。
 - 現行判断：Issue #7で旧versionのdownstream notice根拠を解決。Issue #8の上流repository／将来npm同梱依頼は未回答。1.4は最終HEAD production Artifact確認待ち。e026基準のWeb CIはsuccess、Mobile CIはmainにもあるExpo Doctor不一致でfailure。今回の新HEAD CI/Artifact、通常push、PR本文更新は未実施。
 - Progress: 22/27 tracked tasks; Next:今回の差分を明示stageしてPR branchへcommit・通常pushし、新HEADのWeb/Mobile CIとproduction Artifactで1.4/8.3/8.4を確認してPR本文を更新する。
+
+## 2026-11-24 `d0bd9ac9` production Artifact・CI確認checkpoint
+
+- Exact HEAD `d0bd9ac903042e9c6b9a982a85a08a187123a92a` のWeb CI `45221560995` attempt 1 は30 jobs中29 success／条件付き`Extended E2E (mobile-chromium)` skip 1でSUCCESS。Mobile CI `45221560580` attempt 1 のrequired `Native Static / Run Expo Doctor`はFAILし、job logは`expo-sqlite expected ~57.0.7, found 57.0.5`。取得時点のrun statusはqueued／job snapshotでAndroid production/automation buildはsuccess、iOS build queued、Android Maestro in progress、`native-ci / verify`とMobile workflow全体のterminal conclusionは未取得。以前のe026 runで表示された`~57.0.6`とは区別し、今回のrunの観測値を記録する。
+- `web-dist-production` Artifact #14840456705のmetadata digestと実ZIP SHA-256は`ff0a0533c9e69755b9ae31b7b4973a1e517416c0623dd33bcbf02298a86026e1`で一致。322 entries、ZIP CRC errorなし、source mapなし。Bundle JSは3,739,296 bytes／SHA-256 `dc222004d1a3abf04c9cc51c5f7d52d3d80a299e4c8c06a3adb1438a4dc0c096`、NOTICEは24,637 bytes／SHA-256 `51c168eaa76be0f72f6402f57a33bd0ba53998f36d51f7d13cb699983e260e7d`。NOTICEは同一HEADのlocal Buildとbyte-identicalで、対象module、MIT全文、copyright line、固定出典を含む。
+- 既存のfrozen-lockfile source-map解析（61 package-version、2,326 source entries）をArtifact内source mapと混同せず併用した。Issue #7のmaintainer一次回答で旧`standard-navigation@0.0.5`へのlicense/copyright applicabilityも確認済み。1.4は同一HEAD Artifact evidenceを得てPASS。Issue #8のupstream repository／将来npm packageへの同梱依頼は別範囲でOPEN。
+- 受入判定：1.2はIssue #228の外部公開前未受入、1.3 PASS、1.4 PASS、7.1／7.2既存限定範囲PASS、8.3 FAIL（必須Mobile Native Static Expo Doctor job）、8.4未受入・マージ不可。Expo dependency/workflowはこのPRで変更しない。
+- `wait_for_required_ci`はd0bd9aのexact HEADに1回呼び出したが8分以上結果が返らず停止した。GitHub run/job APIとjob logを使い、取得できた個別結論を確認。次の受入記録commit後のCI結果は別HEADとして取得・記録し、旧SHAの結果を転用しない。
+- Progress: 23/27 tracked tasks; Next:最終差分の文書品質・sanitizer・collectorを確定し、PR branchへ通常commit/push。新HEADのCI/artifactとPR本文を確認し、8.3/8.4は実結果どおり更新する。
+
+## 2026-11-24 artifact/CI受入記録の独立レビュー
+
+- 実装担当と分離した既存reviewerが、base `d0bd9ac903042e9c6b9a982a85a08a187123a92a` 上の受入文書・Run差分をread-only確認。レビュー対象diff SHA-256 `d9466ae5d18c47790b749181ca8a359afce08090e10ca669ad666b08d69ed4de`。レビューはPR全体・正式Case全件の再レビューではない。
+- 1件のP3事実誤りを検出：Web CI `45221560995`は29ではなく30 jobs、29 SUCCESS／1 conditional skip。各現行記録を訂正した。skipは`Extended E2E (mobile-chromium)`。CI全体のSUCCESS判定とMobile run state/Expo Doctor failureの記載は一致。レビュー後、残るP0-P3 findingなし。
+- Reviewerはテストを実行していない。ローカル文書・Run検証は別のquality-gate runnerが実行中。修正対象は受入記録とRun Artifactのみ。
+
+## 2026-11-24 独立レビュー記録参照の訂正
+
+- reviewerは修正前の7-file content diff SHA-256 `5d4b2724c2dfffee221447cb9f769ff2cab56e0711a84cc6ab833464ce76fa54`を確認。Web CI件数と1.4／8.3／8.4の状態は一致し、scope上の問題はなかった。
+- reviewerの追加P3は、Run内の前回review digest `d9466ae5…`が旧candidateを指し、今回review対象を指していない点だった。過去digestはそのreview履歴として保持し、新しいreview対象digest `5d4b2724…`と指摘内容をTASKS/evaluationに記録し直した。これはreview証拠の参照整備で、受入判断・Artifact・CI結果を変更しない。

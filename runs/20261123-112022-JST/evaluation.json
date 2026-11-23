@@ -9,15 +9,15 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "2026-11-24に公式Issue #7のメンテナー回答でstandard-navigation@0.0.5へMIT/copyright lineを適用できると確認し、learner NOTICE・統合Plan・継続手順・distribution auditを更新。local buildと生成NOTICE照合、既存契約10/10、AI validators、security:checkはPASS。最終新HEADのPR CI/ArtifactとPR本文更新はこれから。元の24944a73 checkoutの10-file差分をbackupし、e026作業checkoutに重複適用せず保持。"
+      "evidence": "公式Issue #7のmaintainer回答でstandard-navigation@0.0.5へMIT/copyright lineを適用できると確認済み。learner NOTICE、統合Plan、継続手順、distribution auditを更新。d0bd9ac903042e9c6b9a982a85a08a187123a92aのproduction Artifact実物とNOTICEを照合し、1.4はPASS。Mobile required Expo Doctor jobはFAILのため8.3 FAIL、8.4未受入。現在の受入記録差分の独立レビュー・検証、追加commit/push、同一最終HEAD CI、PR本文更新が未完了。元checkoutの10-file差分はbackupされ、e026 worktreeへ重複適用せず保持。"
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "製品SUT、docs/spec、外部Skill本体、実Provider接続、正式評価開始は変更・実行していない。過去の証拠を履歴として保持し、1.4の具体的な第三者素材の不足だけを残した。"
+      "evidence": "製品SUT、docs/spec、外部Skill本体、実Provider接続、正式評価開始は変更・実行していない。過去の証拠を履歴として保持し、standard-navigation@0.0.5のdownstream帰属確認を完了して1.4 PASS。Issue #8のupstream repository／将来npm packageへのLICENSE同梱要望は残るが、downstream distributionの現在の1.4 blockerではない。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "最終local pnpm run build:web PASS、Web JS SHA-256 611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799、生成NOTICE SHA-256 51c168eaa76be0f72f6402f57a33bd0ba53998f36d51f7d13cb699983e260e7dでsource public markerとbyte一致。web-public-build.test.ts 10/10、format、markdown 653/0、changed/full text 4/232、security:check 236 runtime/549 credential-scan files PASS。AI validatorとsupported-behaviors 188/188はPASS。pnpm run verifyはtsx CLIのlisten EPERM <TEMP_ROOT>/tsx-1000/249.pipeで停止しexit 1。直接Node import validatorはPASSしたがverify後半は未到達。新HEAD GitHub CIとproduction Artifactは未確認。"
+      "evidence": "d0bd9ac903042e9c6b9a982a85a08a187123a92aのWeb CI 45221560995は30 jobs中29 success／条件付きskip 1でSUCCESS。Artifact #14840456705 digest/ZIP hash一致、322 entries CRC-clean、JS SHA-256 dc222004d1a3abf04c9cc51c5f7d52d3d80a299e4c8c06a3adb1438a4dc0c096、NOTICE SHA-256 51c168eaa76be0f72f6402f57a33bd0ba53998f36d51f7d13cb699983e260e7dで、同一HEAD local noticeとbyte-identical。Mobile run 45221560580のNative Static / Run Expo Doctorは`expo-sqlite expected ~57.0.7, found 57.0.5`でFAIL。取得時点でMobile workflow全体はqueued/in progress、terminal conclusion未取得。pnpm run verifyはtsx CLI socket listen EPERMでexit 1。最新記録commitのCIは未確認。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -25,7 +25,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "独立reviewerが今回の8ファイル文書・NOTICE・Run差分をread-only確認。P2の1.4状態差とP3のIssue #8範囲、Runのレビュー依頼中表記を修正し、最終再レビューで指摘解消・残存findingなしを確認（対象diff SHA-256 b603f1b7086e3dd959461e7b7bf775421b977f7df4fcdf74ce658fed2f88c319）。この範囲レビューはPR全体・正式Case全件レビューではない。"
+      "evidence": "独立reviewerは今回のartifact/CI受入記録の7-file content差分SHA-256 5d4b2724c2dfffee221447cb9f769ff2cab56e0711a84cc6ab833464ce76fa54をread-only確認。Web jobsは30 total / 29 success / 1 conditional skip、1.4 PASS・8.3 FAIL・8.4未受入が整合。P3として従前のd946レビューdigest参照が旧candidateのまま記録されている点を指摘。本記録で5d4のreview対象とそのP3を追記し、レビュー履歴参照を訂正した。P0-P2指摘なし。このreviewはPR全体・正式Case全件の再レビューではなく、テストも実行していない。"
     },
     "maintainability": {
       "rating": "pass",
@@ -33,15 +33,15 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Web local buildのentry JS SHA-256 611c693f6acaf56fe4474f48d8df2502c3cd444791bbdd0c1a258968231d7799、generated NOTICE SHA-256 47995b81f5e20f4157c95c37265a5b02cf2197379d9f8c934b1ded9967e7d6b1を取得。official issue #7/commit #33f3d3c evidence recorded. e026ac1c baseline Web CI success, Mobile CI Expo Doctor failure. New-head CI/Artifact pending."
+      "evidence": "standard-navigation 0.0.5 source/version/license applicability is recorded in the NOTICE and audit. Exact-head d0bd9a production ZIP digest ff0a0533c9e69755b9ae31b7b4973a1e517416c0623dd33bcbf02298a86026e1 matched; actual bundle and notice hashes were captured; no source map was in the artifact. Existing 61 package/version and 2,326 source-entry frozen-lockfile analysis is separate local evidence. Exact-head Web CI succeeded; the required Mobile Expo Doctor job failed. New acceptance-record head remains to be verified."
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "Current completed CI baseline e026ac1cf4751f4e6bba01ab494b0ebc7d2a8a74 has Web CI 45179550863 success and Mobile App CI 45179551007 failure: Expo Doctor expects expo-sqlite ~57.0.6 but lock/install has 57.0.5; the same mismatch is on main. This task does not change dependencies or Expo workflow.",
-      "detail": "Commit and normally push the current permitted Notice/docs/Run changes. Verify Web/Mobile CI and production artifact on that exact new SHA. If the Expo Doctor failure recurs, keep 8.3 FAIL and 8.4 unaccepted; fix belongs to a separate Expo maintenance PR."
+      "evidence": "Exact-head d0bd9ac903042e9c6b9a982a85a08a187123a92a Web CI 45221560995 succeeded; Mobile App CI 45221560580 failed in required Native Static / Run Expo Doctor with `expo-sqlite expected ~57.0.7, found 57.0.5`. At retrieval, the Mobile workflow had not reached a terminal conclusion. Do not change Expo dependency or workflow in PR #199.",
+      "detail": "Keep B案8.3 FAIL and 8.4 unaccepted. The same dependency mismatch was reported on main; the permitted recovery is a separate Expo maintenance change merged into main, followed by safe integration into PR #199 and exact-head Web/Mobile CI revalidation. The current acceptance-record commit still needs its own exact-head CI and PR-body evidence."
     },
     {
       "category": "missing_validation",
