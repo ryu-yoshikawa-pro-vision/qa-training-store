@@ -743,10 +743,19 @@ describe("run manifest v2 contract", () => {
       false,
       true,
       true,
+      false,
+      (runId) =>
+        `${JSON.stringify({
+          ...validEvaluation(runId),
+          result: "partial",
+          primary_failure_category: "missing_validation",
+          failure_categories: ["missing_validation"],
+        })}\n`,
     );
 
     expect(manifest.artifact_summary.evaluation_present).toBe(true);
     expect(manifest.validation.warnings).toEqual([]);
+    expect(manifest.primary_failure_category).toBe("missing_validation");
   });
 
   it("does not import primary_failure_category from a schema-invalid strict evaluation", () => {

@@ -414,6 +414,8 @@ def main():
                             "Evaluation does not satisfy the configured schema",
                         )
                         schema_valid = False
+                    else:
+                        schema_valid = True
 
                 if evaluation.get("run_id") == args.run_id:
                     if schema_valid:

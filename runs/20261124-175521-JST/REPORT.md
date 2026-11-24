@@ -195,3 +195,21 @@
   - Result: Clear。変更はexpected-allowの入力だけで、拒否例とG10 runtime判定は不変。
   - 親Agentの判断: 残るfailureをHook実装に転嫁せず、既存root contractにfixtureを合わせて再pushする。
 - Progress: 89% (8/9)
+
+## 2026-11-25 01:16 (JST)
+
+- Summary: strict Run closeoutで`evaluation.json`の欠落を発見し、Run評価とmachine-managed manifestを既存schema・collectorで補完した。Run Artifact変更を含む新HEADの必須CI確認が残る。
+- Changes: `evaluation.json`はOpenCodeの実Git変更操作とWindows Native / WSL hostが未確認であることを理由に`partial`とした。strict collectorは評価を検証し、manifestへ評価path・存在状態を反映した。`TASKS.md`から完了済みのreview/CI待ちを現在のBlocked扱いから外し、runtime未確認をDiscoveredへ記録した。
+- 判断 / 理由: これはpost-push CI結果だけを記録するcommitではなく、strict Runに必須のschema-valid evaluationとcollector管理manifestを欠いたartifact contractの修復である。CI結果は追跡Run Artifactへ転記せず、GitHub Actions・PR本文・最終報告で扱う。OpenCode契約fixtureで実Git操作が成功してもlive OpenCode mutationの証明とはしない。
+- Validation: `validate-output-schema.py` PASS、strict collector PASS、artifact sanitizerはTASKS/evaluation 2件をWrite→Checkし変更0・残存0、machine-managed manifestのCheck PASS、`security:check` PASS（236 runtime files / 531 credential-scan files）。`git diff --check`はexit 0。Prettier CLIはcheckoutに存在せず未実行。Bash collector wrapperはG10によりshell script実行内容を安全に検査できないとして拒否されたため、同じ公式Python collectorを直接実行し、Git mutationを伴わずstrict collectionを完了した。
+- ブロッカー / 残作業: Run Artifactを明示stageして通常Git CLIでcommit/pushし、新しいPR HEADでWeb CIとMobile App CIを確認する。実OpenCodeでのadd/commit/push、Windows Native / WSL hostはこの環境で未確認として残す。
+- Progress: 89% (8/9)
+
+## 2026-11-25 01:23 (JST)
+
+- Summary: strict collectorが有効な評価の`primary_failure_category`をmanifestへ転記しない既存bugを修正し、回帰testを追加した。
+- Changes: `scripts/collect-run-artifacts.py`はstrict schema validatorの成功時に`schema_valid=true`を設定する。`tests/contracts/codex-run-manifest-contract.test.ts`へ有効なstrict evaluationから`missing_validation`を転記するassertionを追加した。実manifestはcollectorで再生成し、`warnings=[]`、`evaluation_present=true`、`primary_failure_category=missing_validation`を確認した。
+- 判断 / 理由: `docs/reference/run-artifacts.md`は有効なevaluationからprimary categoryを転記すると規定し、既存testはinvalid evaluationで転記しないことだけを検査していた。strict成功分岐が欠けていたため、run.jsonの説明契約と実装に不整合があった。修正は成功時のcategory転記だけで、schema-invalid時のfail-closedを維持する。
+- Validation: 一時validation copyで`codex-run-manifest-contract.test.ts` 24/24 PASS。変更したtestとRun Markdown/JSONはPrettier PASS。Python syntax compile、evaluation schema、strict collector、artifact sanitizer、`security:check`（236 runtime / 531 credential-scan files）、対象差分`git diff --check`はPASS。作業checkoutにはVitest/Prettier CLIがなく、テスト・formatは既存依存のある隔離validation copyへ変更ファイルを同期して実行した。
+- ブロッカー / 残作業: Run Artifactとcollector回帰修正を対象に明示stageし、通常Git CLIでcommit/pushする。その後、新しいPR HEADの必須Web/Mobile CIを確認する。OpenCode live add/commit/pushとWindows Native / WSL hostは未確認のまま報告する。
+- Progress: 89% (8/9)

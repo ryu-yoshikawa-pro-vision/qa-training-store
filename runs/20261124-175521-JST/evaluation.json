@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "run_id": "20261124-175521-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "G10診断、読み取り専用診断、通常Git CLI復旧手順、API迂回禁止、共通OpenCode判定、契約テストを実装した。Codexでは承認付きの通常Git CLIによるfetch/add/commit/pushを実行確認した。OpenCodeの実Git変更操作とWindows Native / WSL host検証は未確認である。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/git-branch-safety.md",
+          "summary": "Git拒否の分類、正規CLIでの復旧、別checkout移行、API迂回禁止の正本。"
+        },
+        {
+          "kind": "validation_command",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "Codexの承認付き通常Git CLI操作とOpenCode runtime境界を記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はGit安全性制御、診断、運用文書、関連契約テスト、今回のRun成果物に限定した。PR #199、PR #229、製品SUT、mainへの直接変更は行っていない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Codex Hook、診断、OpenCodeの契約suiteは164/164 PASS。隔離fixtureは実際のGit add/commit/local bare remote pushを検証した。OpenCode live mutationとWindows Native / WSL hostの検証は未実施であり、契約テストやWindows Hook CIを実機検証と同一視しない。Run Artifactの追加後は新HEADの必須CIを再確認する。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "重点契約suiteと隔離Git CLI検証、CI履歴、runtime未確認項目を記録。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "G10の判定IDと許可・拒否条件を維持した。ユーザー承認を得た`approval_policy`だけを変更し、workspace-write、network、writable_roots、Hookを維持した。拒否された変更操作をGitHub API、MCP、ref更新で代替せず、force pushやmergeも行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "独立したHooke reviewは最終fixture修正をClearとし、G10の不変、symlinkと別worktree拒否の保持を確認した。Run reportには失敗原因、修正、判定根拠、残るruntime未確認を記録した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "Hookeの独立security reviewと修正後の判断を記録。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "CodexとOpenCodeは既存の共通evaluateCommand()を利用する。診断は既存CLIを拡張し、復旧と迂回禁止の詳細はGit safety referenceへ集約した。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "隔離Git fixtureとCIでHook判定およびWindows contractを再現可能にした。実OpenCodeのadd/commit/pushとWindows Native / WSL runtimeはこの環境で利用できず未確認として残した。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "OpenCode v2.3.0ではPlugin load、guarded_git status、built-in shellの危険操作拒否を確認した。guarded_git経由の実add/commit/pushとWindows Native / WSL hostは未確認である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "実runtimeと隔離契約テストの範囲を区別して記録。"
+        }
+      ],
+      "detail": "隔離contract testの実Git add/commit/local bare pushはPASSだが、実OpenCode sessionでの同じ変更操作を証明しない。利用可能なOpenCodeおよびWindows/WSL環境で後続確認が必要。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "strict collectorはschema-validなevaluation.jsonを受理してwarningなしで終了したが、run.json.primary_failure_categoryはnullのままだった。evaluationのrun_idとmissing_validation分類は有効だった。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": "runs/20261124-175521-JST/run.json",
+          "selector": "workflow_level",
+          "summary": "strict Runであり、collectorによるevaluation参照とmanifest更新が必要。"
+        }
+      ],
+      "detail": "collectorはstrict時にschema_validをfalseで初期化し、schema validator成功時にtrueへ戻していなかった。成功分岐を修正し、validなstrict evaluationからprimary_failure_categoryが転記される契約testを追加した。欠落していたevaluationを追加し、strict collectionで再検証した。"
+    }
+  ],
+  "improvement_candidates": []
+}
