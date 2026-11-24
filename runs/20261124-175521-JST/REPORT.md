@@ -156,3 +156,16 @@
   - Result: P3 closed。正規root gateは候補とrealpathの一致を要求し続け、G10拒否は変化なし。
   - 親Agentの判断: 修正を採用し、差分をPR branchへ反映する。
 - Progress: 78% (7/9)
+
+## 2026-11-25 00:28 (JST)
+
+- Summary: PR #230のWeb run `45419685840`で失敗したWindows Hook contractの原因をfixture入力と特定し、テストだけを修正した。Hookの許可・拒否判定は変更していない。
+- Changes: `tests/contracts/codex-hook-contract.test.ts`の`ownerRootAnchor()`は、存在する通常fixture rootを`fs.realpathSync.native()`でcanonical化してからPowerShell anchorに使用する。extended drive/UNC prefixはテストcommand向けに通常の絶対pathへ変換し、意図的な2件のsymlink拒否ケースだけ元のaliasを保持する。
+- 判断 / 理由: Windows CIでは180件中14件の既存allowケースが「owner checkoutに解決するnon-canonical path」としてG10拒否された。Hookはcanonical rootを要求しており、fixture helperが`mkdtemp`の未canonical pathを正規rootとして渡していた。最初に試したHook比較式の変更は既存条件と論理同値と独立reviewで指摘されたため、commit対象から除去した。Hookeの再レビューはtest-only変更を安全なfixture correctionと評価し、G10不変、canonical worktreeとsymlink caseの意図維持を確認した。
+- Validation: 現行Hook/testを同期した一時validation copyでCodex Hook・diagnostics・OpenCodeの3-suiteは164/164 PASS。Prettier check PASS、Security static check PASS（236 runtime files / 327 credential-scan files）。最初のcopy実行は旧test fileを使ったためreason期待値1件だけ不一致となり、現行test fileへ同期後に再実行してPASS。実checkoutにはVitest binaryがなく、一時copyで検証した。Windows固有branchは次のWeb CIで確認する。
+- ブロッカー / 残作業: 追跡差分・Run Artifactのsanitizer/security確認後、通常Git CLIでcommit/pushする。修正後HEADのWindows Hook contractを含むWeb CIと必須Mobile workflowを確認し、成功後にPR本文を更新する。run `45419685840`はWeb FAILURE、`45419685174`はMobile SUCCESS（Native変更検出falseでNative系job skip）で、merge可とは判定しない。
+- Subagent:
+  - Delegation: Windows CI失敗に対するHook/test限定修正をworkerへ依頼し、Hookeへ最新差分の独立read-only reviewを依頼。
+  - Result: workerはHook比較案がWindows root差を解消しないと指摘を受けて破棄。test fixture canonicalization後、Hooke reviewはClear。
+  - 親Agentの判断: runtime安全性判定を維持し、canonical rootという既存契約に合わせてテスト入力を修正した。Windows CIで再現条件の解消を確認する。
+- Progress: 89% (8/9)

@@ -136,8 +136,26 @@ function getPolicyFixtureRoot() {
   return policyFixtureRoot;
 }
 
-function ownerRootAnchor(command: string, root = getPolicyFixtureRoot()) {
-  const escapedRoot = root.replaceAll("'", "''");
+function getLiteralCanonicalRoot(root: string) {
+  const canonicalRoot = fs.realpathSync.native(root);
+  if (process.platform !== "win32") return canonicalRoot;
+
+  const extendedUncPrefix = "\\\\?\\UNC\\";
+  const extendedPrefix = "\\\\?\\";
+  if (canonicalRoot.toUpperCase().startsWith(extendedUncPrefix.toUpperCase())) {
+    return `\\\\${canonicalRoot.slice(extendedUncPrefix.length)}`;
+  }
+  const extendedDrivePath = canonicalRoot.slice(extendedPrefix.length);
+  if (canonicalRoot.startsWith(extendedPrefix) && /^[A-Za-z]:\\/.test(extendedDrivePath)) {
+    return extendedDrivePath;
+  }
+  return canonicalRoot;
+}
+
+function ownerRootAnchor(command: string, root = getPolicyFixtureRoot(), preserveRootPath = false) {
+  const anchorRoot =
+    preserveRootPath || !fs.existsSync(root) ? root : getLiteralCanonicalRoot(root);
+  const escapedRoot = anchorRoot.replaceAll("'", "''");
   return `Set-Location -LiteralPath '${escapedRoot}' -ErrorAction Stop; ${command}`;
 }
 
@@ -867,14 +885,14 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           id: "symlink-other-repository-root",
           expected: "deny",
           decisionId: "G10",
-          command: ownerRootAnchor("git commit -m safe", symlinkRoot),
+          command: ownerRootAnchor("git commit -m safe", symlinkRoot, true),
           context,
         },
         {
           id: "symlink-owning-repository-root",
           expected: "deny",
           decisionId: "G10",
-          command: ownerRootAnchor("git commit -m safe", ownerSymlinkRoot),
+          command: ownerRootAnchor("git commit -m safe", ownerSymlinkRoot, true),
           context,
         },
         {
