@@ -169,3 +169,29 @@
   - Result: workerはHook比較案がWindows root差を解消しないと指摘を受けて破棄。test fixture canonicalization後、Hooke reviewはClear。
   - 親Agentの判断: runtime安全性判定を維持し、canonical rootという既存契約に合わせてテスト入力を修正した。Windows CIで再現条件の解消を確認する。
 - Progress: 89% (8/9)
+
+## 2026-11-25 00:44 (JST)
+
+- Summary: PR #230のcommit `df637d76d04ffa2e5772eb67c36746efe7cd4d1a`のWeb CIでWindows Hook contractが1件残ったため、そのテスト入力を追加修正した。Mobile App CIはSUCCESS。
+- Changes: `tests/contracts/codex-hook-contract.test.ts`の直接POSIX形式`cd -- "<root>" && git ...`を、未canonicalの`root`ではなく`getLiteralCanonicalRoot(root)`で生成した`canonicalRoot`に変更。Hook sourceとG10 decisionは不変。
+- 判断 / 理由: waiterはWeb run `45427530993`、Mobile run `45427530963`を、どちらも期待head `df637d76d04ffa2e5772eb67c36746efe7cd4d1a`で確認。Windows job `138563493756`は180件中179件PASSで、残る失敗は`requires a literal canonical root immediately before direct Git mutations`内のPOSIX allowケースだった。PowerShell形式はcanonical helperを通していたが、このPOSIX commandだけraw `mkdtemp` pathを埋め込んでおり、Hookが正しくG10拒否していた。test-only修正後のHooke独立reviewはClear。別root・relative root・symlink alias・別worktreeの拒否は維持。
+- Validation: 修正後のCodex Hook・diagnostics・OpenCode 3-suiteは一時validation copyで164/164 PASS。Prettier check PASS、Security static check PASS（236 runtime / 327 credential-scan files）。checkoutにはVitest binaryがないため、Linux検証は一時copyを使用。Windows CIでこの最後のfixture修正を確認する。
+- ブロッカー / 残作業: final test diffとRun Artifactを明示stageし、通常Git CLIでcommit/pushする。最終headのWeb CIと必須Mobile workflowを成功確認後、PR本文を更新する。`45427530993`はFAIL、`45427530963`はSUCCESS（Native変更検出falseによるNative系job skip）で、現在headはmerge可ではない。
+- Subagent:
+  - Delegation: 残ったWindows failureの原因を読み取り専用で調査し、HookeへPOSIX canonicalRoot入力の独立reviewを依頼。
+  - Result: 失敗caseはfixture helperを迂回した直接POSIX commandと特定。Hooke reviewは「Clear」、runtime G10と拒否ケースを維持すると確認。
+  - 親Agentの判断: Hookの挙動変更は不要。許可ケースのテスト入力を既存のcanonical fixture contractへ揃え、実Windows CIで再確認する。
+- Progress: 89% (8/9)
+
+## 2026-11-25 00:46 (JST)
+
+- Summary: PR #230のWindows Hook contractに残った1件を特定し、test-onlyのcanonical path修正を追加した。Hookの安全性判定は変更していない。
+- Changes: 直接POSIX形式で組み立てていた`posix-canonical-root` test caseが`getLiteralCanonicalRoot(root)`を使うよう修正。前のSHA `df637d76...`ではこのcaseだけが未canonicalの一時rootを渡していた。
+- 判断 / 理由: run `45427530993`のWindows job `138563493756`は179/180。残り1件は直接POSIX allow caseで、HookがG10拒否した理由もfixtureのnon-canonical pathと一致。PowerShell anchor、別root/relative root、2件のsymlink alias、別worktreeのテストは維持。Hookeの独立reviewはClear。
+- Validation: 現行testを同期した一時copyでCodex Hook・diagnostics・OpenCode 3-suite 164/164 PASS。変更対象とRun report/tasksのPrettier check PASS、text quality full scan PASS（153 Markdown files）、security static check PASS（236 runtime / 327 credential-scan files）。Windows CIでPOSIX caseの実経路を最終確認する。
+- ブロッカー / 残作業: Run Artifact sanitizerと差分check後、通常Git CLIでcommit/pushする。同一最終HEADでWeb/Mobile必須CI成功を確認し、PR #230本文を更新する。現状の`df637d76`はWeb CI FAIL / Mobile CI SUCCESS（Native系jobは変更なしでskip）で、merge不可。
+- Subagent:
+  - Delegation: HookeへPOSIX canonicalRoot test deltaのread-only security reviewを依頼。
+  - Result: Clear。変更はexpected-allowの入力だけで、拒否例とG10 runtime判定は不変。
+  - 親Agentの判断: 残るfailureをHook実装に転嫁せず、既存root contractにfixtureを合わせて再pushする。
+- Progress: 89% (8/9)

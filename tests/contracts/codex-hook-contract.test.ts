@@ -606,6 +606,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
 
   it("requires a literal canonical root immediately before direct Git mutations", () => {
     const root = getPolicyFixtureRoot();
+    const canonicalRoot = getLiteralCanonicalRoot(root);
     const otherRoot = makeGitFixture();
     const context = {
       currentBranch: "feature/safe",
@@ -623,7 +624,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       {
         id: "posix-canonical-root",
         expected: "allow",
-        command: `cd -- "${root}" && git commit -m "safe"`,
+        command: `cd -- "${canonicalRoot}" && git commit -m "safe"`,
         context,
       },
       {

@@ -34,10 +34,11 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - `pnpm install --frozen-lockfile`の既定storeはworkspace外でEROFS。`<TEMP_ROOT>` storeを明示した一度の再試行は`registry.npmjs.org`の`EAI_AGAIN`で失敗し、追加再試行しない。
 - Windows上の`realpathSync.native()`とGitの`rev-parse --show-toplevel`はextended path表記が異なる場合がある。比較・診断ではWindows path normalizationを適用し、G10拒否結果は変えない。UNC pathをcomponent-wiseに`lstat`してsymlinkと断定する案は独立reviewで誤分類リスクが判明したため撤去した。
 - PR #230初回Web CIの失敗は、承認設定の旧固定値とWindows path区切り文字の誤分類。修正後重点契約は170/170 PASS、修正後GitHub CIは未確認。
+- PR #230 Web run `45427530993`（SHA `df637d76d04ffa2e5772eb67c36746efe7cd4d1a`）はWindows Hook contract 179/180。最後の失敗は直接POSIX allow fixtureが`mkdtemp`の未canonical pathを使っていた。canonical root helper経由へ修正し、Hooke独立reviewはClear。
 
 ## Blocked（ブロック中）
 
 - ブロック時のみ記載する。
 - ユーザーは`approval_policy = "never"`を`on-request`へ変更することを明示承認した。該当1項目のみ変更し、sandbox、network、`writable_roots`、Hookは維持した。公式仕様上workspace-writeの`.git`保護は再帰的に残るため、承認policyだけでは直接書込みを保証しない。実際の通常Git CLI操作は承認付きsandbox escalationを通して成功した。
 - 初回レビュー時のcommand-substitution / nested-command parserに対する指摘は、wrapper経由のGit実行を見逃さないため既存Hook parserを閉じる限定修正と判定した。独立レビューで修正後差分に具体的blockerなし、decision matrixと回帰テストを確認済み。
-- 通常のworkspace-write経路では`.git`がread-onlyとなる観測がある。承認付き通常Git CLI経路ではfetch/add/commit/pushを確認済み。最終修正差分のpushと同一HEAD必須CI成功が残る。
+- 通常のworkspace-write経路では`.git`がread-onlyとなる観測がある。承認付き通常Git CLI経路ではfetch/add/commit/pushを確認済み。commit `df637d76`のWeb CI `45427530993`は1件失敗し、POSIX fixture correctionの通常commit/pushと最終HEAD CI成功確認が残る。
