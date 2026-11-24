@@ -831,6 +831,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     const root = makeGitFixture(false);
     const otherRoot = makeGitFixture(false);
     const symlinkRoot = path.join(os.tmpdir(), `codex hook root alias-${randomUUID()}`);
+    const ownerSymlinkRoot = path.join(os.tmpdir(), `codex hook owner root alias-${randomUUID()}`);
     const worktreeRoot = path.join(os.tmpdir(), `codex hook worktree-${randomUUID()}`);
     const missingRoot = path.join(root, `missing-root-${randomUUID()}`);
     const context = {
@@ -841,6 +842,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
 
     try {
       fs.symlinkSync(otherRoot, symlinkRoot, process.platform === "win32" ? "junction" : "dir");
+      fs.symlinkSync(root, ownerSymlinkRoot, process.platform === "win32" ? "junction" : "dir");
       execFileSync(
         "git",
         [
@@ -869,6 +871,13 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
           context,
         },
         {
+          id: "symlink-owning-repository-root",
+          expected: "deny",
+          decisionId: "G10",
+          command: ownerRootAnchor("git commit -m safe", ownerSymlinkRoot),
+          context,
+        },
+        {
           id: "separate-worktree-root",
           expected: "deny",
           decisionId: "G10",
@@ -892,25 +901,33 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       expect(evaluations[0]?.decision).toEqual({
         id: "G10",
         reason:
-          "G10: the checkout-root anchor resolves through a non-canonical path to a different checkout. Verify the canonical checkout path and symlink target.",
+          "G10: the checkout-root anchor resolves through a non-canonical path to a different checkout. Verify the canonical checkout path and target.",
       });
       expect(evaluations[1]?.id).toBe(cases[1]?.id);
       expect(evaluations[1]?.decision).toEqual({
         id: "G10",
         reason:
-          "G10: Git mutation targets a different checkout or worktree. Resume in a session belonging to the intended checkout.",
+          "G10: the checkout-root anchor resolves to the owning checkout through a non-canonical path. Use the canonical checkout root.",
       });
       expect(evaluations[2]?.id).toBe(cases[2]?.id);
       expect(evaluations[2]?.decision).toEqual({
         id: "G10",
         reason:
+          "G10: Git mutation targets a different checkout or worktree. Resume in a session belonging to the intended checkout.",
+      });
+      expect(evaluations[3]?.id).toBe(cases[3]?.id);
+      expect(evaluations[3]?.decision).toEqual({
+        id: "G10",
+        reason:
           "G10: the absolute checkout-root anchor could not be resolved. Check the checkout path and Git metadata.",
       });
       expect(evaluations[0]?.decision?.reason).not.toContain(symlinkRoot);
-      expect(evaluations[1]?.decision?.reason).not.toContain(worktreeRoot);
-      expect(evaluations[2]?.decision?.reason).not.toContain(missingRoot);
+      expect(evaluations[1]?.decision?.reason).not.toContain(ownerSymlinkRoot);
+      expect(evaluations[2]?.decision?.reason).not.toContain(worktreeRoot);
+      expect(evaluations[3]?.decision?.reason).not.toContain(missingRoot);
     } finally {
       fs.rmSync(symlinkRoot, { force: true, recursive: true });
+      fs.rmSync(ownerSymlinkRoot, { force: true, recursive: true });
       fs.rmSync(worktreeRoot, { force: true, recursive: true });
       removeFixture(otherRoot);
       removeFixture(root);

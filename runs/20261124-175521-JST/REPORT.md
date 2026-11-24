@@ -117,3 +117,42 @@
 | パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
+
+## 2026-11-24 23:37 (JST)
+
+- Summary: SHA `3fd9ea8e9d454049a23d5694738fa986d7bc4318`のWeb CIでWindows Hook contractが2件失敗したため、extended Windows path表記とsymlink/reparse pointの診断分類を限定修正した。Mobile App CIはSUCCESS。
+- Changes: `.codex/hooks/pre_tool_use_policy.mjs`でWindows extended drive/UNC prefixを比較用に正規化し、別checkoutへのsymlink経路を個別reasonに分類。symlinkでowning checkoutへ到達するroot aliasを拒否する契約テストを追加。G10 IDと許可・拒否条件は維持。
+- 判断 / 理由: Windows CIの失敗理由は、別checkout/worktreeの期待に対し`non-canonical path`が返ったこと。`path.win32.normalize()`だけではWindows native realpathの表記を揃えられなかった可能性があるため、extended prefixも処理する。修正の有効性は次のWindows CIで確認する。
+- Validation: latest prior-head Web CI `45411202562`はWindows Hook contractと連動verifyがFAIL。run `45411202570` Mobile App CIはSUCCESS、native変更検出がfalseのためnative build/Android Maestro/Production Bundle GuardはSKIPPED。変更後Hook/diagnostics/OpenCode contract 3 suiteはLinux隔離copy・sandbox escalation下で164/164 PASS。通常sandboxでの初回診断suiteは一時Git fixture起動時に`EPERM`、同一suiteを承認付き隔離Git実行経路で再実行しPASS。`diagnose-codex-hooks.mjs`はWARN=0/ERROR=0、runtime trust/sandbox/.git write capabilityはN/Aと明示。変更対象Prettier、Node syntax、security scan（236 runtime / 327 credential-scan files）、`git diff --check`はPASS。ESLintは変更テスト0 errors、Hook本体はignore rule対象。`pnpm install --frozen-lockfile`はregistry DNS `EAI_AGAIN`およびworkspace外pnpm storeの`EROFS`で失敗し、lockfile変更なし。Codex CLI 0.172.0、OpenCode 2.3.0（XDG pathを/tmpへ指定）、Git 2.56.1を確認。
+- ブロッカー / 残作業: Hookeの独立review待ち。差分をPR #230へ通常Git CLIでpushし、Windows Hook contractを含む最新HEADのWeb/Mobile必須CIを確認する。最終CIは未成功のためmerge可とは判定しない。
+- Subagent:
+  - Delegation: HookeへWindows extended pathとsymlink/reparse分類のread-only security reviewを依頼。
+  - Result: 確認待ち。
+  - 親Agentの判断: review findingがあれば限定修正と対象contractを再実行し、G10判定変更は行わない。
+- Progress: 78% (7/9)
+
+## 2026-11-24 23:42 (JST)
+
+- Summary: 独立レビューで見つかったUNC診断の誤分類リスクを修正し、重点Hook/diagnostics/OpenCode契約を再実行した。
+- Changes: `hasSymlinkPathComponent()`のcomponent-wise `lstat`を削除。拒否時は候補pathと`realpath(candidate)`を比較し、別checkoutへの非canonical alias、owning checkoutへのalias、通常の別checkout/worktree、解決不能を分ける。権限エラーをsymlinkと断定せず、UNC server/shareを誤って分割する経路をなくした。G10のdecision ID/許可条件は不変。
+- 判断 / 理由: HookeのP3指摘ではWindows extended UNC rootが`path.parse()`でserver/shareを含まないため、走査が存在しないpathを`lstat`し、例外をsymlinkと誤診する可能性があった。`realpath`差分による分類でこの副作用を除去し、パスそのものはreasonに出力しない。
+- Validation: 最新の3-suite隔離copy実行は164/164 PASS（Codex Hook、Hook diagnostics、OpenCode）。Node syntax、変更対象Prettier、security scan（236 runtime / 327 credential-scan files）、診断WARN=0/ERROR=0もPASS。Hook本体はESLint ignore対象、contract testは0 errors。既定sandboxでのchild Git `EPERM`は承認付き同一fixture再実行で解消。PR #230上の最新CIはまだ前のSHA `3fd9ea8e`でWeb CI FAILURE、Mobile CI SUCCESS。
+- ブロッカー / 残作業: Hookeの修正後再review、追加差分のsanitizer/security scan、明示stage・通常Git CLI commit/push、PR #230本文更新、最新HEADのWeb/Mobile CI成功確認。
+- Subagent:
+  - Delegation: HookeのP3はUNC path root解析と`lstat`失敗のsymlink誤分類。
+  - Result: findingは診断reasonのみのP3で、G10拒否判断は不変。修正後レビュー待ち。
+  - 親Agentの判断: 指摘を受け入れ、診断分類をrealpath差分へ限定した。Windows CIで最終挙動を確認する。
+- Progress: 78% (7/9)
+
+## 2026-11-24 23:48 (JST)
+
+- Summary: 修正後の独立security reviewはClear。PR branchのlocal upstreamを誤っていた`origin/main`から専用PR branchへ通常Git CLIで直し、remote branchへ別root操作はしていない。
+- Changes: `TASKS.md`の追跡タスクを8件にし、最終HEAD CI確認をharnessどおりcheckbox外のCI連動完了条件へ移した。PR #230への変更反映と本文更新は次のpush/CI完了に含める。
+- 判断 / 理由: HookeのP3はUNC root parsing/lstat例外の誤分類リスク。component-wise `lstat`を外した修正版についてHookeは「P3 closed、G10 deny invariant、追加blockerなし」と判定した。`git fetch`にread-only commandを連結したcommandはG10が実行前拒否し、拒否の分類を確認後、root anchor付き単独`git fetch origin`を正常実行した。拒否されたcompound commandを別経路で実行していない。
+- Validation: 変更後3-suiteは164/164 PASS、security scan PASS（236 runtime / 327 credential-scan files）、Prettier PASS、textlint対象2 files PASS、Run sanitizer PASS（4 files / changed 0 / residual 0）。MarkdownlintのCLIは`runs/**`を設定により除外し0 filesをlintしたため、Run MarkdownはPrettier・textlint・sanitizerで確認。独立レビューP3を修正後再確認しClear。PR #230はOPEN、未merge、head=`3fd9ea8e...`。fetch後local HEADと`origin/fix/issue-192-git-safety-runtime-recovery`は一致。branch upstreamも専用remote branch。
+- ブロッカー / 残作業: 最終source/test/Run差分を明示stageし通常Git commit/push、PR本文を最終CI後に更新し、最新HEAD Web/Mobile CIを成功確認する。既定workspace-writeで`.git`がread-onlyなのはCodex sandbox、G10とは別。`on-request`承認経路と承認付きsandbox escalationでroot-anchored通常Git CLIのfetch/add/commit/pushは既に実行確認済み。
+- Subagent:
+  - Delegation: HookeへP3修正差分のread-only再review。
+  - Result: P3 closed。正規root gateは候補とrealpathの一致を要求し続け、G10拒否は変化なし。
+  - 親Agentの判断: 修正を採用し、差分をPR branchへ反映する。
+- Progress: 78% (7/9)

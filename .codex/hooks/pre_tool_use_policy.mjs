@@ -1322,15 +1322,35 @@ function hasCwdChangingShellOperation(commandPrefix) {
   );
 }
 
+function normalizePathForComparison(value) {
+  if (process.platform !== "win32") return value;
+
+  let normalized = path.win32.normalize(value);
+  const extendedUncPrefix = "\\\\?\\UNC\\";
+  const extendedPrefix = "\\\\?\\";
+  if (normalized.toUpperCase().startsWith(extendedUncPrefix.toUpperCase())) {
+    normalized = `\\\\${normalized.slice(extendedUncPrefix.length)}`;
+  } else if (normalized.startsWith(extendedPrefix)) {
+    normalized = normalized.slice(extendedPrefix.length);
+  }
+  return normalized.toLowerCase();
+}
+
+function pathsEqual(left, right) {
+  return process.platform === "win32"
+    ? normalizePathForComparison(left) === normalizePathForComparison(right)
+    : left === right;
+}
+
 function isCanonicalLiteralRoot(candidate, ownerRoot) {
   if (!candidate || !ownerRoot || !path.isAbsolute(candidate)) return false;
   if (/[\r\n$`%*?;|&]/.test(candidate) || candidate.includes("\0")) return false;
   try {
-    const resolved = realpathSync.native(path.resolve(candidate));
+    const normalizedCandidate = path.resolve(candidate);
     const expected = realpathSync.native(ownerRoot);
-    return process.platform === "win32"
-      ? resolved.toLowerCase() === expected.toLowerCase()
-      : resolved === expected;
+    if (!pathsEqual(normalizedCandidate, expected)) return false;
+    const resolved = realpathSync.native(normalizedCandidate);
+    return pathsEqual(resolved, expected);
   } catch {
     return false;
   }
@@ -1376,15 +1396,14 @@ function getRootAnchorFailureReason(commandPrefix, ownerRoot) {
   }
 
   const normalizedCandidate = path.resolve(candidate);
-  const pathEquals = (left, right) =>
-    process.platform === "win32"
-      ? path.win32.normalize(left).toLowerCase() === path.win32.normalize(right).toLowerCase()
-      : left === right;
-  if (!pathEquals(resolvedCandidate, resolvedOwnerRoot)) {
-    if (!pathEquals(normalizedCandidate, resolvedCandidate)) {
-      return "G10: the checkout-root anchor resolves through a non-canonical path to a different checkout. Verify the canonical checkout path and symlink target.";
+  if (!pathsEqual(resolvedCandidate, resolvedOwnerRoot)) {
+    if (!pathsEqual(normalizedCandidate, resolvedCandidate)) {
+      return "G10: the checkout-root anchor resolves through a non-canonical path to a different checkout. Verify the canonical checkout path and target.";
     }
     return "G10: Git mutation targets a different checkout or worktree. Resume in a session belonging to the intended checkout.";
+  }
+  if (!pathsEqual(normalizedCandidate, resolvedOwnerRoot)) {
+    return "G10: the checkout-root anchor resolves to the owning checkout through a non-canonical path. Use the canonical checkout root.";
   }
   return "G10: the checkout-root anchor is not a canonical literal path for the Hook checkout.";
 }
