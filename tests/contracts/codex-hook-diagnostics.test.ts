@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,11 +23,18 @@ const repoRoot = path.resolve(process.cwd());
 const doctorPath = path.join(repoRoot, "scripts", "diagnose-codex-hooks.mjs");
 
 function git(root: string, args: string[]) {
+  const env = { ...process.env };
+  for (const name of Object.keys(env)) {
+    if (name.toUpperCase().startsWith("GIT_")) delete env[name];
+  }
+  env.GIT_OPTIONAL_LOCKS = "0";
+  env.GIT_TERMINAL_PROMPT = "0";
   return execFileSync("git", args, {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+    env,
     stdio: "pipe",
+    timeout: 10_000,
   }).trim();
 }
 
@@ -64,13 +71,19 @@ function createFixture() {
   fs.mkdirSync(path.join(root, ".codex", "hooks"), { recursive: true });
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
   writeFile(root, ".gitignore", "node_modules/\n");
-  writeFile(root, ".codex/hooks/pre_tool_use_policy.mjs", "export {};\n");
+  fs.copyFileSync(
+    path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy.mjs"),
+    path.join(root, ".codex", "hooks", "pre_tool_use_policy.mjs"),
+  );
   writeFile(root, ".codex/hooks/pre_tool_use_policy_windows.ps1", "exit 0\n");
   writeFile(root, ".codex/hooks/log_event.mjs", "export {};\n");
   writeFile(
     root,
     ".codex/config.toml",
     [
+      'sandbox_mode = "workspace-write"',
+      'approval_policy = "never"',
+      "",
       "[features]",
       "hooks = true",
       "",
@@ -102,6 +115,12 @@ function createFixture() {
   git(root, ["config", "user.name", "Codex Doctor Contract"]);
   git(root, ["add", "."]);
   git(root, ["commit", "--quiet", "-m", "fixture"]);
+  git(root, [
+    "remote",
+    "add",
+    "origin",
+    "https://diagnostic-user:REMOTE-URL-SECRET@example.invalid/private.git",
+  ]);
   linkDoctorDependencies(root);
   return root;
 }
@@ -134,11 +153,16 @@ function removeFixture(root: string) {
   }
 }
 
-function runDoctor(cwd: string, scriptPath = doctorPath): ProcessResult {
+function runDoctor(
+  cwd: string,
+  scriptPath = doctorPath,
+  extraEnv: Record<string, string> = {},
+): ProcessResult {
   const result = spawnSync(process.execPath, [scriptPath], {
     cwd,
     encoding: "utf8",
-    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+    env: { ...process.env, ...extraEnv, GIT_OPTIONAL_LOCKS: "0" },
+    timeout: 10_000,
   });
   return {
     status: result.status ?? -1,
@@ -181,7 +205,21 @@ function listRelativeFiles(root: string, directory: string) {
   return result.sort((left, right) => left.path.localeCompare(right.path));
 }
 
+function hashGitMetadata(root: string, directory: string) {
+  return listRelativeFiles(root, directory).map(
+    ({ path: relativePath, type, content, target }) => ({
+      path: relativePath,
+      type,
+      contentHash:
+        content === undefined ? undefined : createHash("sha256").update(content).digest("hex"),
+      targetHash:
+        target === undefined ? undefined : createHash("sha256").update(target).digest("hex"),
+    }),
+  );
+}
+
 function snapshot(root: string) {
+  const commonGitDirectory = path.resolve(root, git(root, ["rev-parse", "--git-common-dir"]));
   const trackedPaths = git(root, ["ls-files", "-z"])
     .split("\0")
     .filter(Boolean)
@@ -218,6 +256,10 @@ function snapshot(root: string) {
       .sort(),
     logs: listRelativeFiles(root, "logs"),
     legacyLogs: listRelativeFiles(root, ".codex/logs"),
+    gitMetadata: {
+      worktree: hashGitMetadata(root, ".git"),
+      common: hashGitMetadata(root, path.relative(root, commonGitDirectory)),
+    },
   };
 }
 
@@ -225,9 +267,10 @@ function expectReadOnlyDoctor(
   root: string,
   expectedStatus: number,
   check: (result: ProcessResult) => void,
+  extraEnv: Record<string, string> = {},
 ) {
   const before = snapshot(root);
-  const result = runDoctor(root);
+  const result = runDoctor(root, doctorPath, extraEnv);
   const after = snapshot(root);
   expect(after).toEqual(before);
   expect(result.status).toBe(expectedStatus);
@@ -262,27 +305,97 @@ describe("offline Codex Hook diagnostics contract", () => {
     withFixture((root) => {
       expect(fs.existsSync(path.join(root, ".codex/hooks/text_quality_gate.mjs"))).toBe(false);
       expect(fs.existsSync(path.join(root, ".artifacts/codex-text-quality"))).toBe(false);
-      expectReadOnlyDoctor(root, 0, (result) => {
-        expect(result.stdout).toContain("OK: [features] hooks = true");
-        for (const expected of [
-          "event=PreToolUse handlers=1 matcher=^Bash$ timeout=30",
-          "event=UserPromptSubmit handlers=1 matcher=none timeout=10",
-          "event=PostToolUse handlers=1 matcher=none timeout=10",
-          "event=SubagentStart handlers=1 matcher=none timeout=10",
-          "event=SubagentStop handlers=1 matcher=none timeout=10",
-          "event=Stop handlers=1 matcher=none timeout=10",
-        ]) {
-          expect(result.stdout).toContain(expected);
-        }
-        expect(result.stdout).toContain("N/A: project trust");
-        expect(result.stdout).toContain("N/A: Hook trust");
-        expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
-        expect(result.stdout).not.toContain("text_quality_gate");
-        expect(result.stdout).not.toContain("baseline_state");
-        expect(result.stdout).not.toContain("/absolute/doctor-command-secret");
-        expect(result.stdout).not.toContain("SAFETY-SECRET");
-        expect(result.stdout).not.toContain("LOG-SECRET");
-        expect(result.stdout).not.toContain(root);
+      expect(fs.lstatSync(path.join(root, ".git")).isDirectory()).toBe(true);
+      const gitTracePath = path.join(root, "diagnostic-git-trace-secret.log");
+      expectReadOnlyDoctor(
+        root,
+        0,
+        (result) => {
+          expect(result.stdout).toMatch(/OK: Git version=\d+(?:\.\d+)+/u);
+          expect(result.stdout).toContain("OK: checkout root resolved");
+          expect(result.stdout).toContain("OK: checkout root canonical state=resolved");
+          expect(result.stdout).toContain("OK: checkout .git entry=directory");
+          expect(result.stdout).toContain("OK: Git directory resolved");
+          expect(result.stdout).toContain("OK: Git common directory resolved");
+          expect(result.stdout).toContain("OK: worktree kind=ordinary");
+          expect(result.stdout).toContain("OK: current branch resolved");
+          expect(result.stdout).toContain("OK: HEAD resolved");
+          expect(result.stdout).toContain("Declared: project config sandbox_mode=workspace-write");
+          expect(result.stdout).toContain("Declared: project config approval_policy=never");
+          expect(result.stdout).toContain("OK: [features] hooks = true");
+          expect(result.stdout).toContain("OK: project Hook configuration=enabled");
+          for (const expected of [
+            "event=PreToolUse handlers=1 matcher=^Bash$ timeout=30",
+            "event=UserPromptSubmit handlers=1 matcher=none timeout=10",
+            "event=PostToolUse handlers=1 matcher=none timeout=10",
+            "event=SubagentStart handlers=1 matcher=none timeout=10",
+            "event=SubagentStop handlers=1 matcher=none timeout=10",
+            "event=Stop handlers=1 matcher=none timeout=10",
+          ]) {
+            expect(result.stdout).toContain(expected);
+          }
+          expect(result.stdout).toContain(
+            "Offline policy check: synthetic missing-anchor G10=deny（runtime evidence: N/A）",
+          );
+          expect(result.stdout).toContain("N/A: project trust");
+          expect(result.stdout).toContain("N/A: Hook trust");
+          expect(result.stdout).toContain("N/A: execpolicy loaded/effective state");
+          expect(result.stdout).toContain("N/A: Hook firing/runtime state");
+          expect(result.stdout).toContain("N/A: sandbox .git write capability");
+          expect(result.stdout).toContain("N/A: runtime effective sandbox_mode / approval_policy");
+          expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
+          expect(result.stdout).not.toContain("text_quality_gate");
+          expect(result.stdout).not.toContain("baseline_state");
+          expect(result.stdout).not.toContain("/absolute/doctor-command-secret");
+          expect(result.stdout).not.toContain("SAFETY-SECRET");
+          expect(result.stdout).not.toContain("LOG-SECRET");
+          expect(result.stdout).not.toContain("REMOTE-URL-SECRET");
+          expect(result.stdout).not.toContain("ENVIRONMENT-VALUE-SECRET");
+          expect(result.stdout).not.toContain(root);
+          expect(fs.existsSync(gitTracePath)).toBe(false);
+        },
+        {
+          DIAGNOSTIC_ENV_SECRET: "ENVIRONMENT-VALUE-SECRET",
+          gIt_DiR: path.join(root, "git-dir-override-secret"),
+          gIt_TrAcE: gitTracePath,
+        },
+      );
+    });
+  });
+
+  it("hides unrecognized config values while reporting allowlisted declarations only", () => {
+    withFixture((root) => {
+      const configPath = path.join(root, ".codex", "config.toml");
+      const config = fs
+        .readFileSync(configPath, "utf8")
+        .replace('sandbox_mode = "workspace-write"', 'sandbox_mode = "SANDBOX-CONFIG-SECRET"')
+        .replace('approval_policy = "never"', 'approval_policy = "APPROVAL-CONFIG-SECRET"')
+        .replace('matcher = "^Bash$"', 'matcher = "MATCHER-CONFIG-SECRET"')
+        .concat(
+          [
+            "",
+            "[[hooks.HOOK-EVENT-SECRET]]",
+            'matcher = "EVENT-MATCHER-SECRET"',
+            "",
+            "[[hooks.HOOK-EVENT-SECRET.hooks]]",
+            'type = "command"',
+            'command = "EVENT-COMMAND-SECRET"',
+            "timeout = 17",
+            "",
+          ].join("\n"),
+        );
+      fs.writeFileSync(configPath, config, "utf8");
+      expectReadOnlyDoctor(root, 1, (result) => {
+        expect(result.stdout).toContain("N/A: project config sandbox_mode");
+        expect(result.stdout).toContain("N/A: project config approval_policy");
+        expect(result.stdout).toContain("matcher=other");
+        expect(result.stdout).not.toContain("SANDBOX-CONFIG-SECRET");
+        expect(result.stdout).not.toContain("APPROVAL-CONFIG-SECRET");
+        expect(result.stdout).not.toContain("MATCHER-CONFIG-SECRET");
+        expect(result.stdout).not.toContain("HOOK-EVENT-SECRET");
+        expect(result.stdout).not.toContain("EVENT-MATCHER-SECRET");
+        expect(result.stdout).not.toContain("EVENT-COMMAND-SECRET");
+        expect(result.stdout).not.toContain("REMOTE-URL-SECRET");
       });
     });
   });
@@ -421,6 +534,7 @@ describe("offline Codex Hook diagnostics contract", () => {
       git(root, ["worktree", "add", "--quiet", "--detach", linked, "HEAD"]);
 
       const linkedDoctorPath = path.join(linked, "scripts", "diagnose-codex-hooks.mjs");
+      expect(fs.lstatSync(path.join(linked, ".git")).isFile()).toBe(true);
       expect(fs.existsSync(path.join(linked, "node_modules"))).toBe(false);
       expect(path.dirname(path.resolve(root))).toBe(path.dirname(path.resolve(linked)));
       const before = snapshot(linked);
@@ -431,8 +545,15 @@ describe("offline Codex Hook diagnostics contract", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toBe("");
       expect(result.stdout).toContain("required dependency is unavailable: smol-toml");
+      expect(result.stdout).toContain("OK: checkout root canonical state=resolved");
+      expect(result.stdout).toContain("OK: checkout .git entry=pointer file");
+      expect(result.stdout).toContain("OK: worktree kind=linked");
+      expect(result.stdout).toContain("Offline policy check: synthetic missing-anchor G10=deny");
       expect(result.stdout).not.toContain("textlint");
       expect(result.stdout).not.toContain("baseline_state");
+      expect(result.stdout).not.toContain(root);
+      expect(result.stdout).not.toContain(linked);
+      expect(result.stdout).not.toContain("gitdir:");
       expect(result.stdout).toContain("Summary: WARN=0 ERROR=");
       expect(result.stdout).not.toMatch(
         /MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND|node:internal| at .*\.mjs/u,
@@ -462,6 +583,7 @@ describe("offline Codex Hook diagnostics contract", () => {
       linkDoctorDependencies(linked);
 
       const linkedDoctorPath = path.join(linked, "scripts", "diagnose-codex-hooks.mjs");
+      expect(fs.lstatSync(path.join(linked, ".git")).isFile()).toBe(true);
       expect(fs.existsSync(path.join(linked, "node_modules"))).toBe(true);
       const before = snapshot(linked);
       const result = runDoctor(linked, linkedDoctorPath);
@@ -471,7 +593,13 @@ describe("offline Codex Hook diagnostics contract", () => {
       expect(result.status, result.stdout + result.stderr).toBe(0);
       expect(result.stderr).toBe("");
       expect(result.stdout).toContain("OK: required diagnostic dependencies are resolvable");
+      expect(result.stdout).toContain("OK: checkout root canonical state=resolved");
+      expect(result.stdout).toContain("OK: checkout .git entry=pointer file");
       expect(result.stdout).toContain("OK: [features] hooks = true");
+      expect(result.stdout).toContain("OK: worktree kind=linked");
+      expect(result.stdout).not.toContain(root);
+      expect(result.stdout).not.toContain(linked);
+      expect(result.stdout).not.toContain("gitdir:");
       expect(result.stdout).toContain("Summary: WARN=0 ERROR=0");
     } finally {
       if (fs.existsSync(linked)) {

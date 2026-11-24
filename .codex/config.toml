@@ -3,7 +3,7 @@
 # definition must also be trusted before Codex will execute it.
 
 sandbox_mode = "workspace-write"
-approval_policy = "never"
+approval_policy = "on-request"
 web_search = "cached"
 allow_login_shell = false
 mcp_optional_startup_grace_ms = 5000

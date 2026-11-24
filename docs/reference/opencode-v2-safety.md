@@ -6,7 +6,7 @@ OpenCode V2からCodexの既存`.codex/hooks/pre_tool_use_policy.mjs`の`evaluat
 
 - `opencode.jsonc`: OpenCode V2固有の権限設定（`permissions`）。
 - `.opencode/plugins/git-safety/index.js`: `execute.before`を登録する多層防御と、`guarded_shell` / `guarded_git` という安全性判定付き実行ツールを提供する。
-- `.codex/config.toml`: Codex固有のHook定義。今回変更しない。
+- `.codex/config.toml`: Codex固有のHook・sandbox・approval設定。OpenCode Pluginとは別の境界であり、その変更と実効状態は [`codex-safety-harness.md`](codex-safety-harness.md) を参照する。
 - `AGENTS.md`: 両エージェントに適用する作業規約。
 
 OpenCode V2（実機確認: v2.3.0）は`.opencode/plugins/`直下のディレクトリを自動検出し、その中の`index.js`をエントリポイントとして読み込む。`.mjs`ファイル直指定は`configured plugin path must be a directory`警告で無視されるため使用しない。Pluginは`id`と`setup`を持つデフォルトエクスポートで、追加のnpm依存を要求しない。
@@ -30,6 +30,10 @@ OpenCode V2（実機確認: v2.3.0）は`.opencode/plugins/`直下のディレ�
 
 両ツールは実行前に必ず`evaluateCommand()`を呼び出し、拒否理由がある場合はエラーで停止する。入力の欠落・型不正・過長・判定処理の例外はすべてfail-closeする。判定時の作業rootはPluginファイルの所在から解決してcheckout rootへ明示アンカーを付け、Codexの`cd -- <root> && git ...`と同じroot固定条件を満たす。実行時のcwdもcheckout rootに固定し、呼び出し側の`workdir`は使用しない。
 
+Git mutationの拒否分類、root anchor、復旧、handoffの正本は [`git-branch-safety.md`](git-branch-safety.md) とする。`guarded_git`は共通`evaluateCommand()`が許可したときだけ固定checkout rootで実行し、拒否されたGit mutationをREST/GraphQL、GitHub MCP、`gh api`、Git database/API、Git library、`.git`直接編集、別scriptや別agentで代行しない。GitHub read-only APIと、ユーザーが明示的に許可したPR/Issue metadata操作はcommit/object/ref更新と区別する。
+
+OpenCode V2の`permissions`とPluginはCodexのsandbox/execpolicyとは別機構である。Codexのworkspace-writeが`.git`等のmetadata更新を拒否しても、OpenCodeや他APIへ移して実行する理由にはならない。逆にOpenCodeの`guarded_git`許可もCodex sandboxやOS権限を変更しない。組み込み`shell`の既定`deny`とPlugin未ロード時のfail-closed動作を維持し、これらをOS sandboxとは扱わない。
+
 ## autoaccept維持下の安全性
 
 - グローバル`autoaccept`は変更していない。プロジェクト側の`deny`が優先されることを実機v2.3.0で確認した。
@@ -49,7 +53,7 @@ Windows側ファイルシステムに配置したlinked worktreeの`.git`ファ�
 Git公式機能`git worktree repair --relative-paths`でリンクを相対パス化している。一時Gitリポジトリで同じ操作を再現し、以下を確認した。
 
 1. `git worktree add`直後は両リンクファイルに絶対パスが保存され、`core.repositoryformatversion=0`、`extensions.relativeWorktrees`は未設定。
-2. `git worktree repair --relative-paths <worktree>`をmain worktreeで実行すると、`.git`は`gitdir: ../<main>/.git/worktrees/<id>`、`gitdir`は`../../../../<linked>/.git`のように相対化され、**公式動作として**`core.repositoryformatversion=1`と`extensions.relativeWorktrees=true`が書き込まれる。
+2. main worktreeで`cd -- "<absolute-checkout-root>" && git worktree repair --relative-paths "<worktree>"`を実行すると、`.git`は`gitdir: ../<main>/.git/worktrees/<id>`、`gitdir`は`../../../../<linked>/.git`のように相対化され、**公式動作として**`core.repositoryformatversion=1`と`extensions.relativeWorktrees=true`が書き込まれる。
 3. 一時環境で拡張を`git config --unset extensions.relativeWorktrees`により外しても、Git 2.56.xは相対リンクを正しく解決し、`git worktree list --porcelain`に`prunable`は出ない。
 4. 旧Git（2.43.0）は拡張未設定時に相対`gitdir`をCWD基準で解釈し、linked worktreeを`prunable gitdir file points to non-existent location`と表示する。拡張を設定すると旧Gitは`fatal: unknown repository extension found: relativeworktrees`でリポジトリ全体を拒否する。
 
@@ -64,7 +68,7 @@ Git公式機能`git worktree repair --relative-paths`でリンクを相対パス
 
 使用中のGitクライアントはすべて相対worktree拡張を解釈できる。**WSL2**: エージェントPATHの`~/.local/share/git-current/bin/git` = 2.56.1（`/usr/bin/git` = 2.43.0はPATHの後方にあり、エージェントは使用していない）。**Windows**: `AppData/Local/Programs/Git/cmd/git.exe` = 2.56.0.windows.4、GitHub Desktop同梱Git = 2.56.0.windows.4 / 2.56.1.windows.1。これらでは拡張の有無にかかわらず相対リンクが解決され、`prunable`は表示されない。
 
-公式の相対worktree参照を正式に有効化するには`git config --local extensions.relativeWorktrees true`を実行する。しかし共有安全性判定`.codex/hooks/pre_tool_use_policy.mjs`は状態変更を伴う`git config`を一貫して`G10`で拒否し、`guarded_git` / `guarded_shell`も実行前にfail-closeするため、エージェントはこの変更を行えない。Hookを無効化したり別経路で回避したりせず、ユーザーが明示的に実行する必要がある（下記「元に戻す方法」も参照）。
+公式の相対worktree参照を正式に有効化するには`cd -- "<absolute-checkout-root>" && git config --local extensions.relativeWorktrees true`を実行する。しかし共有安全性判定`.codex/hooks/pre_tool_use_policy.mjs`は状態変更を伴う`git config`を一貫して`G10`で拒否し、`guarded_git` / `guarded_shell`も実行前にfail-closeするため、これはagent用の手順ではない。必要性を判断したユーザーが通常のGit CLIで行うhandoffとし、Hookを無効化したり別API/scriptへ移したりしない。
 
 ### 検証結果（2026-11-21）
 
@@ -77,15 +81,15 @@ Git公式機能`git worktree repair --relative-paths`でリンクを相対パス
 1. 全worktreeの所在と状態を`git worktree list --porcelain`で把握する（本リポジトリはmain + 本worktreeの2つ）。
 2. 未コミット変更を確認・保護する（他worktreeに既存の変更がある場合は触らない）。
 3. `.git/config`、linked worktreeの`.git`、対応する`gitdir`を安全な場所へバックアップする。
-4. main worktreeから`git worktree repair --relative-paths <linked-worktree>`を実行する（公式に拡張が設定される）。
-5. 旧Gitを明示的に使う必要がある場合のみ`git config --unset extensions.relativeWorktrees`で拡張を外す。現在の環境では既に外れた状態であり、Git 2.56.xは拡張なしでも正常に動作する。
+4. main worktreeから`cd -- "<absolute-checkout-root>" && git worktree repair --relative-paths "<linked-worktree>"`を実行する（公式に拡張が設定される）。
+5. 旧Gitを明示的に使う必要がある場合のみ、ユーザーhandoffとして`cd -- "<absolute-checkout-root>" && git config --unset extensions.relativeWorktrees`を通常Git CLIで実行する。現在の環境では既に外れた状態であり、Git 2.56.xは拡張なしでも正常に動作する。
 6. Windows/WSL2双方で`git status --short`、`git rev-parse --show-toplevel`、`git rev-parse --git-common-dir`、`git branch --show-current`、`git worktree list --porcelain`を確認する。
 
 ### 元に戻す方法
 
-- 拡張を公式状態へ戻す: `git config --local extensions.relativeWorktrees true`（共有Hookが拒否するためユーザーが明示実行する）。戻すと旧Git 2.43.0はリポジトリを拒否するようになる。
-- 絶対パス形式へ戻す: バックアップした`.git`と`gitdir`を元の内容へ戻す。または`git worktree repair <worktree>`を実行する。いずれの場合も`git worktree list --porcelain`で全worktreeが認識されることを確認する。
-- 現在の暫定構成（拡張未設定）へ戻す: `git config --local --unset extensions.relativeWorktrees`。Git 2.56.xでは相対リンクの解決と`prunable`非表示は維持される。
+- 拡張を公式状態へ戻す: `cd -- "<absolute-checkout-root>" && git config --local extensions.relativeWorktrees true`（共有Hookが拒否するためユーザーへのhandoffとする）。戻すと旧Git 2.43.0はリポジトリを拒否するようになる。
+- 絶対パス形式へ戻す: `cd -- "<absolute-checkout-root>" && git worktree repair "<worktree>"`を通常Git CLIで実行する。`.git`や`gitdir`を直接編集せず、`git worktree list --porcelain`で全worktreeが認識されることを確認する。
+- 現在の暫定構成（拡張未設定）へ戻す: ユーザーhandoffとして`cd -- "<absolute-checkout-root>" && git config --local --unset extensions.relativeWorktrees`を通常Git CLIで実行する。Git 2.56.xでは相対リンクの解決と`prunable`非表示は維持される。
 
 ## 検証
 
@@ -113,7 +117,7 @@ pnpm run lint
 
 ## ロールバック
 
-このPRをmainに取り込む前にPRをマージしなければ既存運用への影響はない。取り込み後に問題が発生した場合は、本PRのOpenCode設定、Plugin、テスト、文書、worktree相対化を`git revert`および`git worktree repair`で取り消す。Codex側の`.codex/config.toml`と既存Hookは変更していないため、Codexの設定移行は不要。
+このPRをmainに取り込む前にPRをマージしなければ既存運用への影響はない。取り込み後に問題が発生した場合は、本PRのOpenCode設定、Plugin、テスト、文書、worktree相対化を戻すGit操作を [`git-branch-safety.md`](git-branch-safety.md) のroot anchorと通常Git CLIに従って個別に行う。Codexのsandbox・approval・Hook設定はOpenCodeとは別の運用境界であり、この文書のOpenCodeロールバック対象には含めない。現在のCodex設定と復旧条件は [`codex-safety-harness.md`](codex-safety-harness.md) と [`git-branch-safety.md`](git-branch-safety.md) を参照する。
 
 ## 未解決リスク
 

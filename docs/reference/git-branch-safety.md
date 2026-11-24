@@ -8,16 +8,36 @@ Gitの変更操作（mutation）が許可されている作業であっても、
 
 ## Hookによる操作rootの固定
 
-PreToolUse HookはHookプロセスのcheckout rootを基準に操作対象を判定し、payloadの`cwd`には依存しない。状態を変更するbare `git`／`git.exe`は、Hookを所有するcheckoutのcanonical rootと一致する絶対pathへ明示的に移動した直後にだけ判定対象となる。
+PreToolUse HookはHookプロセスのcheckout rootを基準に操作対象を判定し、payloadの`cwd`には依存しない。状態を変更するbare `git`／`git.exe`は、Hookを所有するcheckoutのcanonical rootと一致する絶対pathへ明示的に移動した直後にだけ判定対象となる。Gitの状態変更1回ごとにroot anchor付きの独立したcommandとして実行し、前後に別commandを連結しない。
 
 - POSIX: `cd -- "<absolute-checkout-root>" && git <subcommand> ...`
 - PowerShell: `Set-Location -LiteralPath "<absolute-checkout-root>" -ErrorAction Stop; git <subcommand> ...`
-- 指定rootがHookのcheckoutと異なる、相対path・変数展開を使う、移動の間に別commandを挟む、`git -C`／`--git-dir`／`--work-tree`／Git環境変数を使う形式は拒否する。
-- `command git`、`env git`、PowerShellの`& git`もroot固定例外にはならない。Hookが確認できる直接呼出しだけを検出し、任意scriptや間接実行すべてを検査するとは扱わない。
+- 指定rootがHookのcheckoutと異なる、相対path・変数展開を使う、移動の間に別commandを挟む、`git -C`／`--git-dir`／`--work-tree`／repositoryやruntime configを変える`GIT_*`環境変数を使う形式は拒否する。`GIT_OPTIONAL_LOCKS`、`GIT_PAGER`、`GIT_TERMINAL_PROMPT`はroot/configを変えないためこの判定の対象外。`<absolute-checkout-root>`は実際のcanonical absolute pathへ置き換える。
+- `command git`、`command -p git`、`env git`、`env -u NAME git`、`env -C DIR git`、PowerShellの`& git`もroot固定例外にはならない。Hookは既知のshell wrapper（`command` / `env`の入れ子、POSIX shellの`-c`と`-lc`等のcombined option、PowerShellの`-Command`と`-NoProfile`等の前置option、`cmd /d /s /c`・`/k`、PowerShell `& {}`、括弧subshell、Bash/Zsh process substitution、command substitution）内のGit呼出しも共通policyで判定し、wrapper内のcontext-sensitive mutationをG10で拒否する。POSIX shellのscript-file/stdin実行、`eval` / `source` / `.`、PowerShellの`-File` / encoded command、および解釈できないshell入力はG10で拒否する。POSIX `exec`からGit、既知shell、またはscript runtimeへ置き換える操作は検査できない実行として扱い、Gitを含み得る対象を拒否する。通常の非Git `exec` commandは許可する。command substitution内のhere-documentとPowerShell block commentは終端を推測せず、未解析としてfail-closedにする。これは完全なshell / script parserではなく、未知の間接実行や任意の間接scriptをすべて検査する保証ではない。
+- `command` / `env` wrapperはpath basenameで識別し、`env.exe`やabsolute pathの`env`も同じG10検査を通る。POSIX `exec`が既知のPython runtime（versioned executable名を含む）を起動する場合も、runtime固有のquery-only引数以外は検査できないscript executionとしてG10で拒否する。
+- `git` executableはbasenameで認識するため、`/usr/bin/git`等のabsolute pathやWindowsの`C:\Program Files\Git\cmd\git.exe`も同じpolicyを通る。既知runtimeのversion/help確認は、そのruntime固有の終了フラグを単独指定した場合だけ許可し、scriptまたは追加引数を伴うprocess replacementはG10で拒否する。
 - read-only操作はroot固定を要求しない。保護branchから非保護branchへの通常の`switch`／`checkout`は既存契約を維持する。
 - 通常pushは構成済みremoteへの単一で明示的な非保護refだけが候補となる。`--follow-tags`、`push.followTags`、再帰submodule push、mirror設定等の追加更新があり得る場合や、安全な判定に必要なGit設定を読めない場合は拒否する。
 
-このHookはCodexのBash PreToolUse向け制御であり、任意の外部プロセスやすべてのMCP操作を保護するものではない。実行経路別の検証範囲はRun Artifactと報告に記録する。
+このHookはCodexのBash PreToolUse向け制御であり、任意の外部プロセスやすべてのMCP操作を保護するものではない。Codex sandbox、execpolicy、OS/ACL権限、Git metadataのlockは別の制御・失敗層であり、Hookが許可してもそれらを上書きしない。実行経路別の検証範囲はRun Artifactと報告に記録する。
+
+## 拒否・失敗の分類と経路境界
+
+Gitの状態変更が拒否または失敗したら、同じ変更を別経路で再実行せず、まず最初のエラーを次のように分類する。エラー表示やread-onlyの状態確認は行ってよい。
+
+| 分類 | 代表例 | 対応 |
+| --- | --- | --- |
+| 共通HookのG1〜G9 | hard reset、rebase、amend、clean、force/delete push、危険なbranch/tag操作 | 拒否を維持し、代替transportを使わない。必要ならユーザーhandoff。 |
+| G10 | root未解決・不一致、anchorなし、未対応構文、branch/remote/destination/configを安全に特定できない | まずread-onlyでroot・branch・remote・statusを調査する。条件が解決しないまま同じ変更を再試行しない。 |
+| execpolicy | 実行前のpolicy deny/prompt | G10とは別の拒否。許可された実行経路・承認がない限り停止する。 |
+| Codex sandbox | `.git`などの保護metadataへの書込み、許可workspace外へのアクセス | Hook判定とは独立。sandbox設定や他APIを迂回路として使わない。 |
+| Git metadata | ref、index、config、worktree管理情報の更新拒否 | 拒否元がHook / sandbox / OSのどれかを特定する。`.git`を直接編集せず、同じ更新を別経路へ移さない。 |
+| OS/ACL権限 | read-only file、owner/ACL、ディスク・filesystem権限 | 権限昇格やACL変更で回避しない。ユーザーまたは管理者へhandoffする。 |
+| Git lock | `.git/index.lock`等の排他lock | Git writerの稼働状況を確認し、lockを削除・上書きしない。安全確認は下記参照。 |
+| 認証・ネットワーク | credential拒否、DNS/TLS/接続失敗 | credentialを表示・転送せず、接続または認証の担当者へhandoffする。別API/transportへ切り替えない。 |
+| non-fast-forward | remote refがlocalより進んでいる | pushを止め、通常Git CLIのroot-anchored fetchでremote-tracking ref / `FETCH_HEAD`を更新して状態を確認する。履歴の統合判断はユーザーへ戻す。 |
+
+Hookまたはsandbox等で拒否されたGit mutationと同等の結果を、REST/GraphQL、GitHub MCP、`gh api`、Git database/API、Git library、`.git`の直接編集、別script、別agentで実現してはならない。GitHubのread-only APIによるPR/branch/commit状態の参照は許可される。ユーザーが明示的に許可したPR/Issue本文、label、reviewer等の管理操作もGit commit/object/refを変更しないmetadata操作として区別し、通常の認可条件に従って実行できる。このmetadata操作の許可をGit ref/commit更新の許可へ拡張しない。
 
 ## 保護ブランチ・デフォルトブランチの方針
 
@@ -36,7 +56,10 @@ Gitの変更操作を伴うタスクでは、ファイルの変更・コミッ�
     git branch -vv
     git log -15 --oneline --decorate --graph
     git remote -v
-    git fetch origin
+
+状態を変更するfetchは別commandとして、checkout rootをanchorして実行する。
+
+    cd -- "<absolute-checkout-root>" && git fetch origin
 
 PR対応ではGitHubの状態を取得する。
 
@@ -54,7 +77,7 @@ PR対応ではGitHubの状態を取得する。
 
 必要に応じて、ローカル設定のみでアップストリームを変更する。
 
-    git branch --set-upstream-to=origin/<expected-branch> <expected-branch>
+    cd -- "<absolute-checkout-root>" && git branch --set-upstream-to=origin/feat/example feat/example
 
 この設定変更によってリモートの履歴が変更されることはない。以降のプッシュも明示的なrefspecを用いて行い、アップストリームの表示だけに依存しないようにする。
 
@@ -74,11 +97,29 @@ PR対応ではGitHubの状態を取得する。
 - ステージング対象は個別に明示し、`git add .` は使用しない。
 - コミット前に、mainブランチ固有の変更、タスクと無関係な依存関係（unrelated dependency）、ソースコード、テスト、ワークフロー、および意図しないファイルの削除がステージングされていないことを確認する。
 
+## 標準のstage / commit例
+
+現在のbranchが意図した非保護branchであることと、add前の対象ファイルを確認する。pathは個別に明示し、`main` / `master` / default branchにはcommitしない。add後にstaged diffを確認してからcommitし、addとcommitはそれぞれ別のcommandとして実行する。pathやcommit messageにcredentials・secretを含めない。以下はREADMEの通常CLI例に合わせた形式である。
+
+POSIX:
+
+    cd -- "<absolute-checkout-root>" && git add -- "README.md"
+
+    cd -- "<absolute-checkout-root>" && git commit -m "docs: READMEの説明を更新"
+
+PowerShell:
+
+    Set-Location -LiteralPath "<absolute-checkout-root>" -ErrorAction Stop; git add -- "README.md"
+
+    Set-Location -LiteralPath "<absolute-checkout-root>" -ErrorAction Stop; git commit -m "docs: READMEの説明を更新"
+
+`<absolute-checkout-root>`はHookが所有するcheckoutのcanonical absolute pathに置き換える。`README.md`は実際に承認された個別path、commit messageは変更内容に置き換える。
+
 ## プッシュ前チェック
 
-`git push` の直前に、同一シェルの最新の状態で以下を実行する。
+`git push` の直前に最新の状態を確認する。fetchはroot anchor付きの独立commandとして実行する。
 
-    git fetch origin
+    cd -- "<absolute-checkout-root>" && git fetch origin
     git status --short
     git branch --show-current
     git branch -vv
@@ -96,18 +137,18 @@ PR作業では、以下の条件がすべて必須である。
 
 プッシュはブランチ名を省略した形式（bare形式）ではなく、対象ブランチをrefspecで明示して実行する。
 
-    git push origin HEAD:<expected-branch>
+    cd -- "<absolute-checkout-root>" && git push origin HEAD:refs/heads/feat/example
 
-ブランチ名が検証済みで、アップストリームも正しく設定されている場合に限り、`git push -u origin HEAD` を使用できる。ただし、現在のブランチがmainやデフォルトブランチの場合は使用しない。ノンファストフォワード（non-fast-forward）になった場合も強制プッシュ（force push）は行わず、fetchを実行して履歴とリモートの更新者を確認・調査する。
+`<absolute-checkout-root>`は実際のHook所有rootに置き換え、`feat/example`は確認済みの非保護branch名に置き換える。pushには単一の明示refspecを必ず含める。upstream省略形やremoteだけのpushは使わない。ノンファストフォワード（non-fast-forward）になった場合も強制pushは行わず、anchor付きfetchで履歴とremote更新を確認する。
 
 ## アップストリームの確認
 
 `git branch -vv` で表示されるアップストリームは、プッシュ先が意図通りかを確認するための重要な情報である。PRブランチが `[origin/main: ahead N]` と表示されている場合は、安全な状態ではない。以下のコマンドを実行し、意図したPRのリモートブランチへ修正する。
 
-    git branch --set-upstream-to=origin/<expected-branch> <expected-branch>
+    cd -- "<absolute-checkout-root>" && git branch --set-upstream-to=origin/feat/example feat/example
     git branch -vv
 
-アップストリームを修正した後も、`git push origin HEAD:<expected-branch>` のようにrefspecを明示してプッシュする。
+アップストリームを修正した後も、`cd -- "<absolute-checkout-root>" && git push origin HEAD:refs/heads/feat/example`のようにroot anchorと単一refspecを明示してプッシュする。
 
 ## ブランチ不一致時の停止条件
 
@@ -116,7 +157,7 @@ PR作業では、以下の条件がすべて必須である。
 1. コミット、プッシュ、reset、rebase、ブランチの削除、force操作を直ちに停止する。
 2. ワーキングツリーを変更せず、現在のHEAD、status、ブランチ名、リモート情報を記録する。
 3. 現在のHEADを指すレスキューブランチ（rescue branch）を作成し、対象のコミットを参照可能な状態にして保護する。
-4. `git fetch origin` を実行した後、GitHub APIまたは `git rev-parse origin/main` でリモートのmainの状態を確認する。
+4. anchor付きfetchを実行した後、GitHub read-only APIまたは`git rev-parse origin/main`でリモートのmainの状態を確認する。
 5. 誤ったコミットがリモートのmainに含まれてしまっていないかを確認する。含まれている場合は自動修復を試みず、履歴を書き換えないままユーザーへ報告する。
 6. 正しいPRのリモートブランチとレスキューブランチの祖先関係（ancestry）を確認する。
 7. ファストフォワード（fast-forward）が可能であれば「Case 1」へ、そうでなければ対象コミットのみを古い順に移す「Case 2」へ進む。
@@ -125,12 +166,14 @@ PR作業では、以下の条件がすべて必須である。
 
 ## 誤ったブランチでコミットした場合の復旧手順
 
+Case 1 / Case 2は、未commit差分とuntracked fileを先に保全し、切替先のworking treeが安全に切替可能な場合だけ適用する。未保全の変更があればcheckoutを切り替えず、「checkout / worktree移行」手順へ進む。
+
 ### レスキューブランチ（rescue branch）の作成手順
 
 現在のHEADを最優先で保護する。ブランチ名は作業内容が識別できる一時的な名称にする。
 
-    git branch rescue/<task>-recovery
-    git log -7 --oneline --decorate rescue/<task>-recovery
+    cd -- "<absolute-checkout-root>" && git branch rescue/task-recovery HEAD
+    git log -7 --oneline --decorate rescue/task-recovery
 
 以下が確認できるまで、reset、rebase、ブランチ削除、force pushは一切行わない。
 
@@ -146,10 +189,13 @@ PR作業では、以下の条件がすべて必須である。
 
 正しいブランチへ移動し、`--ff-only` オプションのみを用いて統合する。
 
-    git switch <expected-branch>
+    cd -- "<absolute-checkout-root>" && git switch feat/example
     git status --short
     git branch --show-current
-    git merge --ff-only rescue/<task>-recovery
+
+branch切替後にstatusとbranchを確認する。以下のmerge例は、実効runtimeに利用可能なapproval routeがあり、mergeへの個別承認が確認できた場合だけ使う。project configは `approval_policy = "on-request"` だが、CLI optionやmanaged policy等で実効設定が異なる場合があるため確認する。`on-request`は承認要求経路であり、`.git`書込みを許可する証明ではない。実効policyが `never` なら通常の承認要求は出ず、sandbox / OS等が拒否する場合は状態を保全してhandoffする。
+
+    cd -- "<absolute-checkout-root>" && git merge --ff-only rescue/task-recovery
 
 すでに同一のSHAを指している場合は `Already up to date` となり、追加のマージコミットの作成や cherry-pick は不要である。
 
@@ -157,13 +203,16 @@ PR作業では、以下の条件がすべて必須である。
 
 正しいPRブランチがレスキューブランチの祖先でない場合、レスキューブランチ全体をPRブランチとしてプッシュしてはならない。まず対象となるコミットを古い順に特定し、正しいブランチへ移動してから必要なコミット（例: 該当する5つのコミットなど）のみを cherry-pick する。
 
-    git log --reverse --format="%H %s" <base>..<rescue-branch>
-    git switch <expected-branch>
+    git log --reverse --format="%H %s" <base>..rescue/task-recovery
+    cd -- "<absolute-checkout-root>" && git switch feat/example
     git status --short
     git branch --show-current
-    git cherry-pick <SHA1> <SHA2> <SHA3> <SHA4> <SHA5>
 
-コンフリクト（conflict）が発生した場合は、対象コミットの内容と既存PRの差分を比較する。本来の意図を保持した最小限の解決が安全に行えない場合は、`git cherry-pick --abort` を含むこれ以上の追加操作を行わずに作業を停止し、ユーザーの判断を仰ぐ。force pushや既存PRの履歴削除によって強引に解決してはならない。
+対象SHAを確認後、cherry-pickはroot anchor付きの独立commandとして実行する。
+
+    cd -- "<absolute-checkout-root>" && git cherry-pick <SHA1> <SHA2> <SHA3> <SHA4> <SHA5>
+
+コンフリクト（conflict）が発生した場合は、対象コミットの内容と既存PRの差分を比較する。本来の意図を保持した最小限の解決が安全に行えない場合は、追加操作を停止し、状態を保持してユーザーの判断を仰ぐ。force pushや既存PRの履歴削除によって強引に解決してはならない。
 
 ## リモートのmainへプッシュしていない場合の復旧
 
@@ -179,25 +228,95 @@ PR作業では、以下の条件がすべて必須である。
 - 誤ってプッシュしたコミットのSHA、プッシュ時刻、変更されたファイル、影響範囲、およびGitHub上のPRやブランチの状態を記録する。
 - 状況を直ちにユーザーへ報告し、リモートmainの修復方法について明確な判断・指示を仰ぐ。
 
+## checkout / worktree移行時の差分・commit保全
+
+root不一致やcheckout移行が必要な場合、既存checkoutを切り替え・上書きして調整しない。まずread-only情報を取り、未commitの変更とcommitを別々に保護する。
+
+    git status --short --untracked-files=all
+    git branch --show-current
+    git rev-parse HEAD
+    git diff --stat
+    git diff --cached --stat
+    git worktree list --porcelain
+
+未commit差分を移す必要があり、ユーザーがその移行を依頼している場合は、Git管理外の安全な保管先へstaged / unstaged patchを個別に保存し、untracked pathを列挙して内容を別途保全する。patch作成の例:
+
+    git diff --cached --binary > "<safe-backup>/staged.patch"
+    git diff --binary > "<safe-backup>/unstaged.patch"
+    git ls-files --others --exclude-standard
+
+既存commitは元のbranchを保持し、さらに現在のHEADを指すrescue refをroot anchor付きで作成する。元checkoutやrescue refは検証完了まで保持する。
+
+    cd -- "<absolute-source-checkout-root>" && git branch rescue/task-recovery HEAD
+
+期待するbranchが他worktreeで使用中でないことを確認してから、別のpathにworktreeを作る。branchがsource worktree自身ですでにcheckoutされている場合は重複追加せず、そのworktreeを保全して使用する。既存branchがない場合は、確認済みの開始点から非保護branchを作成する。
+
+    cd -- "<absolute-source-checkout-root>" && git worktree add "<absolute-new-worktree>" feat/example
+
+branchも同時に作成する場合は、明示した開始点を使う。
+
+    cd -- "<absolute-source-checkout-root>" && git worktree add -b feat/example "<absolute-new-worktree>" "<verified-start-point>"
+
+sandboxまたはOS権限が移行先pathを拒否したら停止してhandoffする。
+
+worktree作成後、source sessionはtargetの内容をread-onlyで検証する。canonical target root、branch、HEAD、status、開始点との履歴関係、およびworktree一覧を確認する。検証例:
+
+    cd -- "<absolute-new-worktree>" && git rev-parse --show-toplevel
+    cd -- "<absolute-new-worktree>" && git branch --show-current
+    cd -- "<absolute-new-worktree>" && git rev-parse HEAD
+    cd -- "<absolute-new-worktree>" && git status --short --untracked-files=all
+    git worktree list --porcelain
+
+target rootが期待したcanonical pathで、branch / HEAD / statusが保全した開始点と一致することを確認したら、target rootを作業rootとする新しいCodexまたはOpenCode sessionを開始する。source sessionが行うGit状態変更は、source rootをanchorした`git worktree add`によるtargetの初期作成までとし、作成後のtarget worktree内のファイル、index、refは変更しない。source sessionはtargetに対してpatch適用、untracked file複製、checkout / switch、cherry-pick、add、commit等を実行せず、scriptや別API経由でも変更しない。初期作成後のtargetへの変更と以降のGit mutationは新sessionだけに任せる。
+
+新sessionでは、最初に作業rootとHookの所有rootがtarget rootであること、branch、HEAD、status、rescue refをread-onlyで再確認する。以降の各Git mutationはtarget rootをanchorした独立commandとして実行する。staged / unstaged patchはtarget sessionから個別に適用し、untracked fileも同sessionから同じ相対pathへ個別に複製して既存ファイルを上書きしない。移行先でHookを使う場合、anchorは移行先Pluginが所有するcheckout rootに合わせる。
+
+    cd -- "<absolute-new-worktree>" && git apply --index "<safe-backup>/staged.patch"
+
+    cd -- "<absolute-new-worktree>" && git apply "<safe-backup>/unstaged.patch"
+
+既存commitを期待branchへ移す場合は、履歴と変更内容を比較して必要なSHAだけを古い順に選び、移行先で1つのroot-anchored commandとしてcherry-pickする。patch適用、branch切替、commit移行で競合・不一致が出たら、source checkoutを保持したまま止めてユーザーへhandoffする。`reset --hard`、force checkout、worktree強制追加で合わせてはならない。
+
+新sessionでの移行後は、sourceとtargetのHEAD、rescue ref、staged / unstaged diff、untracked file一覧、対象commitとremote refを比較する。すべて確認できるまでsource checkout、backup patch、rescue refを残す。元worktreeのremoveやbackupの削除はこの手順に含めない。
+
+新sessionでもsandboxが`.git`への書込みを拒否した場合、別worktreeへの移行を繰り返さない。拒否元と実効設定をread-onlyで確認し、そのruntimeが提供する公式のapproval経路を確認する。現在のproject configは `approval_policy = "on-request"` で、実効policyも `on-request` なら対象操作の承認要求経路を利用できる。ただし、CLI optionやmanaged policy等が実効設定を変える場合がある。実効policyが `never` なら通常の承認要求は出ず、auto-reviewにも審査対象の要求が渡らない。`on-request`は承認経路を提供するだけで、`.git`書込みが許可される保証ではない。
+
+Codex CLIをone-shotで起動でき、runtime / managed policyが許す場合の公式候補は、対話承認を要求する`--ask-for-approval on-request`、または`workspace-write`と`on-request`のauto-reviewを使う`--approve-for-me`である。後者は前者や`--sandbox`と併用できない。いずれもこの環境で利用可能とは限らず、`.git`操作が許可される保証もないため、CLI version、起動時に受理されたoption、sessionの実効permission、実際の承認またはreview結果をruntimeで確認する。明示的に承認された操作だけを再開し、optionが使えない、承認要求が出ない、拒否される、またはsandbox / OSが引き続き拒否する場合は、差分・target worktree・rescue refを保持してユーザーhandoffにする。OpenCodeにはCodex CLI optionを適用せず、OpenCode側の公式runtime approval経路を別に確認する。
+
+one-shot optionはこのsession起動時だけの候補であり、project設定を永続変更する権限ではない。`approval_policy`等の永続設定変更はrepository ownerの明示承認がない限り行わない。Codexのsandbox / approvalの説明は[公式agent approvals and security](https://learn.chatgpt.com/docs/agent-approvals-security)、optionの仕様は[公式Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference)を参照する。
+
+## `.git/index.lock`等の安全対応
+
+`index.lock`、`packed-refs.lock`などのlockが原因なら、Git writerが動作中でないことをread-onlyのprocess確認で調べる。Git操作を並行実行してlockを回避したり、lock fileを削除・rename・編集したりしない。processが見つからない場合も自動でstale lockと判断せず、path、存在時間、直前のGit command、確認したprocessを記録してユーザーまたはrepository ownerへhandoffする。lockが解消されても、元のbranch/root/diffを再確認してから通常のGit CLIで再開する。
+
+## ユーザーhandoff
+
+許可された通常Git CLIで解消できない拒否・失敗、`reset --hard`が必要に見える状態、remoteの履歴統合、権限・credential・lockの解消判断はユーザーへ戻す。handoffには次を含め、秘密値やcredentialは含めない。
+
+- 最初に出た拒否・失敗の分類と要点（G10 / execpolicy / sandbox / OS権限 / lock / auth / network / non-fast-forward等）。
+- canonical checkout root、branch、HEAD SHA、status、staged / unstaged diffの有無、untracked fileの有無。
+- 対象remote / refとread-onlyで確認できた状態。credential、token、秘密を含むURLは伏せる。
+- 実行できたread-only調査と、mutationが拒否・未完了であること。
+- 次に必要な判断または環境変更の担当者。
+
+ユーザーの返答までは同じmutationを別API、script、library、`.git`編集、別agentへ移さず、worktreeとcommitを保持する。
+
 ## 禁止操作
 
-- git push --force
-- git push -f
-- git push --force-with-lease（今回のブランチ復旧作業でも使用しない）
-- rescue確認前のgit reset --hard
-- git branch -D
-- git clean -fd
+- force push variant（`--force` / `-f` / `--force-with-lease`）
+- HookがG1で拒否する`git reset --hard`は復旧候補にしない。必要に見える場合は状態を保持してユーザーへhandoffする。
+- 強制branch削除と強制clean
 - リモートmainへのbare pushまたは暗黙的なプッシュ
 - 誤ったブランチの全履歴をPRブランチとして無条件にプッシュすること
 - PRをマージすることで復旧を完了扱いにすること
 
-ユーザーから復旧作業の明確な指示があり、対象コミットがレスキューブランチと期待されるブランチの双方から参照可能で、かつリモートの状態も確認済みである場合に限り、ローカルブランチを正規のリモートブランチに同期させるための限定的な手段として `git reset --hard origin/<expected-branch>` の実行を検討できる。ただし、これはリモートのmainを書き換える操作ではなく、あくまで最終手段であり、今回のように不要であれば実行しない。
+復旧にworking treeやindexの破棄が必要に見える場合も、reset等で同期させず、現在のHEAD・差分・indexを保持してユーザーへ判断を戻す。
 
 ## 完了確認
 
 プッシュ後、以下を確認する。
 
-    git fetch origin
+    cd -- "<absolute-checkout-root>" && git fetch origin
     git branch --show-current
     git branch -vv
     git status --short

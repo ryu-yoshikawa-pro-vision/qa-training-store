@@ -6,11 +6,11 @@
 
 ## 直接起動とRun管理
 
-- 通常のLinux作業はリポジトリルートから `codex` を起動します。`.codex/config.toml` の `workspace-write`、`approval_policy = "never"`、network access、Hooks、agents、共通`.codex/rules/*.rules`を維持します。
+- 通常のLinux作業はリポジトリルートから `codex` を起動します。`.codex/config.toml` の `workspace-write`、`approval_policy = "on-request"`、network access、Hooks、agents、共通`.codex/rules/*.rules`を維持します。
 - `scripts/new-run.ps1|sh` は `runs/<run_id>/` を初期化し、厳密なmanifest契約が必要な場合はmachine-managed `run.json`も用意します。既存Runは上書きしません。
 - strict RunではRunを初期化してから直接 `codex` を起動します。作業後、必要な既存manifest更新のため `scripts/collect-run-artifacts.ps1` または `.sh` を明示実行します。エージェントは実体の `run.json` を直接編集しません。
 - Logging Hookは既存Node loggerを使用します。PreToolUseの安全HookとBash matcherは独立して維持します。
-- Hook trust、Git safety、sandbox・approvalの詳細は [`codex-safety-harness.md`](codex-safety-harness.md) と [`git-branch-safety.md`](git-branch-safety.md) を参照します。
+- project configと実効runtimeのapproval / sandboxが異なる場合があるため、session内で実効権限を確認します。`on-request`は承認要求経路を提供しますが、`.git`書込みを許可する証明にはなりません。詳細は [`codex-safety-harness.md`](codex-safety-harness.md) と [`git-branch-safety.md`](git-branch-safety.md) を参照します。
 
 ## ワークフローレベルの使い分け
 
@@ -67,6 +67,7 @@
 
 ### コミット・push・PR・CI のライフサイクル
 
+- Git mutationはcheckout rootへのliteral anchorを付けた通常Git CLIだけを使う。G10、execpolicy、Codex sandbox、OS/ACL、lock、認証・通信、non-fast-forwardの分類とhandoffは [`git-branch-safety.md`](git-branch-safety.md) に従い、拒否されたGit mutationをAPI、MCP、`gh api`、Git library、`.git`編集、別scriptや別agentで代行しない。GitHub read-only APIとユーザーが明示許可したPR/Issue metadata操作は、commit/ref更新と区別する。
 - ローカル検証、追跡対象の Run 成果物の最終コミット前状態への更新・検証、変更スコープの確認を完了した後にコミットする。
 - 既存の PR がある場合はその PR を使用する。PR が存在せず、対象の CI が `pull_request` イベントをトリガーとして実行される場合に限り、CI 確認に必要な PR を作成する。CI 確認を目的として `main` ブランチへ直接 push してはならない。
 - コミット後は対象ブランチへ通常通り push し、ローカル HEAD、リモート HEAD、および PR の最新 head を確認する。ブランチ、refspec、復旧手順の詳細は `docs/reference/git-branch-safety.md` を参照する。
