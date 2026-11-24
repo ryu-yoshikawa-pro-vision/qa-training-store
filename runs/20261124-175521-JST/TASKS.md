@@ -29,10 +29,12 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - 現行Issue #192の本文にある`payload.cwd`の信頼に関する説明は古い。現在のHookと契約テストはこれを信頼しない。
 - 通常Git CLIの`.git`書込みはHook G10と独立してsandboxで拒否され得る。現在のmanaged実行経路では`.git`が読み取り専用で、正規Git操作を実環境で完了できる証拠はまだない。
 - `pnpm install --frozen-lockfile`の既定storeはworkspace外でEROFS。`<TEMP_ROOT>` storeを明示した一度の再試行は`registry.npmjs.org`の`EAI_AGAIN`で失敗し、追加再試行しない。
+- Windows上の`realpathSync.native()`とGitの`rev-parse --show-toplevel`は区切り文字表記が異なる場合がある。比較・診断ではWindows path normalizationを適用し、G10拒否結果は変えない。
+- PR #230初回Web CIの失敗は、承認設定の旧固定値とWindows path区切り文字の誤分類。修正後重点契約は170/170 PASS、修正後GitHub CIは未確認。
 
 ## Blocked（ブロック中）
 
 - ブロック時のみ記載する。
-- ユーザーは`approval_policy = "never"`を`on-request`へ変更することを明示承認した。該当1項目のみ変更し、sandbox、network、`writable_roots`、Hookは維持した。設定変更が`.git`書込みを許可したことは実runtimeで別途確認する。
+- ユーザーは`approval_policy = "never"`を`on-request`へ変更することを明示承認した。該当1項目のみ変更し、sandbox、network、`writable_roots`、Hookは維持した。承認要求経路は`.git`書込みを許可する保証ではない。
 - 初回レビュー時のcommand-substitution / nested-command parserに対する指摘は、wrapper経由のGit実行を見逃さないため既存Hook parserを閉じる限定修正と判定した。独立レビューで修正後差分に具体的blockerなし、decision matrixと回帰テストを確認済み。
 - 通常のworkspace-write経路では`.git`がread-onlyとなる観測がある。承認付き通常Git CLI経路でadd/commit/pushを検証するまで、Git操作復旧を完了扱いにしない。

@@ -1377,7 +1377,9 @@ function getRootAnchorFailureReason(commandPrefix, ownerRoot) {
 
   const normalizedCandidate = path.resolve(candidate);
   const pathEquals = (left, right) =>
-    process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+    process.platform === "win32"
+      ? path.win32.normalize(left).toLowerCase() === path.win32.normalize(right).toLowerCase()
+      : left === right;
   if (!pathEquals(resolvedCandidate, resolvedOwnerRoot)) {
     if (!pathEquals(normalizedCandidate, resolvedCandidate)) {
       return "G10: the checkout-root anchor resolves through a non-canonical path to a different checkout. Verify the canonical checkout path and symlink target.";

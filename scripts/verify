@@ -396,7 +396,7 @@ check_template_contract() {
   contains "Output format" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Non-goals" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/config.toml || return 1
-  contains "approval_policy = \"never\"" .codex/config.toml || return 1
+  contains "approval_policy = \"on-request\"" .codex/config.toml || return 1
   contains "web_search = \"cached\"" .codex/config.toml || return 1
   contains "network_access = true" .codex/config.toml || return 1
   contains "network_access_in_workspace_write = true" codex-project.toml || return 1
@@ -409,7 +409,7 @@ check_template_contract() {
   contains 'gh api /repos/example/repo/issues' .codex/rules/20-risky-prompt.rules || return 1
   contains 'gh pr merge 123' .codex/rules/20-risky-prompt.rules || return 1
   contains 'gh pr create' .codex/rules/20-risky-prompt.rules && return 1
-  contains 'direct sessions with `approval_policy = "never"` reject these operations' .codex/rules/README.md || return 1
+  contains '`approval_policy = "on-request"` can request approval for supported operations' .codex/rules/README.md || return 1
   contains 'apply_patch_file_edits = "allowed_in_direct_workspace_write_within_parent_defined_scope"' codex-project.toml || return 1
   contains 'apply_patch_creates = "allowed_in_direct_workspace_write_within_parent_defined_scope"' codex-project.toml || return 1
   contains 'apply_patch_deletes = "forbidden_without_explicit_target_reason_and_approved_executor_path"' codex-project.toml || return 1
@@ -464,7 +464,7 @@ check_template_contract() {
   contains "network access enabled" docs/guides/quickstart.md || return 1
   contains "--no-run-manifest" docs/guides/quickstart.md || return 1
   contains "-NoRunManifest" docs/guides/quickstart.md || return 1
-  contains "approval_policy = \"never\"" MIGRATION.md || return 1
+  contains "approval_policy = \"on-request\"" MIGRATION.md || return 1
   contains "codex execpolicy check" MIGRATION.md || return 1
   contains "Codex direct interactive default" docs/PROJECT_CONTEXT.md || return 1
   contains "Source-of-Truth" docs/reference/run-artifacts.md || return 1

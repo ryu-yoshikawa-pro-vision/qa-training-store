@@ -96,6 +96,19 @@
   - 親Agentの判断: 許可・拒否判定のmatrixを維持し、追加安全性変更を加えずGit通常経路の実証へ進む。
 - Progress: 78% (7/9)
 
+## 2026-11-24 22:57 (JST)
+
+- Summary: 初回PR #230 CIが検出した承認設定契約とWindowsのパス表記差を修正し、重点Codex/OpenCode契約テストを再実行した。
+- Changes: Codex自律workspace契約、`scripts/verify`のPOSIX/Windows両方、`.codex/rules/README.md`、`.codex/requirements.toml`、`MIGRATION.md`、quickstart、PROJECT_CONTEXTを承認済み`on-request`設定へ整合。G10 reasonのWindows path equalityを`path.win32.normalize()`で比較し、Git `rev-parse`出力とのOpenCode契約比較をpath正規化した。
+- 判断 / 理由: Run `45403451156` / SHA `b4e094eb77cb8985d7321ae8abf9dc16c0dd73cf`のWeb CIは、既存契約テストが設定を`never`に固定していたため失敗。Windows Hook contractではG10拒否自体は維持されたが、Windows native pathとGit出力のslash区切り差を非canonical pathと誤分類していた。拒否判定は変えず、診断分類のみWindows規則に合わせた。OpenCodeの失敗は同じ表記差を期待値側で未正規化だったため、Git出力とrealpathを比較前に正規化する。
+- Validation: 修正後の4重点契約（Codex Hook、診断、OpenCode、workspace config）は隔離validation copy上で170/170 PASS。actual checkoutではUnix logging launcher個別テスト1/1 PASS。Prettier変更対象check、Markdown lint 488 files、text quality full scan 153 files、typecheck、security scan（236 runtime / 530 credential-scan files）、Run sanitizer（4 files / residual 0）、`git diff --check`はPASS（preserved `.codex/runs/**` CRLF警告のみ）。ESLintは0 errors / 68 warnings（validation copyに生成されたbaseline helperの既存warningを含む）。full `test:contracts`の追加実行はvalidation copyのGit HEADに必要なtracked source baselineを用意できず、関連外のartifact testsがfailした段階で停止。repository-wide `bash scripts/verify --strict-harness`はPreToolUse G10がshell script内Git contextを検査できず実行前拒否。これらをPASSとして扱わない。初回CIの他Web jobは成功、Mobile App CIはSUCCESSで、native build/runtime jobsは`Detect Native Changes=false`によりskip。
+- ブロッカー / 残作業: 追加差分を独立security reviewし、明示stage・通常Git commit/push後の最終HEAD CIを確認する。Windows CIのこの修正後再実行は未完了。新しいSHAのCIが成功するまでPRをmerge可能と扱わない。
+- Subagent:
+  - Delegation: 独立reviewer Hookeへ最新のapproval-contract/Windows path/OpenCode path-normalization差分のread-only reviewを依頼。
+  - Result: Hookeは最新差分を「Clear — no concrete blockers found in the reviewed delta」と判定。
+  - 親Agentの判断: 既存G10の拒否を維持した診断差分として採用し、CI再確認へ進む。
+- Progress: 78% (7/9)
+
 ## 削除候補
 
 - Codex はファイルやディレクトリを削除しない。

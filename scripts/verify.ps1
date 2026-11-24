@@ -419,7 +419,7 @@ function Test-TemplateContract {
     $config = Get-Content -Raw .codex/config.toml
 
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
-    if ($config -notmatch [regex]::Escape('approval_policy = "never"')) { throw "config missing never approval policy" }
+    if ($config -notmatch [regex]::Escape('approval_policy = "on-request"')) { throw "config missing on-request approval policy" }
     if ($config -notmatch [regex]::Escape('web_search = "cached"')) { throw "config missing cached web_search" }
     if ($config -notmatch [regex]::Escape('network_access = true')) { throw "config missing enabled workspace-write network" }
     $project = Get-Content -Raw codex-project.toml
@@ -448,7 +448,7 @@ function Test-TemplateContract {
     )) {
         if ($commonPromptRules -notmatch [regex]::Escape($command)) { throw "common prompt rules missing $command" }
     }
-    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern 'direct sessions with `approval_policy = "never"` reject these operations')) { throw "rules README missing direct-session prompt behavior" }
+    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern '`approval_policy = "on-request"` can request approval for supported operations')) { throw "rules README missing on-request prompt behavior" }
     $projectMetadata = Get-Content -Raw codex-project.toml
     foreach ($contract in @(
         'apply_patch_file_edits = "allowed_in_direct_workspace_write_within_parent_defined_scope"',
@@ -474,7 +474,7 @@ function Test-TemplateContract {
         if ($implementation -notmatch [regex]::Escape($contract)) { throw "implementation harness missing direct / strict contract: $contract" }
     }
     foreach ($contract in @(
-        'approval_policy = "never"',
+        'approval_policy = "on-request"',
         'Bashだけ',
         'trustが必要',
         'direct `codex`'
@@ -484,7 +484,7 @@ function Test-TemplateContract {
     foreach ($path in @('docs/guides/quickstart.md', 'MIGRATION.md', 'docs/PROJECT_CONTEXT.md')) {
         $content = Get-Content -Raw $path
         if ($content -notmatch [regex]::Escape('--no-run-manifest') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct Run initialization contract" }
-        if ($content -notmatch [regex]::Escape('approval_policy = "never"') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct approval contract" }
+        if ($content -notmatch [regex]::Escape('approval_policy = "on-request"') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct approval contract" }
     }
     if ((Get-Content -Raw docs/PROJECT_CONTEXT.md) -notmatch [regex]::Escape('Codex direct interactive default')) { throw "PROJECT_CONTEXT missing direct interactive section" }
     if ($config -notmatch [regex]::Escape('[agents]')) { throw "config missing agents section" }

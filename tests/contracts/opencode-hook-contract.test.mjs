@@ -232,7 +232,9 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
       const tools = await registerTools(fixturePlugin);
       const guardedGit = tools.get("guarded_git");
       const rootResult = await guardedGit.execute({ args: ["rev-parse", "--show-toplevel"] });
-      expect(rootResult.content.trim()).toBe(fs.realpathSync.native(fixtureRoot));
+      expect(path.resolve(rootResult.content.trim())).toBe(
+        path.resolve(fs.realpathSync.native(fixtureRoot)),
+      );
       const statusResult = await guardedGit.execute({ args: ["status", "--short", "--branch"] });
       expect(statusResult.content).toContain("## feature/safe");
       await guardedGit.execute({ args: ["fetch", "origin"] });

@@ -46,4 +46,4 @@
 | git add / commit / push | ファイル変更タスク（file-changing task）の Git ライフサイクル規約に従う（ユーザーによって Git 操作が禁止されていない場合） |
 | 削除、rename、git rm | 原則として実行しない。明示的に指定された対象のみ、Safety／Git safety 規約に従って実行する |
 
-通常はリポジトリのルートから `codex` を直接起動します。具体的なshellやhostの運用は各consumerのポリシーに従ってください。`.codex/config.toml` の値は `workspace-write`、`approval_policy = "never"`、network access enabledです。project config/rulesはproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。
+通常はリポジトリのルートから `codex` を直接起動します。具体的なshellやhostの運用は各consumerのポリシーに従ってください。`.codex/config.toml` は `workspace-write`、`approval_policy = "on-request"`、network access enabledを宣言します。承認要求経路が使えるかは実効runtimeに依存し、承認されてもsandbox、Hook、execpolicy等の拒否を上書きしません。project config/rulesはproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。

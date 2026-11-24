@@ -19,7 +19,7 @@ describe("direct Codex workspace contract", () => {
     const workflowLevels = project.workflow_levels as Record<string, Record<string, unknown>>;
 
     expect(config.sandbox_mode).toBe("workspace-write");
-    expect(config.approval_policy).toBe("never");
+    expect(config.approval_policy).toBe("on-request");
     expect(sandbox.network_access).toBe(true);
     expect(sandbox.writable_roots).toEqual([]);
     expect(safety.default_sandbox_mode).toBe("workspace-write");

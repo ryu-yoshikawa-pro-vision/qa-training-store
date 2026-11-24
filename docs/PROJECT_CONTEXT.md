@@ -55,7 +55,7 @@
 
 ## Codex direct interactive default（2026-09-25）
 
-- Repository rootからの通常interactive入口はdirect `codex`であり、project defaultは`workspace-write`、`approval_policy = "never"`、workspace network access enabledである。通常operationはHookとcommon execpolicyで安全性を確認し、高影響operationの`prompt`は自動拒否する。
+- Repository rootからの通常interactive入口はdirect `codex`であり、project configは`workspace-write`、`approval_policy = "on-request"`、workspace network access enabledを宣言する。承認要求経路はsandboxやHook等の許可を保証せず、実効runtimeは起動option・managed policy等で異なる場合がある。通常operationはHookとcommon execpolicyで安全性を確認する。
 - `git switch`は通常のbranch切替としてbroad prompt ruleから外し、destructive switchの既存Hook denyを維持する。`git checkout`、merge／rebase／tag、local branch delete、generic `gh api`と高影響GitHub CLI operationはpromptのまま保つ。
 - `codex-safe safe`はworkspace-write／on-request／network falseを明示し、明示依頼されたlocal例外操作とrecoveryに使える。network例外operationにはruntimeで確認したapprovalとnetwork sandbox昇格の両方を要求する。通常のdirect sessionから自動fallbackしない。
 - `auto-net`はwrapperで明示する既存presetとして維持する。safe wrapperはnetwork false、auto-net wrapperはnetwork trueを明示する。auto-net rulesはpreflight overlayであり、actual runtime policyの正本は`.codex/rules/*.rules`である。
