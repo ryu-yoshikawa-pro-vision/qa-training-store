@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "G10診断、読み取り専用診断、通常Git CLI復旧手順、API迂回禁止、共通OpenCode判定、契約テストを実装した。Codexでは承認付きの通常Git CLIによるfetch/add/commit/pushを実行確認した。OpenCodeの実Git変更操作とWindows Native / WSL host検証は未確認である。",
+      "evidence": "G10診断、読み取り専用診断、通常Git CLI復旧手順、API迂回禁止、共通OpenCode判定、契約テストを実装した。Codex CLIはWSL2 runtimeで承認付き通常Git CLIによるfetch/add/commit/pushを実行確認した。OpenCode liveの実Git変更操作は未確認。Windows Native runtimeは通常受入対象外で、Windows固有Hook/PowerShellはWindows CI contractで確認する。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Codex Hook、診断、OpenCodeの契約suiteは164/164 PASS。隔離fixtureは実際のGit add/commit/local bare remote pushを検証した。OpenCode live mutationとWindows Native / WSL hostの検証は未実施であり、契約テストやWindows Hook CIを実機検証と同一視しない。Run Artifactの追加後は新HEADの必須CIを再確認する。",
+      "evidence": "Codex Hook、診断、OpenCodeの契約suiteは164/164 PASS。隔離fixtureは実際のGit add/commit/local bare remote pushを検証した。CodexのWSL2 runtimeで通常Git CLI変更操作も確認した。OpenCode live mutationは未確認であり、隔離contract testをlive session検証と同一視しない。Windows Native runtimeは通常受入対象外で、Windows Hook CI contractは別途成功している。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -60,14 +60,14 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "隔離Git fixtureとCIでHook判定およびWindows contractを再現可能にした。実OpenCodeのadd/commit/pushとWindows Native / WSL runtimeはこの環境で利用できず未確認として残した。"
+      "evidence": "隔離Git fixtureとWindows CI contractでHook判定を再現可能にした。Codex CLIのWSL2 runtimeでは実際のfetch/add/commit/pushを確認した。実OpenCode sessionのadd/commit/pushは未確認として残す。Windows Native runtime検証は通常受入対象ではない。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "OpenCode v2.3.0ではPlugin load、guarded_git status、built-in shellの危険操作拒否を確認した。guarded_git経由の実add/commit/pushとWindows Native / WSL hostは未確認である。",
+      "evidence": "OpenCode v2.3.0ではPlugin load、guarded_git status、built-in shellの危険操作拒否を確認した。guarded_git経由の実add/commit/pushは未確認である。Codex CLIはWSL2上で通常Git CLI変更操作を実行済み。Windows Native runtimeは通常受入対象外で、Windows固有contractはCIで確認する。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -75,7 +75,7 @@
           "summary": "実runtimeと隔離契約テストの範囲を区別して記録。"
         }
       ],
-      "detail": "隔離contract testの実Git add/commit/local bare pushはPASSだが、実OpenCode sessionでの同じ変更操作を証明しない。利用可能なOpenCodeおよびWindows/WSL環境で後続確認が必要。"
+      "detail": "隔離contract testの実Git add/commit/local bare pushはPASSだが、実OpenCode sessionでの同じ変更操作を証明しない。後続確認が必要なのはOpenCode live mutationである。Windows Native runtimeは通常受入対象外であり、Windows固有Hook/PowerShell経路は既存Windows CI contractで確認する。"
     },
     {
       "category": "artifact_contract_gap",

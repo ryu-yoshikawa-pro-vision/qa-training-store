@@ -213,3 +213,12 @@
 - Validation: 一時validation copyで`codex-run-manifest-contract.test.ts` 24/24 PASS。変更したtestとRun Markdown/JSONはPrettier PASS。Python syntax compile、evaluation schema、strict collector、artifact sanitizer、`security:check`（236 runtime / 531 credential-scan files）、対象差分`git diff --check`はPASS。作業checkoutにはVitest/Prettier CLIがなく、テスト・formatは既存依存のある隔離validation copyへ変更ファイルを同期して実行した。
 - ブロッカー / 残作業: Run Artifactとcollector回帰修正を対象に明示stageし、通常Git CLIでcommit/pushする。その後、新しいPR HEADの必須Web/Mobile CIを確認する。OpenCode live add/commit/pushとWindows Native / WSL hostは未確認のまま報告する。
 - Progress: 89% (8/9)
+
+## 2026-11-25 09:08 (JST)
+
+- Summary: Windows Native runtime検証を通常受入対象に含めない既存Repository方針に合わせ、最終Run評価と運用記録を訂正した。
+- Changes: `docs/reference/codex-implementation-harness.md`の検証tierと`docs/plans/2026-11-24_175810_issue-192-git-safety-runtime-recovery.md`に、Windows Native対話runtimeは通常の完了条件ではなく、Windows固有経路は既存Windows CIで確認する旨を明記した。Run Plan / Tasks / evaluationからWindows Native runtimeを未完了項目として扱う記述を除いた。
+- 判断 / 理由: AGENTS.mdと実装ハーネスはCodex CLIの通常実行環境をLinuxとしている。実装ハーネスはPowerShell版をWindows向け対応として保持しつつ通常完了条件から除外し、Windows固有変更は既存test/CI contractで確認すると定めている。今回のWindows Hook CIはPASS。したがってWindows Native runtimeを未確認の残課題として挙げた旧Run文言は方針と不整合だった。WSL2は今回の実Codex CLI環境であり、承認付きfetch/add/commit/pushを確認済み。OpenCode live add/commit/pushのみ未確認として維持する。
+- Validation: 既存Windows Hook CIとCodexのWSL2 Git CLI結果を既存Run evidenceと照合した。Run Artifactのschema、strict collector、sanitizer/security scanと最終HEAD CIをこの追記後に再確認する。
+- ブロッカー / 残作業: OpenCode live mutationは未確認のまま。PR #230の同一最新HEADで必須CIを再確認し、PR本文と最終報告へ反映する。
+- Progress: 89% (8/9)

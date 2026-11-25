@@ -68,7 +68,7 @@
 - reason評価順に手を加えると同じ拒否で優先理由が変わり得るため、拒否時点とdecision IDは固定し、理由生成だけに絞る。
 - `diagnose:hooks`は設定ファイル検査であり、runtime発火・trust・sandbox実効状態を証明しない。表示と文書の両方で境界を明示する。
 - `workspace-write`では`.git`保護が別途作用する。`on-request`の設定値だけで実効runtime設定や`.git`書込み可否を証明しない。通常Git CLIのadd/commit/pushを承認付きで実行し、通った範囲を記録する。
-- OpenCode runtimeはログ書込みが拒否されて起動できず、Windows Native / WSL hostもこの実行環境にはない。未確認項目はCI契約テストと分けて報告する。
+- OpenCodeのlive add/commit/pushは未確認であり、隔離contract testと分けて報告する。Codex CLIはLinux/WSL2を通常実行環境とし、Windows Nativeの対話runtime検証は通常受入対象にしない。Windows固有Hook/PowerShell経路は既存Windows CI contractで確認する。
 
 ## 8. 成果物
 

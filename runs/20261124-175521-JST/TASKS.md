@@ -35,7 +35,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - Windows上の`realpathSync.native()`とGitの`rev-parse --show-toplevel`はextended path表記が異なる場合がある。比較・診断ではWindows path normalizationを適用し、G10拒否結果は変えない。UNC pathをcomponent-wiseに`lstat`してsymlinkと断定する案は独立reviewで誤分類リスクが判明したため撤去した。
 - PR #230初回Web CIの失敗は、承認設定の旧固定値とWindows path区切り文字の誤分類。修正後重点契約は170/170 PASS、修正後GitHub CIは未確認。
 - PR #230 Web run `45427530993`（SHA `df637d76d04ffa2e5772eb67c36746efe7cd4d1a`）はWindows Hook contract 179/180。最後の失敗は直接POSIX allow fixtureが`mkdtemp`の未canonical pathを使っていた。canonical root helper経由へ修正し、Hooke独立reviewはClear。
-- 実OpenCodeではPlugin load、`guarded_git status`、built-in shell経由の危険操作拒否を確認した。OpenCodeからの実際のadd/commit/pushとWindows Native / WSL host検証は未確認で、契約テストの隔離Git操作と区別する。
+- Windows Nativeの対話runtime検証は通常受入対象外。Codex CLIのWSL2 runtimeとanchor付き通常Git CLI操作は確認済みであり、Windows固有Hook/PowerShell契約はWindows CIで確認する。実OpenCodeではPlugin load、`guarded_git status`、built-in shell経由の危険操作拒否を確認したが、OpenCodeからの実add/commit/pushは未確認で、隔離Git契約テストと区別する。
 
 ## Blocked（ブロック中）
 

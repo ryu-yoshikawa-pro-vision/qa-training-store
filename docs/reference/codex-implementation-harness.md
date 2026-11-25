@@ -39,6 +39,7 @@
 - 利用側リポジトリ（consumer repo）での通常確認:
   - 本リポジトリではLinux上の `bash scripts/verify` を通常の確認入口とする。
   - PowerShell版はWindows向け対応として保持し、通常の完了条件には含めない。Windows向け変更は既存のテスト／CI契約で確認する。
+  - Windows Nativeの対話型／Runtime検証は通常の受け入れ対象ではなく、未完了要件として残さない。Windows固有のlauncher／PowerShell動作は既存のWindows CI契約で確認する。
 - 配布元リポジトリ（source repo）メンテナーによる配布前確認:
   - `bash template/scripts/verify --strict-harness`
   - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`

@@ -51,7 +51,7 @@
 
 - root/errorの診断改善で判定を緩和しない。診断文字列にraw command/path/remote/credentialを出さない。
 - `on-request`が`.git`書込みを許可するとは仮定しない。現在の実行経路で拒否された場合は拒否レイヤーを特定し、正規CLIの承認経路で成功が確認できるまでGit復旧を完了扱いにしない。
-- runtime未検証（direct CLI/OpenCode/Windows/WSL）は実機PASSと報告しない。
+- 実Codex CLIはLinux/WSL2 runtimeで確認する。Windows Nativeの対話runtime検証はこのRepositoryの通常受入対象にせず、Windows固有Hook/PowerShell経路は既存Windows CI contractで確認する。OpenCode live mutationなど、実行対象として定めた別runtimeの未確認事項は個別に報告する。
 
 ## Thinking Log（判断記録）
 
