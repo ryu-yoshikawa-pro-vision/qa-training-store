@@ -177,7 +177,8 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
   });
 
   it("runs guarded_git in a copied fixture checkout against a local bare remote", async () => {
-    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-guarded-git-fixture-"));
+    const tempRoot = fs.realpathSync.native(os.tmpdir());
+    const fixtureRoot = fs.mkdtempSync(path.join(tempRoot, "opencode-guarded-git-fixture-"));
     let remoteRoot;
     let isolatedHome;
     const originalEnvironment = new Map();
@@ -186,8 +187,8 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
     };
 
     try {
-      remoteRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode guarded-git-bare-"));
-      isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), "opencode guarded-git-home-"));
+      remoteRoot = fs.mkdtempSync(path.join(tempRoot, "opencode guarded-git-bare-"));
+      isolatedHome = fs.mkdtempSync(path.join(tempRoot, "opencode guarded-git-home-"));
       for (const name of Object.keys(process.env)) {
         if (name.startsWith("GIT_")) {
           rememberEnvironment(name);

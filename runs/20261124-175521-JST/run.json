@@ -30,7 +30,8 @@
     "tests/contracts/codex-hook-diagnostics.test.ts",
     "tests/contracts/codex-run-manifest-contract.test.ts",
     "tests/contracts/opencode-hook-contract.test.mjs",
-    "docs/history/2026-11-25_182841_project-context-before-linux-agent-runtime-policy.md"
+    "docs/history/2026-11-25_182841_project-context-before-linux-agent-runtime-policy.md",
+    "tests/contracts/codex-autonomous-workspace.test.ts"
   ],
   "validation": {
     "status": "not_run",

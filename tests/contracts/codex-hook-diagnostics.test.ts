@@ -307,8 +307,8 @@ describe("offline Codex Hook diagnostics contract", () => {
       withFixture((root) => {
         const realGitPath = (process.env.PATH ?? "")
           .split(path.delimiter)
-          .map((directory) => path.join(directory, "git"))
-          .find((candidate) => {
+          .map((directory: string) => path.join(directory, "git"))
+          .find((candidate: string) => {
             try {
               fs.accessSync(candidate, fs.constants.X_OK);
               return true;

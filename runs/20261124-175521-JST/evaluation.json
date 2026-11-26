@@ -9,7 +9,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "4件と--points-at誤分類を限定修正。Hook contract 216/216 PASS、正式承認付き関連suite 50/50 PASS。Hook smoke、標準verify/diagnostics、隔離new-run、strict collector、sanitizer、security scanもPASS。通常Git CLI commit/push、最終HEAD CI、PR/Issue本文更新は未完了。OpenCode live mutationはHTTP 402で未確認、Windows Native runtimeは対象外。",
+      "evidence": "4件と--points-at誤分類を限定修正。Hook contract 216/216 PASS、正式承認付き関連suite 50/50 PASS。Hook smoke、標準verify/diagnostics、隔離new-run、strict collector、sanitizer、security scanもPASS。通常Git CLI commit/pushはSHA d1f1fc8で完了したが、同SHA Web CIはtypecheck/contract failure。原因に対応する3テストファイル修正は未commitで、最終HEAD CI、PR/Issue本文更新は未完了。OpenCode live mutationはHTTP 402で未確認、Windows Native runtimeは対象外。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -29,7 +29,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Hook import/evaluateCommand/decidePayload、正常payload CLI exit 0、malformed payload exit 2、4件と--points-atの直接・隔離評価、Hook contract 216/216 PASS（0 skipped）、正式承認付きOpenCode/diagnostics/Run manifest 50/50 PASS。strict collector exit 0、sanitizer残存0、security:checkは236 runtime/531 credential files PASS、format:check/Markdown lint/git diff --check PASS。lint:textは30秒無出力でexit 130。別validation agentは残りコマンド実行中に3分以上結果を返さず停止し、lint:text:all/ESLint/typecheck/Run追記後bash scripts/verifyの結果は回収不能。最終CI未確認。",
+      "evidence": "Hook import/evaluateCommand/decidePayload、正常payload CLI exit 0、malformed payload exit 2、4件と--points-atの直接・隔離評価、Hook contract 216/216 PASS（0 skipped）、正式承認付きOpenCode/diagnostics/Run manifest 50/50 PASS。strict collector exit 0、sanitizer残存0、security:checkは236 runtime/531 credential files PASS、format:check/Markdown lint/git diff --check PASS。d1f1fc8のWeb CI run 45846927554はCode Quality TypecheckでTS7006を2件、ContractsでOpenCode fixtureのnon-canonical temp rootと古いcollector文言assertionを検出しFAIL。対応する3テストファイルの修正後、ローカルtypecheckは60秒無出力でexit 130、focused Vitestは開始後に結果を得ず停止し、Prettier未実行。対象3ファイルのgit diff --checkはexit 0。修正後typecheck/contracts/Windows Hook CIは新HEADで未確認。lint:textは30秒無出力でexit 130。OpenCode live mutationはHTTP 402で未確認。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -44,7 +44,7 @@
     },
     "reviewability": {
       "rating": "warn",
-      "evidence": "限定された4件、追加--points-at修正、関連Hook/OpenCode/Run変更の独立reviewで新しいmust-fixは確認されなかった。旧テストと分割後テストの34種類のGit command literalが一致し、更新後suite 216/216 PASS。最終PR HEAD CIとChatGPTによる最終レビューは未完了。",
+      "evidence": "限定された4件、追加--points-at修正、関連Hook/OpenCode/Run変更の独立reviewで新しいmust-fixは確認されなかった。旧テストと分割後テストの34種類のGit command literalが一致し、更新後suite 216/216 PASS。今回の3テストファイルCI修正も提示差分に対する独立reviewでmust-fixなし。ただし修正後CIは未実行であり、ChatGPTによる最終レビューは未完了。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
@@ -59,14 +59,14 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Hook contract 216/216、正式承認付きOpenCode/diagnostics/Run manifest 50/50、strict collector、sanitizer、security check、format/Markdown/diff-checkを確認。旧5.213秒test timeoutはtimeoutを変更せずケース分割で解消。lint:textは30秒無出力でexit 130、別validatorの残り結果は回収不能。実OpenCode live mutationはHTTP 402、最終CI未確認。Windows Native runtimeは対象外。"
+      "evidence": "Hook contract 216/216、正式承認付きOpenCode/diagnostics/Run manifest 50/50、strict collector、sanitizer、security check、format/Markdown/diff-checkを確認。旧5.213秒test timeoutはtimeoutを変更せずケース分割で解消。commit d1f1fc8のWeb CIはtypecheck/Contracts failure、Mobile App CIはSUCCESSでNative jobはnative_changed=falseによりskip。限定修正後のローカルtypecheck/Vitestは完了結果なし、修正後の最終CIを待つ。lint:textは30秒無出力でexit 130、実OpenCode live mutationはHTTP 402。Windows Native runtimeは対象外。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "OpenCode live add/commit/pushはprovider quota HTTP 402のため未確認、再試行しない。lint:textは30秒無出力でexit 130。別validatorは残り品質コマンド実行中に状態を返さず停止し、一部の結果を回収できなかった。strict collector、sanitizer、security scan、format/Markdown/diff-checkはPASS。最終HEAD CIが未確認。",
+      "evidence": "OpenCode live add/commit/pushはprovider quota HTTP 402のため未確認、再試行しない。lint:textは30秒無出力でexit 130。最終SHA d1f1fc8のWeb CIでtypecheckとContractsがfailureとなり、具体的な3 test-only修正を作業ツリーへ反映した。修正後のローカルtypecheck/Vitestは完了結果なし、Prettier未実行。対象差分git diff --checkはPASS。修正後の最終HEAD CIが未確認。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -74,7 +74,7 @@
           "summary": "最終修正、環境別suite結果、runtime制約を記録。"
         }
       ],
-      "detail": "今回の4件、branch-listの--points-at分類、protected refとremote contextを直接評価・隔離fixture・Hook contract 216/216で確認した。Run collector exit 0、sanitizer残存0、security scan PASS。OpenCode live mutationはHTTP 402で未確認。未確認の品質コマンドと最終CIをPR受入時に確認する。Windows Native runtimeはユーザー方針により対象外。"
+      "detail": "今回の4件、branch-listの--points-at分類、protected refとremote contextを直接評価・隔離fixture・Hook contract 216/216で確認した。Run collector exit 0、sanitizer残存0、security scan PASS。d1f1fc8のWeb CIで2件のTS7006、古いworkspace contract assertion、Windows temp 8.3 aliasによるOpenCode fixture G10 denialが見つかり、対応する3 test-only修正を反映した。修正後CIで型検査、Contracts、Windows Hook contractを確認する。OpenCode live mutationはHTTP 402で未確認。Windows Native runtimeはユーザー方針により対象外。"
     }
   ],
   "improvement_candidates": []

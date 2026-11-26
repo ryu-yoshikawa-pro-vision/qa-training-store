@@ -131,7 +131,9 @@ describe("direct Codex workspace contract", () => {
     expect(runArtifacts).toContain("-NoRunManifest");
     expect(runArtifacts).toContain("run.json.safety.network");
     expect(implementation).toContain('run_manifest = "recommended"');
-    expect(implementation).toContain("collect-run-artifacts.*");
+    expect(implementation).toContain(
+      "strict Runでは作業後に既存 `scripts/collect-run-artifacts.sh` を明示実行し",
+    );
     expect(implementation).toContain("明示実行");
   });
 });

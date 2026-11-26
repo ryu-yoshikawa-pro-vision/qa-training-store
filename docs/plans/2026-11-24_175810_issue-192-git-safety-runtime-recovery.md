@@ -146,3 +146,10 @@
 - digest方式、script allowlist、PATH全体固定、汎用shell parserは存在せず再導入していない。標準scriptを一律拒否しない。既存G10のroot/branch/ref保護は維持。
 - `format:check`、Markdown lint、`security:check`、strict collector、sanitizer、`git diff --check`はPASS。`lint:text`は30秒無出力でexit 130。別validation agentが残りコマンド中に3分以上結果を返さず停止したため、`lint:text:all`、ESLint、typecheck、Report追記後の`bash scripts/verify`は未確認として扱い、同一無出力コマンドは再試行しない。
 - OpenCode live mutationはprovider quota HTTP 402で未確認、再試行しない。Windows Native実機検証は対象外。通常Git CLIによるcommit/push、最終HEAD CI、PR/Issue更新が残る。
+
+## 14. 2026-11-27 final HEAD CIの限定修復
+
+- Commit `d1f1fc81006afc62433bdfdc1d24928a5aca389e`のWeb CI `45846927554` attempt 1で、Codex diagnostics testのTypeScript implicit-any 2件、現行Run collector文書契約と不一致のassertion 1件、Windows runnerの8.3 temp path aliasによるOpenCode fixture G10拒否が確認された。Mobile App CI `45846927552`はSUCCESS、Native jobは`native_changed=false`により既存条件でSKIPPED。
+- 修正範囲を3つのcontract testファイルに限定する。Hook/Pluginの安全性判定、fixtureの許可・拒否期待値、既定test timeout、Windows互換CIは変更しない。修正後の型検査、Contracts、Windows Hook contractを最終HEAD CIで確認する。
+- 独立reviewは提示差分にmust-fixなしとしたが、実行確認はしていない。ローカルtypecheckは60秒無出力で停止、focused Vitestは完了結果を返さず、Prettierは未実行。最終CI結果が出るまではこれらをPASSと扱わない。
+- 実OpenCode live mutationはprovider quota HTTP 402で未確認、再試行しない。Windows Native runtimeは受入対象外。PR #230とIssue #192はOPENのまま維持し、修正後CIを確認してから本文を更新する。

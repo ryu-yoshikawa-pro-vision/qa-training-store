@@ -14,7 +14,7 @@
 - [x] 9. OpenCode認証状態を確認し、利用可能なら隔離runtimeで実Git操作、不能なら制約と契約fixture結果を記録する。
 - [ ] 10. Issue #192を現行root-anchor/G10/sandbox/迂回防止仕様と最終実測へ更新する。
 - [x] 11. active Run/evaluation/manifestを実測へ同期し、strict collector、sanitizer、security scanを通す。collector exit 0、sanitizer残存指摘0、security check 236 runtime files/531 credential-scan files PASS。
-- [ ] 12. Linux/WSLの最終品質確認を行う。Hook contract 216/216、正式承認付き関連suite 50/50、`format:check`、Markdown lint、security scan、`git diff --check`はPASS。`lint:text`は30秒無出力でexit 130。次のvalidation agentが3分以上応答せず状態不明で停止したため、`lint:text:all`／ESLint／typecheck等の最終結果は未確認。以前の`bash scripts/verify`、`diagnose:hooks`、text-allのPASS記録は最終Run追記後の結果ではない。
+- [ ] 12. Linux/WSLの最終品質確認を行う。Hook contract 216/216、正式承認付き関連suite 50/50、`format:check`、Markdown lint、security scan、`git diff --check`はPASS。`lint:text`は30秒無出力でexit 130。最終SHA `d1f1fc8`のWeb CIではtypecheckがTS7006を2件検出し、Contracts/Windows Hook contractにも限定3件のfailureがあったため修正した。今回のローカルtypecheckは60秒無出力でexit 130、focused suiteは開始後に完了結果を得ず停止し、Prettierは未実行。修正後の契約・型検証は新HEAD CIで確認する。以前の成功記録は今回の変更後のPASSとして流用しない。
 - [x] 13. 4件の指摘と限定された関連差分を独立reviewする。独立reviewで`--points-at`修正後のHook差分に追加must-fixなし。分割test構造も読み取り専用確認で問題なし。ZIP内の分割前testと比較し、34件のcommand literalがすべて一致することを確認した。レビュー結果は最終PR受入とは区別する。
 - [ ] 14. 変更を明示stageし、通常Git CLIでcommit/push、最終HEAD必須CI、PR本文更新まで完了する。
 
@@ -45,6 +45,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 - PR #230初回Web CIの失敗は、承認設定の旧固定値とWindows path区切り文字の誤分類。修正後重点契約は170/170 PASS、修正後GitHub CIは未確認。
 - PR #230 Web run `45427530993`（SHA `df637d76d04ffa2e5772eb67c36746efe7cd4d1a`）はWindows Hook contract 179/180。最後の失敗は直接POSIX allow fixtureが`mkdtemp`の未canonical pathを使っていた。canonical root helper経由へ修正し、Hooke独立reviewはClear。
 - Windows Nativeの対話runtime検証は通常受入対象外。Codex CLIのWSL2 runtimeとanchor付き通常Git CLI操作は確認済みであり、Windows固有Hook/PowerShell契約はWindows CIで確認する。実OpenCodeではPlugin load、`guarded_git status`、built-in shell経由の危険操作拒否を確認したが、OpenCodeからの実add/commit/pushは未確認で、隔離Git契約テストと区別する。
+- 2026-11-27: SHA `d1f1fc81006afc62433bdfdc1d24928a5aca389e`のWeb CI run `45846927554` attempt 1は、typecheckのTS7006 2件、現行文書と不一致のcontract assertion 1件、Windows temp root canonicalizationに伴うOpenCode fixture 1件でfailure。該当3テストファイルを作業ツリーで修正し、独立reviewは提示差分にmust-fixなしとした。修正後のCIは次のcommitで確認する。
 - Historical review findings (2026-11-25): 当時のdigest許可案に固有のPATH依存選択・TOCTOU指摘と、任意shellのPATH状態を完全解析しない指摘があった。digest案は撤回済みで、PATH全体固定・汎用shell parser・動的read構文の網羅は現行作業では実装しない。OpenCode/common HookのGit lookup一致は既存契約として別途確認する。
 - Historical implementation interruption (2026-11-25): writerはHookのdigest/fixed-PATH定義を一部削除したが、残る参照があり、Hook import不能となった。現在のHook import smokeは成功し`TRUSTED_GIT_EXECUTABLE_PATHS`参照もない。過去の停止記録は履歴として保持し、現在の状態と混同しない。
 - 2026-11-25 23:37 JST: `.codex`の限定書込に対する`require_escalated`はユーザー中断で終了し、許可/拒否判定なし。中断後のread-only確認でHook import時`ReferenceError: TRUSTED_GIT_EXECUTABLE_PATHS is not defined`を確認。実装・テスト・GitHub更新を停止し、Hook書込可能な正式経路を再開条件とする。
