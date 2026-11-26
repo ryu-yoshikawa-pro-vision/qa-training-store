@@ -3,14 +3,14 @@
 ## 新規コンシューマーリポジトリへの導入
 
 1. `template/` の内容を対象リポジトリのルートへコピーする。
-2. `scripts/init-project.*` を実行し、`runs/`、`docs/adr/`、`docs/history/`、`docs/plans/`、`docs/reports/` などの初期ディレクトリを作成する。既存の`.codex/runs/`はpreserved legacy/historyとして残す。
+2. Linux／WSL2では `bash scripts/init-project.sh` を実行し、`runs/`、`docs/adr/`、`docs/history/`、`docs/plans/`、`docs/reports/` などの初期ディレクトリを作成する。`scripts/init-project.ps1` はWindows互換経路として保持し、Windows Nativeでの実行は通常のAI agent受入条件に含めない。既存の`.codex/runs/`はpreserved legacy/historyとして残す。
 3. `AGENTS.md` を確認する。
 4. `docs/PROJECT_CONTEXT.md` を対象プロジェクトの内容に合わせて更新する。
-5. `bash scripts/verify` または `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1` を実行し、最低限のセットアップが完了していることを確認する。
-6. 初回のリクエストでは `scripts/new-run.sh` または `scripts/new-run.ps1` を実行し、`runs/<run_id>/` を初期化する。
+5. Linux／WSL2で `bash scripts/verify` を実行し、最低限のセットアップが完了していることを確認する。PowerShell版はWindows互換用に保持し、Windows Nativeでのローカル実行はAI agentの受入条件に含めない。
+6. 初回のリクエストではLinux／WSL2で `bash scripts/new-run.sh` を実行し、`runs/<run_id>/` を初期化する。`scripts/new-run.ps1`はWindows互換経路として保持する。
    - 通常の直接実行（direct `codex`）による lightweight／standard Run はマニフェストなしとする。
    - Bash: `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
-   - PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
+   - Windows互換用のPowerShell例（AI agentの通常の完了条件ではない）: `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
 7. 計画系のタスクは `PLANS.md`、レビュー系のタスクは `CODE_REVIEW.md` から対応するスキルを参照する。
 8. 軽微な修正のみであれば `lightweight`、通常の実装であれば `standard`、安全性・移行・公開契約に関わる変更であれば `strict` を選択する。
 
@@ -33,7 +33,7 @@
 4. テンプレートの差分を一時ディレクトリへ同期し、内容を確認する。
 5. `docs/PROJECT_CONTEXT.md`、`docs/adr/`、`docs/plans/`、`docs/reports/`、`runs/`、`.codex/runs/` は機械的に上書きしない。
 6. 必要なテンプレートの差分のみを反映する。
-7. `bash scripts/verify` または PowerShell 版の verify スクリプトを実行する。
+7. Linux／WSL2のAI agent経路では `bash scripts/verify` を実行する。PowerShell版verifyはWindows互換用として保持し、ローカル受入の実行要件には含めない。
 8. プルリクエスト（PR）で差分を確認し、プロジェクト固有の運用ルール、品質ゲート、安全制約が損なわれていないかをレビューする。
 
 ## モード選択の目安
@@ -46,4 +46,4 @@
 | git add / commit / push | ファイル変更タスク（file-changing task）の Git ライフサイクル規約に従う（ユーザーによって Git 操作が禁止されていない場合） |
 | 削除、rename、git rm | 原則として実行しない。明示的に指定された対象のみ、Safety／Git safety 規約に従って実行する |
 
-通常はリポジトリのルートから `codex` を直接起動します。具体的なshellやhostの運用は各consumerのポリシーに従ってください。`.codex/config.toml` は `workspace-write`、`approval_policy = "on-request"`、network access enabledを宣言します。承認要求経路が使えるかは実効runtimeに依存し、承認されてもsandbox、Hook、execpolicy等の拒否を上書きしません。project config/rulesはproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。
+通常はLinux／WSL2のリポジトリルートから `codex` を直接起動します。具体的なshellやhostの運用は各consumerのポリシーに従ってください。`.codex/config.toml` は `workspace-write`、`approval_policy = "on-request"`、network access enabledを宣言します。承認要求経路が使えるかは実効runtimeに依存し、承認されてもsandbox、Hook、execpolicy等の拒否を上書きしません。project config/rulesはproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。

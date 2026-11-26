@@ -30,7 +30,7 @@ Codexハーネス（Codex harness）で生成・参照される成果物（artif
 ### Canonical Run root and preserved legacy root
 
 - 新規Run Artifactのcanonical rootはリポジトリ直下の`runs/<run_id>/`です。`codex-project.toml`の`default_run_root`は`runs`、`report_policy.run_report`は`runs/<run_id>/REPORT.md`を指します。
-- Runの初期化は`scripts/new-run.sh`または`scripts/new-run.ps1`を使います。`scripts/init-project.sh`／`.ps1`は`runs/`と`.gitkeep`を用意し、`new-run`は`runs/<run_id>/`を作成します。いずれも`.codex/runs/**`の内容には触れません。
+- Linux／WSL2の通常のAI agent経路では`bash scripts/init-project.sh`と`bash scripts/new-run.sh`を使用します。対応する`.ps1`はWindows互換のために保持し、通常の受入条件としてWindows Nativeでのruntime検証を要求しません。`init-project`は`runs/`と`.gitkeep`を用意し、`new-run`は`runs/<run_id>/`を作成します。いずれも`.codex/runs/**`の内容には触れません。
 - `runs/`がsymlink、junction、reparse pointである場合や、正規化された場所がRepository直下の`runs/`でない場合は拒否します。`runs/<run_id>/`と`.codex/runs/<run_id>/`のいずれかに同じIDが既にある場合は、新規作成を拒否します。`--force`は既存Runの上書きを許可しません。
 - `.codex/runs/**`はpreserved legacy/historyとして読み取り用に保管します。新しいRunの自動探索、作成、collector更新の対象にはせず、旧Runを明示した更新経路は拒否またはread-onlyとします。IDの曖昧なfallbackを行いません。
 - ParentがRun Artifactの作成・更新・保持を管理し、childは独自のRun DirectoryやArtifactを作らず、Parentへ結果を返します。

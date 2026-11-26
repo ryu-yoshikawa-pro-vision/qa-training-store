@@ -10,6 +10,7 @@ const PROTECTED_FALLBACK_BRANCHES = ["main", "master"];
 const SAFE_GIT_PROCESS_ENVIRONMENT_VARIABLES = new Set([
   "GIT_OPTIONAL_LOCKS",
   "GIT_PAGER",
+  "GIT_PAGER_IN_USE",
   "GIT_TERMINAL_PROMPT",
 ]);
 const GIT_CONTEXT_OPERATIONS = new Set([
@@ -98,7 +99,12 @@ const FETCH_OPTIONS_WITH_VALUE = new Set([
 
 function isGitEnvironmentOverride(name) {
   const normalizedName = name.toUpperCase();
-  return normalizedName.startsWith("GIT_") && !SAFE_GIT_PROCESS_ENVIRONMENT_VARIABLES.has(normalizedName);
+  if (!normalizedName.startsWith("GIT_")) return false;
+  if (SAFE_GIT_PROCESS_ENVIRONMENT_VARIABLES.has(normalizedName)) return false;
+  if (/^GIT_(?:AUTHOR_(?:NAME|EMAIL|DATE)|COMMITTER_(?:NAME|EMAIL|DATE))$/.test(normalizedName)) {
+    return false;
+  }
+  return true;
 }
 const FETCH_SAFE_OPTIONS = new Set([
   "--all",
@@ -140,8 +146,8 @@ const PULL_SAFE_OPTIONS = new Set([
   "--squash",
 ]);
 
-/** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[], repositoryRoot?: string }} GitContext */
-/** @typedef {{ id: string, expected: "allow" | "deny", command: string, context?: GitContext }} PolicyCase */
+/** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[], remoteDefaultBranches?: Record<string, string>, repositoryRoot?: string, remoteListResolved?: boolean, defaultBranchResolved?: boolean }} GitContext */
+/** @typedef {{ id: string, expected: "allow" | "deny", command: string, requiresRootAnchor?: boolean, context?: GitContext }} PolicyCase */
 
 const DENY_CASES = [
   { id: "G1", expected: "deny", command: "git reset --hard HEAD" },
@@ -209,7 +215,7 @@ const ALLOW_CASES = [
     context: { currentBranch: "feature/safe", protectedBranches: PROTECTED_FALLBACK_BRANCHES },
   },
   { id: "A6", expected: "deny", decisionId: "G10", command: "git fetch origin" },
-  { id: "A7", expected: "allow", command: "git switch feature/safe" },
+  { id: "A7", expected: "allow", command: "git switch feature/safe", requiresRootAnchor: true },
   { id: "A8", expected: "deny", decisionId: "G10", command: "git reset HEAD -- sentinel.txt" },
   { id: "A9", expected: "deny", decisionId: "G10", command: "git restore --staged sentinel.txt" },
   { id: "A10", expected: "allow", command: "git rebase --abort" },
@@ -234,6 +240,9 @@ const EMPTY_CONTEXT = Object.freeze({
   upstreamBranch: "",
   protectedBranches: PROTECTED_FALLBACK_BRANCHES,
   remoteNames: [],
+  remoteDefaultBranches: Object.freeze({}),
+  remoteListResolved: false,
+  defaultBranchResolved: false,
 });
 
 function normalizeShellContinuations(segment) {
@@ -300,8 +309,35 @@ function getCommandBuiltinName(value) {
   return basename.endsWith(".exe") ? basename.slice(0, -4) : basename;
 }
 
+function isNonCanonicalGitMutationExecutable(value) {
+  const executable = String(value);
+  if (!isGitExecutableToken(executable)) return false;
+  if (executable.includes("/") || executable.includes(String.fromCharCode(92))) return true;
+
+  const normalized = executable.toLowerCase();
+  return process.platform === "win32"
+    ? normalized !== "git" && normalized !== "git.exe"
+    : executable !== "git";
+}
+
 function canNormalizeUnquotedOptionEscape(tokenValue) {
   return /^--?[A-Za-z]*$/.test(tokenValue);
+}
+
+function isDynamicShellSyntaxCharacter(character) {
+  return [
+    "$",
+    String.fromCharCode(96),
+    "*",
+    "?",
+    "[",
+    "]",
+    "{",
+    "}",
+    "%",
+    "!",
+    "~",
+  ].includes(character);
 }
 
 function tokenizeGitArguments(segment) {
@@ -309,13 +345,20 @@ function tokenizeGitArguments(segment) {
   let tokenStart = null;
   let tokenValue = "";
   let quote = null;
+  let hasDynamicShellSyntax = false;
   let parseError = null;
 
   const appendToken = (end) => {
     if (tokenStart === null) return;
-    tokens.push({ value: tokenValue, start: tokenStart, end });
+    tokens.push({
+      value: tokenValue,
+      start: tokenStart,
+      end,
+      dynamicShellSyntax: hasDynamicShellSyntax,
+    });
     tokenStart = null;
     tokenValue = "";
+    hasDynamicShellSyntax = false;
   };
 
   for (let index = 0; index < segment.length; index += 1) {
@@ -326,7 +369,17 @@ function tokenizeGitArguments(segment) {
       } else if (character === "\\" && quote === '"' && segment[index + 1] === '"') {
         tokenValue += '"';
         index += 1;
+      } else if (
+        character === "\\" &&
+        quote === '"' &&
+        ["$", String.fromCharCode(96)].includes(segment[index + 1])
+      ) {
+        tokenValue += segment[index + 1];
+        index += 1;
       } else {
+        if (quote === '"' && ["$", String.fromCharCode(96)].includes(character)) {
+          hasDynamicShellSyntax = true;
+        }
         tokenValue += character;
       }
       continue;
@@ -352,7 +405,12 @@ function tokenizeGitArguments(segment) {
         continue;
       }
       tokenStart ??= index;
-      tokenValue += character;
+      if (isDynamicShellSyntaxCharacter(nextCharacter)) {
+        tokenValue += nextCharacter;
+        index += 1;
+      } else {
+        tokenValue += character;
+      }
       continue;
     }
     if (/\s/.test(character)) {
@@ -362,6 +420,7 @@ function tokenizeGitArguments(segment) {
 
     tokenStart ??= index;
     tokenValue += character;
+    if (isDynamicShellSyntaxCharacter(character)) hasDynamicShellSyntax = true;
   }
 
   appendToken(segment.length);
@@ -370,7 +429,6 @@ function tokenizeGitArguments(segment) {
     parseError: parseError ?? (quote === null ? null : "unterminated shell quote"),
   };
 }
-
 function parseInlineEnvironment(prefix) {
   const tokenized = tokenizeGitArguments(prefix);
   let repositoryEnvironmentChanging = false;
@@ -394,12 +452,18 @@ function parseInlineEnvironment(prefix) {
 }
 
 function hasPersistentGitEnvironmentChange(commandPrefix) {
-  const gitVariable = "GIT_(?!(?:OPTIONAL_LOCKS|PAGER|TERMINAL_PROMPT)(?:\\s|=))[A-Za-z0-9_]*";
-  const bashGitAssignment = new RegExp(`(?:^|[\\r\\n;&|])[ \\t]*export[ \\t]+${gitVariable}[ \\t]*=`, "i");
-  const powershellGitAssignment = new RegExp(`(?:^|[\\r\\n;&|])[ \\t]*\\$env:${gitVariable}[ \\t]*=`, "i");
+  const gitVariable = "(GIT_[A-Za-z0-9_]+)";
+  const bashGitAssignment = new RegExp(`(?:^|[\\r\\n;&|])[ \\t]*export[ \\t]+${gitVariable}[ \\t]*=`, "gi");
+  const powershellGitAssignment = new RegExp(`(?:^|[\\r\\n;&|])[ \\t]*\\$env:${gitVariable}[ \\t]*=`, "gi");
+  const hasGitEnvironmentOverride = (pattern) => {
+    for (const match of commandPrefix.matchAll(pattern)) {
+      if (isGitEnvironmentOverride(match[1])) return true;
+    }
+    return false;
+  };
   return {
     repositoryEnvironmentChanging:
-      bashGitAssignment.test(commandPrefix) || powershellGitAssignment.test(commandPrefix),
+      hasGitEnvironmentOverride(bashGitAssignment) || hasGitEnvironmentOverride(powershellGitAssignment),
     runtimeEnvironmentChanging: false,
   };
 }
@@ -495,6 +559,9 @@ function parseGitInvocation(segment) {
   return {
     subcommand: subcommandToken ? normalizeShellSecurityToken(subcommandToken.value).toLowerCase() : "",
     argumentTokens: subcommandToken ? tokens.slice(tokenIndex + 1).map(({ value }) => value) : [],
+    dynamicArgumentTokens: subcommandToken
+      ? tokens.slice(tokenIndex + 1).map(({ dynamicShellSyntax }) => dynamicShellSyntax)
+      : [],
     changeDirectories,
     repositoryChanging,
     runtimeConfigChanging,
@@ -503,317 +570,18 @@ function parseGitInvocation(segment) {
   };
 }
 
-function findCommandSubstitutionEnd(command, openingIndex) {
-  let parenthesisDepth = 1;
-  let quote = null;
-
-  for (let index = openingIndex + 2; index < command.length; index += 1) {
-    const character = command[index];
-    const nextCharacter = command[index + 1];
-
-    if (quote === "'") {
-      if (character === "'") quote = null;
-      continue;
-    }
-    if (quote === '"') {
-      if (character === "\\" && nextCharacter !== undefined && ['"', "$", "`", "\\"].includes(nextCharacter)) {
-        index += 1;
-        continue;
-      }
-      if (character === '"') {
-        quote = null;
-        continue;
-      }
-      if (character === "$" && nextCharacter === "(") {
-        parenthesisDepth += 1;
-        index += 1;
-      }
-      continue;
-    }
-
-    if (character === "\\") {
-      if (nextCharacter !== undefined) index += 1;
-      continue;
-    }
-    if (
-      character === "#" &&
-      quote === null &&
-      (index === openingIndex + 2 || /[\s;&|()<>]/.test(command[index - 1] ?? ""))
-    ) {
-      const newlineIndex = command.indexOf("\n", index + 1);
-      if (newlineIndex < 0) return -1;
-      index = newlineIndex;
-      continue;
-    }
-    if (
-      character === "<" &&
-      (nextCharacter === "<" || nextCharacter === "#")
-    ) {
-      // Here-document and PowerShell block-comment bodies can contain shell-significant delimiters.
-      return -1;
-    }
-    if (character === "'" || character === '"') {
-      quote = character;
-      continue;
-    }
-    if (character === "$" && nextCharacter === "(") {
-      parenthesisDepth += 1;
-      index += 1;
-      continue;
-    }
-    if (character === "(") {
-      parenthesisDepth += 1;
-      continue;
-    }
-    if (character === ")") {
-      parenthesisDepth -= 1;
-      if (parenthesisDepth === 0) return index;
-    }
-  }
-
-  return -1;
+function isDynamicShellCommandTarget(value) {
+  return ["$", "`", "*", "?", "[", "]", "{", "}", "%", "!", "~"].some((character) =>
+    value.includes(character),
+  );
 }
 
-function findBacktickSubstitutionEnd(command, openingIndex) {
-  for (let index = openingIndex + 1; index < command.length; index += 1) {
-    const character = command[index];
-    const nextCharacter = command[index + 1];
-    if (
-      character === "\\" &&
-      nextCharacter !== undefined &&
-      ["`", "$", "\\", "\n"].includes(nextCharacter)
-    ) {
-      index += 1;
-      continue;
-    }
-    if (character === "`") return index;
-  }
-  return -1;
-}
-
-function isEscapedByBackslash(command, index) {
-  let backslashCount = 0;
-  for (let cursor = index - 1; cursor >= 0 && command[cursor] === "\\"; cursor -= 1) {
-    backslashCount += 1;
-  }
-  return backslashCount % 2 === 1;
-}
-
-function findSubshellGroupEnd(command, openingIndex) {
-  let parenthesisDepth = 1;
-  let quote = null;
-
-  for (let index = openingIndex + 1; index < command.length; index += 1) {
-    const character = command[index];
-    const nextCharacter = command[index + 1];
-
-    if (quote === "'") {
-      if (character === "'") quote = null;
-      continue;
-    }
-    if (quote === '"') {
-      if (character === "\\" && nextCharacter !== undefined && ['"', "$", "`", "\\"].includes(nextCharacter)) {
-        index += 1;
-        continue;
-      }
-      if (character === '"') {
-        quote = null;
-        continue;
-      }
-      if (character === "$" && nextCharacter === "(") {
-        parenthesisDepth += 1;
-        index += 1;
-      }
-      continue;
-    }
-
-    if (character === "\\") {
-      if (nextCharacter !== undefined) index += 1;
-      continue;
-    }
-    if (character === "'" || character === '"') {
-      quote = character;
-      continue;
-    }
-    if (character === "$" && nextCharacter === "(") {
-      parenthesisDepth += 1;
-      index += 1;
-      continue;
-    }
-    if (character === "(") {
-      parenthesisDepth += 1;
-      continue;
-    }
-    if (character === ")") {
-      parenthesisDepth -= 1;
-      if (parenthesisDepth === 0) return index;
-    }
-  }
-
-  return -1;
-}
-
-function findPowerShellScriptBlockEnd(command, openingIndex) {
-  let braceDepth = 1;
-  let quote = null;
-
-  for (let index = openingIndex + 1; index < command.length; index += 1) {
-    const character = command[index];
-    const nextCharacter = command[index + 1];
-
-    if (quote === "'") {
-      if (character === "'" && nextCharacter === "'") {
-        index += 1;
-      } else if (character === "'") {
-        quote = null;
-      }
-      continue;
-    }
-    if (quote === '"') {
-      if (character === "`") {
-        if (nextCharacter !== undefined) index += 1;
-        continue;
-      }
-      if (character === '"') quote = null;
-      continue;
-    }
-
-    if (character === "`") {
-      if (nextCharacter !== undefined) index += 1;
-      continue;
-    }
-    if (character === "'" || character === '"') {
-      quote = character;
-      continue;
-    }
-    if (character === "{") {
-      braceDepth += 1;
-      continue;
-    }
-    if (character === "}") {
-      braceDepth -= 1;
-      if (braceDepth === 0) return index;
-    }
-  }
-
-  return -1;
-}
-
-function getCommandWrapperScript(segment, tokens, commandTokenIndex) {
-  const commandName = (tokens[commandTokenIndex]?.value ?? "")
-    .replaceAll("\\", "/")
-    .split("/")
-    .at(-1)
-    ?.toLowerCase();
-  if (!commandName) return null;
-
-  const posixShells = new Set(["bash", "bash.exe", "sh", "sh.exe", "zsh", "zsh.exe", "dash", "dash.exe"]);
-  if (posixShells.has(commandName)) {
-    const wrapperOffset = tokens[commandTokenIndex + 1]?.start ?? tokens[commandTokenIndex].start;
-    for (let index = commandTokenIndex + 1; index < tokens.length; index += 1) {
-      const value = tokens[index]?.value ?? "";
-      if (["--version", "-version", "--help", "-help", "-h", "-V"].includes(value)) return null;
-      if (value === "--") {
-        const scriptToken = tokens[index + 1];
-        return scriptToken
-          ? { unsupported: "shell script execution cannot be inspected safely", offset: scriptToken.start }
-          : { unsupported: "shell input execution cannot be inspected safely", offset: tokens[index].start };
-      }
-      if (value === "-s" || value === "-") {
-        return { unsupported: "shell input execution cannot be inspected safely", offset: tokens[index].start };
-      }
-      if (value === "-o" || value === "-O" || value === "--rcfile" || value === "--init-file") {
-        index += 1;
-        continue;
-      }
-      if (value === "-c" || value === "--command") {
-        const scriptToken = tokens[index + 1];
-        return scriptToken
-          ? { script: scriptToken.value, offset: scriptToken.start }
-          : { unsupported: "shell command string is missing", offset: tokens[index].start };
-      }
-      if (/^-[a-zA-Z]*c[a-zA-Z]*$/.test(value)) {
-        const scriptToken = tokens[index + 1];
-        return scriptToken
-          ? { script: scriptToken.value, offset: scriptToken.start }
-          : { unsupported: "shell command string is missing", offset: tokens[index].start };
-      }
-      if (!value.startsWith("-")) {
-        return { unsupported: "shell script execution cannot be inspected safely", offset: tokens[index].start };
-      }
-    }
-    return {
-      unsupported: "shell input execution cannot be inspected safely",
-      offset: wrapperOffset,
-    };
-  }
-
-  if (["pwsh", "pwsh.exe", "powershell", "powershell.exe"].includes(commandName)) {
-    let commandIndex = -1;
-    for (let index = commandTokenIndex + 1; index < tokens.length; index += 1) {
-      const value = tokens[index]?.value.toLowerCase() ?? "";
-      if (["-command", "-c", "-commandwithargs", "-cwa"].includes(value)) {
-        commandIndex = index + 1;
-        break;
-      }
-      if (/^-(?:e|en|ec|enc[a-z]*)$/i.test(value)) {
-        return {
-          unsupported: "encoded PowerShell command cannot be inspected safely",
-          offset: tokens[index].start,
-        };
-      }
-      if (/^-f(?:i(?:l(?:e)?)?)?$/i.test(value)) {
-        return {
-          unsupported: "PowerShell script-file execution cannot be inspected safely",
-          offset: tokens[index].start,
-        };
-      }
-    }
-    const scriptToken = tokens[commandIndex];
-    if (!scriptToken) {
-      const firstArgument = tokens[commandTokenIndex + 1];
-      if (firstArgument && ["-?", "-help", "-version"].includes(firstArgument.value.toLowerCase())) return null;
-      return {
-        unsupported: "PowerShell command or script mode cannot be inspected safely",
-        offset: firstArgument?.start ?? tokens[commandTokenIndex].start,
-      };
-    }
-    const rawScript = segment.slice(scriptToken.start);
-    const beginsQuotedScript = rawScript.startsWith("'") || rawScript.startsWith('"');
-    return beginsQuotedScript
-      ? { script: scriptToken.value, offset: scriptToken.start }
-      : { script: rawScript, offset: scriptToken.start };
-  }
-
-  if (["cmd", "cmd.exe"].includes(commandName)) {
-    let commandIndex = -1;
-    for (let index = commandTokenIndex + 1; index < tokens.length; index += 1) {
-      const value = (tokens[index]?.value ?? "").toLowerCase();
-      if (["/c", "-c", "/k", "-k"].includes(value)) {
-        commandIndex = index + 1;
-        break;
-      }
-    }
-    const scriptToken = tokens[commandIndex];
-    if (!scriptToken) {
-      const firstArgument = tokens[commandTokenIndex + 1];
-      if (firstArgument?.value === "/?") return null;
-      return {
-        unsupported: "cmd command mode cannot be inspected safely",
-        offset: firstArgument?.start ?? tokens[commandTokenIndex].start,
-      };
-    }
-    const rawScript = segment.slice(scriptToken.start);
-    const beginsQuotedScript = rawScript.startsWith("'") || rawScript.startsWith('"');
-    return beginsQuotedScript
-      ? { script: scriptToken.value, offset: scriptToken.start }
-      : { script: rawScript, offset: scriptToken.start };
-  }
-
-  return null;
-}
-
-function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution = false) {
+function getGitInvocations(
+  command,
+  sourceOffset = 0,
+  inheritedWrappedExecution = false,
+  ownerRoot,
+) {
   const invocations = [];
   let segmentStart = 0;
 
@@ -821,8 +589,33 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
     const segment = command.slice(segmentStart, segmentEnd);
     const tokenized = tokenizeGitArguments(segment);
     let commandTokenIndex = 0;
-    while (/^(?:\$env:)?[A-Za-z_][A-Za-z0-9_]*=/.test(tokenized.tokens[commandTokenIndex]?.value ?? "")) {
+    const skipLeadingEnvironmentAssignments = () => {
+      while (/^(?:\$env:)?[A-Za-z_][A-Za-z0-9_]*=/.test(tokenized.tokens[commandTokenIndex]?.value ?? "")) {
+        commandTokenIndex += 1;
+      }
+    };
+    skipLeadingEnvironmentAssignments();
+    const clauseToken = tokenized.tokens[commandTokenIndex];
+    const isLiteralIfClause =
+      clauseToken?.value === "if" && segment.slice(clauseToken.start, clauseToken.end) === clauseToken.value;
+    if (
+      ["do", "then", "else", "if", "elif"].includes(clauseToken?.value) &&
+      segment.slice(clauseToken.start, clauseToken.end) === clauseToken.value
+    ) {
       commandTokenIndex += 1;
+      skipLeadingEnvironmentAssignments();
+    }
+    if (isLiteralIfClause) {
+      const negationToken = tokenized.tokens[commandTokenIndex];
+      const followingToken = tokenized.tokens[commandTokenIndex + 1];
+      if (
+        negationToken?.value === "!" &&
+        segment.slice(negationToken.start, negationToken.end) === "!" &&
+        (isGitExecutableToken(followingToken?.value ?? "") ||
+          ["command", "env"].includes(getCommandBuiltinName(followingToken?.value)))
+      ) {
+        commandTokenIndex += 1;
+      }
     }
     const firstCommandToken = tokenized.tokens[commandTokenIndex];
     const firstCommandName = getCommandBuiltinName(firstCommandToken?.value);
@@ -841,19 +634,80 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
         sourceIndex,
       });
     };
-    const evaluateNestedShellWrapper = (wrapperTokenIndex) => {
-      const wrapperScript = getCommandWrapperScript(segment, tokenized.tokens, wrapperTokenIndex);
-      if (!wrapperScript) return false;
-      const sourceIndex = sourceOffset + segmentStart + wrapperScript.offset;
-      if (wrapperScript.unsupported) {
-        appendUninspectableWrapper(wrapperScript.unsupported, sourceIndex);
-      } else {
-        invocations.push(...getGitInvocations(wrapperScript.script, sourceIndex, true));
+    const parenthesizedGroupPrefix = /^[ \t]*\([ \t]*/.exec(segment);
+    if (parenthesizedGroupPrefix) {
+      const groupCommand = segment.slice(parenthesizedGroupPrefix[0].length);
+      const groupTokenized = tokenizeGitArguments(groupCommand);
+      let groupCommandIndex = 0;
+      while (/^(?:\$env:)?[A-Za-z_][A-Za-z0-9_]*=/.test(groupTokenized.tokens[groupCommandIndex]?.value ?? "")) {
+        groupCommandIndex += 1;
       }
-      return true;
+      const groupCommandToken = groupTokenized.tokens[groupCommandIndex];
+      const groupCommandName = getCommandBuiltinName(groupCommandToken?.value);
+      if (
+        isGitExecutableToken(groupCommandToken?.value ?? "") ||
+        ["command", "env"].includes(groupCommandName)
+      ) {
+        const groupedInvocations = getGitInvocations(
+          groupCommand,
+          sourceOffset + segmentStart + parenthesizedGroupPrefix[0].length,
+          false,
+          ownerRoot,
+        );
+        if (groupedInvocations.some((invocation) =>
+          invocation.parseError || isContextSensitiveMutation(invocation)
+        )) {
+          appendUninspectableWrapper(
+            "parenthesized Git mutation cannot be inspected safely",
+            sourceOffset + segmentStart + parenthesizedGroupPrefix[0].length + groupCommandToken.start,
+          );
+          return;
+        }
+      }
+    }
+    const appendSplitStringGitInvocation = (splitString, operandStart, operandEnd) => {
+      const splitCommand = splitString + segment.slice(operandEnd);
+      const splitTokenized = tokenizeGitArguments(splitCommand);
+      const gitToken = splitTokenized.tokens[0];
+      if (!gitToken || !isGitExecutableToken(gitToken.value)) return;
+
+      const parsed = parseGitInvocation(splitCommand.slice(gitToken.end));
+      const prefix = command.slice(0, segmentStart + operandStart);
+      const inlineEnvironment = parseInlineEnvironment(prefix);
+      const persistentEnvironment = hasPersistentGitEnvironmentChange(
+        command.slice(0, segmentStart + operandStart),
+      );
+      invocations.push({
+        ...parsed,
+        gitExecutable: gitToken.value,
+        parseError: splitTokenized.parseError ?? parsed.parseError,
+        wrappedExecution: true,
+        repositoryEnvironmentChanging:
+          inlineEnvironment.repositoryEnvironmentChanging ||
+          persistentEnvironment.repositoryEnvironmentChanging,
+        runtimeEnvironmentChanging:
+          inlineEnvironment.runtimeEnvironmentChanging ||
+          persistentEnvironment.runtimeEnvironmentChanging,
+        sourceIndex: sourceOffset + segmentStart + operandStart,
+      });
     };
+    if (isDynamicShellCommandTarget(firstCommandToken?.value ?? "")) return;
+    if (
+      inheritedWrappedExecution &&
+      (firstCommandName === "alias" ||
+        firstCommandName === "function" ||
+        /^function\s+[A-Za-z_][A-Za-z0-9_]*\b/.test(segment.trimStart()) ||
+        /^[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*\{/u.test(segment.trimStart()))
+    ) {
+      appendUninspectableWrapper(
+        "shell alias or function definitions cannot be inspected safely",
+        sourceOffset + segmentStart + (firstCommandToken?.start ?? 0),
+      );
+      return;
+    }
     let gitTokenIndex = commandTokenIndex;
     let directWrappedExecution = false;
+    let directExecGit = false;
     if (firstCommandToken && isGitExecutableToken(firstCommandToken.value)) {
       gitTokenIndex = commandTokenIndex;
     } else if (firstCommandName === "command") {
@@ -871,16 +725,13 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
             candidateIndex += 1;
             continue;
           }
-          appendUninspectableWrapper(
-            "command wrapper options cannot be inspected safely",
-            sourceOffset + segmentStart + tokenized.tokens[candidateIndex].start,
-          );
           return;
         }
         break;
       }
       const commandTarget = tokenized.tokens[candidateIndex];
       const commandTargetName = getCommandBuiltinName(commandTarget?.value);
+      if (isDynamicShellCommandTarget(commandTarget?.value ?? "")) return;
       if (isGitExecutableToken(commandTarget?.value ?? "")) {
         gitTokenIndex = candidateIndex;
         directWrappedExecution = true;
@@ -890,10 +741,9 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
             segment.slice(commandTarget.start),
             sourceOffset + segmentStart + commandTarget.start,
             true,
+            ownerRoot,
           ),
         );
-        return;
-      } else if (evaluateNestedShellWrapper(candidateIndex)) {
         return;
       } else {
         return;
@@ -906,13 +756,15 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
       directWrappedExecution = true;
     } else if (firstCommandName === "env") {
       let candidateIndex = commandTokenIndex + 1;
+      let envOptionsEnded = false;
       while (candidateIndex < tokenized.tokens.length) {
         const value = tokenized.tokens[candidateIndex]?.value ?? "";
         if (value === "--") {
+          envOptionsEnded = true;
           candidateIndex += 1;
-          break;
+          continue;
         }
-        if (["-u", "--unset", "-a", "--argv0"].includes(value)) {
+        if (!envOptionsEnded && ["-u", "--unset", "-a", "--argv0"].includes(value)) {
           if (!tokenized.tokens[candidateIndex + 1]) {
             appendUninspectableWrapper(
               "env wrapper option is missing its operand",
@@ -923,7 +775,7 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
           candidateIndex += 2;
           continue;
         }
-        if (value === "-C" || value === "--chdir") {
+        if (!envOptionsEnded && (value === "-C" || value === "--chdir")) {
           if (!tokenized.tokens[candidateIndex + 1]) {
             appendUninspectableWrapper(
               "env directory option is missing its operand",
@@ -934,28 +786,48 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
           candidateIndex += 2;
           continue;
         }
-        if (value === "-S" || value === "--split-string" || value.startsWith("--split-string=")) {
-          appendUninspectableWrapper(
-            "env split-string execution cannot be inspected safely",
-            sourceOffset + segmentStart + tokenized.tokens[candidateIndex].start,
+        if (!envOptionsEnded && (value === "-S" || value === "--split-string")) {
+          const splitStringToken = tokenized.tokens[candidateIndex + 1];
+          if (!splitStringToken) {
+            appendUninspectableWrapper(
+              "env split-string option is missing its operand",
+              sourceOffset + segmentStart + tokenized.tokens[candidateIndex].start,
+            );
+            return;
+          }
+          appendSplitStringGitInvocation(
+            splitStringToken.value,
+            splitStringToken.start,
+            splitStringToken.end,
           );
           return;
         }
-        if (value.startsWith("--chdir=")) {
+        if (!envOptionsEnded && value.startsWith("--split-string=")) {
+          appendSplitStringGitInvocation(
+            value.slice("--split-string=".length),
+            tokenized.tokens[candidateIndex].start,
+            tokenized.tokens[candidateIndex].end,
+          );
+          return;
+        }
+        if (!envOptionsEnded && value.startsWith("--chdir=")) {
           candidateIndex += 1;
           continue;
         }
-        if (value.startsWith("--unset=") || value.startsWith("--argv0=")) {
+        if (!envOptionsEnded && (value.startsWith("--unset=") || value.startsWith("--argv0="))) {
           candidateIndex += 1;
           continue;
         }
-        if (["-i", "--ignore-environment", "-0", "--null", "-v", "--debug"].includes(value)) {
+        if (!envOptionsEnded && ["-i", "--ignore-environment", "-0", "--null", "-v", "--debug"].includes(value)) {
           candidateIndex += 1;
           continue;
         }
-        if (value.startsWith("-") && value !== "-") {
+        if (!envOptionsEnded && value.startsWith("-") && value !== "-") {
+          return;
+        }
+        if (/^BASH_FUNC_[A-Za-z_][A-Za-z0-9_]*%%=/u.test(value)) {
           appendUninspectableWrapper(
-            "env wrapper options cannot be inspected safely",
+            "exported shell function execution cannot be inspected safely",
             sourceOffset + segmentStart + tokenized.tokens[candidateIndex].start,
           );
           return;
@@ -968,6 +840,7 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
       }
       const envTarget = tokenized.tokens[candidateIndex];
       const envTargetName = getCommandBuiltinName(envTarget?.value);
+      if (isDynamicShellCommandTarget(envTarget?.value ?? "")) return;
       if (!isGitExecutableToken(envTarget?.value ?? "")) {
         if (envTargetName === "command" || envTargetName === "env") {
           invocations.push(
@@ -975,17 +848,16 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
               segment.slice(envTarget.start),
               sourceOffset + segmentStart + envTarget.start,
               true,
+              ownerRoot,
             ),
           );
           return;
         }
-        if (evaluateNestedShellWrapper(candidateIndex)) return;
         return;
       }
       gitTokenIndex = candidateIndex;
       directWrappedExecution = true;
     } else {
-      let directExecGit = false;
       if (firstCommandName === "exec") {
         let candidateIndex = commandTokenIndex + 1;
         while (candidateIndex < tokenized.tokens.length) {
@@ -1010,87 +882,25 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
             continue;
           }
           if (value.startsWith("-") && value !== "-") {
-            appendUninspectableWrapper(
-              "exec wrapper options cannot be inspected safely",
-              sourceOffset + segmentStart + tokenized.tokens[candidateIndex].start,
-            );
             return;
           }
           break;
         }
         const execTarget = tokenized.tokens[candidateIndex];
         if (!execTarget) return;
-        const targetName = getExecutableBasename(execTarget.value);
-        const isVersionedPythonRuntime = /^python\d+(?:\.\d+)*t?(?:-(?:32|64))?(?:\.exe)?$/.test(targetName);
+        if (isDynamicShellCommandTarget(execTarget.value)) return;
         if (isGitExecutableToken(execTarget.value)) {
           gitTokenIndex = candidateIndex;
           directWrappedExecution = true;
           directExecGit = true;
-        } else if (evaluateNestedShellWrapper(candidateIndex)) {
-          return;
         } else if (["command", "env"].includes(getCommandBuiltinName(execTarget.value))) {
           invocations.push(
             ...getGitInvocations(
               segment.slice(execTarget.start),
               sourceOffset + segmentStart + execTarget.start,
               true,
+              ownerRoot,
             ),
-          );
-          return;
-        } else if (
-          [
-            "node",
-            "node.exe",
-            "nodejs",
-            "nodejs.exe",
-            "python",
-            "python.exe",
-            "python3",
-            "python3.exe",
-            "pythonw",
-            "pythonw.exe",
-            "py",
-            "py.exe",
-            "ruby",
-            "ruby.exe",
-            "perl",
-            "perl.exe",
-            "php",
-            "php.exe",
-            "deno",
-            "deno.exe",
-            "bun",
-            "bun.exe",
-          ].includes(targetName) ||
-          isVersionedPythonRuntime ||
-          /\.(?:sh|bash|zsh|ps1|cmd|bat|py|js|mjs|cjs|rb|pl|php)$/i.test(targetName)
-        ) {
-          const runtimeQueryFlags = {
-            node: ["--version", "-v", "--help", "-h"],
-            "node.exe": ["--version", "-v", "--help", "-h"],
-            nodejs: ["--version", "-v", "--help", "-h"],
-            "nodejs.exe": ["--version", "-v", "--help", "-h"],
-            python: ["--version", "-V", "--help", "-h"],
-            "python.exe": ["--version", "-V", "--help", "-h"],
-            python3: ["--version", "-V", "--help", "-h"],
-            "python3.exe": ["--version", "-V", "--help", "-h"],
-            py: ["--version", "-V", "--help", "-h"],
-            "py.exe": ["--version", "-V", "--help", "-h"],
-            ruby: ["--version", "--help"],
-            perl: ["--version", "--help"],
-            php: ["--version", "--help"],
-            deno: ["--version", "--help"],
-            bun: ["--version", "--help"],
-          };
-          const targetArguments = tokenized.tokens.slice(candidateIndex + 1).map((token) => token.value);
-          const allowedQueryFlags =
-            runtimeQueryFlags[targetName] ?? (isVersionedPythonRuntime ? runtimeQueryFlags.python : []);
-          if (targetArguments.length === 1 && allowedQueryFlags.includes(targetArguments[0])) {
-            return;
-          }
-          appendUninspectableWrapper(
-            "script process replacement cannot be inspected safely",
-            sourceOffset + segmentStart + execTarget.start,
           );
           return;
         } else {
@@ -1098,14 +908,6 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
         }
       }
       if (!directExecGit) {
-        if (["eval", "source", "."].includes(firstCommandName ?? "")) {
-          appendUninspectableWrapper(
-            "indirect shell code or script execution cannot be inspected safely",
-            sourceOffset + segmentStart + (firstCommandToken?.start ?? 0),
-          );
-          return;
-        }
-        if (!evaluateNestedShellWrapper(commandTokenIndex)) return;
         return;
       }
     }
@@ -1116,9 +918,24 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
     const parsed = parseGitInvocation(segment.slice(commandToken.end));
     const inlineEnvironment = parseInlineEnvironment(prefix);
     const persistentEnvironment = hasPersistentGitEnvironmentChange(command.slice(0, segmentStart + commandToken.start));
+    const inheritedGitFunctionCanShadow =
+      !directWrappedExecution &&
+      !directExecGit &&
+      !commandToken.value.includes("/") &&
+      !commandToken.value.includes("\\") &&
+      getExecutableBasename(commandToken.value) === "git" &&
+      Object.prototype.hasOwnProperty.call(process.env, "BASH_FUNC_git%%");
+    const parseError = inheritedGitFunctionCanShadow
+      ? "inherited Git shell function cannot be inspected safely"
+      : parsed.parseError;
     invocations.push({
       ...parsed,
-      wrappedExecution: directWrappedExecution || inheritedWrappedExecution,
+      gitExecutable: commandToken.value,
+      parseError,
+      wrappedExecution:
+        directWrappedExecution ||
+        inheritedWrappedExecution ||
+        isNonCanonicalGitMutationExecutable(commandToken.value),
       repositoryEnvironmentChanging:
         inlineEnvironment.repositoryEnvironmentChanging || persistentEnvironment.repositoryEnvironmentChanging,
       runtimeEnvironmentChanging:
@@ -1126,72 +943,6 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
       sourceIndex: sourceOffset + segmentStart + commandToken.start,
     });
   };
-
-  const evaluateNestedCommand = (
-    openingIndex,
-    bodyStart,
-    closingIndex,
-    unterminatedError,
-    mutationOnlyWhenUnterminated = false,
-    wrappedExecution = false,
-  ) => {
-    const bodyEnd = closingIndex < 0 ? command.length : closingIndex;
-    const nestedInvocations = getGitInvocations(
-      command.slice(bodyStart, bodyEnd),
-      sourceOffset + bodyStart,
-      inheritedWrappedExecution || wrappedExecution,
-    );
-    const inlineEnvironment = parseInlineEnvironment(command.slice(segmentStart, openingIndex));
-    for (const invocation of nestedInvocations) {
-      invocations.push({
-        ...invocation,
-        wrappedExecution: invocation.wrappedExecution || wrappedExecution,
-        repositoryEnvironmentChanging:
-          invocation.repositoryEnvironmentChanging || inlineEnvironment.repositoryEnvironmentChanging,
-        runtimeEnvironmentChanging:
-          invocation.runtimeEnvironmentChanging || inlineEnvironment.runtimeEnvironmentChanging,
-        parseError:
-          invocation.parseError ??
-          (closingIndex < 0 && (!mutationOnlyWhenUnterminated || isContextSensitiveMutation(invocation))
-            ? unterminatedError
-            : null),
-      });
-    }
-    return closingIndex < 0 ? command.length : closingIndex;
-  };
-  const evaluateCommandSubstitution = (openingIndex) =>
-    evaluateNestedCommand(
-      openingIndex,
-      openingIndex + 2,
-      findCommandSubstitutionEnd(command, openingIndex),
-      "unterminated command substitution",
-    );
-  const evaluateBacktickSubstitution = (openingIndex) =>
-    evaluateNestedCommand(
-      openingIndex,
-      openingIndex + 1,
-      findBacktickSubstitutionEnd(command, openingIndex),
-      "unterminated backtick command substitution",
-      true,
-    );
-  const evaluateSubshellGroup = (openingIndex, processSubstitution = false) =>
-    evaluateNestedCommand(
-      openingIndex,
-      openingIndex + 1,
-      findSubshellGroupEnd(command, openingIndex),
-      processSubstitution ? "unterminated process substitution" : "unterminated parenthesized subshell group",
-      true,
-      true,
-    );
-  const evaluatePowerShellScriptBlock = (openingIndex, bodyStart) =>
-    evaluateNestedCommand(
-      openingIndex,
-      bodyStart,
-      findPowerShellScriptBlockEnd(command, openingIndex),
-      "unterminated PowerShell script block",
-      true,
-      true,
-    );
 
   let quote = null;
   for (let index = 0; index < command.length; index += 1) {
@@ -1203,16 +954,8 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
       continue;
     }
     if (quote === '"') {
-      if (character === "\\" && nextCharacter !== undefined && ['"', "$", "`", "\\"].includes(nextCharacter)) {
+      if (character === "\\" && nextCharacter !== undefined && ['"', "\\"].includes(nextCharacter)) {
         index += 1;
-        continue;
-      }
-      if (character === "$" && nextCharacter === "(") {
-        index = evaluateCommandSubstitution(index);
-        continue;
-      }
-      if (character === "`") {
-        index = evaluateBacktickSubstitution(index);
         continue;
       }
       if (character === '"') quote = null;
@@ -1222,32 +965,19 @@ function getGitInvocations(command, sourceOffset = 0, inheritedWrappedExecution 
       quote = character;
       continue;
     }
-    if (character === "$" && nextCharacter === "(" && !isEscapedByBackslash(command, index)) {
-      index = evaluateCommandSubstitution(index);
+    if (character === "\\" && nextCharacter !== undefined) {
+      index += 1;
       continue;
     }
-    if (character === "`" && !isEscapedByBackslash(command, index)) {
-      index = evaluateBacktickSubstitution(index);
-      continue;
-    }
-    if (character === "&" && !isEscapedByBackslash(command, index)) {
-      const scriptBlockStart = /^\s*\{/.exec(command.slice(index + 1));
-      if (scriptBlockStart) {
-        const openingIndex = index + 1 + scriptBlockStart[0].lastIndexOf("{");
-        index = evaluatePowerShellScriptBlock(openingIndex, openingIndex + 1);
-        continue;
+    if (character === ")") {
+      const clauseTokens = tokenizeGitArguments(command.slice(segmentStart, index)).tokens;
+      if (
+        clauseTokens[0]?.value.toLowerCase() === "case" &&
+        clauseTokens.some(({ value }) => value.toLowerCase() === "in")
+      ) {
+        evaluateSegment(index);
+        segmentStart = index + 1;
       }
-    }
-    if (
-      character === "(" &&
-      nextCharacter !== "(" &&
-      !isEscapedByBackslash(command, index) &&
-      (index === 0 ||
-        /[\s;&|\r\n]/.test(command[index - 1] ?? "") ||
-        ["<", ">", "="].includes(command[index - 1]))
-    ) {
-      const processSubstitution = ["<", ">", "="].includes(command[index - 1]);
-      index = evaluateSubshellGroup(index, processSubstitution);
       continue;
     }
     if (!/[\r\n;&|]/.test(character)) continue;
@@ -1356,9 +1086,16 @@ function isCanonicalLiteralRoot(candidate, ownerRoot) {
   }
 }
 
+function hasOnlySafeInlineGitIdentityAssignments(assignments) {
+  const assignmentName = "GIT_(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL|DATE)";
+  const assignmentValue = "(?:[A-Za-z0-9_.@:+,-]*|'[^']*'|\"[^\"$\\x60]*\")";
+  const pattern = new RegExp("^(?:[ \\t]+" + assignmentName + "=" + assignmentValue + ")*[ \\t]*$", "i");
+  return pattern.test(assignments);
+}
+
 function getLiteralRootAnchorCandidate(commandPrefix) {
-  const posix = /^[ \t]*cd[ \t]+--[ \t]+(["'])([^"']+)\1[ \t]*&&[ \t]*$/i.exec(commandPrefix);
-  if (posix) return posix[2];
+  const posix = /^[ \t]*cd[ \t]+--[ \t]+(["'])([^"']+)\1[ \t]*&&([\s\S]*)$/i.exec(commandPrefix);
+  if (posix && hasOnlySafeInlineGitIdentityAssignments(posix[3])) return posix[2];
   const powershell = /^[ \t]*Set-Location[ \t]+-LiteralPath[ \t]+(["'])([^"']+)\1[ \t]+-ErrorAction[ \t]+Stop[ \t]*;[ \t]*$/i.exec(
     commandPrefix,
   );
@@ -1542,34 +1279,57 @@ function getOwnerRepositoryRoot(cwd) {
 function getGitCommandContext(repositoryRoot) {
   const runGit = (args) => {
     try {
-      return execFileSync("git", ["-C", repositoryRoot, ...args], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-        timeout: 2000,
-      }).trim();
+      return {
+        resolved: true,
+        value: execFileSync("git", ["-C", repositoryRoot, ...args], {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 2000,
+        }).trim(),
+      };
     } catch {
-      return "";
+      return { resolved: false, value: "" };
     }
   };
 
   const protectedBranches = new Set(PROTECTED_FALLBACK_BRANCHES);
-  const originHead = runGit(["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"]);
-  const defaultBranch = originHead.replace(/^refs\/remotes\/origin\//i, "");
-  if (defaultBranch && defaultBranch.toLowerCase() !== "head") {
-    protectedBranches.add(defaultBranch);
+  const remoteResult = runGit(["remote"]);
+  const remoteListResolved = remoteResult.resolved;
+  const configuredRemotes = remoteListResolved
+    ? remoteResult.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean)
+    : [];
+  const remoteNames = configuredRemotes.map((remote) => remote.toLowerCase());
+  const remoteDefaultBranches = Object.create(null);
+  for (const remote of configuredRemotes) {
+    const remoteHead = runGit(["symbolic-ref", "--quiet", `refs/remotes/${remote}/HEAD`]);
+    const remotePrefix = `refs/remotes/${remote}/`;
+    if (remoteHead.resolved && remoteHead.value.toLowerCase().startsWith(remotePrefix.toLowerCase())) {
+      const branch = remoteHead.value.slice(remotePrefix.length);
+      const remoteHeadCommit = runGit(["rev-parse", "--verify", "--quiet", `${remoteHead.value}^{commit}`]);
+      if (
+        branch &&
+        branch.toLowerCase() !== "head" &&
+        remoteHeadCommit.resolved &&
+        remoteHeadCommit.value
+      ) {
+        remoteDefaultBranches[remote.toLowerCase()] = branch;
+        protectedBranches.add(branch);
+      }
+    }
   }
-
-  const remoteNames = runGit(["remote"])
-    .split(/\r?\n/)
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
+  const defaultBranchResolved =
+    remoteListResolved &&
+    configuredRemotes.every((remote) => Object.hasOwn(remoteDefaultBranches, remote.toLowerCase()));
 
   return {
     repositoryRoot,
-    currentBranch: runGit(["branch", "--show-current"]),
-    upstreamBranch: runGit(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]),
+    currentBranch: runGit(["branch", "--show-current"]).value,
+    upstreamBranch: runGit(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]).value,
     protectedBranches: [...protectedBranches],
     remoteNames,
+    remoteDefaultBranches,
+    remoteListResolved,
+    defaultBranchResolved,
   };
 }
 function normalizedRef(value) {
@@ -1590,6 +1350,17 @@ function isProtectedLocalRef(value, protectedBranches) {
   if (/^refs\/(?:remotes|tags)\//i.test(normalizedValue)) return false;
   if (/^origin\//i.test(normalizedValue)) return false;
   return isProtectedRef(normalizedValue, protectedBranches);
+}
+
+function isProtectedBranchCreationTarget(value, protectedBranches) {
+  const normalizedTarget = normalizeShellSecurityToken(value).trim().toLowerCase();
+  return protectedBranches.some(
+    (branch) =>
+      normalizeShellSecurityToken(branch)
+        .trim()
+        .replace(/^refs\/heads\//i, "")
+        .toLowerCase() === normalizedTarget,
+  );
 }
 
 const PUSH_OPTIONS_WITH_VALUE = new Set(["--exec", "--receive-pack", "--push-option", "--repo", "-o"]);
@@ -1615,6 +1386,7 @@ const PUSH_SAFE_OPTIONS = new Set([
 
 function parsePushArguments(argumentsList) {
   const positional = [];
+  const positionalIndexes = [];
   let repository = null;
   let endOfOptions = false;
 
@@ -1691,12 +1463,15 @@ function parsePushArguments(argumentsList) {
       return { decision: { id: "G10", reason: "G10: unsupported push option cannot be evaluated safely." } };
     }
     positional.push(argument);
+    positionalIndexes.push(index);
   }
 
-  if (repository === null) repository = positional.shift() ?? null;
-  return { repository, refspecs: positional };
+  if (repository === null) {
+    repository = positional.shift() ?? null;
+    positionalIndexes.shift();
+  }
+  return { repository, refspecs: positional, refspecArgumentIndexes: positionalIndexes };
 }
-
 function getPushDestination(refspec, currentBranch) {
   const normalizedRefspec = normalizeShellSecurityToken(refspec);
   if (normalizedRefspec === ":" || normalizedRefspec.startsWith(":")) return { kind: "delete" };
@@ -1784,8 +1559,32 @@ function evaluateGitPush(invocation, context) {
   if (destination.kind === "wildcard") {
     return { id: "G10", reason: "G10: wildcard push destinations cannot be determined safely." };
   }
+  const refspecArgumentIndex = parsed.refspecArgumentIndexes?.[0];
+  if (
+    refspecArgumentIndex !== undefined &&
+    invocation.dynamicArgumentTokens?.[refspecArgumentIndex]
+  ) {
+    return { id: "G10", reason: "G10: dynamic push refspec cannot be evaluated safely." };
+  }
 
-  if (isProtectedRef(destination.destination, context.protectedBranches)) {
+  if (isProtectedRef(destination.destination, PROTECTED_FALLBACK_BRANCHES)) {
+    return { id: "G10", reason: "G10: pushing directly to a protected branch is forbidden." };
+  }
+  if (context.remoteListResolved !== true) {
+    return { id: "G10", reason: "G10: configured Git remotes could not be resolved safely." };
+  }
+  const remoteName = parsed.repository.toLowerCase();
+  if (!(context.remoteNames ?? []).includes(remoteName)) {
+    return { id: "G10", reason: "G10: push requires a configured named remote." };
+  }
+  const remoteDefaultBranch = context.remoteDefaultBranches?.[remoteName];
+  if (!remoteDefaultBranch) {
+    return {
+      id: "G10",
+      reason: `G10: default branch for push remote ${remoteName} could not be resolved safely.`,
+    };
+  }
+  if (isProtectedRef(destination.destination, [remoteDefaultBranch])) {
     return { id: "G10", reason: "G10: pushing directly to a protected branch is forbidden." };
   }
   const configurationDecision = evaluatePushConfiguration(context, parsed.repository);
@@ -1794,6 +1593,7 @@ function evaluateGitPush(invocation, context) {
 }
 function parseFetchLikeArguments(argumentsList, operation) {
   const positional = [];
+  const positionalIndexes = [];
   let endOfOptions = false;
   const safeOptions = new Set([...FETCH_SAFE_OPTIONS, ...(operation === "pull" ? PULL_SAFE_OPTIONS : [])]);
 
@@ -1802,6 +1602,7 @@ function parseFetchLikeArguments(argumentsList, operation) {
     const lowerArgument = argument.toLowerCase();
     if (endOfOptions) {
       positional.push(argument);
+      positionalIndexes.push(index);
       continue;
     }
     if (argument === "--") {
@@ -1827,14 +1628,15 @@ function parseFetchLikeArguments(argumentsList, operation) {
       return { parseError: `unsupported ${operation} option ${argument}` };
     }
     positional.push(argument);
+    positionalIndexes.push(index);
   }
 
   return {
     repository: positional[0] ?? null,
     refspecs: positional.slice(1),
+    refspecArgumentIndexes: positionalIndexes.slice(1),
   };
 }
-
 function evaluateGitFetchLike(invocation, context, operation) {
   const argumentsList = getInvocationArguments(invocation, operation);
   if (argumentsList === null) return null;
@@ -1844,7 +1646,8 @@ function evaluateGitFetchLike(invocation, context, operation) {
     return { id: "G10", reason: `G10: ${operation} arguments cannot be evaluated safely (${parsed.parseError}).` };
   }
 
-  for (const refspec of parsed.refspecs) {
+  for (const [refspecIndex, refspec] of parsed.refspecs.entries()) {
+    const argumentIndex = parsed.refspecArgumentIndexes?.[refspecIndex];
     const normalizedRefspec = normalizeShellSecurityToken(refspec);
     if (normalizedRefspec.includes("*")) {
       return { id: "G10", reason: "G10: wildcard fetch destinations cannot be determined safely." };
@@ -1852,6 +1655,16 @@ function evaluateGitFetchLike(invocation, context, operation) {
     const separator = normalizedRefspec.lastIndexOf(":");
     if (separator < 0) continue;
     const destination = normalizedRefspec.slice(separator + 1);
+    if (
+      destination &&
+      argumentIndex !== undefined &&
+      invocation.dynamicArgumentTokens?.[argumentIndex]
+    ) {
+      return {
+        id: "G10",
+        reason: "G10: " + operation + " destination cannot be determined safely.",
+      };
+    }
     if (destination && isProtectedLocalRef(destination, context.protectedBranches)) {
       return { id: "G10", reason: "G10: fetch cannot update a protected local branch." };
     }
@@ -1894,10 +1707,13 @@ function evaluateGitUpdateRef(invocation, context) {
   const argumentsList = getInvocationArguments(invocation, "update-ref");
   if (argumentsList === null) return null;
   const target = getUpdateRefTarget(argumentsList);
-  if (!target) {
+  if (!target || isDynamicShellCommandTarget(target)) {
     return { id: "G10", reason: "G10: update-ref target cannot be determined safely." };
   }
   const normalizedTarget = normalizeShellSecurityToken(target);
+  if (/^refs\/remotes\/[^/]+\/HEAD$/i.test(normalizedTarget)) {
+    return { id: "G10", reason: "G10: remote default-branch references cannot be changed." };
+  }
   if (
     normalizedTarget.toUpperCase() === "HEAD"
       ? isProtectedRef(context.currentBranch, context.protectedBranches)
@@ -1910,12 +1726,46 @@ function evaluateGitUpdateRef(invocation, context) {
 
 function evaluateGitWorktree(invocation, context) {
   const argumentsList = getInvocationArguments(invocation, "worktree");
-  if (argumentsList === null || argumentsList[0]?.toLowerCase() !== "add") return null;
+  if (argumentsList === null) return null;
+  const operation = argumentsList[0]?.toLowerCase();
+  if (operation === "remove" || operation === "rm") {
+    if (argumentsList.slice(1).some((argument) => ["--force", "-f"].includes(argument.toLowerCase()))) {
+      return { id: "G9", reason: "G9: forced worktree removal is destructive." };
+    }
+    return { id: "G9", reason: "G9: worktree removal can delete its working directory." };
+  }
+  if (operation === "prune") {
+    if (isReadOnlyGitInvocation(invocation)) return null;
+    return { id: "G9", reason: "G9: worktree pruning can delete stale worktree records." };
+  }
+  if (operation !== "add") return null;
 
   let protectedBranchTarget = null;
+  let createdBranchTarget = null;
   let force = false;
   for (let index = 1; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
+    if (argument === "--") break;
+    if (argument === "-b" || argument.toLowerCase() === "--branch") {
+      const target = argumentsList[index + 1];
+      if (target === undefined) {
+        return { id: "G10", reason: "G10: worktree branch target cannot be determined safely." };
+      }
+      createdBranchTarget = target;
+      index += 1;
+      continue;
+    }
+    if (/^-b.+/.test(argument)) {
+      createdBranchTarget = argument.slice(2);
+      continue;
+    }
+    if (argument.toLowerCase().startsWith("--branch=")) {
+      createdBranchTarget = argument.slice("--branch=".length);
+      if (!createdBranchTarget) {
+        return { id: "G10", reason: "G10: worktree branch target cannot be determined safely." };
+      }
+      continue;
+    }
     if (argument === "-B") {
       const target = argumentsList[index + 1];
       if (target === undefined) {
@@ -1932,6 +1782,24 @@ function evaluateGitWorktree(invocation, context) {
     if (argument === "--force" || argument === "-f") force = true;
   }
 
+  if (
+    createdBranchTarget !== null &&
+    (!createdBranchTarget || isDynamicShellCommandTarget(createdBranchTarget))
+  ) {
+    return { id: "G10", reason: "G10: worktree branch target cannot be determined safely." };
+  }
+  if (
+    protectedBranchTarget !== null &&
+    (!protectedBranchTarget || isDynamicShellCommandTarget(protectedBranchTarget))
+  ) {
+    return { id: "G10", reason: "G10: worktree branch target cannot be determined safely." };
+  }
+  if (
+    createdBranchTarget &&
+    isProtectedBranchCreationTarget(createdBranchTarget, context.protectedBranches)
+  ) {
+    return { id: "G10", reason: "G10: worktree cannot create a protected branch." };
+  }
   if (protectedBranchTarget && isProtectedRef(protectedBranchTarget, context.protectedBranches)) {
     return { id: "G10", reason: "G10: worktree cannot reset a protected branch." };
   }
@@ -1941,12 +1809,31 @@ function evaluateGitWorktree(invocation, context) {
   return null;
 }
 
+function isWorktreePruneDryRun(argumentsList) {
+  if (argumentsList[0]?.toLowerCase() !== "prune") return false;
+  for (let index = 1; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    if (argument === "--") break;
+    if (argument === "--expire") {
+      index += 1;
+      continue;
+    }
+    if (argument === "--dry-run" || argument === "-n") return true;
+  }
+  return false;
+}
+
 function getBranchMutation(argumentsList) {
   let mode = null;
   let endOfOptions = false;
+  let listRequested = false;
+  let verbose = false;
+  let copyOperation = false;
+  let trackingOperation = false;
+  let upstreamOperation = false;
   const targets = [];
   const unknownOptions = [];
-  const optionsWithValue = new Set(["--color", "--contains", "--format", "--merged", "--no-contains", "--no-merged", "--sort"]);
+  const optionsWithValue = new Set(["--contains", "--format", "--merged", "--no-contains", "--no-merged", "--points-at", "--sort"]);
 
   for (let index = 0; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
@@ -1967,6 +1854,27 @@ function getBranchMutation(argumentsList) {
       mode = "rename";
       continue;
     }
+    if (argument === "-c" || argument === "-C" || lowerArgument === "--copy") {
+      copyOperation = true;
+      continue;
+    }
+    if (argument === "-t" || lowerArgument === "--track" || lowerArgument.startsWith("--track=")) {
+      trackingOperation = true;
+      continue;
+    }
+    if (argument === "-u" || lowerArgument === "--set-upstream-to") {
+      upstreamOperation = true;
+      if (argumentsList[index + 1] !== undefined) index += 1;
+      continue;
+    }
+    if (
+      lowerArgument === "--unset-upstream" ||
+      lowerArgument === "--set-upstream" ||
+      lowerArgument.startsWith("--set-upstream-to=")
+    ) {
+      upstreamOperation = true;
+      continue;
+    }
     if (argument.startsWith("-")) {
       if (/^-([A-Za-z]+)$/.test(argument)) {
         const shortOptions = argument.slice(1);
@@ -1981,14 +1889,30 @@ function getBranchMutation(argumentsList) {
         if (mode) continue;
       }
       const optionName = lowerArgument.split("=", 1)[0];
+      if (optionName === "--color") {
+        listRequested = true;
+        continue;
+      }
       if (optionsWithValue.has(optionName)) {
+        listRequested = true;
         if (!lowerArgument.includes("=") && argumentsList[index + 1] === undefined) return { parseError: "missing branch option value" };
         if (!lowerArgument.includes("=")) index += 1;
         continue;
       }
       if (lowerArgument === "--force" || lowerArgument === "-d" || lowerArgument === "-m") continue;
-      if (/^-(?:[lv]+)$/.test(lowerArgument)) continue;
-      if (lowerArgument === "--list" || lowerArgument === "--show-current") continue;
+      if (/^-(?:[lv]+)$/.test(lowerArgument)) {
+        if (lowerArgument.includes("l")) listRequested = true;
+        if (lowerArgument.includes("v")) verbose = true;
+        continue;
+      }
+      if (lowerArgument === "--list") {
+        listRequested = true;
+        continue;
+      }
+      if (lowerArgument === "--show-current") {
+        listRequested = true;
+        continue;
+      }
       unknownOptions.push(argument);
       continue;
     }
@@ -1998,6 +1922,11 @@ function getBranchMutation(argumentsList) {
   return {
     mode,
     targets,
+    listRequested,
+    verbose,
+    copyOperation,
+    trackingOperation,
+    upstreamOperation,
     parseError: mode && unknownOptions.length > 0 ? `unsupported branch option ${unknownOptions[0]}` : null,
   };
 }
@@ -2021,15 +1950,187 @@ function evaluateProtectedBranchReferenceMutation(invocation, context) {
     }
     targets.unshift(context.currentBranch);
   }
+  if (targets.some(isDynamicShellCommandTarget)) {
+    return { id: "G10", reason: "G10: branch mutation target cannot be determined safely." };
+  }
   if (targets.some((target) => isProtectedRef(target, context.protectedBranches))) {
     return { id: "G10", reason: "G10: protected branch deletion or rename is forbidden." };
   }
   return null;
 }
 
+function getBranchTrackingOptionIndex(argumentsList) {
+  const branchNameOptions = new Set([
+    "-b",
+    "-c",
+    "--branch",
+    "--create",
+    "--force-create",
+    "--orphan",
+  ]);
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    if (argument === "--") break;
+    const lowerArgument = argument.toLowerCase();
+    if (["-t", "--track", "--track=direct", "--track=inherit"].includes(lowerArgument)) {
+      return index;
+    }
+    if (branchNameOptions.has(lowerArgument) && argumentsList[index + 1] !== undefined) {
+      index += 1;
+    }
+  }
+  return -1;
+}
+
+function getBranchCreationTarget(invocation, context) {
+  const branchArguments = getInvocationArguments(invocation, "branch");
+  if (branchArguments !== null) {
+    const parsed = getBranchMutation(branchArguments);
+    const hasCreationOperation = parsed.copyOperation || parsed.trackingOperation;
+    if (
+      parsed.parseError ||
+      parsed.mode ||
+      (!hasCreationOperation && (parsed.listRequested || parsed.upstreamOperation))
+    ) {
+      return null;
+    }
+
+    if (parsed.targets.some(isDynamicShellCommandTarget)) {
+      return { target: null, ambiguous: true };
+    }
+
+    if (parsed.copyOperation) {
+      if (parsed.targets.length !== 2) return { target: null, ambiguous: true };
+      return { target: parsed.targets[1], ambiguous: false };
+    }
+
+    if (parsed.trackingOperation) {
+      if (parsed.targets.length === 2) return { target: parsed.targets[0], ambiguous: false };
+      if (parsed.targets.length !== 1) return { target: null, ambiguous: true };
+
+      const startPoint = normalizeShellSecurityToken(parsed.targets[0]).trim();
+      const remoteName = (context.remoteNames ?? []).find((remote) =>
+        startPoint.toLowerCase().startsWith(remote.toLowerCase() + "/"),
+      );
+      if (!remoteName) return { target: null, ambiguous: true };
+      return { target: startPoint.slice(remoteName.length + 1), ambiguous: false };
+    }
+
+    if (parsed.targets.length === 0) return null;
+    if (parsed.targets.length > 2) return { target: null, ambiguous: true };
+    return { target: parsed.targets[0], ambiguous: false };
+  }
+
+  for (const [operation, shortOption, longOption, orphanOption] of [
+    ["switch", "-c", "--create", "--orphan"],
+    ["checkout", "-b", "--branch", "--orphan"],
+  ]) {
+    const argumentsList = getInvocationArguments(invocation, operation);
+    if (argumentsList === null) continue;
+
+    const trackingIndex = getBranchTrackingOptionIndex(argumentsList);
+    if (trackingIndex >= 0) {
+      const explicitTargets = [];
+      let ambiguousExplicitTarget = false;
+      for (let index = 0; index < argumentsList.length; index += 1) {
+        const argument = argumentsList[index];
+        if (argument === "--") break;
+        const lowerArgument = argument.toLowerCase();
+        if (lowerArgument === shortOption || lowerArgument === longOption) {
+          const target = argumentsList[index + 1];
+          if (!target || target.startsWith("-") || isDynamicShellCommandTarget(target)) {
+            ambiguousExplicitTarget = true;
+          } else {
+            explicitTargets.push(target);
+          }
+          index += 1;
+          continue;
+        }
+        if (lowerArgument.startsWith(longOption.toLowerCase() + "=")) {
+          const target = argument.slice(longOption.length + 1);
+          if (!target || isDynamicShellCommandTarget(target)) ambiguousExplicitTarget = true;
+          else explicitTargets.push(target);
+          continue;
+        }
+        if (argument.startsWith(shortOption) && argument.length > shortOption.length) {
+          const target = argument.slice(shortOption.length);
+          if (isDynamicShellCommandTarget(target)) ambiguousExplicitTarget = true;
+          else explicitTargets.push(target);
+        }
+      }
+      if (ambiguousExplicitTarget || explicitTargets.length > 1) {
+        return { target: null, ambiguous: true };
+      }
+      if (explicitTargets.length === 1) {
+        return { target: explicitTargets[0], ambiguous: false };
+      }
+
+      const source = argumentsList.slice(trackingIndex + 1).find((argument) => !argument.startsWith("-"));
+      if (!source || isDynamicShellCommandTarget(source)) return { target: null, ambiguous: true };
+      const normalizedSource = normalizeShellSecurityToken(source).trim();
+      const remoteName = (context.remoteNames ?? []).find((remote) =>
+        normalizedSource.toLowerCase().startsWith(remote.toLowerCase() + "/"),
+      );
+      if (!remoteName) return { target: null, ambiguous: true };
+      return { target: normalizedSource.slice(remoteName.length + 1), ambiguous: false };
+    }
+
+    for (let index = 0; index < argumentsList.length; index += 1) {
+      const argument = argumentsList[index];
+      if (argument === "--") break;
+      const lowerArgument = argument.toLowerCase();
+      if (
+        lowerArgument === orphanOption ||
+        lowerArgument.startsWith(orphanOption + "=")
+      ) {
+        const equalsIndex = argument.indexOf("=");
+        const target =
+          equalsIndex >= 0 ? argument.slice(equalsIndex + 1) : argumentsList[index + 1];
+        return target && !isDynamicShellCommandTarget(target)
+          ? { target, ambiguous: false }
+          : { target: null, ambiguous: true };
+      }
+      if (argument.toLowerCase() === shortOption || argument.toLowerCase() === longOption) {
+        const target = argumentsList[index + 1];
+        return target && !isDynamicShellCommandTarget(target)
+          ? { target, ambiguous: false }
+          : { target: null, ambiguous: true };
+      }
+      if (argument.toLowerCase().startsWith(longOption.toLowerCase() + "=")) {
+        const target = argument.slice(longOption.length + 1);
+        return target && !isDynamicShellCommandTarget(target)
+          ? { target, ambiguous: false }
+          : { target: null, ambiguous: true };
+      }
+      if (argument.startsWith(shortOption) && argument.length > shortOption.length) {
+        const target = argument.slice(shortOption.length);
+        return isDynamicShellCommandTarget(target)
+          ? { target: null, ambiguous: true }
+          : { target, ambiguous: false };
+      }
+    }
+  }
+
+  return null;
+}
+
+function evaluateProtectedBranchCreation(invocation, context) {
+  const creation = getBranchCreationTarget(invocation, context);
+  if (!creation) return null;
+  if (creation.ambiguous || !creation.target) {
+    return { id: "G10", reason: "G10: branch creation target cannot be determined safely." };
+  }
+  if (!isProtectedBranchCreationTarget(creation.target, context.protectedBranches)) return null;
+  return { id: "G10", reason: "G10: creating a protected branch is forbidden." };
+}
+
 function isReadOnlyGitInvocation(invocation) {
   if (GIT_READ_ONLY_OPERATIONS.has(invocation.subcommand)) return true;
   const argumentsList = invocation.argumentTokens;
+  if (invocation.subcommand === "symbolic-ref") {
+    const refs = argumentsList.filter((argument) => !argument.startsWith("-"));
+    return refs.length === 1 && argumentsList.every((argument) => [refs[0], "--quiet", "-q"].includes(argument));
+  }
   if (invocation.subcommand === "clean") {
     for (const argument of argumentsList) {
       if (argument === "--") break;
@@ -2038,16 +2139,22 @@ function isReadOnlyGitInvocation(invocation) {
     }
   }
   if (invocation.subcommand === "branch") {
-    if (getBranchMutation(argumentsList).mode) return false;
-    return (
-      argumentsList.length === 0 ||
-      argumentHasLongOption(argumentsList, "--show-current") ||
-      argumentHasLongOption(argumentsList, "--list") ||
-      argumentsList.some((argument) => ["-l", "-v", "-vv"].includes(argument.toLowerCase()))
-    );
+    const parsed = getBranchMutation(argumentsList);
+    if (
+      parsed.parseError ||
+      parsed.mode ||
+      parsed.copyOperation ||
+      parsed.trackingOperation ||
+      parsed.upstreamOperation
+    ) {
+      return false;
+    }
+    if (getBranchCreationTarget(invocation, EMPTY_CONTEXT) !== null) return false;
+    if (parsed.listRequested) return true;
+    return parsed.targets.length === 0 && (argumentsList.length === 0 || parsed.verbose);
   }
   if (invocation.subcommand === "worktree") {
-    return argumentsList[0]?.toLowerCase() === "list";
+    return argumentsList[0]?.toLowerCase() === "list" || isWorktreePruneDryRun(argumentsList);
   }
   if (invocation.subcommand === "config") {
     return isReadOnlyGitConfig(argumentsList);
@@ -2116,6 +2223,24 @@ function evaluateGitInvocation(invocation, context) {
     return { id: "G1", reason: "G1: reset would rewrite local history or discard the working tree." };
   }
 
+  const remoteArguments = getInvocationArguments(invocation, "remote");
+  if (
+    remoteArguments !== null &&
+    remoteArguments[0]?.toLowerCase() === "set-head"
+  ) {
+    return { id: "G10", reason: "G10: remote default-branch references cannot be changed." };
+  }
+  const symbolicRefArguments = getInvocationArguments(invocation, "symbolic-ref");
+  const symbolicRefValues = symbolicRefArguments?.filter((argument) => !argument.startsWith("-")) ?? [];
+  if (
+    symbolicRefArguments !== null &&
+    /^refs\/remotes\/[^/]+\/HEAD$/i.test(symbolicRefValues[0] ?? "") &&
+    (symbolicRefValues.length > 1 ||
+      symbolicRefArguments.some((argument) => ["--delete", "-d"].includes(argument.toLowerCase())))
+  ) {
+    return { id: "G10", reason: "G10: remote default-branch references cannot be changed." };
+  }
+
   const rebaseArguments = getInvocationArguments(invocation, "rebase");
   if (rebaseArguments !== null && !isRecoveryOperation(rebaseArguments)) {
     return { id: "G2", reason: "G2: state-changing rebase is forbidden by the common policy." };
@@ -2137,6 +2262,7 @@ function evaluateGitInvocation(invocation, context) {
     return { id: "G5", reason: "G5: restore would discard working-tree changes." };
   }
   const checkoutArguments = getInvocationArguments(invocation, "checkout");
+  const switchArguments = getInvocationArguments(invocation, "switch");
   if (
     checkoutArguments !== null &&
     (checkoutArguments.includes("--") ||
@@ -2146,7 +2272,19 @@ function evaluateGitInvocation(invocation, context) {
   ) {
     return { id: "G5", reason: "G5: destructive checkout is forbidden by the common policy." };
   }
-  const switchArguments = getInvocationArguments(invocation, "switch");
+  if (checkoutArguments !== null || switchArguments !== null) {
+    const branchArguments = checkoutArguments ?? switchArguments ?? [];
+    const trackRequested = getBranchTrackingOptionIndex(branchArguments) >= 0;
+    if (trackRequested) {
+      const creation = getBranchCreationTarget(invocation, context);
+      if (!creation || creation.ambiguous || !creation.target) {
+        return { id: "G10", reason: "G10: tracked branch creation target cannot be determined safely." };
+      }
+      if (isProtectedBranchCreationTarget(creation.target, context.protectedBranches)) {
+        return { id: "G10", reason: "G10: creating a protected branch is forbidden." };
+      }
+    }
+  }
   if (
     switchArguments !== null &&
     (argumentsHaveShortFlag(switchArguments, "C", "Cfq") ||
@@ -2209,6 +2347,9 @@ function evaluateGitInvocation(invocation, context) {
   const protectedBranchReferenceDecision = evaluateProtectedBranchReferenceMutation(invocation, context);
   if (protectedBranchReferenceDecision) return protectedBranchReferenceDecision;
 
+  const protectedBranchCreationDecision = evaluateProtectedBranchCreation(invocation, context);
+  if (protectedBranchCreationDecision) return protectedBranchCreationDecision;
+
   const protectedDecision = evaluateProtectedBranchUpdate(invocation, context);
   if (protectedDecision) return protectedDecision;
 
@@ -2234,28 +2375,30 @@ function isN4RemoteScriptExecution(command) {
   );
 }
 
-function isN4ShellInputInvocation(command, invocation) {
-  if (invocation.parseError !== "shell input execution cannot be inspected safely") return false;
-  const pipeIndex = command.lastIndexOf("|", invocation.sourceIndex);
-  if (pipeIndex < 0) return false;
-  const upstream = command.slice(0, pipeIndex);
-  if (!/\b(?:curl|wget)\b[^\r\n|]*$/i.test(upstream)) return false;
-  const downstream = command.slice(pipeIndex + 1, Math.min(command.length, invocation.sourceIndex + 8));
-  return /^\s*(?:bash|sh)(?=\s|$)/i.test(downstream);
-}
-
 export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const normalizedCommand = normalizeShellContinuations(command).trimStart();
   const n4RemoteScriptExecution = isN4RemoteScriptExecution(normalizedCommand);
-  const invocations = getGitInvocations(normalizedCommand).filter(
-    (invocation) => !(n4RemoteScriptExecution && isN4ShellInputInvocation(normalizedCommand, invocation)),
-  );
   const ownerRoot = getOwnerRepositoryRoot(cwd);
+  const invocations = getGitInvocations(normalizedCommand, 0, false, ownerRoot);
   let deferredContextDecision = null;
   for (const invocation of invocations) {
     const actualContext = ownerRoot ? getGitCommandContext(ownerRoot) : EMPTY_CONTEXT;
     const context = suppliedContext
-      ? { ...actualContext, ...suppliedContext, repositoryRoot: ownerRoot ?? suppliedContext.repositoryRoot }
+      ? {
+          ...actualContext,
+          ...suppliedContext,
+          repositoryRoot: ownerRoot ?? suppliedContext.repositoryRoot,
+          protectedBranches: [
+            ...new Set([
+              ...(actualContext.protectedBranches ?? []),
+              ...(suppliedContext.protectedBranches ?? []),
+            ]),
+          ],
+          remoteNames: actualContext.remoteNames,
+          remoteDefaultBranches: actualContext.remoteDefaultBranches,
+          remoteListResolved: actualContext.remoteListResolved,
+          defaultBranchResolved: actualContext.defaultBranchResolved,
+        }
       : actualContext;
     const decision = evaluateGitInvocation(invocation, context);
     if (decision) return decision;
@@ -2269,6 +2412,18 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
     }
     const transitionDecision = evaluateCompoundContextTransition(invocation, invocations, normalizedCommand, ownerRoot);
     if (transitionDecision) deferredContextDecision ??= transitionDecision;
+    if (
+      invocation.subcommand !== "push" &&
+      (requiresResolvedGitContext(invocation) || getBranchCreationTarget(invocation, context) !== null) &&
+      actualContext.defaultBranchResolved !== true &&
+      !deferredContextDecision
+    ) {
+      return {
+        id: "G10",
+        reason:
+          "G10: default branch context could not be resolved safely. Inspect refs/remotes/<remote>/HEAD for each configured remote read-only before retrying.",
+      };
+    }
   }
 
   if (deferredContextDecision) return deferredContextDecision;

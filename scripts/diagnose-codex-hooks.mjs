@@ -289,13 +289,66 @@ function reportResolved(label, resolved) {
   );
 }
 
+function parseGitVersionOutput(version) {
+  const prefix = "git version ";
+  if (!version.startsWith(prefix)) return null;
+
+  let index = prefix.length;
+  const versionStart = index;
+  const isDigitAt = (position) => {
+    const characterCode = version.charCodeAt(position);
+    return characterCode >= 48 && characterCode <= 57;
+  };
+  const isSuffixCharacterAt = (position) => {
+    const characterCode = version.charCodeAt(position);
+    return (
+      (characterCode >= 48 && characterCode <= 57) ||
+      (characterCode >= 65 && characterCode <= 90) ||
+      characterCode === 95 ||
+      (characterCode >= 97 && characterCode <= 122)
+    );
+  };
+  const consumeDigits = () => {
+    const start = index;
+    while (isDigitAt(index)) index += 1;
+    return index > start;
+  };
+
+  if (!consumeDigits()) return null;
+  let numericComponents = 1;
+  while (version[index] === "." && isDigitAt(index + 1)) {
+    index += 1;
+    consumeDigits();
+    numericComponents += 1;
+  }
+  if (numericComponents < 2) return null;
+  const numericVersion = version.slice(versionStart, index);
+
+  while (version[index] === "." || version[index] === "-") {
+    index += 1;
+    const suffixStart = index;
+    while (isSuffixCharacterAt(index)) index += 1;
+    if (index === suffixStart) return null;
+  }
+
+  const appleGitSuffix = " (Apple Git-";
+  if (version.startsWith(appleGitSuffix, index)) {
+    index += appleGitSuffix.length;
+    const buildNumberStart = index;
+    while (isDigitAt(index)) index += 1;
+    if (index === buildNumberStart || version[index] !== ")") return null;
+    index += 1;
+  }
+
+  return index === version.length ? numericVersion : null;
+}
+
 function summarizeGitContext(root) {
   try {
     const version = runGit(["--version"], root);
-    const versionMatch =
-      /^git version (\d+(?:\.\d+)+)(?:[.-][A-Za-z0-9._-]+)*(?: \(Apple Git-\d+\))?$/u.exec(version);
-    if (versionMatch) {
-      process.stdout.write("OK: Git version=" + versionMatch[1] + "\n");
+    const parsedVersion = parseGitVersionOutput(version);
+    if (parsedVersion) {
+      process.stdout.write("OK: Git version=" + parsedVersion + "\n");
     } else {
       process.stdout.write("N/A: Git version unavailable\n");
     }
@@ -376,14 +429,13 @@ async function checkOfflineG10Policy(root) {
     if (
       decision?.id !== "G10" ||
       typeof decision.reason !== "string" ||
-      !/^G10:/u.test(decision.reason) ||
-      !/checkout-root anchor/iu.test(decision.reason)
+      !/^G10:/u.test(decision.reason)
     ) {
-      report("ERROR", "offline policy checkのsynthetic missing-anchor判定を確認できません");
+      report("ERROR", "offline policy checkでsynthetic Git mutationのG10拒否を確認できません");
       return;
     }
     process.stdout.write(
-      "Offline policy check: synthetic missing-anchor G10=deny（runtime evidence: N/A）\n",
+      "Offline policy check: synthetic git add G10=deny（runtime evidence: N/A）\n",
     );
   } catch {
     report("ERROR", "offline policy checkを安全に完了できません");

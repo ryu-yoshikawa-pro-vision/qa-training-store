@@ -17,6 +17,7 @@ def parse_args():
     parser.add_argument("--manifest-path")
     parser.add_argument("--base-manifest")
     parser.add_argument("--refresh-git-changed-files", action="store_true")
+    parser.add_argument("--exclude-changed-file", action="append", default=[], metavar="REPO_RELATIVE_PATH")
     parser.add_argument("--strict", action="store_true")
     return parser.parse_args()
 
@@ -342,12 +343,15 @@ def main():
         [normalize_repo_path(item) for item in manifest.get("codex_task_reports", []) if isinstance(item, str)] + report_paths
     )
 
+    excluded_changed_files = {normalize_repo_path(item) for item in args.exclude_changed_file}
     existing_changed_files = [
         normalize_repo_path(item) for item in manifest.get("changed_files", []) if isinstance(item, str)
     ]
     if args.refresh_git_changed_files:
         existing_changed_files.extend(collect_git_changed_files(repo_root))
-    manifest["changed_files"] = unique_list(existing_changed_files)
+    manifest["changed_files"] = unique_list(
+        path for path in existing_changed_files if path not in excluded_changed_files
+    )
 
     safety = manifest.get("safety") if isinstance(manifest.get("safety"), dict) else {}
     safety["network"] = bool(safety.get("network"))

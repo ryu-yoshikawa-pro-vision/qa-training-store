@@ -7,8 +7,8 @@
 ## 直接起動とRun管理
 
 - 通常のLinux作業はリポジトリルートから `codex` を起動します。`.codex/config.toml` の `workspace-write`、`approval_policy = "on-request"`、network access、Hooks、agents、共通`.codex/rules/*.rules`を維持します。
-- `scripts/new-run.ps1|sh` は `runs/<run_id>/` を初期化し、厳密なmanifest契約が必要な場合はmachine-managed `run.json`も用意します。既存Runは上書きしません。
-- strict RunではRunを初期化してから直接 `codex` を起動します。作業後、必要な既存manifest更新のため `scripts/collect-run-artifacts.ps1` または `.sh` を明示実行します。エージェントは実体の `run.json` を直接編集しません。
+- Linux／WSL2のAI agentは `scripts/new-run.sh` で `runs/<run_id>/` を初期化します。`scripts/new-run.ps1` はWindows互換経路として保持し、Windows Nativeでの実行を通常の受入条件にはしません。厳密なmanifest契約が必要な場合はmachine-managed `run.json`も用意します。既存Runは上書きしません。
+- strict RunではRunを初期化してから直接 `codex` を起動します。Linux／WSL2のAI agentは作業後に `scripts/collect-run-artifacts.sh` を明示実行し、必要なmanifestを更新します。`scripts/collect-run-artifacts.ps1` はWindows互換経路として保持し、ローカル受入の実行要件には含めません。エージェントは実体の `run.json` を直接編集しません。
 - Logging Hookは既存Node loggerを使用します。PreToolUseの安全HookとBash matcherは独立して維持します。
 - project configと実効runtimeのapproval / sandboxが異なる場合があるため、session内で実効権限を確認します。`on-request`は承認要求経路を提供しますが、`.git`書込みを許可する証明にはなりません。詳細は [`codex-safety-harness.md`](codex-safety-harness.md) と [`git-branch-safety.md`](git-branch-safety.md) を参照します。
 
@@ -22,7 +22,7 @@
 
 - `lightweight` は制限なしのモードではない。
 - 外部通信、削除、リネーム、移行、権限変更、セキュリティへの影響、公開インターフェースや契約（公開 contract）の変更を含む場合は、`standard` 以上へ引き上げる。
-- `standard` / `strict` では、`scripts/new-run.sh` または `scripts/new-run.ps1` を優先して Run を初期化する。
+- `standard` / `strict` では、Linux／WSL2のAI agentは `scripts/new-run.sh` を標準経路として Run を初期化し、`scripts/new-run.ps1` はWindows互換経路として保持する。Windows Nativeでのローカル受け入れに PowerShell 経路の実行を要求しない。
 - direct `codex` を通常の対話型エントリーとする lightweight／standard Run では、`new-run` 実行時に `--no-run-manifest`／`-NoRunManifest` を指定する。`PLAN.md`、`TASKS.md`、`REPORT.md` は残すが、direct セッション用のマニフェストは追加しない。
 - `run_manifest = "recommended"` は機械管理の標準経路として維持する。strict Run では既存のライター／コレクターを使用し、Run マニフェストと評価結果（evaluation）の出力を必須とする。
 - `lightweight` レベルであっても Run 成果物（Run Artifact）を残す。
@@ -37,13 +37,12 @@
 ## 検証レベル（tier）
 
 - 利用側リポジトリ（consumer repo）での通常確認:
-  - 本リポジトリではLinux上の `bash scripts/verify` を通常の確認入口とする。
+  - 本リポジトリのLinux／WSL2環境では `bash scripts/verify` を通常の確認入口とする。AI agentによる開発・実装・検証もLinux環境（WSL2、Linux、GitHub Codespaces等）を対象とする。
   - PowerShell版はWindows向け対応として保持し、通常の完了条件には含めない。Windows向け変更は既存のテスト／CI契約で確認する。
-  - Windows Nativeの対話型／Runtime検証は通常の受け入れ対象ではなく、未完了要件として残さない。Windows固有のlauncher／PowerShell動作は既存のWindows CI契約で確認する。
-- 配布元リポジトリ（source repo）メンテナーによる配布前確認:
-  - `bash template/scripts/verify --strict-harness`
-  - `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness`
-- `--strict-harness` / `-StrictHarness` はソースリポジトリの構成、仕様・テンプレート・ドキュメント・バージョン・CI に関する規約を前提としているため、利用側リポジトリでは通常の verify を使用する。
+  - Windows NativeでのCodex／OpenCode／PowerShell runtime検証は通常の受け入れ対象ではなく、未実施を残件・BLOCKED・`missing_validation`として残さない。Windows固有のlauncher／PowerShell動作は既存のWindows CI契約で確認する。
+- 配布元リポジトリ（source repo）のstrict contractは既存の`validate-template` CIで実行する。CI commandは `bash template/scripts/verify --strict-harness` であり、Codex／OpenCodeの通常agent入口として手動実行しない。
+- `template/scripts/verify`はsource repoのstrict contract用であり、consumer repoでの通常agent向け入口にはしない。`bash scripts/verify --strict-harness`も親source repositoryの`tools/validate-spec.sh`へ委譲するため、source-repo検証は既存の`validate-template` CIで実行する。G10はscript名・path・digestのallowlistや専用launcherを使わず、script内部がopaqueであることだけを理由に起動commandを拒否しない。起動時に直接識別できるGitとcontextは通常どおり評価する。consumer repoでは通常確認に`bash scripts/verify`を使う。詳細は[Git safety reference](git-branch-safety.md)を参照する。
+- PowerShell版 `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness` はWindows互換経路として保持する。Windows Nativeでのローカル実行は受入条件にせず、既存のWindows CIではHook／launcher契約を確認する。
 
 ## 文章品質ゲートの検証
 
@@ -51,7 +50,7 @@
 
 - `pnpm run lint:text` は `scripts/check-text-quality-changes.mjs --base-ref HEAD --working-tree` を呼び出し、現在のワークツリーを開始時の HEAD と比較する。比較不能な場合は失敗として扱う。
 - `pnpm run lint:text:all` は同じチェッカーの `--all` モードを呼び出し、既存の `getWorkingTreeMarkdownPaths()` で列挙された現在の Markdown から、`runs/`、preserved legacy/historyの`.codex/runs/`、`docs/plans/`、`docs/reports/`、`docs/history/`、`docs/adr/`、`CHANGELOG.md` を除外した範囲を全件検査する。差分ゲートのフィンガープリント比較とは責務を分離する。
-- `scripts/verify` および `scripts/verify.ps1` の `--hook-contracts` / `-HookContracts` は、既存の `tests/contracts/codex-hook-contract.test.ts` と文章品質規約を追加実行するためのオプトインフラグである。通常検証における strict の意味や依存条件を変更するものではない。
+- `scripts/verify`および`scripts/verify.ps1`は既存のCI契約として`--hook-contracts` / `-HookContracts`を提供する。Linux／WSL2での通常agent確認は`bash scripts/verify`を使い、Hook契約suiteは既存CIまたは`pnpm run test:hooks`で実行する。G10はscript名・path・digestのallowlistやPATH／executable pin、専用launcherを使わず、起動commandから直接識別できるGit invocationやcontextを評価する。script内部・子プロセスのGit操作を個別に評価・承認したことにはならない。通常agentに`--strict-harness`を受け入れ条件として求めず、source-repo strict contractはCIで確認する。package commandでG10の拒否を迂回してはならない。
 - `scripts/lint-text-quality.mjs` は、リポジトリ固有のカスタムリテラル／正規表現と、`.textlintrc.json` に定義された7個の個別 textlint ルールのみを本文へ適用し、Markdown の構造チェックは `lint:markdown` に委ねる。`no-unmatched-pair` は技術文書内のインラインコードなどを誤検知するため採用しない。未確定の禁止語、置換ルール、許可リスト（allowlist）、英語混在判定は追加しない。
 - プルリクエストでは、`origin/${{ github.base_ref }}` とワークフローがチェックアウトしたマージ後の `HEAD` との merge-base を比較基準とする。push では `github.event.before`、スケジュール実行および workflow_dispatch では `HEAD^` を使用する。ローカル環境以外では、クリーンチェックアウト時の `HEAD -> worktree` 比較を CI ゲートとして使用しない。
 - 変更パス、ベースライン本文、現在の本文、リネームのマッピングは、同一の比較ツリーから取得する。Git のリネームマッピングが存在せず、削除されたパスを現在の Markdown へ完全一致のコンテンツ SHA-256 で一意に対応付けられない場合は、推測を行わずに比較失敗とする。
@@ -68,7 +67,7 @@
 
 ### コミット・push・PR・CI のライフサイクル
 
-- Git mutationはcheckout rootへのliteral anchorを付けた通常Git CLIだけを使う。G10、execpolicy、Codex sandbox、OS/ACL、lock、認証・通信、non-fast-forwardの分類とhandoffは [`git-branch-safety.md`](git-branch-safety.md) に従い、拒否されたGit mutationをAPI、MCP、`gh api`、Git library、`.git`編集、別scriptや別agentで代行しない。GitHub read-only APIとユーザーが明示許可したPR/Issue metadata操作は、commit/ref更新と区別する。
+- Git mutationはcheckout rootへのliteral anchorを付けた通常Git CLIだけを使い、repository／branch／ref contextに依存するmutationはbare PATH-selected `git`形式とする。path-qualified Git mutationはG10拒否、path-qualified read-only Gitは許可される。これはHookのcontext lookupと実行commandのGit lookupを揃える形式要件であり、PATH内容の固定・検証やGit executableの真正性保証ではない。G10、execpolicy、Codex sandbox、OS/ACL、lock、認証・通信、non-fast-forwardの分類とhandoffは [`git-branch-safety.md`](git-branch-safety.md) に従い、拒否されたGit mutationをAPI、MCP、`gh api`、Git library、`.git`編集、別scriptや別agentで代行しない。GitHub read-only APIとユーザーが明示許可したPR/Issue metadata操作は、commit/ref更新と区別する。
 - ローカル検証、追跡対象の Run 成果物の最終コミット前状態への更新・検証、変更スコープの確認を完了した後にコミットする。
 - 既存の PR がある場合はその PR を使用する。PR が存在せず、対象の CI が `pull_request` イベントをトリガーとして実行される場合に限り、CI 確認に必要な PR を作成する。CI 確認を目的として `main` ブランチへ直接 push してはならない。
 - コミット後は対象ブランチへ通常通り push し、ローカル HEAD、リモート HEAD、および PR の最新 head を確認する。ブランチ、refspec、復旧手順の詳細は `docs/reference/git-branch-safety.md` を参照する。
@@ -94,7 +93,7 @@
 - 通常の直接対話型エントリー（lightweight／standard）では、`runs/<run_id>/`をマニフェストなしで初期化する。
 - Bash:
   - `bash scripts/new-run.sh --task-type implementation --workflow-level standard --no-run-manifest`
-- PowerShell:
+- Windows互換用のPowerShell例（AI agentの通常の完了条件ではない）:
   - `powershell -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel standard -NoRunManifest`
 - `--run-id` / `-RunId` を省略した場合は、JST 現在時刻から `YYYYMMDD-HHMMSS-JST` を生成する。
 - `--no-run-manifest`／`-NoRunManifest`を指定した通常lightweight／standard経路の生成対象:
@@ -142,9 +141,9 @@
 
 ## 推奨フロー
 
-- `scripts/new-run.*` で必要なRunを初期化する。
+- Linux／WSL2のAI agentは `scripts/new-run.sh` で必要なRunを初期化する。`scripts/new-run.ps1` はWindows互換経路として保持する。
 - Linuxのプロジェクトルートから直接 `codex` を起動する。
-- strict Runでは作業後に既存 `scripts/collect-run-artifacts.*` を明示実行し、machine-managed manifestを更新する。
+- strict Runでは作業後に既存 `scripts/collect-run-artifacts.sh` を明示実行し、machine-managed manifestを更新する。`scripts/collect-run-artifacts.ps1` はWindows互換経路として保持する。
 - Run成果物は保持し、Git管理対象にする前にsanitizerとcredential/security scanを実施する。
 
 ## 関連資料

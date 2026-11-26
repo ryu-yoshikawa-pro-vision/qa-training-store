@@ -26,9 +26,15 @@ OpenCode V2（実機確認: v2.3.0）は`.opencode/plugins/`直下のディレ�
 | ツール | 入力 | 動作 |
 |---|---|---|
 | `guarded_shell` | `command` 文字列 | 共通判定で許可された場合のみ、checkout rootをcwdとして実行 |
-| `guarded_git` | `args` 文字列配列 | 共通判定で許可された場合のみ、`git`を引数配列で実行（Shell再解釈を回避） |
+| `guarded_git` | `args` 文字列配列 | 共通判定で許可された場合のみ、PATH-resolvedな`git`を引数配列で実行（実行時のShell再解釈を回避） |
 
 両ツールは実行前に必ず`evaluateCommand()`を呼び出し、拒否理由がある場合はエラーで停止する。入力の欠落・型不正・過長・判定処理の例外はすべてfail-closeする。判定時の作業rootはPluginファイルの所在から解決してcheckout rootへ明示アンカーを付け、Codexの`cd -- <root> && git ...`と同じroot固定条件を満たす。実行時のcwdもcheckout rootに固定し、呼び出し側の`workdir`は使用しない。
+
+`guarded_git`は、共通`evaluateCommand()`へ渡すcontext判定commandと、許可後の実行で同じ継承PATHから選択された`git`を使う。Gitは引数配列のまま実行し、呼び出し元の`workdir`を使わずPlugin checkout rootをcwdに固定する。これにより評価と実行のGit lookupを揃えるが、PATH全体の完全性や選択された実行ファイルの真正性を検証・固定するものではない。
+
+OpenCode PluginはG10用の別scannerを追加せず、共通`evaluateCommand()`と固定checkout cwdを維持する。G10が直接識別するinvocation／wrapperの範囲、認識するshell clause、および再帰的なshell/script解析を行わない境界は[Git safety reference](git-branch-safety.md)を参照する。標準のBash scriptは内部がopaqueであることだけを理由に拒否しないが、許可された起動commandは内包Git操作がG10を個別に通過した証明ではない。
+
+OpenCode Pluginは任意のshellやscriptを完全に解析・隔離するものではない。既定の組み込み`shell` deny、共通Hookの限定的な構文検査、OS権限等を別々の境界として扱う。
 
 Git mutationの拒否分類、root anchor、復旧、handoffの正本は [`git-branch-safety.md`](git-branch-safety.md) とする。`guarded_git`は共通`evaluateCommand()`が許可したときだけ固定checkout rootで実行し、拒否されたGit mutationをREST/GraphQL、GitHub MCP、`gh api`、Git database/API、Git library、`.git`直接編集、別scriptや別agentで代行しない。GitHub read-only APIと、ユーザーが明示的に許可したPR/Issue metadata操作はcommit/object/ref更新と区別する。
 
@@ -83,7 +89,7 @@ Git公式機能`git worktree repair --relative-paths`でリンクを相対パス
 3. `.git/config`、linked worktreeの`.git`、対応する`gitdir`を安全な場所へバックアップする。
 4. main worktreeから`cd -- "<absolute-checkout-root>" && git worktree repair --relative-paths "<linked-worktree>"`を実行する（公式に拡張が設定される）。
 5. 旧Gitを明示的に使う必要がある場合のみ、ユーザーhandoffとして`cd -- "<absolute-checkout-root>" && git config --unset extensions.relativeWorktrees`を通常Git CLIで実行する。現在の環境では既に外れた状態であり、Git 2.56.xは拡張なしでも正常に動作する。
-6. Windows/WSL2双方で`git status --short`、`git rev-parse --show-toplevel`、`git rev-parse --git-common-dir`、`git branch --show-current`、`git worktree list --porcelain`を確認する。
+6. 通常のAI agent検証環境であるWSL2/Linux側で`git status --short`、`git rev-parse --show-toplevel`、`git rev-parse --absolute-git-dir`、`git rev-parse --path-format=absolute --git-common-dir`、`git branch --show-current`、`git worktree list --porcelain`を確認する。Windows Gitクライアントの互換性は上記の既存記録を参照し、Windows Nativeでの再確認を通常の受入条件にしない。
 
 ### 元に戻す方法
 

@@ -7,9 +7,9 @@
 ## 運用の要点
 
 - `AGENTS.md` の読込順とRun運用を守る。
-- 通常はLinuxのプロジェクトルートから `codex` を直接起動する。.codex/config.tomlのsandbox、approval、network、Hooks、agents、共通execpolicy設定を維持する。
+- 通常のAI agentによる開発・実装・検証はLinux環境（WSL2、Linux、GitHub Codespaces等）を対象とする。Windows NativeでのCodex／OpenCode／PowerShell runtime検証は通常の受入条件に含めず、未実施を残件・BLOCKED・missing_validationとして扱わない。Windows launcher、PowerShell scripts、Windows向けCI／互換性は維持する。Codex CLIはLinuxのプロジェクトルートから直接 `codex` を起動し、`.codex/config.toml`のsandbox、approval、network、Hooks、agents、共通execpolicy設定を維持する。
 - project config/rulesはCodexのproject trust条件を満たす場合に読み込まれる。非managed環境ではHook定義もtrustが必要。PreToolUse matcherはBashのみで、`apply_patch`やMCP操作は対象外。runtimeでHookが発火することは静的設定だけでは証明できない。
-- strict Runは `scripts/new-run.*` で初期化し、直接 `codex` を実行する。必要なmanifest更新は既存 `scripts/collect-run-artifacts.*` を明示実行する。`run.json`はmachine-managedとする。
+- strict RunはLinux/WSL2の標準経路 `scripts/new-run.sh` で初期化し、直接 `codex` を実行する。`scripts/new-run.ps1`とPowerShell collectorは互換経路として保持する。必要なmanifest更新は既存collectorを明示実行し、`run.json`はmachine-managedとする。
 - 新規manifestにpreset既定値は出力しない。既存の`preset`と`run.json.safety.network`はwrapper由来のlegacy compatibility dataであり、直接`codex`のactive policyや実行時ネットワーク観測値ではない。collectorは既存値を保持する。
 - 日付付きの過去記録にある`codex-task` report等への参照は、当時存在したartifact evidenceを指す歴史情報であり、現行Runの記録経路ではない。現行のRun evidenceはRun-local `REPORT.md`、machine-managed `run.json`、validation結果などへ記録する。
 - Run Artifact、sanitizer、credential/security scan、Git安全性契約を維持する。`.codex/runs/**`はpreserved legacy/historyとして変更しない。
@@ -100,7 +100,7 @@
 
 - tracked text fileのcheckout EOLは`.gitattributes`の`* text=auto eol=lf`を正本とし、global `core.autocrlf`設定へ依存しない。root `.editorconfig`はUTF-8、LF、final newlineだけをEditor補助として指定する。
 - Prettierは`.prettierrc.json`の`endOfLine: lf`で同じLF契約を明示する。`.bat`／`.cmd`はRepositoryにないためCRLF例外を設けない。
-- EOL契約変更時の移行は既存変更を保持した`git add --renormalize .`とstaged／unstaged差分確認で一度だけ行い、branch switch後の`format:check`をWindows Nativeで検証する。
+- EOL契約変更時の移行では既存変更を保持して`git add --renormalize .`を一度だけ行い、staged／unstaged差分を確認する。通常の`format:check`はLinux／WSL2で実行し、Windows固有互換性は既存Windows CI契約で確認する。Windows Nativeローカル検証は通常の受入条件ではない。
 
 ## UI デザイン基準
 

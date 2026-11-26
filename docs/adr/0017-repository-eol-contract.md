@@ -19,3 +19,8 @@ Windows環境では、Gitのglobal `core.autocrlf`設定やブランチ切替の
 - clean checkoutおよびブランチ切替後のテキストファイルのEOLが、global `core.autocrlf`に依存せずリポジトリ契約へ揃う。
 - 既存のCRLF混在を解消するには、適用時のrenormalizeと、差分の意味的な確認が必要になる。
 - binary／generated fileの扱いは既存のGit／Prettier ignore契約を維持し、今回のEOL対策で新しい変換スクリプトや依存関係は導入しない。
+
+## Current operational scope (2026-11-25)
+
+- 上記のWindows Native相当の受入条件は、このADR決定時点のEOL移行手順を記録する。現在のAI agentによる通常の`format:check`はLinux／WSL2で実行し、Windows固有の互換性は既存Windows CI契約で確認する。Windows NativeのCodex／OpenCode／PowerShellローカル検証を通常の完了条件には含めない。
+- LF属性、EditorConfig、Prettier設定、既存変更を保持した`git add --renormalize .`、および意味差分の確認に関する決定は引き続き有効である。

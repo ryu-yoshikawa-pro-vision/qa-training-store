@@ -8,6 +8,6 @@
 
 ## Strict Runs
 
-Strict Runでは既存の `scripts/new-run.sh` または `scripts/new-run.ps1` でRunを初期化し、直接 `codex` を起動します。実体の `run.json` はagentが直接編集せず、既存の `scripts/collect-run-artifacts.*` を明示実行してmachine-managed manifestを更新します。Run Artifactと過去の履歴は保持し、sanitizerおよびcredential/security scanを通します。
+Strict RunではLinux／WSL2のAI agent経路として `scripts/new-run.sh` でRunを初期化し、直接 `codex` を起動します。`scripts/new-run.ps1`とPowerShell collectorはWindows互換経路として保持し、Windows Nativeでのローカル実行を通常の受入条件にはしません。実体の `run.json` はagentが直接編集せず、既存のcollectorを明示実行してmachine-managed manifestを更新します。Run Artifactと過去の履歴は保持し、sanitizerおよびcredential/security scanを通します。
 
 危険なbypass flagsを有効にしないでください。

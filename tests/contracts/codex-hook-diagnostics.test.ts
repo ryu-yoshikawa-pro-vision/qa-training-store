@@ -301,6 +301,72 @@ function trySymlink(target: string, link: string, type: "file" | "dir") {
 }
 
 describe("offline Codex Hook diagnostics contract", () => {
+  it.skipIf(process.platform === "win32")(
+    "parses normal Git versions and rejects a long malformed suffix safely",
+    () => {
+      withFixture((root) => {
+        const realGitPath = (process.env.PATH ?? "")
+          .split(path.delimiter)
+          .map((directory) => path.join(directory, "git"))
+          .find((candidate) => {
+            try {
+              fs.accessSync(candidate, fs.constants.X_OK);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        expect(realGitPath).toBeDefined();
+
+        const fakeGitBin = path.join(root, "fake-git-bin");
+        fs.mkdirSync(fakeGitBin);
+        fs.writeFileSync(
+          path.join(fakeGitBin, "git"),
+          [
+            "#!/bin/sh",
+            'if [ "$1" = "--version" ]; then',
+            "  printf '%s\\n' \"$DIAGNOSTIC_GIT_VERSION\"",
+            "  exit 0",
+            "fi",
+            'exec "$DIAGNOSTIC_REAL_GIT" "$@"',
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+        fs.chmodSync(path.join(fakeGitBin, "git"), 0o755);
+        const makeEnvironment = (version: string) => ({
+          PATH: fakeGitBin + path.delimiter + (process.env.PATH ?? ""),
+          DIAGNOSTIC_GIT_VERSION: version,
+          DIAGNOSTIC_REAL_GIT: realGitPath as string,
+        });
+
+        for (const [version, parsed] of [
+          ["git version 2.43.1", "2.43.1"],
+          ["git version 2.43.1.windows.1", "2.43.1"],
+          ["git version 2.43.1 (Apple Git-154)", "2.43.1"],
+        ] as const) {
+          expectReadOnlyDoctor(
+            root,
+            0,
+            (result) => expect(result.stdout).toContain("OK: Git version=" + parsed),
+            makeEnvironment(version),
+          );
+        }
+
+        const adversarialVersion = "git version 0.0-" + "--".repeat(12_000);
+        expectReadOnlyDoctor(
+          root,
+          0,
+          (result) => {
+            expect(result.stdout).toContain("N/A: Git version unavailable");
+            expect(result.stdout).not.toContain(adversarialVersion);
+          },
+          makeEnvironment(adversarialVersion),
+        );
+      });
+    },
+  );
+
   it("reports active Hook config without requiring quality Hook or baseline state", () => {
     withFixture((root) => {
       expect(fs.existsSync(path.join(root, ".codex/hooks/text_quality_gate.mjs"))).toBe(false);
@@ -335,8 +401,9 @@ describe("offline Codex Hook diagnostics contract", () => {
             expect(result.stdout).toContain(expected);
           }
           expect(result.stdout).toContain(
-            "Offline policy check: synthetic missing-anchor G10=deny（runtime evidence: N/A）",
+            "Offline policy check: synthetic git add G10=deny（runtime evidence: N/A）",
           );
+          expect(result.stdout).not.toContain("missing-anchor");
           expect(result.stdout).toContain("N/A: project trust");
           expect(result.stdout).toContain("N/A: Hook trust");
           expect(result.stdout).toContain("N/A: execpolicy loaded/effective state");
@@ -548,7 +615,10 @@ describe("offline Codex Hook diagnostics contract", () => {
       expect(result.stdout).toContain("OK: checkout root canonical state=resolved");
       expect(result.stdout).toContain("OK: checkout .git entry=pointer file");
       expect(result.stdout).toContain("OK: worktree kind=linked");
-      expect(result.stdout).toContain("Offline policy check: synthetic missing-anchor G10=deny");
+      expect(result.stdout).toContain(
+        "Offline policy check: synthetic git add G10=deny（runtime evidence: N/A）",
+      );
+      expect(result.stdout).not.toContain("missing-anchor");
       expect(result.stdout).not.toContain("textlint");
       expect(result.stdout).not.toContain("baseline_state");
       expect(result.stdout).not.toContain(root);

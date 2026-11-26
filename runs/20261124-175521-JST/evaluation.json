@@ -4,13 +4,12 @@
   "result": "partial",
   "primary_failure_category": "missing_validation",
   "failure_categories": [
-    "missing_validation",
-    "artifact_contract_gap"
+    "missing_validation"
   ],
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "G10診断、読み取り専用診断、通常Git CLI復旧手順、API迂回禁止、共通OpenCode判定、契約テストを実装した。Codex CLIはWSL2 runtimeで承認付き通常Git CLIによるfetch/add/commit/pushを実行確認した。OpenCode liveの実Git変更操作は未確認。Windows Native runtimeは通常受入対象外で、Windows固有Hook/PowerShellはWindows CI contractで確認する。",
+      "evidence": "4件と--points-at誤分類を限定修正。Hook contract 216/216 PASS、正式承認付き関連suite 50/50 PASS。Hook smoke、標準verify/diagnostics、隔離new-run、strict collector、sanitizer、security scanもPASS。通常Git CLI commit/push、最終HEAD CI、PR/Issue本文更新は未完了。OpenCode live mutationはHTTP 402で未確認、Windows Native runtimeは対象外。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -30,7 +29,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Codex Hook、診断、OpenCodeの契約suiteは164/164 PASS。隔離fixtureは実際のGit add/commit/local bare remote pushを検証した。CodexのWSL2 runtimeで通常Git CLI変更操作も確認した。OpenCode live mutationは未確認であり、隔離contract testをlive session検証と同一視しない。Windows Native runtimeは通常受入対象外で、Windows Hook CI contractは別途成功している。",
+      "evidence": "Hook import/evaluateCommand/decidePayload、正常payload CLI exit 0、malformed payload exit 2、4件と--points-atの直接・隔離評価、Hook contract 216/216 PASS（0 skipped）、正式承認付きOpenCode/diagnostics/Run manifest 50/50 PASS。strict collector exit 0、sanitizer残存0、security:checkは236 runtime/531 credential files PASS、format:check/Markdown lint/git diff --check PASS。lint:textは30秒無出力でexit 130。別validation agentは残りコマンド実行中に3分以上結果を返さず停止し、lint:text:all/ESLint/typecheck/Run追記後bash scripts/verifyの結果は回収不能。最終CI未確認。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -40,12 +39,12 @@
       ]
     },
     "safety_compliance": {
-      "rating": "pass",
-      "evidence": "G10の判定IDと許可・拒否条件を維持した。ユーザー承認を得た`approval_policy`だけを変更し、workspace-write、network、writable_roots、Hookを維持した。拒否された変更操作をGitHub API、MCP、ref更新で代替せず、force pushやmergeも行っていない。"
+      "rating": "warn",
+      "evidence": "4件と--points-at回帰を修正し、Hook contract 216/216 PASS、直接・隔離評価でbranch/protected ref/worktree/remote contextを確認。独立reviewで対象差分に追加must-fixなし。security:checkとsanitizer PASS。digest、PATH全体固定、汎用parserを導入せずsandbox、approval、Hook trust、execpolicyを緩和していない。OpenCode live mutationはHTTP 402で未確認。"
     },
     "reviewability": {
-      "rating": "pass",
-      "evidence": "独立したHooke reviewは最終fixture修正をClearとし、G10の不変、symlinkと別worktree拒否の保持を確認した。Run reportには失敗原因、修正、判定根拠、残るruntime未確認を記録した。",
+      "rating": "warn",
+      "evidence": "限定された4件、追加--points-at修正、関連Hook/OpenCode/Run変更の独立reviewで新しいmust-fixは確認されなかった。旧テストと分割後テストの34種類のGit command literalが一致し、更新後suite 216/216 PASS。最終PR HEAD CIとChatGPTによる最終レビューは未完了。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
@@ -56,40 +55,26 @@
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "CodexとOpenCodeは既存の共通evaluateCommand()を利用する。診断は既存CLIを拡張し、復旧と迂回禁止の詳細はGit safety referenceへ集約した。"
+      "evidence": "script digest、PATH全体固定、script allowlist、汎用shell parserを導入せず、今回の4件を既存Git引数解析・remote context・dry-run分類・test helperへ限定して修正した。標準shell scriptは一律拒否しない。"
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "隔離Git fixtureとWindows CI contractでHook判定を再現可能にした。Codex CLIのWSL2 runtimeでは実際のfetch/add/commit/pushを確認した。実OpenCode sessionのadd/commit/pushは未確認として残す。Windows Native runtime検証は通常受入対象ではない。"
+      "evidence": "Hook contract 216/216、正式承認付きOpenCode/diagnostics/Run manifest 50/50、strict collector、sanitizer、security check、format/Markdown/diff-checkを確認。旧5.213秒test timeoutはtimeoutを変更せずケース分割で解消。lint:textは30秒無出力でexit 130、別validatorの残り結果は回収不能。実OpenCode live mutationはHTTP 402、最終CI未確認。Windows Native runtimeは対象外。"
     }
   },
   "findings": [
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "OpenCode v2.3.0ではPlugin load、guarded_git status、built-in shellの危険操作拒否を確認した。guarded_git経由の実add/commit/pushは未確認である。Codex CLIはWSL2上で通常Git CLI変更操作を実行済み。Windows Native runtimeは通常受入対象外で、Windows固有contractはCIで確認する。",
+      "evidence": "OpenCode live add/commit/pushはprovider quota HTTP 402のため未確認、再試行しない。lint:textは30秒無出力でexit 130。別validatorは残り品質コマンド実行中に状態を返さず停止し、一部の結果を回収できなかった。strict collector、sanitizer、security scan、format/Markdown/diff-checkはPASS。最終HEAD CIが未確認。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": "runs/20261124-175521-JST/REPORT.md",
-          "summary": "実runtimeと隔離契約テストの範囲を区別して記録。"
+          "summary": "最終修正、環境別suite結果、runtime制約を記録。"
         }
       ],
-      "detail": "隔離contract testの実Git add/commit/local bare pushはPASSだが、実OpenCode sessionでの同じ変更操作を証明しない。後続確認が必要なのはOpenCode live mutationである。Windows Native runtimeは通常受入対象外であり、Windows固有Hook/PowerShell経路は既存Windows CI contractで確認する。"
-    },
-    {
-      "category": "artifact_contract_gap",
-      "severity": "low",
-      "evidence": "strict collectorはschema-validなevaluation.jsonを受理してwarningなしで終了したが、run.json.primary_failure_categoryはnullのままだった。evaluationのrun_idとmissing_validation分類は有効だった。",
-      "evidence_refs": [
-        {
-          "kind": "run_manifest",
-          "path": "runs/20261124-175521-JST/run.json",
-          "selector": "workflow_level",
-          "summary": "strict Runであり、collectorによるevaluation参照とmanifest更新が必要。"
-        }
-      ],
-      "detail": "collectorはstrict時にschema_validをfalseで初期化し、schema validator成功時にtrueへ戻していなかった。成功分岐を修正し、validなstrict evaluationからprimary_failure_categoryが転記される契約testを追加した。欠落していたevaluationを追加し、strict collectionで再検証した。"
+      "detail": "今回の4件、branch-listの--points-at分類、protected refとremote contextを直接評価・隔離fixture・Hook contract 216/216で確認した。Run collector exit 0、sanitizer残存0、security scan PASS。OpenCode live mutationはHTTP 402で未確認。未確認の品質コマンドと最終CIをPR受入時に確認する。Windows Native runtimeはユーザー方針により対象外。"
     }
   ],
   "improvement_candidates": []

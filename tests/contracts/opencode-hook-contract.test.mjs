@@ -1,13 +1,14 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
 import plugin from "../../.opencode/plugins/git-safety/index.js";
-import { POLICY_MATRIX } from "../../.codex/hooks/pre_tool_use_policy.mjs";
+import { evaluateCommand, POLICY_MATRIX } from "../../.codex/hooks/pre_tool_use_policy.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -89,6 +90,36 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
     }
   });
 
+  it.skipIf(process.platform === "win32")(
+    "allows standard Bash scripts and lets unknown scripts reach execution",
+    async () => {
+      const canonicalRoot = fs.realpathSync.native(repositoryRoot);
+      const standardCommands = [
+        "bash scripts/verify --help",
+        "bash scripts/new-run.sh --help",
+        "bash scripts/collect-run-artifacts.sh --run-id 20261125-120000-JST --strict",
+      ];
+      const rootAnchor = `cd -- "${canonicalRoot}" && `;
+      for (const command of standardCommands) {
+        expect(
+          evaluateCommand(`${rootAnchor}${command}`, undefined, canonicalRoot),
+          command,
+        ).toBeNull();
+      }
+
+      const guardedShell = (await registerTools()).get("guarded_shell");
+      const result = await guardedShell.execute({ command: standardCommands[0] });
+      expect(result.content).toContain("usage: bash scripts/verify");
+
+      const unknownScriptError = await guardedShell
+        .execute({ command: "bash scripts/unknown-standard-script.sh" })
+        .catch((error) => error);
+      expect(unknownScriptError).toBeInstanceOf(Error);
+      expect(unknownScriptError.message).toContain("No such file or directory");
+      expect(unknownScriptError.message).not.toMatch(/Shell safety policy denied/);
+    },
+  );
+
   it("denies malformed shell input rather than skipping policy evaluation", async () => {
     const callback = await registerHook();
     for (const input of [undefined, null, {}, [], { command: 1 }, { command: "  " }]) {
@@ -146,7 +177,7 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
   });
 
   it("runs guarded_git in a copied fixture checkout against a local bare remote", async () => {
-    const fixtureRoot = fs.mkdtempSync(path.join(repositoryRoot, ".opencode-guarded-git-fixture-"));
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-guarded-git-fixture-"));
     let remoteRoot;
     let isolatedHome;
     const originalEnvironment = new Map();
@@ -208,7 +239,7 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
       git(fixtureRoot, ["config", "--global", "--add", "safe.directory", remoteRoot]);
       git(fixtureRoot, ["init", "--quiet"]);
       git(remoteRoot, ["init", "--bare", "--quiet", remoteRoot]);
-      git(fixtureRoot, ["symbolic-ref", "HEAD", "refs/heads/main"]);
+      git(fixtureRoot, ["symbolic-ref", "HEAD", "refs/heads/feature/safe"]);
       git(fixtureRoot, ["config", "user.name", "OpenCode Contract"]);
       git(fixtureRoot, ["config", "user.email", "opencode-contract@example.invalid"]);
       fs.writeFileSync(path.join(fixtureRoot, "tracked.txt"), "baseline content\n");
@@ -219,16 +250,24 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
       git(fixtureRoot, ["config", "remote.origin.mirror", "false"]);
       git(fixtureRoot, ["push", "--quiet", "origin", "HEAD:refs/heads/main"]);
       git(remoteRoot, ["symbolic-ref", "HEAD", "refs/heads/main"]);
-      git(fixtureRoot, ["branch", "feature/safe"]);
       git(fixtureRoot, [
         "push",
         "--quiet",
         "origin",
         "refs/heads/feature/safe:refs/heads/feature/safe",
       ]);
-      git(fixtureRoot, ["switch", "--quiet", "feature/safe"]);
+      git(fixtureRoot, ["fetch", "--quiet", "origin"]);
+      git(fixtureRoot, ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
+      expect(git(fixtureRoot, ["symbolic-ref", "refs/remotes/origin/HEAD"])).toBe(
+        "refs/remotes/origin/main",
+      );
+      expect(git(fixtureRoot, ["branch", "--list", "main"])).toBe("");
 
-      const fixturePlugin = (await import(/* @vite-ignore */ fixturePluginPath)).default;
+      const fixtureLoaderPath = path.join(fixtureRoot, "load-fixture-plugin.cjs");
+      fs.writeFileSync(fixtureLoaderPath, "module.exports = (moduleUrl) => import(moduleUrl);\n");
+      const loadFixtureModule = createRequire(import.meta.url)(fixtureLoaderPath);
+      const fixturePlugin = (await loadFixtureModule(pathToFileURL(fixturePluginPath).href))
+        .default;
       const tools = await registerTools(fixturePlugin);
       const guardedGit = tools.get("guarded_git");
       const rootResult = await guardedGit.execute({ args: ["rev-parse", "--show-toplevel"] });
@@ -256,6 +295,41 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
         "guarded Git integration result",
       );
 
+      const stateBeforeDeniedLocalBranchCreation = {
+        head: git(fixtureRoot, ["rev-parse", "HEAD"]),
+        currentBranch: git(fixtureRoot, ["branch", "--show-current"]),
+        index: git(fixtureRoot, ["write-tree"]),
+        localMainBranch: git(fixtureRoot, ["branch", "--list", "main"]),
+        remoteRefs: git(fixtureRoot, [
+          "--git-dir",
+          remoteRoot,
+          "for-each-ref",
+          "--format=%(refname) %(objectname)",
+        ]),
+      };
+      expect(
+        evaluateCommand(
+          `cd -- "${path.resolve(fs.realpathSync.native(fixtureRoot))}" && git branch main`,
+          undefined,
+          fixtureRoot,
+        ),
+      ).toMatchObject({ id: "G10", reason: expect.stringMatching(/protected branch/) });
+      await expect(guardedGit.execute({ args: ["branch", "main"] })).rejects.toThrow(
+        /Shell safety policy denied \[G10\].*protected branch/,
+      );
+      expect({
+        head: git(fixtureRoot, ["rev-parse", "HEAD"]),
+        currentBranch: git(fixtureRoot, ["branch", "--show-current"]),
+        index: git(fixtureRoot, ["write-tree"]),
+        localMainBranch: git(fixtureRoot, ["branch", "--list", "main"]),
+        remoteRefs: git(fixtureRoot, [
+          "--git-dir",
+          remoteRoot,
+          "for-each-ref",
+          "--format=%(refname) %(objectname)",
+        ]),
+      }).toEqual(stateBeforeDeniedLocalBranchCreation);
+
       const stateBeforeDeniedPush = {
         head: git(fixtureRoot, ["rev-parse", "HEAD"]),
         index: git(fixtureRoot, ["write-tree"]),
@@ -281,6 +355,83 @@ describe("OpenCode V2 Codex safety policy adapter", () => {
       if (isolatedHome) fs.rmSync(isolatedHome, { force: true, recursive: true });
     }
   });
+
+  it.skipIf(process.platform === "win32")(
+    "uses PATH-selected Git for policy context and guarded_git",
+    async () => {
+      const originalPath = process.env.PATH;
+      const markerName = "OPENCODE_TEST_PATH_SHADOW_GIT_MARKER";
+      const originalPathName = "OPENCODE_TEST_PATH_SHADOW_GIT_ORIGINAL_PATH";
+      const originalEnvironment = new Map(
+        [
+          markerName,
+          originalPathName,
+          ...Object.keys(process.env).filter((name) => name.startsWith("GIT_")),
+        ]
+          .concat("PATH")
+          .map((name) => [name, process.env[name]]),
+      );
+      const shadowRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-git-path-shadow-"));
+      const markerPath = path.join(shadowRoot, "invoked");
+
+      try {
+        if (typeof originalPath !== "string" || originalPath.length === 0) {
+          throw new Error("PATH is required to run the local Git fixture.");
+        }
+        for (const name of Object.keys(process.env)) {
+          if (name.startsWith("GIT_")) delete process.env[name];
+        }
+
+        const fakeGitPath = path.join(shadowRoot, "git");
+        fs.writeFileSync(
+          fakeGitPath,
+          [
+            "#!/bin/sh",
+            `printf '%s\\n' "$*" >> "$${markerName}"`,
+            `PATH="$${originalPathName}"`,
+            "export PATH",
+            'exec git "$@"',
+            "",
+          ].join("\n"),
+          { mode: 0o755 },
+        );
+        process.env.PATH = [shadowRoot, originalPath].join(path.delimiter);
+        process.env[markerName] = markerPath;
+        process.env[originalPathName] = originalPath;
+        fs.writeFileSync(markerPath, "");
+        expect(process.env.PATH.split(path.delimiter)[0]).toBe(shadowRoot);
+
+        const canonicalRoot = fs.realpathSync.native(repositoryRoot);
+        const rootAnchor = `cd -- "${canonicalRoot}" && `;
+        expect(
+          evaluateCommand(`${rootAnchor}git status --short --branch`, undefined, canonicalRoot),
+        ).toBeNull();
+        const policyInvocations = fs.readFileSync(markerPath, "utf8").split(/\r?\n/u);
+        expect(
+          policyInvocations.some((invocation) => invocation.includes("rev-parse --show-toplevel")),
+        ).toBe(true);
+
+        fs.writeFileSync(markerPath, "");
+        const guardedGit = (await registerTools()).get("guarded_git");
+        const result = await guardedGit.execute({ args: ["status", "--short", "--branch"] });
+        expect(result.content).toMatch(/^## /mu);
+        const guardedGitInvocations = fs.readFileSync(markerPath, "utf8").split(/\r?\n/u);
+        expect(
+          guardedGitInvocations.some((invocation) =>
+            invocation.includes("rev-parse --show-toplevel"),
+          ),
+        ).toBe(true);
+        expect(guardedGitInvocations).toContain("status --short --branch");
+      } finally {
+        for (const [name, value] of originalEnvironment) {
+          if (value === undefined) delete process.env[name];
+          else process.env[name] = value;
+        }
+        fs.rmSync(shadowRoot, { force: true, recursive: true });
+      }
+    },
+    60000,
+  );
 
   it("uses the V2 auto-discovered plugin directory instead of an unsupported file path", () => {
     expect(fs.existsSync(path.join(repositoryRoot, ".opencode/plugins/git-safety/index.js"))).toBe(

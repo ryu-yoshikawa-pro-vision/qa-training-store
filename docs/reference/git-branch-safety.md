@@ -8,18 +8,22 @@ Gitの変更操作（mutation）が許可されている作業であっても、
 
 ## Hookによる操作rootの固定
 
-PreToolUse HookはHookプロセスのcheckout rootを基準に操作対象を判定し、payloadの`cwd`には依存しない。状態を変更するbare `git`／`git.exe`は、Hookを所有するcheckoutのcanonical rootと一致する絶対pathへ明示的に移動した直後にだけ判定対象となる。Gitの状態変更1回ごとにroot anchor付きの独立したcommandとして実行し、前後に別commandを連結しない。
+PreToolUse HookはHookプロセスのcheckout rootを基準に操作対象を判定し、payloadの`cwd`には依存しない。context-sensitiveなGit mutationは、Hook所有checkoutのcanonical rootへの明示的な移動の直後にbare `git`（Windows互換経路ではbare `git.exe`）を実行する形式だけを許可候補とする。Gitの状態変更1回ごとにroot anchor付きの独立したcommandとして実行し、前後に別commandを連結しない。
 
 - POSIX: `cd -- "<absolute-checkout-root>" && git <subcommand> ...`
 - PowerShell: `Set-Location -LiteralPath "<absolute-checkout-root>" -ErrorAction Stop; git <subcommand> ...`
-- 指定rootがHookのcheckoutと異なる、相対path・変数展開を使う、移動の間に別commandを挟む、`git -C`／`--git-dir`／`--work-tree`／repositoryやruntime configを変える`GIT_*`環境変数を使う形式は拒否する。`GIT_OPTIONAL_LOCKS`、`GIT_PAGER`、`GIT_TERMINAL_PROMPT`はroot/configを変えないためこの判定の対象外。`<absolute-checkout-root>`は実際のcanonical absolute pathへ置き換える。
-- `command git`、`command -p git`、`env git`、`env -u NAME git`、`env -C DIR git`、PowerShellの`& git`もroot固定例外にはならない。Hookは既知のshell wrapper（`command` / `env`の入れ子、POSIX shellの`-c`と`-lc`等のcombined option、PowerShellの`-Command`と`-NoProfile`等の前置option、`cmd /d /s /c`・`/k`、PowerShell `& {}`、括弧subshell、Bash/Zsh process substitution、command substitution）内のGit呼出しも共通policyで判定し、wrapper内のcontext-sensitive mutationをG10で拒否する。POSIX shellのscript-file/stdin実行、`eval` / `source` / `.`、PowerShellの`-File` / encoded command、および解釈できないshell入力はG10で拒否する。POSIX `exec`からGit、既知shell、またはscript runtimeへ置き換える操作は検査できない実行として扱い、Gitを含み得る対象を拒否する。通常の非Git `exec` commandは許可する。command substitution内のhere-documentとPowerShell block commentは終端を推測せず、未解析としてfail-closedにする。これは完全なshell / script parserではなく、未知の間接実行や任意の間接scriptをすべて検査する保証ではない。
-- `command` / `env` wrapperはpath basenameで識別し、`env.exe`やabsolute pathの`env`も同じG10検査を通る。POSIX `exec`が既知のPython runtime（versioned executable名を含む）を起動する場合も、runtime固有のquery-only引数以外は検査できないscript executionとしてG10で拒否する。
-- `git` executableはbasenameで認識するため、`/usr/bin/git`等のabsolute pathやWindowsの`C:\Program Files\Git\cmd\git.exe`も同じpolicyを通る。既知runtimeのversion/help確認は、そのruntime固有の終了フラグを単独指定した場合だけ許可し、scriptまたは追加引数を伴うprocess replacementはG10で拒否する。
+- 状態変更に対するG10はHook所有checkoutのcanonical root anchorを要求する。root不一致、相対path・変数展開を使うanchor、移動の間に別commandを挟む形式に加え、context-sensitive mutationで`git -C`（複数指定を含む）、`--git-dir`、`--work-tree`、repository、ref、index、object、repository discoveryまたはruntime configに影響し得る`GIT_*`環境変数、および分類できない`GIT_*`環境変数を使う形式を拒否する。共通のauthor／committer identity・date変数などは`GIT_` prefixだけを理由に拒否しないが、`GIT_TRACE`、`GIT_TRACE2`、`GIT_TRACE_<category>`を含むtrace変数はpathを値に取ってファイルへ書き込めるためcontext-sensitive mutationでは拒否する。`GIT_OPTIONAL_LOCKS`、`GIT_PAGER`、`GIT_PAGER_IN_USE`、`GIT_TERMINAL_PROMPT`は引き続きこの判定の対象外。`GIT_CURL_VERBOSE`は安全な継承環境例外ではなく、context-sensitive mutationで設定されている場合（継承環境を含む）はG10で拒否する。`GIT_EDITOR`と`GIT_SEQUENCE_EDITOR`はmutation中にchild programを選択できるため拒否する。`-C`先をmutationの保護branch contextとしては解決しない。read-only操作はroot anchorを要求せず、`git -C`を含むread-only invocationも通常の判定対象となる。`<absolute-checkout-root>`は実際のcanonical absolute pathへ置き換える。
+- G10はcommand textから直接識別できるGit invocationと、その判定に必要なroot／branch／ref／push contextを限定的に評価する。対応するwrapperやshell clause内でGit invocationを直接識別した場合、その検出はG1〜G10の拒否判定に使えるが、wrapper内のcontext-sensitive mutationを許可しない。単純な括弧groupの先頭に直接見える`git` invocationがcontext-sensitive mutationなら、G10で拒否する。許可候補となるmutationは、上記のcanonical root anchor直後にあるbare `git`（Windows互換経路ではbare `git.exe`）に限る。G10は完全なshell interpreterや任意scriptのparserではなく、任意のshell/script内部やchild processのGit操作を網羅的に検査しない。
+- repository／branch／ref contextに依存するGit mutationでは、executable tokenをbare `git`（PATH-selected `git`）またはWindows互換経路でのbare `git.exe`（PATH-selected `git.exe`）とする。path-qualified Git mutationはG10で拒否し、path-qualified read-only Git invocationは許可する。これはHookのcontext lookupと実行commandのGit lookupをcanonical bare executable／execpolicy prefix contractに揃える形式要件であり、PATH内容の固定・検証やGit executableの真正性を保証しない。
+- `bash scripts/verify`、`bash scripts/new-run.sh`、`bash scripts/collect-run-artifacts.sh`などの標準script entrypointは、script内部がopaqueであることだけを理由にG10で拒否しない。起動commandが許可されても、内包Git操作をG10が個別に評価したことを意味しない。script path／digest allowlist、PATH全体の固定・検証、専用launcher、汎用shell parserは採用しない。Hook等で拒否されたGit mutationをAPIや別経路で実行する許可にもならない。
+- OpenCodeの`guarded_git`は、共通`evaluateCommand()`によるcontext判定と実行の両方で同じPATH-selected `git`を使い、Plugin checkout rootをcwdに固定してargv arrayで実行する。これはGitのlookupを揃える契約であり、PATH全体の完全性や実行ファイルの真正性を検証・固定するものではない。詳細は[OpenCode V2の安全性チェック](opencode-v2-safety.md)を参照する。
 - read-only操作はroot固定を要求しない。保護branchから非保護branchへの通常の`switch`／`checkout`は既存契約を維持する。
-- 通常pushは構成済みremoteへの単一で明示的な非保護refだけが候補となる。`--follow-tags`、`push.followTags`、再帰submodule push、mirror設定等の追加更新があり得る場合や、安全な判定に必要なGit設定を読めない場合は拒否する。
+- branch/ref-sensitive mutationでは、current branchとHEADに加え、remote contextの取得結果を区別する。成功した`git remote`一覧の結果が0件なら、`main`／`master`のfallback保護とcurrent branchに基づいてローカルcontextを解決する。一覧取得自体に失敗した場合はcontext未解決としてG10で拒否する。remoteが設定されている場合、ローカルbranch/ref-sensitive mutationでは**すべてのconfigured remote**について`refs/remotes/<remote>/HEAD`が有効なcommitを指すことを確認する。1つでも未解決またはdanglingなら部分的な解決で済ませずG10で拒否する。pushでは`main`／`master`のfallback保護と、選択した宛先remote自身のdefault HEADだけを確認する。他remoteのdefault HEADが未解決でも、それだけを理由にpushを拒否しない。宛先remote自身のdefault HEADが未解決またはdanglingならG10で拒否する。これらはローカルtracking refに基づく判定で、サーバー側のdefault branch、branch protection設定や最新remote状態を証明しない。直接識別した`branch <name>`、`switch -c`／`--create`／`--orphan`、`checkout -b`／`--branch`／`--orphan`、`worktree add -b`／`--branch`による保護local branch作成もG10で拒否する。保護local refを対象にする`update-ref`とdynamic `update-ref` targetも拒否し、shell上の値は展開して判定しない。
+- `git branch`、`git branch -v`／`-vv`、`git branch --show-current`、明示的な`git branch --list`による一覧表示はread-onlyで、root anchorを要求しない。`-v`／`-vv`だけを根拠にread-onlyと判定せず、同じ呼び出しにbranch作成その他のmutation targetがあれば変更操作として扱う。オプション値をbranch targetと混同せず、`--`以降をオプションとして解釈しない。branch作成・rename・deleteの保護判定は上記のG10規則に従う。
+- `git worktree list`はread-only操作として許可する。`git worktree add`は既存のG10 root-anchor／branch-target判定に従い、それらの条件を満たす非保護branchへのaddは許可する一方、保護local branchの作成など禁止対象を拒否する。直接識別できる`git worktree remove`／`rm`と実際にworktree recordを削除する`git worktree prune`はG9で拒否する。`git worktree prune --dry-run`と`git worktree prune -n`はread-only操作として許可する。`--expire`の値や`--`以降のoperandをdry-run flagと誤認しない。
+- 直接識別できる通常pushは、構成済みremoteへの単一で明示的な非保護refだけが候補となる。protected refへのpushとdynamic refspec（例: `HEAD:$target`、`$REFSPEC`）はG10で拒否する。`--follow-tags`、`push.followTags`、再帰submodule push、mirror設定等の追加更新があり得る場合や、安全な判定に必要なGit設定を読めない場合も拒否する。
 
-このHookはCodexのBash PreToolUse向け制御であり、任意の外部プロセスやすべてのMCP操作を保護するものではない。Codex sandbox、execpolicy、OS/ACL権限、Git metadataのlockは別の制御・失敗層であり、Hookが許可してもそれらを上書きしない。実行経路別の検証範囲はRun Artifactと報告に記録する。
+この共通policyはCodexのBash PreToolUse HookとOpenCode V2 Pluginから利用されるが、任意の外部プロセスやすべてのMCP操作を保護するものではない。G10、Codex sandbox、execpolicy、実効approval設定、OS/ACL権限、Git metadataのlock、OpenCode tool permissions、GitHub側の認可は別々の境界であり、一つの判定結果から他の実効状態は分からない。Hookが許可しても他の制御を上書きしない。実行経路別の検証範囲はRun Artifactと報告に記録する。
 
 ## 拒否・失敗の分類と経路境界
 
@@ -28,7 +32,7 @@ Gitの状態変更が拒否または失敗したら、同じ変更を別経路�
 | 分類 | 代表例 | 対応 |
 | --- | --- | --- |
 | 共通HookのG1〜G9 | hard reset、rebase、amend、clean、force/delete push、危険なbranch/tag操作 | 拒否を維持し、代替transportを使わない。必要ならユーザーhandoff。 |
-| G10 | root未解決・不一致、anchorなし、未対応構文、branch/remote/destination/configを安全に特定できない | まずread-onlyでroot・branch・remote・statusを調査する。条件が解決しないまま同じ変更を再試行しない。 |
+| G10 | 直接識別されたmutationでroot anchorやbranch/remote/destination/config contextを安全に特定できない | mutationを拒否する。read-onlyでroot・branch・configured remote・statusと各remoteのdefault refを調査し、条件が解決しないまま同じ変更を再試行しない。 |
 | execpolicy | 実行前のpolicy deny/prompt | G10とは別の拒否。許可された実行経路・承認がない限り停止する。 |
 | Codex sandbox | `.git`などの保護metadataへの書込み、許可workspace外へのアクセス | Hook判定とは独立。sandbox設定や他APIを迂回路として使わない。 |
 | Git metadata | ref、index、config、worktree管理情報の更新拒否 | 拒否元がHook / sandbox / OSのどれかを特定する。`.git`を直接編集せず、同じ更新を別経路へ移さない。 |
@@ -36,6 +40,14 @@ Gitの状態変更が拒否または失敗したら、同じ変更を別経路�
 | Git lock | `.git/index.lock`等の排他lock | Git writerの稼働状況を確認し、lockを削除・上書きしない。安全確認は下記参照。 |
 | 認証・ネットワーク | credential拒否、DNS/TLS/接続失敗 | credentialを表示・転送せず、接続または認証の担当者へhandoffする。別API/transportへ切り替えない。 |
 | non-fast-forward | remote refがlocalより進んでいる | pushを止め、通常Git CLIのroot-anchored fetchでremote-tracking ref / `FETCH_HEAD`を更新して状態を確認する。履歴の統合判断はユーザーへ戻す。 |
+
+branch/ref-sensitive mutationの安全性判断に必要なcurrent branch、HEAD、またはdefault branch contextが解決できない場合は、G10でfail-closedする。default branchが不明なときは推測せず、次のread-only情報を確認して復旧判断の証拠にする。
+
+- `git remote` の結果と、各configured remoteについての`git symbolic-ref --quiet refs/remotes/<remote>/HEAD`の結果（未設定・解決不能も記録する）。pushを評価する場合は、対象remote自身の結果を確認する。
+- `git branch --show-current` と `git branch -vv` の結果。
+- `git status --short` の結果。
+
+必要なcontextが引き続き不明ならmutationを停止し、取得した証拠と未解決点を報告する。このfail-closedはread-only操作を一律拒否するものではなく、Hook所有checkoutのcanonical rootをanchorし、明示refspecや保護local refの更新を伴わない通常の `git fetch origin` は引き続き利用できる。
 
 Hookまたはsandbox等で拒否されたGit mutationと同等の結果を、REST/GraphQL、GitHub MCP、`gh api`、Git database/API、Git library、`.git`の直接編集、別script、別agentで実現してはならない。GitHubのread-only APIによるPR/branch/commit状態の参照は許可される。ユーザーが明示的に許可したPR/Issue本文、label、reviewer等の管理操作もGit commit/object/refを変更しないmetadata操作として区別し、通常の認可条件に従って実行できる。このmetadata操作の許可をGit ref/commit更新の許可へ拡張しない。
 
