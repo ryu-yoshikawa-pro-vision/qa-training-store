@@ -114,3 +114,10 @@
 - Checkout税額は独立明細を表示しない承認済み方針のまま。正式仕様、`calculateOrderTotals()`、`CheckoutConfirmationDto`、Web/Native表示の既存契約を再確認し、実装変更なし。Session/Cart/version、未保存住所、注文snapshotについて既存回帰を維持する。
 - captureを有効にするためのPR #210限定workflow条件と、その一時契約テストは撮影後に元のworkflow_dispatch専用条件へ復元した。最終差分では一時条件を残さない。
 - Android Emulatorでの視覚受入はPASS。物理Android端末およびiOS runtime操作は今回のCI Emulator結果とは区別し、未実施として記録する。CI build成功を実機操作へ読み替えない。
+
+## 2026-11-23 PR #210 main統合後の状態
+
+- PR #210は2026-11-22 12:05:11 UTCにmergeされ、merge commitは`b8beb9f05db93acd509ca4c35741a7dbab1b4ccd`（PR #210 head `796e67edcbb14e8da2ea84e082e12de4fe7dd481`）である。本文中の「Open／未merge」は当該時点の履歴として維持する。
+- PR #199 remote HEAD `fbc8e551a01882b5e6d8c846edc23f3beea96660`はこのmainを含む。#210の統合はPR #199正式Caseの受入を意味しない。
+- PR #199最新確認Web CI #45020508148ではPR専用actor revocation 2件、Contracts 16件、cross-role E2Eに1 failed／1 flaky。主因は#210後の拒否・分析参照・Cart復帰契約に旧期待が残ったこと、およびmain既存`cross-role-lifecycle.spec.ts`の複数`role=status` Locatorである。前者はPR #199の契約データ・テスト修正対象、後者はmain既存製品テストの別保守対象で、PR #199では変更しない。
+- #210製品コードのCI・Android emulator受入は当該PRの固定HEADで確認済みとして維持する。PR #199の現在HEADで実証されていない正式Caseは`未受入`のまま、製品変更を教材PRへ再度入れない。

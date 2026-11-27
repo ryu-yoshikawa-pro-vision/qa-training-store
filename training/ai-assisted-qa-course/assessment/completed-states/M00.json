@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "module_id": "M00",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v3",
+  "reference_only": true,
+  "objective_ids": ["M00-01", "M00-02", "M00-03", "M00-04"],
+  "knowledge_ids": [
+    "K-M00-01",
+    "K-M00-02",
+    "K-M00-03",
+    "K-M00-04",
+    "K-M00-05",
+    "K-M00-06",
+    "K-M00-07",
+    "K-M00-08"
+  ],
+  "start_state_path": "training/ai-assisted-qa-course/states/M00/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M00/end.json",
+  "artifacts": [
+    {
+      "id": "M00-result-01",
+      "path": "workspace/M00/submission.md",
+      "revision": "M00-result-v1",
+      "contract_id": "M00-to-M01-handoff-v1",
+      "expected_data": {
+        "prompt_fields": ["purpose", "source", "scope", "deliverable", "completion"],
+        "secret_included": false,
+        "changed_paths": ["workspace/M00/submission.md"]
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M00-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M00.md"
+    },
+    {
+      "id": "M00-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M00/README.md; training/ai-assisted-qa-course/exercises/M00/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M00.json; training/ai-assisted-qa-course/states/M00/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md"
+    },
+    {
+      "id": "M00-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M00.json"
+    },
+    {
+      "id": "M00-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M00.json"
+    }
+  ]
+}

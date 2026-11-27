@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "module_id": "M09",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v3",
+  "reference_only": true,
+  "objective_ids": ["M09-01", "M09-02", "M09-03", "M09-04", "M09-05"],
+  "knowledge_ids": [
+    "K-M09-01",
+    "K-M09-02",
+    "K-M09-03",
+    "K-M09-04",
+    "K-M09-05",
+    "K-M09-06",
+    "K-M09-07"
+  ],
+  "start_state_path": "training/ai-assisted-qa-course/states/M09/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M09/end.json",
+  "artifacts": [
+    {
+      "id": "M09-result-01",
+      "path": "workspace/M09/submission.md",
+      "revision": "M09-result-v1",
+      "contract_id": "M09-to-M10-handoff-v1",
+      "expected_data": {
+        "sha_required": true,
+        "run_check_artifact_linked": true,
+        "training_deploy_secret": false,
+        "runner_terms_require_current_verification": true
+      }
+    },
+    {
+      "id": "M09-result-02",
+      "path": "workspace/M09/course-e2e.workflow.yml.disabled",
+      "revision": "M09-workflow-v1",
+      "contract_id": "M09-to-M10-handoff-v1",
+      "expected_data": {
+        "sha_required": true,
+        "run_check_artifact_linked": true,
+        "training_deploy_secret": false,
+        "runner_terms_require_current_verification": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M09-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M09.md"
+    },
+    {
+      "id": "M09-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M09/README.md; training/ai-assisted-qa-course/exercises/M09/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M09.json; training/ai-assisted-qa-course/states/M09/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/qa-workflow/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-execution/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-reporting/SKILL.md"
+    },
+    {
+      "id": "M09-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M09.json"
+    },
+    {
+      "id": "M09-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M09.json"
+    }
+  ]
+}

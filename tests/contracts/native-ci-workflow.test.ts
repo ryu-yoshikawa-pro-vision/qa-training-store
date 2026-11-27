@@ -93,6 +93,13 @@ const customerLoginSetupFlow = readWorkflow(
 const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
+  it("runs on pull requests and retains the explicit manual full-run trigger", () => {
+    expect(nativeWorkflow).toContain("on:\n  pull_request:\n  workflow_dispatch:");
+    expect(nativeWorkflow).toContain(
+      "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
+    );
+  });
+
   it("disables Husky for Native CI and iOS CI installs", () => {
     expect(nativeWorkflow).toContain('  PNPM_VERSION: 10.34.5\n  HUSKY: "0"\n');
     expect(iosWorkflow).toContain('  PNPM_VERSION: 10.34.5\n  HUSKY: "0"\n');

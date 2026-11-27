@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "module_id": "M05",
+  "revision": "assessment-reference-v1",
+  "source_state_revision": "ai-assisted-qa-course-v3",
+  "reference_only": true,
+  "objective_ids": ["M05-01", "M05-02", "M05-03", "M05-04", "M05-05"],
+  "knowledge_ids": [
+    "K-M05-01",
+    "K-M05-02",
+    "K-M05-03",
+    "K-M05-04",
+    "K-M05-05",
+    "K-M05-06",
+    "K-M05-07",
+    "K-M05-08",
+    "K-M05-09",
+    "K-M05-10",
+    "K-M05-11",
+    "K-M05-12",
+    "K-M05-13",
+    "K-M05-14",
+    "K-M05-15",
+    "K-M05-16"
+  ],
+  "start_state_path": "training/ai-assisted-qa-course/states/M05/start.json",
+  "end_state_path": "training/ai-assisted-qa-course/states/M05/end.json",
+  "artifacts": [
+    {
+      "id": "M05-result-01",
+      "path": "workspace/M05/submission.md",
+      "revision": "M05-result-v1",
+      "contract_id": "M05-to-M06-handoff-v1",
+      "expected_data": {
+        "locator": {
+          "role": "link",
+          "accessible_name": "セラミックマグ"
+        },
+        "href": "/products/product-mug",
+        "test_server_port": 8082,
+        "normal_web_port": 8081,
+        "novnc_port": 6080
+      }
+    },
+    {
+      "id": "M05-result-02",
+      "path": "workspace/M05/product-link.spec.ts",
+      "revision": "M05-result-v1",
+      "contract_id": "M05-to-M06-handoff-v1",
+      "expected_data": {
+        "locator": {
+          "role": "link",
+          "accessible_name": "セラミックマグ"
+        },
+        "href": "/products/product-mug",
+        "test_server_port": 8082,
+        "normal_web_port": 8081,
+        "novnc_port": 6080
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "M05-REF-01",
+      "expectation": "artifact ID/path/revision/contractと期待データがend state・模範に一致する",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/reference-solutions/M05.md"
+    },
+    {
+      "id": "M05-REF-02",
+      "expectation": "学習目標・知識・正本・固定Skill revisionへ追跡できる",
+      "observed": null,
+      "evidence_ref": "docs/curriculum/ai-assisted-qa/modules/M05/README.md; training/ai-assisted-qa-course/exercises/M05/exercise.md; docs/curriculum/ai-assisted-qa/quizzes/M05.json; training/ai-assisted-qa-course/states/M05/end.json; docs/curriculum/ai-assisted-qa/knowledge-graph.json; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-inspection/SKILL.md; ryu-yoshikawa-pro-vision/qa-workflow-skills@7cc6cba7772de549841a39d71694cbafbc783324:skills/e2e-test-implementation/SKILL.md"
+    },
+    {
+      "id": "M05-REF-03",
+      "expectation": "必須観点にpass/partial/reject条件と校正例がある",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/scoring-tests/M05.json"
+    },
+    {
+      "id": "M05-REF-04",
+      "expectation": "参照データで学習者ファイルを復旧・上書きしない",
+      "observed": null,
+      "evidence_ref": "training/ai-assisted-qa-course/assessment/completed-states/M05.json"
+    }
+  ]
+}
