@@ -11,6 +11,8 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 - Repositoryの既存Skill、Harness、validator、rules、Hookを優先し、同じ契約を別文書へコピーしてSSOTを増やさない。
 - default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。force push、未承認の破壊的操作、command-based deletionは行わない。
 - delete / rename / move、Git mutation、外部副作用、権限・credentialを伴う操作は、既存のSafety / Git safety契約と必要な承認に従う。
+- 通常のAI agentによる開発・実装・検証は Linux 環境（WSL2、Linux、GitHub Codespaces等）を対象とする。Windows NativeでのCodex／OpenCode／PowerShell runtime検証は通常の受入条件に含めず、未実施を残件・BLOCKED・missing_validationとして扱わない。Windows launcher、PowerShell scripts、Windows向けCI／互換性は維持する。詳細はimplementation harnessを参照する。
+- Git mutationは既存の安全性制御を通過する通常のGit CLI、または共通安全性判定付きOpenCodeのguarded_gitだけを使う。Hook／sandbox／execpolicyに拒否されたGit mutationをGitHub REST／GraphQL／MCP、gh api、Git library、.git直接編集、任意script、直接ref更新、別agentで代替しない。GitHub read-only APIと明示許可されたPR／Issue metadata操作は許可し、詳細は[Git safety reference](docs/reference/git-branch-safety.md)を正本とする。
 - `apply_patch`は通常のファイル編集に使えるが、削除・rename・moveを許可するものではない。
 - 品質ゲートFAILを原因未確認のまま完了扱いにしない。
 - ユーザー向け出力とRun Artifactは原則日本語で記録する。
@@ -36,7 +38,7 @@ Codex / OpenCodeを含む、このRepositoryで作業するAI Agentは、ユー�
 - Git branch / refspec / recoveryが必要な場合: [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md)。
 - 人間向け文章の言語・表現を判断する場合: [`docs/WRITING_STANDARDS.md`](docs/WRITING_STANDARDS.md)。
 
-このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。実体の`run.json`はmachine-managedとし、Git管理するRun Artifactはcommit前にsanitizerとcredential/security scanを通す。Codex CLIはLinuxのリポジトリrootから`codex`を直接起動する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。`.codex/runs/**`はpreserved legacy/historyとして扱い、移動・削除・書換えを行わない。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
+このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。実体の`run.json`はmachine-managedとし、Git管理するRun Artifactはcommit前にsanitizerとcredential/security scanを通す。Codex CLI等のAI agentはLinux環境のリポジトリrootから起動する。Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、Linux/WSL2のAI agentは`scripts/new-run.sh`を標準経路とする。Windows向けの`scripts/new-run.ps1`は互換経路として保持する。`.codex/runs/**`はpreserved legacy/historyとして扱い、移動・削除・書換えを行わない。初期化方法、Workflow Level、manifest、checkpoint、sanitization等の詳細は`run-artifacts`、implementation harness、Safety referenceへ委譲する。
 
 ## 4. 品質ゲートとrepairの高レベル契約
 

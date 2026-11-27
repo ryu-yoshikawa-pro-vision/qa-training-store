@@ -7,7 +7,7 @@
 
 ## 構成
 
-- `.codex/config.toml`: Codex project config。`workspace-write`、`approval_policy = "never"`、network setting、Hooks、agentsを保持します。
+- `.codex/config.toml`: Codex project config。`workspace-write`、`approval_policy = "on-request"`、network setting、Hooks、agentsを保持します。
 - `.codex/hooks/pre_tool_use_policy.mjs`: 共通PreToolUse command guard。設定matcherはBashのみで、`apply_patch`とMCP toolは対象外です。
 - `.codex/hooks/pre_tool_use_policy_windows.ps1`: Windows native transport launcher。
 - `.codex/rules/*.rules`: 共通execpolicy rules。読み取り系allow、影響の大きい操作へのprompt、破壊的操作のforbiddenを定義します。
@@ -22,11 +22,11 @@ project config/rulesはCodexのproject trust条件を満たす場合に読み込
 
 通常の起動方法はLinuxのプロジェクトルートから直接 `codex` を実行することです。project config/rulesはCodexのproject trust条件を満たす場合に読み込まれ、非managed環境ではHook定義もtrustが必要です。設定済みPreToolUse matcherはBashだけを対象とし、`apply_patch`やMCP toolには適用されません。設定があることだけをruntimeでのHook発火の証拠として扱ってはなりません。
 
-`.codex/config.toml` の `workspace-write`、`approval_policy = "never"`、network setting、Hooks、agentsを維持します。共通のexecpolicyルールは `.codex/rules/*.rules` にあります。`codex execpolicy check` はルール診断であり、Hookのruntime発火確認ではありません。
+`.codex/config.toml` の `workspace-write`、`approval_policy = "on-request"`、network setting、Hooks、agentsを維持します。共通のexecpolicyルールは `.codex/rules/*.rules` にあります。`codex execpolicy check` はルール診断であり、Hookのruntime発火確認ではありません。
 
 ## Direct Codexの制約
 
-このリポジトリにはCLI引数を書き換えたり拒否したりする起動ラッパーはありません。プロジェクト設定の `approval_policy = "never"` では、承認を必要とする操作にローカルの例外承認経路を提供しません。例外・高影響操作はこの設定と共通Hook/execpolicy契約の範囲で扱い、利用者が通常のCodex標準動作で実行できる場合を除き、サポートされた手順とはみなしません。bypass flagによってsandboxやapprovalを無効化しないでください。
+このリポジトリにはCLI引数を書き換えたり拒否したりする起動ラッパーはありません。project configは `approval_policy = "on-request"` ですが、実効runtimeはCLI optionやmanaged policy等で異なる場合があるため、起動後に確認します。実効policyが `on-request` なら該当操作の承認要求経路を利用できますが、`.git`書込みの許可を意味しません。実効policyが `never` の場合は通常の承認要求が出ず、auto-reviewにも届きません。Codex CLIでは、CLI version、runtime、managed policyが許す場合に限り、`--ask-for-approval on-request` または `--approve-for-me` をone-shot起動optionの候補にできます。optionの受理、実効設定、個別操作の承認 / review結果をruntimeで確認してください。sandbox、execpolicy、G10、OS権限等の拒否境界は維持されます。bypass flagでこれらを無効化せず、永続設定の変更にはrepository ownerの明示承認を得てください。Git拒否後の復旧・handoffの詳細は[Git safety reference](git-branch-safety.md)を参照してください。
 
 ## 削除禁止
 
@@ -54,17 +54,24 @@ project config/rulesはCodexのproject trust条件を満たす場合に読み込
 - Full Access 共通ポリシーの正本は `.codex/hooks/pre_tool_use_policy.mjs` のみである。Hookは `PreToolUse` の `^Bash$` matcherで起動し、`tool_input.command` のみを受け取ってポリシーマトリクス（Section 3 Matrix）相当の G1〜G10 および N1〜N4 を判定する。他のtoolには適用されない。
 - Windows ネイティブ環境では、`command_windows` から `.codex/hooks/pre_tool_use_policy_windows.ps1` を経由して Node プロセスへ標準入力（stdin）を転送する。リポジトリルートは、ルート直下およびネストされた作業ディレクトリ（cwd）のいずれからでも解決できるようにする。
 - 不正な形式（malformed）やスキーマ違反の入力に対しては、標準出力（stdout）を空、標準エラー出力（stderr）を非空としたうえで終了コード 2（exit 2）により安全側に倒して拒否（fail-close）する。拒否（deny）時は `hookSpecificOutput.permissionDecision = "deny"` を含む構造化データを出力し、安全（safe）と判定された場合は終了コード 0（exit 0）かつ出力なしとする。
-- Git 操作については、既存のシェル境界内にある個々の Git 呼び出し（invocation）を個別に共通解析し、`git -C <path> <subcommand> ...` のような形式であっても通常形式と同様に G1〜G10 および N1〜N4 のポリシーを適用する。呼び出しの中に 1 つでも DENY（拒否）対象が含まれている場合は、コマンド全体を DENY とする。
-- 複数の `-C <path>` が指定された場合は出現順に累積適用し、後続のパスは直前の有効な作業ディレクトリ（effective cwd）を基準として解決する。コンテキスト未指定時における保護対象ブランチ（protected branch）の判定は、各呼び出しが選択した有効なリポジトリ（effective repository）を対象とする。同一のサブコマンドが複数含まれるコマンドであっても、すべての呼び出しを漏れなく評価する。
+- Git操作では、commandから直接識別したGit invocationにG1〜G10を適用し、command全体にはN1〜N4も適用する。これは任意のshell/scriptを再帰的に解析するものではない。wrapper内の直接Git detectionは拒否判定に使えるが、wrapper内のcontext-sensitive mutationは許可しない。識別したinvocationまたはcommand全体のいずれかがDENY対象ならcommand全体をDENYする。G10の詳細と未解析範囲は [`git-branch-safety.md`](git-branch-safety.md) を正本とする。
+- `git -C <path>`を含むread-only invocationは許可候補である。context-sensitive mutationに`-C`が一つでも含まれる場合は、そのpathを有効repositoryとしてmutationの保護branch contextに使わず拒否する。複数の`-C`を累積してmutation先を解決する契約はない。具体的なG1〜G9の拒否条件が先に該当する場合はその理由を返す。
 - `--git-dir`、`--git-dir=<path>`、`--work-tree`、`--work-tree=<path>` は、リポジトリの参照先を変更するグローバルオプション（repository-changing global option）として区別して扱う。完全な Git CLI パーサーまでは実装せず、commit、merge、cherry-pick、revert、pull、am、push などのコンテキストに依存する変更操作（context-sensitive mutation）では安全側に倒して拒否（fail-close）する一方、読み取り専用の操作（read-only operation）を一律で拒否（blanket deny）することはない。解析不能な Git 呼び出しについては、曖昧なコンテキストのまま ALLOW（許可）することはしない。
 - `^Bash$` Hookが受け取るcommand内の `git` と `git.exe` は同一の Git 実行ファイルとして扱う。サブコマンド以降はクォートを考慮した引数トークン（quote-aware argument token）として評価し、クォートで囲まれた `--force`、`--amend`、`-fd`、`-D`、`HEAD:main` なども、通常の危険なオプションと同様に判定する。
-- push 操作は、明示的かつ一意な単一の refspec を指定した場合のみ ALLOW の候補とし、保護対象の宛先（protected destination）、強制実行や削除（force / delete）、`--all` / `--branches`、マッチング push、ワイルドカード、複数 refspec、リモートや URL・パスのみを指定した暗黙的な push、実行時設定や環境変数によって宛先が変わり得る push などは、すべてフェイルクローズ（fail-close）する。通常の `git fetch` は許可を維持するが、保護対象のローカル ref を宛先とする fetch、`update-ref`、および `worktree add -B` による保護ブランチの変更は DENY とする。
-- `-c`、`--config`、`--config-env` や、インラインの `GIT_DIR`、`GIT_WORK_TREE`、`GIT_CONFIG_*` による実行時セマンティクスの変更は完全には解決せず、コンテキスト依存の変更操作ではフェイルクローズする。なお、完全なシェル／Git パーサーの実装、エイリアスの展開、PowerShell の状態追跡、各種ラッパー、`.git` ディレクトリの直接書き換えへの対応は本ポリシーの対象外である。
-- シェルコマンドの前半に `git switch` やブランチ切り替え形式の `git checkout`、`cd` / `chdir` / `pushd` / `Set-Location` / `sl`、永続的な Git 環境変数の変更があり、その後にコンテキスト依存の Git 変更操作が続く場合は、実行時コンテキストのシミュレーションは行わず、コマンド全体をフェイルクローズする。単独のブランチ切り替え、カレントディレクトリ変更後の読み取り専用 Git 操作、`git config --get` / `--list` などの読み取り専用の設定参照操作はそのまま許可を維持する。
-- 操作単体で拒否理由が確定する G1〜G9 などのルールは、リポジトリのブランチコンテキストが未解決であっても既存の判定結果（deny）を返す。通常の `git fetch origin` など、保護対象のローカル ref への反映を伴わない安全な fetch は ALLOW とし、ブランチコンテキストの解決が必要な変更操作はコンテキスト未解決時に G10 としてフェイルクローズする。
+- push 操作は、明示的かつ一意な単一の refspec を指定した場合のみ ALLOW の候補とし、保護対象の宛先（protected destination）、強制実行や削除（force / delete）、`--all` / `--branches`、マッチング push、ワイルドカード、複数 refspec、リモートや URL・パスのみを指定した暗黙的な push、実行時設定や環境変数によって宛先が変わり得る push などは、すべてフェイルクローズ（fail-close）する。通常の `git fetch` もHook所有checkoutのcanonical root anchorを伴う場合に限りALLOW候補とし、保護対象のローカル ref を宛先とするfetch、`update-ref`、および `worktree add -B` による保護ブランチの変更は DENY とする。
+- context-sensitive mutationでは、Gitのruntime config overrideとrepository等に影響する`GIT_*`環境変数をG10で評価する。細かな対象と例外は [`git-branch-safety.md`](git-branch-safety.md) を正本とする。G10は汎用shell parserではなく、script path／digest allowlist、PATH全体の固定、専用launcherも使用しない。HookはGit以外のtool入力や`.git`への直接filesystem書込みを検査しない。
+- シェルコマンド内でbranch切替や永続的なGit環境変更の後にcontext-sensitive mutationが続く場合、実行時contextのシミュレーションはせず拒否する。cwd変更後のmutationも同様だが、Hook所有checkoutのcanonical rootへ明示的に移動した直後のbare `git`だけをroot anchorとして認める。単独のbranch切替、cwd変更後のread-only Git操作、`git config --get`／`--list`などのread-only設定参照は許可を維持する。
+- 標準script entrypointは、内部がopaqueであることだけを理由にG10で拒否しない。G10がscript内部やchild processのGit mutationを個別に評価したことにはならず、拒否されたmutationをAPIや別経路で実行することも認めない。直接識別の範囲と制約は [`git-branch-safety.md`](git-branch-safety.md) を参照する。
+- G1〜G9など操作単体で確定する拒否はcontext未解決でも優先する。branch/ref-sensitive mutationではcurrent branch、HEAD、remote contextを解決できない場合にG10でfail-closedする。成功した`git remote`一覧が0件なら、ローカル操作はcurrent branchと`main`／`master` fallbackで判定する。remote一覧の取得失敗は未解決として拒否する。configured remoteがある場合、local mutationでは全remoteのdefault HEAD解決が必要であり、pushでは`main`／`master` fallbackと選択した宛先remote自身のdefault HEADだけを保護する。宛先defaultが未解決・danglingなら拒否し、他remoteのdefaultはそのpushの拒否理由にしない。branch listing／verbose listingとworktree prune dry-runはread-onlyでanchor不要だが、verbose flagとmutationを組み合わせてもread-onlyにはならない。詳細と復旧手順は [`git-branch-safety.md`](git-branch-safety.md) を正本とする。canonical root anchorと明示refspec等の既存条件を満たす通常の `git fetch origin` は引き続きALLOW候補とする。ローカルtracking refによる判定はサーバー側default branchやbranch protection設定を証明しない。
 - コンテキスト未解決による G10 の判定は一旦保留して後続の Git 呼び出しも評価し、後続に具体的な拒否理由がある場合はそちらを優先する。すべての呼び出しに具体的な拒否理由がない場合に限り、保留していた G10 を返す。
 - `update-ref -m <reason>` のオプション値、`fetch` や `pull` の `--refmap` / `--stdin`、保護対象ローカル ref の宛先、状態を変更する `git config`、保護ブランチに対する `branch -d` / `--delete` / `-m` / `--move` のターゲットなどをトークン単位で検査し、対象が不明な場合や未対応の構文（unsupported syntax）である場合は、曖昧なコンテキストのまま ALLOW することはない。Bash の行継続（line continuation）や限定的な引用符なしオプションのエスケープは正規化するが、完全なシェル／Git パーサーの実装までは行わない。
 - `.codex/config.toml` では `features.hooks = true` を使用し、非推奨（deprecated）となった `codex_hooks` や過去の PowerShell / Python ポリシーは参照しない。`apply_patch` はマッチャーの対象外であり、共通フック側でその追加・更新・削除・移動（Add / Update / Delete / Move）を検査することはない。
+
+## Git mutationの拒否境界
+
+- G10を含むGit拒否の分類、root anchor、通常CLIでの復旧、lock対応、handoffの正本は [`git-branch-safety.md`](git-branch-safety.md) とする。
+- Hookの許可はCodex sandbox、execpolicy、OS/ACL権限を上書きしない。`.git`等のmetadata更新がsandboxやOS権限で拒否された場合も、同じGit mutationをREST/GraphQL、GitHub MCP、`gh api`、Git database/API、Git library、`.git`直接編集、別script、別agentで実現しない。
+- GitHub read-only APIによる状態確認と、ユーザーが明示的に許可したPR/Issue metadata（本文、label、reviewer等）の管理操作は、commit/object/ref更新と区別して維持する。metadata操作の許可をGit refやcommitの更新へ流用しない。
 
 ## Hook trust運用
 
@@ -129,10 +136,10 @@ echo "$CODEX_HOME"
 
 ### Git更新後の運用
 
-通常の `git pull` やブランチの切り替えを行うたびに、無条件で `/hooks` による確認を要求する必要はありません。フック定義に変更が生じた場合に限り、次の手順で再確認を行います。
+通常のGit更新取得やブランチ切替を行うたびに、無条件で `/hooks` による確認を要求する必要はありません。フック定義に変更が生じた場合に限り、次の手順で再確認を行います。
 
 ```text
-git pull / ブランチ切り替え
+Git更新取得 / ブランチ切り替え
 ↓
 .codex/config.toml のフック定義に追加・変更がある
 ↓
@@ -214,11 +221,11 @@ pnpm run diagnose:hooks
 
 ローカル `lint:text` は `HEAD -> current worktree`（staged、unstaged、untrackedを含む）を比較します。commit／PRのchange gateは、PRではcheckout済みmerge `HEAD` とbase refのmerge-base、pushでは `github.event.before`、schedule／workflow_dispatchでは `HEAD^` を基準とします。変更パス、baseline本文、現在本文、rename mappingには同一の比較treeを使用します。比較不能は違反0件として通過させず、非0終了にします。
 
-限定スコープのHook契約テスト（focused Hook contract）は既存の `tests/contracts/**` を正本とし、次のopt-in入口で実行します。文章品質CLIテストは `test:hooks` と `verify` に含まれますが、セッションHookとしては実行しません。
+限定スコープのHook契約テスト（focused Hook contract）は既存の `tests/contracts/**` を正本とし、`pnpm run test:hooks`または既存CIで実行します。文章品質CLIテストもこのsuiteに含まれますが、セッションHookとしては実行しません。
 
-```bash
-bash scripts/verify --hook-contracts
-```
+`bash scripts/verify --hook-contracts`はHook契約suiteのfocused modeです。G10は渡されたcommand text内で直接識別できるGit invocation/contextだけを評価し、verifyが起動するpackage/test codeや、その内部・child processのGit操作は個別に評価しません。G10が拒否したGit mutationをpackage test commandや別scriptで代替してはなりません。
+
+次のPowerShell例はWindows互換CI契約用です。Windows Nativeでのローカル実行は通常のagent受入条件ではありません。
 
 ```powershell
 ./scripts/verify.ps1 -HookContracts

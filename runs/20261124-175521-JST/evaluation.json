@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "run_id": "20261124-175521-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "既存4件、--points-at分類、最終branch引数分類を限定修正。今回のbranch直接評価38/38 PASS、node --check PASS、限定独立reviewにmust-fixなし。正常payloadは通過しmalformed payloadはexit 2でfail-closed。ローカルVitestは再実行せず、今回snapshotのPrettier/ESLint/security/diff-check結果は回収できていない。最終差分は未commitで、最終HEAD CIとPR本文更新は未完了。Issue #192へ修正内容とCI待ちを追記済み。OpenCode live mutationはHTTP 402で未確認、Windows Native runtimeは対象外。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/git-branch-safety.md",
+          "summary": "Git拒否の分類、正規CLIでの復旧、別checkout移行、API迂回禁止の正本。"
+        },
+        {
+          "kind": "validation_command",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "Codexの承認付き通常Git CLI操作とOpenCode runtime境界を記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はGit安全性制御、診断、運用文書、関連契約テスト、今回のRun成果物に限定した。PR #199、PR #229、製品SUT、mainへの直接変更は行っていない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "今回のbranch直接評価38/38 PASS、node --check PASS、限定独立reviewにmust-fixなし。security:check exit 0、7ファイルsanitizer residual 0、親checkoutでの対象差分git diff --check exit 0。Prettierはexit 0だがrunnerが親差分snapshotを確認できず、今回差分固有の結果とは扱わない。ESLintは60秒無出力でexit 130、Vitestは今回再実行していない。これらを最終HEAD CIで確認する。OpenCode live mutationはHTTP 402で未確認。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "重点契約suiteと隔離Git CLI検証、CI履歴、runtime未確認項目を記録。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "warn",
+      "evidence": "既存安全性判定を変更せず、branch引数分類のみ修正。read-only/anchorless mutation/protected main/direct smoke 38/38 PASS、限定独立reviewにmust-fixなし。Hook trust、sandbox、approval、execpolicyは変更していない。最終HEAD CIは未実施で、OpenCode live mutationはHTTP 402により未確認。"
+    },
+    "reviewability": {
+      "rating": "warn",
+      "evidence": "既存4件、--points-at修正、今回のbranch引数分類差分について独立reviewでmust-fixなし。branch/read-only/mutationの直接評価38/38 PASS。今回の修正後CIは未実行であり、ChatGPTによる最終レビューは未完了。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "Hookeの独立security reviewと修正後の判断を記録。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "script digest、PATH全体固定、script allowlist、汎用shell parserを導入せず、今回の4件を既存Git引数解析・remote context・dry-run分類・test helperへ限定して修正した。標準shell scriptは一律拒否しない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "今回branch分類の直接評価38/38、node --check、security check、7ファイルsanitizer、親checkoutのdiff-checkはPASS。Prettierは親差分snapshot未確認、ESLintは60秒無出力exit 130、Vitest未実行。最終Web/Mobile CIとWindows Hook contractを実際の最終HEADで確認する。実OpenCode live mutationはHTTP 402で未確認。Windows Native runtimeは対象外。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "OpenCode live add/commit/pushはprovider quota HTTP 402のため未確認、再試行しない。branch分類直接評価38/38、node --check、security check、sanitizer、diff-checkはPASS。Prettierはrunnerが親差分snapshotを確認できず、ESLintは60秒無出力exit 130、Vitest未実行。最終差分は未commitで、最終HEAD CIが未確認。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": "runs/20261124-175521-JST/REPORT.md",
+          "summary": "最終修正、環境別suite結果、runtime制約を記録。"
+        }
+      ],
+      "detail": "既存4件と--points-atの回帰を過去のdirect/fixture/Hook contract evidenceで確認済み。今回のbranch引数分類は直接評価38/38、node --check PASS、独立reviewにmust-fixなし。security check、sanitizer、diff-checkはPASS。Prettierの親差分適用は未確認、ESLintは60秒無出力exit 130、Vitestは未実施。最終HEADのWeb/Mobile CI、Contracts、Windows Hook contractを確認する。OpenCode live mutationはHTTP 402で未確認。Windows Native runtimeはユーザー方針により対象外。"
+    }
+  ],
+  "improvement_candidates": []
+}

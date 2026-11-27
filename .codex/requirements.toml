@@ -4,7 +4,7 @@ description = "Repository safety baseline for Codex runs. Prefer sandboxed execu
 
 custom_instructions = """
 Start Codex directly with `codex` from the Linux project root. Project-local configuration and rules load only when the project trust conditions are met; the configured PreToolUse hook definition must also be trusted. Its matcher covers Bash only, not `apply_patch` or MCP tools. The hook implementation is a command guard, not a universal tool authorization layer.
-The project config keeps `workspace-write`, `approval_policy = "never"`, and its configured network setting. Its common execpolicy rules and Codex hooks remain independent safety layers.
+The project config keeps `workspace-write`, `approval_policy = "on-request"`, and its configured network setting. Approval requests do not override sandbox, execpolicy, hook, operating-system, or GitHub authorization checks. Its common execpolicy rules and Codex hooks remain independent safety layers.
 Do not use dangerous bypass flags or unreviewed destructive commands. Normal development Git operations are not blanket-forbidden by the common guard; destructive operations remain subject to the common execpolicy rules and Git safety contract.
 Prefer read-only inspection first, then make ordinary changes within the requested scope and stop for destructive or scope-sensitive operations.
 Project-local file reads and writes are allowed for normal work, but command-based file deletion is forbidden without explicit approval. Use deliberate apply_patch diffs for edits.

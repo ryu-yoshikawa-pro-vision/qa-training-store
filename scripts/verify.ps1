@@ -131,7 +131,7 @@ function Test-TemplateContract {
     foreach ($runContract in @(
         'このRepositoryのtaskでは、lightweightを含むWorkflow Levelに応じたRun Artifactを`runs/<run_id>/`へ残す。',
         "Parent agentがRun Artifactの作成・更新とactive Runの再利用を管理し、childは作成・更新せず結果をParentへ返す。",
-        'Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、`scripts/new-run.sh` / `scripts/new-run.ps1`を標準的な作成経路とする。'
+        'Runの作成方法はWorkflow Levelに応じてimplementation harnessへ従い、Linux/WSL2のAI agentは`scripts/new-run.sh`を標準経路とする。Windows向けの`scripts/new-run.ps1`は互換経路として保持する。'
     )) {
         if ($agents -notmatch [regex]::Escape($runContract)) { throw "AGENTS.md missing Run lifecycle contract: $runContract" }
     }
@@ -156,6 +156,11 @@ function Test-TemplateContract {
     foreach ($rootContract in @(
         "default branch",
         'default branch（`main` / `master`）への直接commit / pushは原則行わない。ユーザーが対象default branchへの直接反映を明示した場合のみ、Git safety referenceの確認条件を満たしたうえで実行対象にできる。',
+        '通常のAI agentによる開発・実装・検証は Linux 環境（WSL2、Linux、GitHub Codespaces等）を対象とする。',
+        'Windows NativeでのCodex／OpenCode／PowerShell runtime検証は通常の受入条件に含めず、未実施を残件・BLOCKED・missing_validationとして扱わない。',
+        'Git mutationは既存の安全性制御を通過する通常のGit CLI、または共通安全性判定付きOpenCodeのguarded_gitだけを使う。',
+        'Hook／sandbox／execpolicyに拒否されたGit mutationをGitHub REST／GraphQL／MCP、gh api、Git library、.git直接編集、任意script、直接ref更新、別agentで代替しない。',
+        'GitHub read-only APIと明示許可されたPR／Issue metadata操作は許可し、詳細は[Git safety reference](docs/reference/git-branch-safety.md)を正本とする。',
         "command-based deletion",
         "failure",
         "baseline",
@@ -303,16 +308,16 @@ function Test-TemplateContract {
         if ($implementationHarness -notmatch [regex]::Escape($implementationContract)) { throw "implementation harness missing file-changing contract: $implementationContract" }
     }
     foreach ($workflowContract in @(
-        'standard` / `strict`では、`scripts/new-run.sh`または`scripts/new-run.ps1`を優先してRunを初期化します。',
-        '`lightweight`でもRun Artifactを残します。',
+        'standard` / `strict` では、Linux／WSL2のAI agentは `scripts/new-run.sh` を標準経路として Run を初期化し、`scripts/new-run.ps1` はWindows互換経路として保持する。Windows Nativeでのローカル受け入れに PowerShell 経路の実行を要求しない。',
+        '`lightweight` レベルであっても Run 成果物（Run Artifact）を残す。',
         '`lightweight` における `PLAN.md`／`TASKS.md`／`REPORT.md` などのエージェント管理成果物（Agent-managed Artifact）は、Parentが必要に応じて管理する。childは作成・更新せず、結果をParentへ返す。',
         '`new-run` を使わずに手動で初期化する場合も、Parentが該当するワークフローレベルで作成すべき成果物に対応した既存テンプレートを元に作成する。',
         '.codex/templates/PLAN.md',
         '.codex/templates/TASKS.md',
         '.codex/templates/REPORT.md',
-        'actual `run.json`はmachine-managedであり、Agentが直接作成・直接編集しません。',
-        '迷う場合は`new-run`を使用し、少なくとも1件のevidence commandを残します。',
-        'Workflow level表の`lightweight`における`run.json`の「任意」は、Run manifest自体が不要な場合があることを示し、存在する`run.json`をAgentが直接作成・編集してよいことを意味しません。'
+        '実体の `run.json` は機械管理（machine-managed）であり、エージェントが直接作成・直接編集することはない。',
+        '判断に迷う場合は `new-run` を使用し、少なくとも1件のエビデンスコマンドを残す。',
+        'ワークフローレベル一覧表の `lightweight` における `run.json` の「任意」は、Run マニフェスト自体が不要となるケースがあることを示すものであり、存在する `run.json` をエージェントが直接作成・編集してよいことを意味しない。'
     )) {
         if ($implementationHarness -notmatch [regex]::Escape($workflowContract)) { throw "implementation harness missing Workflow Level contract: $workflowContract" }
     }
@@ -362,6 +367,10 @@ function Test-TemplateContract {
     }
     if ($implementationHarness -notmatch [regex]::Escape("scripts/new-run.sh")) { throw "implementation harness doc missing bash new-run guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("scripts/new-run.ps1")) { throw "implementation harness doc missing PowerShell new-run guidance" }
+    if ($implementationHarness -notmatch [regex]::Escape('standard` / `strict` では、Linux／WSL2のAI agentは `scripts/new-run.sh` を標準経路として Run を初期化し、`scripts/new-run.ps1` はWindows互換経路として保持する。Windows Nativeでのローカル受け入れに PowerShell 経路の実行を要求しない。')) { throw "implementation harness missing Linux agent entrypoint and PowerShell compatibility boundary" }
+    if ($implementationHarness -notmatch [regex]::Escape('配布元リポジトリ（source repo）のstrict contractは既存の`validate-template` CIで実行する。CI commandは `bash template/scripts/verify --strict-harness` であり、Codex／OpenCodeの通常agent入口として手動実行しない。')) { throw "implementation harness missing CI strict verify command" }
+    if ($implementationHarness -notmatch [regex]::Escape('G10はscript名・path・digestのallowlistやPATH／executable pin、専用launcherを使わず、起動commandから直接識別できるGit invocationやcontextを評価する。')) { throw "implementation harness missing G10 command-context evaluation contract" }
+    if ($implementationHarness -notmatch [regex]::Escape('PowerShell版 `powershell -ExecutionPolicy Bypass -File template/scripts/verify.ps1 -StrictHarness` はWindows互換経路として保持する。Windows Nativeでのローカル実行は受入条件にせず、既存のWindows CIではHook／launcher契約を確認する。')) { throw "implementation harness missing PowerShell compatibility and CI boundary for strict verify" }
     if ($implementationHarness -notmatch [regex]::Escape("--strict-harness")) { throw "implementation harness doc missing strict verify guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("-StrictHarness")) { throw "implementation harness doc missing PowerShell strict verify guidance" }
     if ($implementationHarness -notmatch [regex]::Escape("collect-run-artifacts")) { throw "implementation harness doc missing artifact collector guidance" }
@@ -419,7 +428,7 @@ function Test-TemplateContract {
     $config = Get-Content -Raw .codex/config.toml
 
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
-    if ($config -notmatch [regex]::Escape('approval_policy = "never"')) { throw "config missing never approval policy" }
+    if ($config -notmatch [regex]::Escape('approval_policy = "on-request"')) { throw "config missing on-request approval policy" }
     if ($config -notmatch [regex]::Escape('web_search = "cached"')) { throw "config missing cached web_search" }
     if ($config -notmatch [regex]::Escape('network_access = true')) { throw "config missing enabled workspace-write network" }
     $project = Get-Content -Raw codex-project.toml
@@ -448,7 +457,7 @@ function Test-TemplateContract {
     )) {
         if ($commonPromptRules -notmatch [regex]::Escape($command)) { throw "common prompt rules missing $command" }
     }
-    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern 'direct sessions with `approval_policy = "never"` reject these operations')) { throw "rules README missing direct-session prompt behavior" }
+    if (-not (Select-String -LiteralPath '.codex/rules/README.md' -SimpleMatch -Quiet -Pattern '`approval_policy = "on-request"` can request approval for supported operations')) { throw "rules README missing on-request prompt behavior" }
     $projectMetadata = Get-Content -Raw codex-project.toml
     foreach ($contract in @(
         'apply_patch_file_edits = "allowed_in_direct_workspace_write_within_parent_defined_scope"',
@@ -474,7 +483,7 @@ function Test-TemplateContract {
         if ($implementation -notmatch [regex]::Escape($contract)) { throw "implementation harness missing direct / strict contract: $contract" }
     }
     foreach ($contract in @(
-        'approval_policy = "never"',
+        'approval_policy = "on-request"',
         'Bashだけ',
         'trustが必要',
         'direct `codex`'
@@ -484,7 +493,7 @@ function Test-TemplateContract {
     foreach ($path in @('docs/guides/quickstart.md', 'MIGRATION.md', 'docs/PROJECT_CONTEXT.md')) {
         $content = Get-Content -Raw $path
         if ($content -notmatch [regex]::Escape('--no-run-manifest') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct Run initialization contract" }
-        if ($content -notmatch [regex]::Escape('approval_policy = "never"') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct approval contract" }
+        if ($content -notmatch [regex]::Escape('approval_policy = "on-request"') -and $path -ne 'docs/PROJECT_CONTEXT.md') { throw "$path missing direct approval contract" }
     }
     if ((Get-Content -Raw docs/PROJECT_CONTEXT.md) -notmatch [regex]::Escape('Codex direct interactive default')) { throw "PROJECT_CONTEXT missing direct interactive section" }
     if ($config -notmatch [regex]::Escape('[agents]')) { throw "config missing agents section" }

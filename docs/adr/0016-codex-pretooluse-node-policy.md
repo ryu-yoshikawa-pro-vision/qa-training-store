@@ -20,3 +20,8 @@ Windows nativeのinstalled Codex `0.147.0`では、project Hookを現行の`PreT
 - Full Access routeでも通常開発を実質的な制限モードへ戻さず、明確な破壊操作だけを共通Hookで拒否できる。
 - Git CLI全体のparser、shell parser、alias／plumbingの網羅、child process監視、敵対的bypass対策は保証対象外である。
 - Windows nativeがRequired acceptanceであり、macOS／Linuxはbest-effort compatibilityとする。
+
+## Current operational scope (2026-11-25)
+
+- 上記のWindows Native acceptance方針は、このADRの決定時点における運用条件を記録する。現在の通常のAI agent実行・検証環境はLinux（WSL2、Linux、GitHub Codespaces等）であり、Windows NativeでのCodex／OpenCode／PowerShell runtime検証は通常の受入条件に含めず、未実施を残件や`missing_validation`として扱わない。この運用方針は、上記の受入条件だけを置き換える。
+- Node policyを共通の正本とする決定、Bash-only matcher、Windows `command_windows` transport-only PowerShell launcher、およびWindows向けスクリプト・CI・互換性契約は引き続き維持する。Windows固有動作は既存のWindows CI契約で確認する。
