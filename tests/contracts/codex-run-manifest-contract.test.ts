@@ -74,6 +74,7 @@ function runCollector(
   strict = false,
   expectFailure = false,
   evaluationContents?: string | ((runId: string) => string),
+  excludeChangedFiles: string[] = [],
 ) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-contract-"));
   const fixtureCollectorPath = copyCollectorToFixture(tempRoot);
@@ -130,6 +131,9 @@ function runCollector(
     if (refreshGitChangedFiles) {
       args.push("--refresh-git-changed-files");
     }
+    for (const excludedPath of excludeChangedFiles) {
+      args.push("--exclude-changed-file", excludedPath);
+    }
     if (strict) {
       args.push("--strict");
     }
@@ -151,7 +155,7 @@ function runGit(cwd: string, args: string[]) {
   }
 }
 
-function runCollectorInTemporaryGitRepository() {
+function runCollectorInTemporaryGitRepository(excludeChangedFiles: string[] = []) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-git-contract-"));
   const temporaryCollectorPath = path.join(tempRoot, "scripts", "collect-run-artifacts.py");
   const runId = nextRunId();
@@ -211,11 +215,14 @@ function runCollectorInTemporaryGitRepository() {
   );
 
   try {
-    const result = spawnSync(
-      process.platform === "win32" ? "python" : "python3",
-      [temporaryCollectorPath, "--run-id", runId, "--refresh-git-changed-files"],
-      { cwd: tempRoot, encoding: "utf8" },
-    );
+    const args = [temporaryCollectorPath, "--run-id", runId, "--refresh-git-changed-files"];
+    for (const excludedPath of excludeChangedFiles) {
+      args.push("--exclude-changed-file", excludedPath);
+    }
+    const result = spawnSync(process.platform === "win32" ? "python" : "python3", args, {
+      cwd: tempRoot,
+      encoding: "utf8",
+    });
     if (result.status !== 0) {
       throw new Error(`collector failed: ${result.stderr ?? result.stdout}`);
     }
@@ -743,10 +750,19 @@ describe("run manifest v2 contract", () => {
       false,
       true,
       true,
+      false,
+      (runId) =>
+        `${JSON.stringify({
+          ...validEvaluation(runId),
+          result: "partial",
+          primary_failure_category: "missing_validation",
+          failure_categories: ["missing_validation"],
+        })}\n`,
     );
 
     expect(manifest.artifact_summary.evaluation_present).toBe(true);
     expect(manifest.validation.warnings).toEqual([]);
+    expect(manifest.primary_failure_category).toBe("missing_validation");
   });
 
   it("does not import primary_failure_category from a schema-invalid strict evaluation", () => {
@@ -848,6 +864,26 @@ describe("run manifest v2 contract", () => {
     ]);
   });
 
+  it("excludes normalized exact changed-file paths from the existing manifest", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        changed_files: ["excluded/path.txt", "excluded/path.txt.backup", "keep.txt"],
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      undefined,
+      ["excluded\\path.txt", "keep.txt"],
+    );
+
+    expect(manifest.changed_files).toEqual(["excluded/path.txt.backup"]);
+  });
+
   it("points evaluation_path at the new run root and clears stale paths when absent", () => {
     const withEvaluation = runCollector(
       {
@@ -891,6 +927,20 @@ describe("run manifest v2 contract", () => {
     expect(changedFiles).not.toContain(".codex/runs/observed/ignored file.txt");
     expect(changedFiles).not.toContain("runs/observed/ignored file.txt");
     expect(manifest.status).toBe("running");
+  });
+
+  it("excludes paths from both the existing manifest and refreshed Git changes", () => {
+    const manifest = runCollectorInTemporaryGitRepository([
+      "existing.txt",
+      "untracked 日本語 file.txt",
+    ]);
+    const changedFiles = manifest.changed_files as string[];
+
+    expect(changedFiles).not.toContain("existing.txt");
+    expect(changedFiles).not.toContain("untracked 日本語 file.txt");
+    expect(changedFiles).toContain("staged 日本語 file.txt");
+    expect(changedFiles).toContain("unstaged 日本語 file.txt");
+    expect(changedFiles).toContain("duplicate file.txt");
   });
 
   it("returns a failure when Git refresh cannot execute", () => {
