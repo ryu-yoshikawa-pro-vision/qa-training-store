@@ -153,3 +153,10 @@
 - 修正範囲を3つのcontract testファイルに限定する。Hook/Pluginの安全性判定、fixtureの許可・拒否期待値、既定test timeout、Windows互換CIは変更しない。修正後の型検査、Contracts、Windows Hook contractを最終HEAD CIで確認する。
 - 独立reviewは提示差分にmust-fixなしとしたが、実行確認はしていない。ローカルtypecheckは60秒無出力で停止、focused Vitestは完了結果を返さず、Prettierは未実行。最終CI結果が出るまではこれらをPASSと扱わない。
 - 実OpenCode live mutationはprovider quota HTTP 402で未確認、再試行しない。Windows Native runtimeは受入対象外。PR #230とIssue #192はOPENのまま維持し、修正後CIを確認してから本文を更新する。
+
+## 15. 2026-11-27 最終レビュー後の限定修正
+
+- 最終レビューで残った必須対応はbranch引数分類1件。branch list selector、表示形式、実際のbranch作成を区別し、anchor要件とprotected branch作成拒否を維持する。
+- 表示形式だけのread-only操作、`--column`／`--no-column`、inline `--column=<style>`後のoperandを含む非保護branch作成、anchorless作成、protected branch作成を既存contract testで確認する。`-l`は現在のGit helpで`--list`と確認済みのためlist selectorとして維持する。
+- 実装対象は既存Hookのbranch引数解析と対応testに限定する。remote名の特殊構成、shell全体の解析、digest/PATH pin、既存sandboxやOpenCode認証の再調査は今回の対象外。
+- Linux/WSL上の必要な直接評価・品質検証と独立review後、Run記録、Issue #192、PR #230を実測へ更新し、通常Git CLIによるcommit/pushと最終HEADのWeb/Mobile CI確認を行う。PR/IssueはOPENのままとし、ChatGPTの最終受入判断へ引き渡す。

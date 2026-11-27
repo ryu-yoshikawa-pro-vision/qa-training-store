@@ -1827,13 +1827,17 @@ function getBranchMutation(argumentsList) {
   let mode = null;
   let endOfOptions = false;
   let listRequested = false;
+  let listScopeRequested = false;
+  let displayOnlyRequested = false;
   let verbose = false;
+  let forceOperation = false;
   let copyOperation = false;
   let trackingOperation = false;
   let upstreamOperation = false;
   const targets = [];
   const unknownOptions = [];
-  const optionsWithValue = new Set(["--contains", "--format", "--merged", "--no-contains", "--no-merged", "--points-at", "--sort"]);
+  const optionalCommitOptions = new Set(["--contains", "--merged", "--no-contains", "--no-merged"]);
+  const requiredValueOptions = new Set(["--format", "--points-at", "--sort"]);
 
   for (let index = 0; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
@@ -1856,6 +1860,10 @@ function getBranchMutation(argumentsList) {
     }
     if (argument === "-c" || argument === "-C" || lowerArgument === "--copy") {
       copyOperation = true;
+      continue;
+    }
+    if (argument === "-f" || lowerArgument === "--force") {
+      forceOperation = true;
       continue;
     }
     if (argument === "-t" || lowerArgument === "--track" || lowerArgument.startsWith("--track=")) {
@@ -1890,23 +1898,73 @@ function getBranchMutation(argumentsList) {
       }
       const optionName = lowerArgument.split("=", 1)[0];
       if (optionName === "--color") {
-        listRequested = true;
+        displayOnlyRequested = true;
         continue;
       }
-      if (optionsWithValue.has(optionName)) {
-        listRequested = true;
-        if (!lowerArgument.includes("=") && argumentsList[index + 1] === undefined) return { parseError: "missing branch option value" };
-        if (!lowerArgument.includes("=")) index += 1;
+      if (optionName === "--no-color") {
+        displayOnlyRequested = true;
         continue;
       }
-      if (lowerArgument === "--force" || lowerArgument === "-d" || lowerArgument === "-m") continue;
-      if (/^-(?:[lv]+)$/.test(lowerArgument)) {
+      if (optionName === "--column" || lowerArgument === "--no-column") {
+        displayOnlyRequested = true;
+        continue;
+      }
+      if (optionalCommitOptions.has(optionName)) {
+        listRequested = true;
+        const hasInlineValue = lowerArgument.includes("=");
+        if (hasInlineValue && argument.endsWith("=")) {
+          return { parseError: "missing branch option value" };
+        }
+        if (!hasInlineValue) {
+          const nextArgument = argumentsList[index + 1];
+          if (nextArgument !== undefined && nextArgument !== "--" && !nextArgument.startsWith("-")) {
+            index += 1;
+          }
+        }
+        continue;
+      }
+      if (requiredValueOptions.has(optionName)) {
+        if (optionName === "--points-at") listRequested = true;
+        else displayOnlyRequested = true;
+        const hasInlineValue = lowerArgument.includes("=");
+        if (
+          (hasInlineValue && argument.endsWith("=")) ||
+          (!hasInlineValue && (argumentsList[index + 1] === undefined || argumentsList[index + 1] === "--"))
+        ) {
+          return { parseError: "missing branch option value" };
+        }
+        if (!hasInlineValue) index += 1;
+        continue;
+      }
+      if (lowerArgument === "-d" || lowerArgument === "-m") continue;
+      if (/^-(?:a|r)v*$/.test(lowerArgument)) {
+        listScopeRequested = true;
+        if (lowerArgument.includes("v")) {
+          verbose = true;
+          displayOnlyRequested = true;
+        }
+        continue;
+      }
+      if (/^-([flv]+)$/.test(lowerArgument)) {
         if (lowerArgument.includes("l")) listRequested = true;
-        if (lowerArgument.includes("v")) verbose = true;
+        if (lowerArgument.includes("v")) {
+          verbose = true;
+          displayOnlyRequested = true;
+        }
+        if (lowerArgument.includes("f")) forceOperation = true;
+        continue;
+      }
+      if (["--all", "--remotes"].includes(lowerArgument)) {
+        listScopeRequested = true;
         continue;
       }
       if (lowerArgument === "--list") {
         listRequested = true;
+        continue;
+      }
+      if (lowerArgument === "--verbose") {
+        verbose = true;
+        displayOnlyRequested = true;
         continue;
       }
       if (lowerArgument === "--show-current") {
@@ -1923,7 +1981,10 @@ function getBranchMutation(argumentsList) {
     mode,
     targets,
     listRequested,
+    listScopeRequested,
+    displayOnlyRequested,
     verbose,
+    forceOperation,
     copyOperation,
     trackingOperation,
     upstreamOperation,
@@ -1986,11 +2047,11 @@ function getBranchCreationTarget(invocation, context) {
   const branchArguments = getInvocationArguments(invocation, "branch");
   if (branchArguments !== null) {
     const parsed = getBranchMutation(branchArguments);
-    const hasCreationOperation = parsed.copyOperation || parsed.trackingOperation;
+    const hasCreationOperation = parsed.copyOperation || parsed.trackingOperation || parsed.forceOperation;
     if (
       parsed.parseError ||
       parsed.mode ||
-      (!hasCreationOperation && (parsed.listRequested || parsed.upstreamOperation))
+      (!hasCreationOperation && (parsed.upstreamOperation || parsed.listRequested))
     ) {
       return null;
     }
@@ -2145,13 +2206,16 @@ function isReadOnlyGitInvocation(invocation) {
       parsed.mode ||
       parsed.copyOperation ||
       parsed.trackingOperation ||
-      parsed.upstreamOperation
+      parsed.upstreamOperation ||
+      parsed.forceOperation
     ) {
       return false;
     }
     if (getBranchCreationTarget(invocation, EMPTY_CONTEXT) !== null) return false;
     if (parsed.listRequested) return true;
-    return parsed.targets.length === 0 && (argumentsList.length === 0 || parsed.verbose);
+    if (parsed.listScopeRequested && parsed.targets.length === 0) return true;
+    return parsed.targets.length === 0 &&
+      (argumentsList.length === 0 || parsed.verbose || parsed.displayOnlyRequested);
   }
   if (invocation.subcommand === "worktree") {
     return argumentsList[0]?.toLowerCase() === "list" || isWorktreePruneDryRun(argumentsList);

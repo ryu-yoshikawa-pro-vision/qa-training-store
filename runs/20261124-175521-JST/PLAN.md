@@ -87,3 +87,11 @@
 - 最新ローカルHook suite: 173件中172件成功、1件は個別testの既定5秒timeout（worker起動失敗ではない）。同一suiteを再実行せず、関連契約をGitHub Actionsで確認する。`--points-at`を含むfocused testは1件PASS。以前の173/173は別実行時点の結果として履歴に保持し、今回の最新結果を置き換えない。
 - OpenCode live mutationはprovider quota HTTP 402により未確認。再試行しない。Windows Native runtime検証は対象外とし、Windows CI/互換性は維持する。
 - 次: Hook import/payload smoke、独立contract/diagnostics/manifest suites、Run collector/sanitizer/security scan、Issue/PR metadata更新、正規Git CLI commit/push、最終HEAD CI。PR/IssueはOPENのまま、merge/closeしない。
+
+## 2026-11-27 最終レビュー後の限定修正
+
+- 必須対応はbranch引数分類の残り1件。表示形式オプションと一覧指定を区別し、オプション値・branch operand、`--`後の引数を既存解析の範囲で分類する。
+- `-l`はローカルGit 2.56.1のhelpで`--list`と確認したため、一覧指定として維持する。`--create-reflog`とは混同しない。
+- anchorなしread-only一覧、`--column`／`--no-column`、inline `--column=<style>`後のoperandを含む正常な非保護branch作成、anchorless作成拒否、protected branch作成拒否を既存Hook contractで確認する。root anchorと既存rename/delete/copy/tracking保護は維持する。
+- 今回の判断対象外: remote名の特殊な共存、まれなGit option組合せ、任意shell parser、digest/PATH pin、OpenCode provider再試行、Windows Native実機検証。既存Windows Hook CIと互換コードは維持する。
+- この差分の直接評価・品質検証・独立review後、Run/Issue/PRを実測へ同期し、通常Git CLIでcommit/push、最終HEADのWeb/Mobile CIを確認する。

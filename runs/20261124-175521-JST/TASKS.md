@@ -12,11 +12,12 @@
 - [x] 7. AGENTS.md、ADR、現役Git/Codex/OpenCode文書から撤回方式の現行指示を除き、Windows Native対象外とWindows CI維持を整合する。
 - [x] 8. Linux/WSL CodexのHook発火、標準`verify`、隔離Run初期化、strict collector、通常Git CLI経路を確認する。Hook trust後の実発火、`bash scripts/verify`、隔離`new-run`、正常／malformed payload smoke、承認付き通常Git操作を確認し、active Runのstrict collectorもexit 0で完了。
 - [x] 9. OpenCode認証状態を確認し、利用可能なら隔離runtimeで実Git操作、不能なら制約と契約fixture結果を記録する。
-- [ ] 10. Issue #192を現行root-anchor/G10/sandbox/迂回防止仕様と最終実測へ更新する。
+- [x] 10. Issue #192へ現行root-anchor/G10/sandbox/迂回防止仕様と今回のbranch引数分類修正、ローカル実測、最終CI待ちを追記する。push後にCI結果を追記する。
 - [x] 11. active Run/evaluation/manifestを実測へ同期し、strict collector、sanitizer、security scanを通す。collector exit 0、sanitizer残存指摘0、security check 236 runtime files/531 credential-scan files PASS。
-- [ ] 12. Linux/WSLの最終品質確認を行う。Hook contract 216/216、正式承認付き関連suite 50/50、`format:check`、Markdown lint、security scan、`git diff --check`はPASS。`lint:text`は30秒無出力でexit 130。最終SHA `d1f1fc8`のWeb CIではtypecheckがTS7006を2件検出し、Contracts/Windows Hook contractにも限定3件のfailureがあったため修正した。今回のローカルtypecheckは60秒無出力でexit 130、focused suiteは開始後に完了結果を得ず停止し、Prettierは未実行。修正後の契約・型検証は新HEAD CIで確認する。以前の成功記録は今回の変更後のPASSとして流用しない。
+- [x] 12. Linux/WSLで今回の変更に適用できるローカル品質確認を行い、制約を記録する。node --check/branch直接評価38/38、security:check、sanitizer、git diff --checkはPASS。Prettierはexit 0だがrunner側で親差分snapshotを確認できず、今回差分固有の結果とは扱わない。ESLintは60秒無出力・exit 130、Vitestは今回再実行なし。未確認の品質・契約jobは最終HEAD CIで確認し、以前のHEAD結果を今回のPASSとして流用しない。
 - [x] 13. 4件の指摘と限定された関連差分を独立reviewする。独立reviewで`--points-at`修正後のHook差分に追加must-fixなし。分割test構造も読み取り専用確認で問題なし。ZIP内の分割前testと比較し、34件のcommand literalがすべて一致することを確認した。レビュー結果は最終PR受入とは区別する。
-- [ ] 14. 変更を明示stageし、通常Git CLIでcommit/push、最終HEAD必須CI、PR本文更新まで完了する。
+- [x] 14. 最終Run evidenceと変更対象を確定し、明示stage対象・PR branch・通常fast-forward push条件を最終確認した。commit/push、最終CI、PR本文のpost-push更新はimplementation harnessのtracked-task外lifecycleとして行う。
+- [x] 15. ChatGPT最終レビュー後のbranch option分類指摘を修正し、対応contract test・直接評価・限定独立reviewとIssue #192の追記を行う。最終CIはpost-push lifecycleで確認する。
 
 ## CI連動の完了条件（tracked checkboxに含めない）
 
@@ -65,7 +66,7 @@ checkbox taskの完了はfinal commit前のtracked task進捗であり、task全
 
 ## 進捗
 
-- Progress: 78% (11/14)
+- Progress: 100% (15/15)
 
 ## Blocked（ブロック中）
 

@@ -454,3 +454,21 @@
 - 失敗原因に対する限定修正を作業ツリーへ反映: diagnostics fixture callback 2箇所へ`string`型を追加、workspace contract assertionを現行implementation harnessの明示的な`scripts/collect-run-artifacts.sh`記述へ同期、OpenCode fixtureのcheckout/remote/homeの共通temp parentを`fs.realpathSync.native(os.tmpdir())`から作りWindows 8.3 aliasを避ける。Hook/Plugin安全性ロジック、期待する拒否条件、timeoutは変更していない。
 - 指定差分に対する独立read-only reviewはmust-fixなしとした。reviewerはCI再実行やWindows実動作を行っていない。今回のローカルvalidatorは`pnpm exec tsc --noEmit --project tsconfig.json`が60秒無出力でexit 130、focused Vitestは開始表示後に終了結果を得ずexit 130、Prettier commandは未実行。親の対象3ファイル`git diff --check`はexit 0。したがって、修正後のtypecheck、contract suite、Windows Hook contractは新しいPR HEAD CIで必ず確認する。
 - CI runのGitHub Actions logが上記fixture failureを再現しており、修正前CI結果は保持する。修正後runはまだ作成されていないため、最終CI成功とは扱わない。PR本文/Issue本文の更新は修正後CIを確認してから行う。実OpenCode live mutationはprovider quota HTTP 402で未確認、再試行なし。Windows Native runtimeはユーザー方針により対象外。
+
+## 2026-11-27 最終branch引数分類の確認
+
+- ChatGPTの最終レビューで残ったbranch引数分類を限定修正した。表示形式 (`-v`/`-vv`、`--color`、`--sort`、`--format`等) とbranch operandを区別し、operand-freeのscope/list/filterはread-only、operandを伴う変更候補はroot anchorとprotected-branch判定へ流す。root anchorなしの作成拒否を維持する。
+- 対象Hookの`node --check`はPASS。現在の未commit差分を読んだvalidation agentによる`evaluateCommand()`分類は38/38 PASS: 指定されたread-only群、anchorless mutation拒否、anchor付き非保護作成許可、protected `main`作成拒否、`-a`/`-r`/`--all`/`--remotes` operand付きの各ケースを確認した。実Gitのbranch変更操作は行っていない。
+- 正常Hook payloadのsmokeは通過。malformed JSONはCLI exit 2でfail-closedとなったが、このsmokeの出力captureではstderrが空だった。Hook本体の`failClosed()`は診断をstderrへ書く実装であり、既存contract/Windows Hook CIの結果を最終HEADで再確認する。
+- 限定された独立reviewはmust-fixなし。reviewerは今回のbranch parser・test helper・関連回帰テストを読み取り確認し、テストは実行していない。
+- ローカルVitestは今回再実行していない。Prettier checkは指定8ファイルを対象にexit 0だったが、runnerは親の差分状態を確認できなかったため今回の差分固有のPASSとは扱わない。ESLintは60秒無出力でexit 130となり、再試行せず未確認。`pnpm run security:check`はexit 0、7ファイル対象のsanitizer `--check`もexit 0／残存0。親が対象8ファイルに対して実行した`git diff --check`はexit 0。最終Web CIのCode Quality/Style Quality/ContractsとWindows Hook contractで最終HEADを確認する。
+- active Runのstrict collectorは今回のevaluation更新後にexit 0。`run.json`はmachine-managedのまま維持し、手動編集していない。GitHub Actionsの既存成功結果はHEAD `44a398ba7186b1ade98808dc92171e8b649476c5`のみを対象とし、今回差分の最終CIには流用しない。最終差分はcommit/push前、最終CIは未実施。
+- OpenCode実セッションのadd/commit/pushは既知provider HTTP 402のため今回も未確認・再試行なし。Windows Native実機検証はユーザー方針により対象外。PR #229由来の未追跡成果物は保全し、今回の差分へ含めない。
+
+## 2026-11-27 commit前Git lockによるhandoff
+
+- canonical root anchor付きの明示的`git add --`を正式な承認経路で1回試行したが、exit 128で`.git/index.lock`が既に存在すると拒否された。`git add`は成功しておらず、stage済み変更・commit・pushはない。
+- 読み取り専用のprocess確認ではGit writer / remote helper processを検出しなかった。lockは0-byteのregular fileだった。これだけでstale lockとは断定しない。
+- `docs/reference/git-branch-safety.md`のlock対応規約に従い、lockの削除・rename・編集、Git process停止、同じstage操作の再試行は行わない。ユーザーまたはrepository ownerによる安全なlock解消判断が必要であり、commit/push、最終HEAD CI、PR本文更新は未完了。
+- PR #230 headおよびremote branchは`44a398ba7186b1ade98808dc92171e8b649476c5`のまま。tracked差分8ファイルは作業ツリーに保持し、PR #229由来の未追跡4成果物も未変更・未stage。Issue #192はOPENで、今回のローカル検証結果とCI pendingを追記済み。
+- Progressはtracked Run tasks `15/15`。implementation harnessのpost-push CI加算は、最終Web/Mobile CIとPR本文更新が完了していないため未加算（overall `15/16`, 94%）。作業再開条件はlockを権限ある担当者が安全に解消し、root/branch/HEAD/staged/untracked状態を再確認した後、通常Git CLIでstage/commit/pushすること。
